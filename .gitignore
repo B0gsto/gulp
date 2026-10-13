@@ -1,0 +1,9 @@
+.DS_Store
+*.rbxl.lock
+*.rbxlx.lock
+/Packages/
+/ServerPackages/
+/build/
+sourcemap.json
+*.blend1
+/research_notes/
