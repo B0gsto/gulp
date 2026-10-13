@@ -1,0 +1,11 @@
+# Selene standard library for the pure modules (docs/09-technical-architecture.md, section 4.4):
+# plain Luau, so any Roblox global (game, workspace, Instance, Vector3, CFrame, task, ...) is an
+# undefined variable there. The MicroProfiler labels of section 4.7 are the one addition.
+base: luau
+name: pure
+globals:
+  debug.profilebegin:
+    args:
+      - type: string
+  debug.profileend:
+    args: []

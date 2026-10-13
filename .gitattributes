@@ -1,0 +1,36 @@
+# Text is stored with LF line endings.
+* text=auto eol=lf
+
+# Git LFS for the binaries under assets/ (docs/09-technical-architecture.md, section 2.1).
+# Text stays in plain Git: manifest.csv, loc/strings.csv, licences, .json, .md and .py files.
+# 3D sources and exports
+assets/**/*.blend filter=lfs diff=lfs merge=lfs -text
+assets/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+assets/**/*.obj filter=lfs diff=lfs merge=lfs -text
+assets/**/*.glb filter=lfs diff=lfs merge=lfs -text
+assets/**/*.gltf filter=lfs diff=lfs merge=lfs -text
+assets/**/*.abc filter=lfs diff=lfs merge=lfs -text
+# Images and textures
+assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+assets/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+assets/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+assets/**/*.tga filter=lfs diff=lfs merge=lfs -text
+assets/**/*.exr filter=lfs diff=lfs merge=lfs -text
+assets/**/*.hdr filter=lfs diff=lfs merge=lfs -text
+assets/**/*.psd filter=lfs diff=lfs merge=lfs -text
+assets/**/*.kra filter=lfs diff=lfs merge=lfs -text
+assets/**/*.webp filter=lfs diff=lfs merge=lfs -text
+# Audio and video
+assets/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+assets/**/*.wav filter=lfs diff=lfs merge=lfs -text
+assets/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+assets/**/*.flac filter=lfs diff=lfs merge=lfs -text
+assets/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+assets/**/*.mov filter=lfs diff=lfs merge=lfs -text
+# Roblox binaries (assets/place holds the weekly copy of the world place)
+assets/**/*.rbxl filter=lfs diff=lfs merge=lfs -text
+assets/**/*.rbxm filter=lfs diff=lfs merge=lfs -text
+# Fonts and archives
+assets/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+assets/**/*.otf filter=lfs diff=lfs merge=lfs -text
+assets/**/*.zip filter=lfs diff=lfs merge=lfs -text

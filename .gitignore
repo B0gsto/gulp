@@ -1,9 +1,18 @@
-.DS_Store
-*.rbxl.lock
-*.rbxlx.lock
+# Build outputs and tool caches
+/build/
+/sourcemap.json
+/.cache/
 /Packages/
 /ServerPackages/
-/build/
-sourcemap.json
+
+# Agent locks (docs/09-technical-architecture.md, section 2.5)
+/.locks/
+
+# Studio, Blender, Python and macOS leftovers
+*.rbxl.lock
+*.rbxlx.lock
 *.blend1
+__pycache__/
+.DS_Store
+
 /research_notes/
