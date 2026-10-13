@@ -1,0 +1,49 @@
+// Rojo: complete code-only place for CI (docs/09-technical-architecture.md, sections 3.1 and 17.1).
+// Same mappings as default.project.json, $ignoreUnknownInstances left at its default, plus a
+// Workspace with a small flat test arena, so `rojo build ci.project.json -o build/ci.rbxl` is a
+// complete place with no art. Workspace settings follow section 15.4.
+{
+  "name": "gulp-ci",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedFirst": { "Boot": { "$path": "src/first" } },
+    "ReplicatedStorage": {
+      "Shared": { "$path": "src/shared" }
+      // "Packages": { "$path": "Packages" } // add with the first Wally dependency
+    },
+    "ServerScriptService": { "Server": { "$path": "src/server" } },
+    "StarterPlayer": {
+      "StarterPlayerScripts": { "Client": { "$path": "src/client" } }
+    },
+    "Players": { "$properties": { "CharacterAutoLoads": false } },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true,
+        "ModelStreamingBehavior": "Improved",
+        "StreamingIntegrityMode": "PauseOutsideLoadedArea",
+        "StreamingMinRadius": 128,
+        "StreamingTargetRadius": 512,
+        "StreamOutBehavior": "Opportunistic",
+        "AuthorityMode": "Automatic",
+        "SignalBehavior": "Deferred",
+        "PhysicsSteppingMethod": "Adaptive",
+        "FallenPartsDestroyHeight": -5000,
+        "Gravity": 196.2
+      },
+      "Arena": {
+        "$className": "Model",
+        "Floor": {
+          "$className": "Part",
+          "$properties": {
+            "Anchored": true,
+            "Size": [512, 4, 512],
+            "CFrame": [0, -2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], // position, then the rotation matrix
+            "Material": "Sand",
+            "TopSurface": "Smooth",
+            "BottomSurface": "Smooth"
+          }
+        }
+      }
+    }
+  }
+}

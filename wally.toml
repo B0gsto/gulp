@@ -1,0 +1,12 @@
+# No runtime dependencies (docs/09-technical-architecture.md, section 2.3). A package is added only
+# when it replaces more than 200 lines of our own code, and it is added to the bible's table first.
+[package]
+name = "b0gsto/gulp"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+private = true
+
+[dependencies]
+
+[server-dependencies]
