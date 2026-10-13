@@ -1,0 +1,5 @@
+# The Selene half of the dependency rule (docs/09-technical-architecture.md, section 4.4).
+# tools/check.luau runs `selene` from this directory over src/shared/Logic, Sim, Net/Codec and
+# Data only, with the pure-Luau standard library in pure.yml. Selene looks for a custom standard
+# library in its working directory, which is why this pair has a directory of its own.
+std = "pure"
