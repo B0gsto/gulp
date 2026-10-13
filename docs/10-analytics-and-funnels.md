@@ -98,8 +98,8 @@ A/B tests read values with `ConfigService:GetConfigForPlayerAsync(player)` and t
 | Custom fields | 3 | Verified | Fixed meaning for each (2.4) |
 | Custom field values | 8,000 unique combinations across the three fields; beyond that, values are grouped as "Other" | Verified | Worst case 6,368 (2.4) |
 | Currencies | 10 on the limits page; 5 on the economy events page | The two pages disagree | We use 1 (`Pearls`) |
-| Transaction types | Unlimited; beyond 20 grouped as "Other" | Verified | 14 |
-| Item SKUs | Unlimited; beyond 100 grouped as "Other" | Verified | At most 90 (section 5) |
+| Transaction types | Unlimited; beyond 20 grouped as "Other" | Verified | 16 |
+| Item SKUs | Unlimited; beyond 100 grouped as "Other" | Verified | 70 at launch (section 5) |
 | Economy amount | Always positive, for sources and sinks alike | Verified | Enforced in the module |
 | Data delay, custom events | Aggregated daily; up to 24 hours | Verified | Nothing in this chapter depends on same-day custom-event data |
 | Data delay, funnel and economy events | — | Not stated on the pages read | Assume 24 hours |
@@ -249,7 +249,7 @@ Each fires at most once per account, in the first session only. Time marks run o
 | 2 | `fs_time_mark` ctx `s60` | T = 60 | 80% (canon) |
 | 3 | `fs_time_mark` ctx `s180` | T = 180 | 65% (canon) |
 | 4 | Onboarding step `13_banked` | First bank | 60% (canon) |
-| 5 | `fs_milestone` ctx `run2_start` | Leaves the cove for run 2 | 50% (canon) |
+| 5 | Onboarding step `17_run2_started` | Leaves the cove for run 2 | 50% (canon). This is the one measure of run 2 starts; the step targets in 3.1 multiply to 53%, which is above the canon floor, not a second target. |
 | 6 | `fs_time_mark` ctx `m5` | T = 300 | 57% |
 | 7 | `fs_milestone` ctx `goal_first` | First daily goal completed | 45% |
 | 8 | `fs_time_mark` ctx `m10` | T = 600 | 50% (canon) |
@@ -259,7 +259,7 @@ Each fires at most once per account, in the first session only. Time marks run o
 | 12 | `fs_milestone` ctx `species_first` | First species bought | 30% |
 | 13 | `fs_time_mark` ctx `m25` | T = 1,500 | 15% |
 
-Other `fs_milestone` values, logged for timing and not part of the funnel: `gulped_first`, `player_scare_first` (newcomer bubble popped), `run3_start`, `codex_open`. The value on every `fs_milestone` is T.
+Other `fs_milestone` values, logged for timing and not part of the funnel: `run2_start` (it carries the time of the run 2 start; the share is read from onboarding step 17), `gulped_first`, `player_scare_first` (newcomer bubble popped), `run3_start`, `codex_open`. The value on every `fs_milestone` is T.
 
 ### 3.4 Return funnel (custom events)
 
@@ -280,8 +280,8 @@ Inside a return session:
 | Step | Sent as | Fires when | Target from previous |
 |---|---|---|---|
 | 1 | `ret_day` | As above | — |
-| 2 | `ret_welcome` ctx `shown` | The clam appears (10 or more offline Pearls, away 10 minutes or more) | 90% |
-| 3 | `ret_welcome` ctx `claimed` | Pearls collected, by touch or by leaving the cove | 99% |
+| 2 | `ret_welcome` ctx `shown` | The welcome-back card appears (10 or more Pearls in the pile, away 10 minutes or more) | 90% |
+| 3 | `ret_welcome` ctx `claimed` | The player taps the welcome-back card, or taps the pile at the Pearl clam before leaving the cove, and the pile is paid. Leaving the cove without a tap claims nothing: the income stays in the pile (canon section 11). | 90% **(tune)** |
 | 4 | `run` funnel step `02_left_safe` | Leaves the cove | 95% |
 | 5 | `run_banked` | Banks at least once in the session | 60% |
 
@@ -351,7 +351,7 @@ Targets by product type:
 | `pass` | Tide Watcher, Keen Nose, Shark Pup | 35% | 20% | 25% | 99.5% | [L] |
 | `pearl_pack` | Four sizes | 30% | 15% | 30% | 99.5% | [MVP] |
 | `pattern` | Colour patterns | 40% | 10% | 30% | 99.5% | [L] |
-| `prod_trait_lock` | Trait Lock | Offer only: 1 → 3 at 5% | — | 35% | 99.5% | [L] |
+| `prod_trait_lock` | Trait Lock (the button shows only when the lost creature held an Uncommon or better trait; chapter 05, section 8.3) | Offer only: 1 → 3 at 5% | — | 35% | 99.5% | [L] |
 | `prod_call_tide` | Call the Tide | 20% | 10% | 35% | 99.5% | [L] |
 | `prod_cove_boost` | Cove Boost (2 hours of cove income, once a day) | 20% | 10% | 35% | 99.5% | [L] |
 | `prod_goal_reroll` | Goal Reroll (after the free daily reroll is used) | 20% | 10% | 35% | 99.5% | [L] |
@@ -415,7 +415,7 @@ One funnel session per player.
 | 3 | `03_buy_tapped` | The buy button is tapped | 8% |
 | 4 | `04_prompt_shown` | The Roblox purchase prompt is requested | 98% |
 | 5 | `05_purchased` | Roblox confirms the purchase | 40% |
-| 6 | `06_granted` | Pattern and Pearls applied, profile saved | 99.5% |
+| 6 | `06_granted` | The Sunrise pattern, the Golden Chest decoration and 5,000 Pearls applied, profile saved (chapter 05, section 8.3) | 99.5% |
 
 Overall target, step 5 ÷ step 1: 3%. There is no separate dismissal event: a card closed without a tap is step 2 without step 3.
 
@@ -465,7 +465,7 @@ Overall target, step 5 ÷ step 1: 3%. There is no separate dismissal event: a ca
 | `fs_milestone` | T in seconds | `run2_start`, `goal_first`, `gulped_first`, `tide_first`, `bank2`, `run3_start`, `player_scare_first`, `species_first`, `codex_open` | Once each, first session only | [MVP] |
 | `fs_end` | First-session length in seconds | `r1`, `r2`, `r3`, `r4p` (runs started) | The first session ends | [MVP] |
 | `ret_day` | 1 | `d1`, `d2`, `d3`, `d4_6`, `d7`, `d8_13`, `d14`, `d15_29`, `d30p` | First join of a UTC day after the first play day | [MVP] |
-| `ret_welcome` | Offline Pearls | `shown`, `claimed` | The welcome-back clam (chapter 04, section 8.1) | [MVP] |
+| `ret_welcome` | Pearls in the pile | `shown`, `claimed` | The welcome-back card is shown; the player taps to claim the pile (chapter 04, section 8.1). Never fired by leaving the cove. | [MVP] |
 | `ret_streak` | Streak length | `d1` to `d7` (the box opened; a missed day never resets the streak) | The streak card is shown | [L] |
 
 **Run**
@@ -512,11 +512,11 @@ Overall target, step 5 ÷ step 1: 3%. There is no separate dismissal event: a ca
 | `cove_specimen_released` | Pearl refund | `t2` to `t7` | A specimen is released | [MVP] |
 | `cove_full_choice` | 1 | `released_old`, `released_new` | The player banks with a full cove and chooses | [MVP] |
 | `cove_bubble_received` | Total Bubbles on the cove | — | The cove receives a Bubble | [L] |
-| `cove_deco_placed` | 1 | Decoration rarity | A decoration is placed | [L] |
+| `cove_deco_placed` | 1 | How the decoration was obtained (decorations have no rarity; chapter 03, section 13): `pearls`, `rank`, `codex`, `goals`, `tide`, `robux` (the Starter Pack's Golden Chest counts as `robux`) | A decoration is placed | [L] |
 | `goal_completed` | Seconds since the goal was given | Goal ID | A daily goal completes | [MVP] |
 | `goal_all3` | 1 | — | All three of the day's goals are complete | [MVP] |
 | `goal_rerolled` | 1 | `free`, `video`, `paid` | A goal is rerolled: by the free daily reroll, by rewarded video, or by the Goal Reroll product | [MVP]; `video`, `paid` [L] |
-| `codex_entry` | Total entries on the account | `species`, `tier`, `trait`, `prey` | A new Codex entry is discovered | [MVP] |
+| `codex_entry` | Total entries on the account | `species`, `tier`, `trait`, `prey`; [L] `danger`, `place`, `tide` | A new Codex entry is discovered | [MVP]; `danger`, `place`, `tide` [L] |
 | `codex_opened` | 1 | — | The Codex is opened (once per session) | [MVP] |
 | `settings_changed` | 1 | `two_thumb_on`, `music_off`, `sfx_off`, `low_graphics_on`, `invert_y_on`, `haptics_off` | A setting leaves its default | [MVP]; `two_thumb_on` [L] |
 
@@ -554,17 +554,24 @@ Mass is not tracked as a currency: it resets every run and converts to Pearls on
 
 | Source | transactionType | itemSku | Amount | Fires when | Tag |
 |---|---|---|---|---|---|
-| Banking, base | `Bank` | `bank_t1` to `bank_t7` | 3 per mass up to 1,200 mass, 1 per mass from 1,200 to 3,000, nothing above 3,000 (canon 5.4) | A run is banked | [MVP] |
+| Banking, base | `Bank` | `bank_t1` to `bank_t7` | 3 per mass up to 1,200 mass, 1 per mass from 1,200 to 3,000, nothing above 3,000 (canon 5.4) | A run is banked. A run suspended by a server shutdown that then expires pays its full bank value through the same SKUs (chapter 09, section 12.5). | [MVP] |
 | Banking, Crystal trait | `Bank` | `bank_crystal` | The extra Pearls from the ×1.5 | With the base event | [MVP] |
 | Banking, Deep Pockets | `Bank` | `bank_deep_pockets` | The extra Pearls from the ×2 | With the base event | [MVP] |
-| Scraps | `Scraps` | `scraps_50` (first three deaths), `scraps_10` | 50% or 10% of what the bank would have paid | A run is gulped | [MVP] |
-| Cove income, online | `CoveIncome` | `income_online` | Pearls credited | At most once every 5 minutes while online, and on leaving **(tune)** | [MVP] |
-| First income tick | `Onboarding` | `income_first_tick` | One hour of the first specimen's income | 3 s after the first specimen is placed | [MVP] |
-| Cove income, offline | `OfflineIncome` | `offline_base` | Pearls claimed (capped at 8 hours; 24 with Tide Watcher) | The welcome-back claim | [MVP] |
+| Scraps | `Scraps` | `scraps_50` (first three deaths), `scraps_10` | 50% or 10% of what the bank would have paid | A run is gulped, or a suspended run expires or is given up with Start fresh (chapter 09, section 12.5) | [MVP] |
+| Cove income, claimed at the pile | `CoveIncome` | `claim_pile` | Pearls claimed, rounded down. The pile stops growing after 8 hours unclaimed (24 with Tide Watcher), online or offline. | The player taps the pile at the Pearl clam in the cove. Income is never credited automatically: not at login, on a bank, on leaving the cove or on a timer (canon section 11). | [MVP] |
+| First income tick | `Onboarding` | `income_first_tick` | One hour of the first specimen's income | 3 s after the first specimen is placed. The one cove payment made without a tap: the first-bank reward (canon section 11). | [MVP] |
+| Cove income, claimed on the welcome-back card | `CoveIncome` | `claim_welcome` | The same pile and the same cap | The player taps the welcome-back card | [MVP] |
 | Cove Boost, bought | `IAP` | `prod_cove_boost` | 2 hours of the cove's income | The Cove Boost product is granted (once a day, canon section 12) | [L] |
 | Cove Boost, by rewarded video | `AdReward` | `ad_cove_boost` | 2 hours of the cove's income | After a rewarded video, where the player is eligible | [L] |
-| Daily goal | `Goal` | `goal_slot1`, `goal_slot2`, `goal_slot3` | The goal's reward | A goal completes | [MVP] |
-| Login streak | `Streak` | `streak_d1` to `streak_d7` | The day's reward | The streak card | [L] |
+| Daily goal | `Goal` | `goal_slot1`, `goal_slot2`, `goal_slot3` | The goal's reward (base × rank multiplier) | A goal completes | [MVP] |
+| Daily goals, all-three bonus | `Goal` | `goal_all3` | 100 × rank multiplier (chapter 05, section 3.5) | The third goal of the day completes, with custom event `goal_all3` | [MVP] |
+| Login streak | `Streak` | `streak_d1` to `streak_d7` | The day's reward (base × rank multiplier) | The streak card | [L] |
+| Codex, single entry | `Codex` | `cdx_entry_prey`, `cdx_entry_trait`, `cdx_entry_tier` | Prey 20 or 30; trait 100 to 1,500 by rarity; tier 25 to 800 (chapter 05, section 3.8). Entries in Species, Dangers, Places and Tides pay nothing and log no economy event. | The entry is discovered, with custom event `codex_entry`. Once per account. | [MVP] |
+| Codex, one species' Tiers page complete | `Codex` | `cdx_page` | 500 | The seventh tier of a species is filled | [MVP] |
+| Codex, category complete | `Codex` | `cdx_category` | 125, 175, 2,500 or 5,000 by category (chapter 05, section 3.8): Species, Prey, Traits, all Tiers pages; [L] Dangers, Places, Tides, the whole Codex | The last entry of the category is filled. Once per account. | [MVP]; Dangers, Places, Tides and the whole Codex [L] |
+| Reef Rank reward | `Rank` | `rank_up` | 25 × the new rank (chapter 05, section 3.9) | A new Reef Rank is reached. Once per rank. | [L] |
+| Tide bonus | `Tide` | `tide_bonus_frenzy`, `tide_bonus_moon_tide`, `tide_bonus_whale_fall` | 40 × rank multiplier (chapter 05, section 3.9) | The player takes part in a tide event (15 prey in a Feeding Frenzy, 3 Lunar Fry, or 3 Marrow chunks). At most 3 a day. | [L] |
+| Limited-time tide reward | `Tide` | `tide_limited` | The event's Pearl budget (chapter 05, section 3.9) | The limited-time tide's reward is paid | [P1] |
 | Specimen release refund | `Refund` | `release_refund` | The refund | A specimen is released | [MVP] |
 | Pearl pack | `IAP` | `prod_pearls_s`, `prod_pearls_m`, `prod_pearls_l`, `prod_pearls_xl` | Pearls granted | Purchase granted | [MVP] |
 | Starter Pack Pearls | `IAP` | `prod_starter_pack` | Pearls granted | Purchase granted | [L] |
@@ -576,10 +583,12 @@ Mass is not tracked as a currency: it resets every run and converts to Pearls on
 |---|---|---|---|---|---|
 | Species unlock | `Species` | Species ID (`puffer`, `eel`; [L] `turtle`, `squid`, `shark`) | The price | The species is bought with Pearls | [MVP] |
 | Cove slot | `CoveSlot` | `slots_07_12`, `slots_13_20`, `slots_21_30` | The slot's price | A slot is bought | [MVP] |
-| Decoration | `Decoration` | `deco_<id>` (40 IDs at most) | The price | A decoration is bought | [L] |
+| Decoration | `Decoration` | The decoration's chapter 03 ID, `deco_<name>`: the 18 Pearl decorations at launch (chapter 05, section 4.3). The other 32 of the 50 decorations are not bought with Pearls and have no sink. | The price | A decoration is bought with Pearls | [L] |
 | Correction | `Admin` | `admin_remove` | Pearls removed | A rollback after an exploit | [MVP] |
 
-That is 14 transaction types (limit before grouping: 20) and at most 90 SKUs (limit before grouping: 100).
+That is 16 transaction types (limit before grouping: 20) and 70 SKUs at launch: 43 on sources and 27 on sinks (limit before grouping: 100). In [P1] the four Monument decorations and `tide_limited` would make it 75. Economy events are not custom events: the custom event names stay at 61 of 100 (section 4.2).
+
+**Check against chapter 05.** Every Pearl source in chapter 05, section 3 has a row in 5.1: banking (3.1), scraps (3.2), cove income and the first-bank reward (3.3), the pile and Cove Boost (3.4), daily goals and the all-three bonus (3.5), the login streak (3.6), Codex rewards (3.8), Reef Rank rewards, tide bonuses and limited-time tides (3.9), the release refund (3.10), and the Pearl packs and Starter Pack (sections 8.4 and 8.5). The rank multiplier (3.7) is not a source of its own: it is inside the amount of the goal, streak and tide bonus events. Every Pearl sink in chapter 05, section 4 has a row in 5.2: species (4.1), cove slots (4.2) and decorations (4.3); section 4.4 confirms there are no others at launch.
 
 ### 5.3 How inflation shows up
 
@@ -588,18 +597,18 @@ That is 14 transaction types (limit before grouping: 20) and at most 90 SKUs (li
 | Pearls created per daily user | Sum of all sources in a day ÷ daily users | Flat or slowly rising week to week; a rise of 30% or more with no content change is an alarm | Economy page, "Total sources and sinks" |
 | Sink-to-source ratio | Sum of sinks ÷ sum of sources, trailing 7 days | 0.6 to 0.9. Below 0.5 means Pearls are piling up. | Same |
 | Average wallet balance | Roblox's wallet chart, split by cohort | A `d7p` player's average balance stays under the price of their next species | Economy page, "Average wallet balance" |
-| Source mix | Each transaction type's share of sources | Banking 50% to 70%; cove income (online plus offline) 20% to 35%; goals and streak 10% or less; purchased Pearls (packs, Starter Pack, Cove Boost) 5% or less | Economy page, "Top sources" |
+| Source mix | Each transaction type's share of sources | It depends on account age, so it is read by cohort (chapter 05, section 5.6). First day (`s1`, `d0`): banking and scraps 40% to 60%, cove income near 0%, daily rewards (goals, streak [L] and tide bonuses [L]) 10% to 30%, one-time rewards (Codex, Reef Rank [L] and release refunds) 25% to 30%. From day 7 (`d7p`): banking and scraps 10% to 25%, cove income 45% to 85%, daily rewards 5% to 25%, one-time rewards 6% or less. Purchased Pearls (packs, Starter Pack, Cove Boost) 5% or less at any age. | Economy page, "Top sources" |
 | Days to each species | Days from funnel step `01_silhouette_seen` to `04_bought` | Canon pacing: session 1, day 2, day 4 or 5, day 10, day 30 | Species unlock funnel |
 
-**The pacing line.** Canon section 7's unlock days imply how many Pearls a non-paying daily player should earn. If a cohort earns well above this line, prices are too low or a source is too generous.
+**The pacing line.** Canon section 7's unlock days fix what a non-paying daily player spends on species. The player earns more than that, because slots and decorations are bought too, so the line is the regular player in chapter 05, section 5.4. If a cohort earns well above this line, prices are too low or a source is too generous.
 
-| Account age | Cumulative Pearls spent on species by then (canon) | Implied earning per day |
-|---|---|---|
-| Day 1 | 500 | 500 |
-| Day 2 | 3,500 | 3,000 |
-| Day 5 | 15,500 | 4,000 |
-| Day 10 | 60,500 | 9,000 |
-| Day 30 | 310,500 | 12,500 |
+| Account age | Cumulative Pearls spent on species by then (canon) | Regular player's Pearls earned that day (chapter 05, section 5.4) | Cumulative Pearls earned |
+|---|---|---|---|
+| Day 1 | 500 | 2,998 | 2,998 |
+| Day 2 | 3,500 | 4,295 | 7,293 |
+| Day 5 | 15,500 | 6,835 | 26,235 |
+| Day 10 | 60,500 | 10,900 | 73,847 |
+| Day 30 | 310,500 | 21,690 | 407,249 |
 
 The MVP has two sinks (species and cove slots) and both are one-off purchases. Once a player owns everything their balance can only grow. This is expected at soft launch; see "Proposed canon changes".
 
@@ -630,7 +639,7 @@ Roblox's own figures are used wherever Roblox publishes them. "Ours" means compu
 | Gone by 180 s of control | 1 − (`fs_time_mark` `s180` users ÷ `03_control` users) | Ours | 35% or less (canon) |
 | Average session time | Total time in the game ÷ number of sessions | Roblox Engagement page | 12 minutes **(tune)**; at or above the similar-game median for go/no-go |
 | Still playing at 10 minutes | `fs_time_mark` `m10` users ÷ `03_control` users | Ours | 50% or more (canon) |
-| Play time per daily user | Total play time in a day ÷ daily users | Roblox Engagement page | 22 minutes **(tune)** |
+| Play time per daily user | Total play time in a day ÷ daily users | Roblox Engagement page | 24 minutes **(tune)**, the figure chapter 05, section 11.1 assumes |
 | Ten-minute days | Users with `sess_day_mark` `m10` ÷ daily users | Ours | 55% **(tune)** |
 | Runs per session | `run` funnel step `01_hatched` count ÷ `sess_start` count | Ours | 3.5 **(tune)** |
 | Bank rate | `run_banked` ÷ (`run_banked` + `run_gulped` + `run_abandoned`) | Ours | 45%; band 35% to 60% **(tune)** |
@@ -639,9 +648,9 @@ Roblox's own figures are used wherever Roblox publishes them. "Ours" means compu
 | Pair balance by input type [L] | `pvp_pair` `kbm_touch` ÷ `touch_kbm`, divided by keys run-minutes ÷ touch run-minutes; the same for `gamepad` against `touch` | Ours | 0.8 to 1.25 **(tune)** |
 | First-bank rate | Onboarding step 13 ÷ step 03 | Ours | 60% or more (canon) |
 | Average run length | Average `run_duration` | Ours | 3 to 8 minutes (canon) |
-| Payer conversion | Paying users in a day ÷ daily users | Roblox Monetization page ("Conversion rate") | 1.5% **(tune)** |
-| Revenue per paying user (ARPPU) | Robux revenue in a day ÷ paying users that day | Roblox Monetization page | 120 Robux **(tune)** |
-| Revenue per daily user (ARPDAU) | Robux revenue in a day ÷ daily users (= payer conversion × ARPPU) | Roblox Monetization page | 1.8 Robux **(tune)** |
+| Payer conversion | Paying users in a day ÷ daily users | Roblox Monetization page ("Conversion rate") | 0.8% **(tune)**: the base case of chapter 05, section 11.1 (strong case 1.6%) |
+| Revenue per paying user (ARPPU) | Robux revenue in a day ÷ paying users that day | Roblox Monetization page | 130 Robux **(tune)**: base case (strong case 190) |
+| Revenue per daily user (ARPDAU) | Robux revenue in a day ÷ daily users (= payer conversion × ARPPU) | Roblox Monetization page | 1.04 Robux **(tune)**: base case, 0.8% × 130 (strong case 3.04) |
 | First-week payer conversion | New users who buy anything within 7 days ÷ new users | Roblox cohort chart ("7-day player conversion rate") | 2.5% **(tune)** |
 | Revive take rate | `revive_offer` step 5 ÷ step 1 | Ours | 3% paid only; 15% with video [L] **(tune)** |
 | Starter pack conversion [L] | `starter_pack` step 5 ÷ step 1 | Ours | 3% **(tune)** |
@@ -685,10 +694,11 @@ Per-arm sample for a two-sided test at 5% significance and 80% power:
 | 6 | `ftue_prompt_words` | 2 | Clean chase share | 60% → 65% (baseline is a guess) | 1,468 | 9.8 | 14 days |
 | 7 | `ftue_hatch_intro` | 2 | First bite within 5 s | 75% → 80% | 1,091 | 7.3 | 14 days |
 | 8 | `ftue_first_tick` | 2 | Day-1 retention | 20% → 23% | 2,940 | 19.6 | 21 days |
-| 9 | `revive_first_offer` | 2 | Payer conversion within 7 days | 1.5% → 2.5% | 3,073 | 20.5 | 28 days (includes the 7-day window) |
 | 10 | `run2_aim_assist` | 3 | Tier 2 in run 2, among those who start run 2 | 90% → 94% | 719 | 14.4 (half of new players start run 2) | 16 days |
 | 11 | `ftue_loading_toy` | 2 | Loading screen → control | 95% → 97% | 1,504 | 10.0 | 14 days |
 | 12 | `starter_pack_timing` [L] | 3 | Starter pack conversion among eligible players | 3% → 5% | 1,504 | Sized at launch: 18 days at 250 eligible players a day | 21 days |
+
+There is no number 9. It was `revive_first_offer`, which showed the Revive offer on an account's first death; it is withdrawn because canon 5.5 never shows the offer on a first death. The other tests keep their numbers so they match chapter 04, section 11.
 
 Smaller changes need far more players: detecting day-1 retention moving from 20% to 22% needs 6,507 per arm. At soft-launch volumes we can only see large effects, so we test large changes.
 
@@ -735,10 +745,10 @@ These run on the server in real time. They act first and log second. Thresholds 
 | `speed` | Above 1.3 × the allowed speed (tier speed, dash, current, traits) for 2 seconds | 1.0 × | Snap back to the last valid position (`rollback`) |
 | `mass_rate` | Mass gained in 60 seconds exceeds 3 × the current tier's "mass needed" (minimum 60) | About 1 × during a Feeding Frenzy | Hold mass at the cap; flag |
 | `run_pearls` | One bank pays more than 24,000 Pearls | 16,200 (the largest base bank is 5,400, at 3,000 mass or more; × 1.5 for Crystal and × 2 for Deep Pockets) | Pay the cap; flag |
-| `hour_pearls` | More than 90,000 Pearls from gameplay in 60 minutes | About 59,400 (chapter 05, section 6.1) | Pay nothing further that hour; flag |
+| `hour_pearls` | More than 110,000 Pearls from gameplay in 60 minutes | About 75,300: a perfect Shark Pup player with Crystal on every run and Deep Pockets (chapter 05, section 6.1). The trip level is about 1.5 times that, the same margin as `run_pearls`. | Pay nothing further that hour; flag |
 | `bank_teleport` | A bank from a position more than 150 studs from the cove mouth one second earlier | — | Reject the bank |
 | `wallet_mismatch` | The saved Pearl balance differs from the previous balance plus logged sources minus logged sinks | 0 | Keep the lower figure; flag |
-| `income_clock` | An offline claim for more hours than the cap, or for a negative time | 8 hours (24 with Tide Watcher) | Clamp to the cap |
+| `income_clock` | A claim of the pile for more hours than the cap, or for a negative time | 8 hours (24 with Tide Watcher) | Clamp to the cap |
 
 Three flags on one account in a day kicks the player from the server with Roblox's standard message (`kick`). Nothing in this chapter bans an account automatically; bans are a manual decision.
 
@@ -768,13 +778,13 @@ Every Monday, 30 minutes, same order. Each number is copied into the review spre
 |---|---|---|---|---|
 | 1 | Still playing at T = 60 and T = 180 (targets 80%, 65%) | Onboarding dashboard | Find the weakest onboarding step and fix that beat first. Nothing else gets work until this is on target. | Move to number 2 |
 | 2 | First-bank rate (60%) and run 2 start (50%) | Onboarding funnel steps 13 and 17 | Retune the trip home or the cliffhanger; start the matching A/B test | Move on |
-| 3 | Day-1 retention (20%, then the similar-game median) | Roblox Retention | Work on reasons to return: first income tick, offline claim, day-2 goal, tide clock | Look at day 7 |
+| 3 | Day-1 retention (20%, then the similar-game median) | Roblox Retention | Work on reasons to return: first income tick, the welcome-back claim, day-2 goal, tide clock | Look at day 7 |
 | 4 | Day-7 retention (6%, then the median) | Roblox Retention | Work on mid-term goals: species pacing, Codex, new traits | Hold the content cadence in document 12 |
 | 5 | Average session time (12 minutes) and 10-minute days (55%) | Roblox Engagement; `sess_day_mark` | Look at `sys_session_end` by ctx to see where sessions end; shorten the gap between a gulp and the next run | Move on |
 | 6 | Bank rate (band 35% to 60%) and the killer mix | Runs dashboard | Under 35%: weaken the top killer or add currents home. Over 60%: add danger near coves. One killer above 40% of deaths: retune it. | No change |
 | 7 | Run funnel by tier against the cumulative targets | Run funnel | A tier with a conversion 10 points under target: raise prey of that tier or lower the next tier's mass requirement (document 05) | No change |
 | 8 | Days to each species against canon pacing; sink-to-source ratio (0.6 to 0.9) | Economy dashboard | Too slow: raise goal rewards before lowering prices. Too fast or ratio under 0.5: cut the fastest-growing source. | No change |
-| 9 | Payer conversion (1.5%), ARPPU (120 Robux), ARPDAU (1.8 Robux) | Roblox Monetization | Find the purchase funnel with the worst step 1 → 2 (nobody looks) or 3 → 4 (looks, will not pay) and change placement or price | Do not add offers; protect retention |
+| 9 | Payer conversion (0.8%), ARPPU (130 Robux), ARPDAU (1.04 Robux) | Roblox Monetization | Find the purchase funnel with the worst step 1 → 2 (nobody looks) or 3 → 4 (looks, will not pay) and change placement or price | Do not add offers; protect retention |
 | 10 | Revive take rate (3%) and what buyers do next | Revive funnel | Under target at step 2 → 3: the offer is not noticed or the price is wrong. Low step 5 → 6: revived players die again; lengthen protection. | No change |
 | 11 | Tide pull (1.10) and tide funnel step 3 → 4 | Live events dashboard | Make the warning louder, or the reward clearer; compare events and give the weaker one a better reward | Add the next event in document 12's order |
 | 12 | Guard flags per 1,000 daily users; `shop_grant_failed`; `sys_profile_fail` | Guards dashboard | Any grant failure: fix this week. Rising flags on one rule: read the rule's values and tighten validation. | No change |
@@ -793,7 +803,7 @@ Canon values are used as written throughout this chapter. These are suggestions 
 | # | Canon section | Suggestion | Why |
 |---|---|---|---|
 | 1 | 17 | Say that each share is of players who reached control, not of players who joined. | Every clock starts at control, so a player lost while loading never starts one. This chapter divides by onboarding step `03_control`; load losses are tracked separately. |
-| 2 | 17 | Add our own targets for day-1, day-3 and day-7 retention (20%, 11%, 6%), bank rate (45%), payer conversion (1.5%) and ARPDAU (1.8 Robux), each marked (tune). | The canon has first-session targets only. The weekly review needs the rest. |
+| 2 | 17 | Add our own targets for day-1, day-3 and day-7 retention (20%, 11%, 6%), bank rate (45%), payer conversion (0.8%) and ARPDAU (1.04 Robux), each marked (tune). | The canon has first-session targets only. The weekly review needs the rest. |
 | 3 | 11 and 12 | Ask document 05 for at least one repeatable Pearl sink. | The only sinks are species, cove slots and decorations, all one-off. A player who owns everything can only accumulate, and the MVP has just two of the three. |
 | 4 | 12 | Note that private server sales cannot be tracked by in-game events and are read from Roblox's Monetization page. | They are bought on the game page, outside the game. |
 | 5 | 10 | Record the tide-pull measure (players online just before the quarter hour ÷ players online between events) as the test of pillar 5. | Pillar 5 has no success measure in section 17. |

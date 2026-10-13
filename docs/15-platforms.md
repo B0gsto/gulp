@@ -109,7 +109,7 @@ Two things are detected and they are independent of each other.
 
 | Order | Test | Screen class | deviceFactor (tune) |
 |---|---|---|---|
-| 1 | `GuiService.ViewportDisplaySize == Large`, or `GuiService:IsTenFootInterface()` | **TV** | 0.80 |
+| 1 | `GuiService.ViewportDisplaySize == Large`. (`GuiService:IsTenFootInterface()` is not used: the docs say not to detect consoles with it, PF19.) | **TV** | 0.80 |
 | 2 | `ViewportDisplaySize == Small` and a pad is connected and the short side is 700 px or more | **Handheld** | 0.90 |
 | 3 | `TouchEnabled` and the short side is under 500 px | **Phone** | 1.00 |
 | 4 | `TouchEnabled` and not (`KeyboardEnabled` and `MouseEnabled`) | **Tablet** | 0.65 |
@@ -957,7 +957,7 @@ Rows 1, 2 and 7 are the minimum set the owner must have in hand. Every other row
 | **Soft launch** [MVP] | Phone, tablet, computer with keys (arrow keys included). Chromebook works untested beyond a smoke test. A pad may move the creature but is not supported. | Playable Devices: Phone, Tablet, Computer on; Console and VR off. Screen class and input mode detection; hint swap; per-input settings; the three tiers; start sample, step down, cut order and memory guard; the 3.0 never-cut list; gulp assist per input; `sess_device`, `run_end_input`, `perf_tier`; test rows 1 to 7 |
 | **Public launch** [L] | Adds: pad on PC, Mac, phone and tablet; handheld PC; Chromebook checked. The Couch presentation is complete and tested on a PC, but the Console switch is still off. | Pad scheme; focus navigation on every screen; Xbox and PlayStation glyph sets; TV margins and scale; two-thumb scheme; emote wheel on all three inputs; interface size, bigger text, swap sticks; step-up probe and `lastGoodTier`; steering nudge and dash snap behind flags; `pvp_pair`, `input_switch` and the weekly fairness read; haptic mapping; a chat panel only if the launch review turns text chat on (it is off in the MVP, canon 14; never on TV); test rows 8 to 10 |
 | **After launch** [P1] (the first quarter after launch, weeks 1 to 12) | Adds: Xbox and PlayStation early in [P1], in weeks 2 to 4, on the day rows 11 and 12 pass. Browser play when Roblox releases it. | Console switch on; game page text and ad targeting updated (section 7); desktop key rebinding; the first fairness levers if section 4.4 calls for them |
-| **Later** [P2] | No new platform planned | VR review at twelve months (3.8); standalone apps at the document 12 Q3 decision point; anything Roblox adds inherits the nearest presentation |
+| **Later** [P2] | No new platform planned | VR review at twelve months (3.8; scheduled in the Q4 row of 13 §7.2); standalone apps at the document 12 Q3 decision point; anything Roblox adds inherits the nearest presentation |
 
 ## 10. Decisions made here; the changes have been applied in other chapters
 

@@ -186,9 +186,20 @@ Body scale per tier comes from canon section 5.1. Art adds the differences below
 | 4 | Hunter | **Adult** | 2.3 | Mesh swap inside the tier-up burst: longer body, smaller eyes, full signature feature |
 | 5 | Brute | Adult | 3.2 | Scale; constant thin bubble wake |
 | 6 | Titan | Adult | 4.5 | Scale; slow drifting sparkle motes around the body |
-| 7 | Leviathan | Adult | 6.5 | Scale; a **crest** piece on the back (`Sock_Crest`, one mesh per species, 150 triangles or fewer); camera shake on bite |
+| 7 | Leviathan | Adult | 6.5 | Scale; a **crest** piece on `Sock_Crest` (one mesh per species, 150 triangles or fewer; shapes below); camera shake on bite |
 
 The juvenile and adult meshes share one skeleton and one UV layout, so animations, traits and patterns work on both. Both are authored at body scale 1.0; the game multiplies by the tier scale.
+
+**The Leviathan crest** (canon section 5.1) makes tier 7 readable by silhouette. Each body family has one crest shape; a species changes only its proportions and colours. All sizes **(tune)**.
+
+| Family | Species | Crest shape | Where `Sock_Crest` sits |
+|---|---|---|---|
+| **Fish** | `minnow`, `puffer`, `shark` | A back sail: three rounded spines joined by a web, the front one tallest, 40% of body height tall and 30% of body length long. On `puffer` the three spines are short and fat; on `shark` the sail is lower (25%) so the tall dorsal fin stays the signature | On the back, between the head and the dorsal fin |
+| **Eel** | `eel` | A head fan: five rounded lobes standing up in a half circle behind the head, as tall as the head is high, where the dorsal ribbon starts | On top of the neck, just behind the head |
+| **Turtle** | `turtle` | A shell keel: three rounded knobs in a row down the centre line of the shell, the middle one tallest at 30% of shell height | On the top of the dome |
+| **Squid** | `squid` | A mantle crown: three leaf-shaped points fanned at the tip of the mantle between the two tail fins, 25% of mantle length | At the tip of the mantle |
+
+Rules for every crest: one rigid mesh with no bones and no outline shell (the outline follows the body); rounded tips like the rest of the body (section 3.3), never a spike or a wedge; painted in the species' dark colour with light tips, from the free block of the family UV layout (section 5.4), never in a signal colour. With the crest on, the tier 7 side silhouette must differ from the tier 6 one in the 48-pixel test (section 3.5). The crest grows in during the tier-up scale pop and pops off as bubbles if the tier falls (chapter 02). A new family (Manta Ray, Seahorse) defines its crest with its skeleton. Chapter 07 has one `M_Species_<Species>_Crest` row per species.
 
 Tail-beat frequency falls as the creature grows: frequency = base ÷ √(body scale). Big reads as heavy.
 
@@ -257,7 +268,7 @@ Light / mid / dark / accent. All **(tune)** in the first review round.
 | `barracuda` | [MVP] | `#F2F6F8` | `#C7D3D9` | `#3A4750` | `#FFD23D` eye | Dark bars |
 | `grouper` | [L] | `#F0D9B0` | `#C4764A` | `#5F3320` | — | Brick with cream blotches |
 | `old_scar` | [MVP] | `#F5F8FA` | `#B9C4CC` | `#4A5560` | `#FFD9D0` scar | |
-| `jelly_bloom` | [MVP] | `#FFFFFF` | `#C9B8FF` | `#7A5CC2` | — | Lavender, see-through at 0.35 transparency |
+| `jelly_bloom` | [MVP] | `#FFFFFF` | `#FFC2E2` | `#7A5CC2` | — | Pale pink bells with violet shade (chapter 03, section 5.2), see-through at 0.35 transparency. Paler and cooler than `anemone` pink |
 | `anemone` | [L] | `#FFE6F0` | `#FF8FB8` | `#A83D6B` | `#FFF2A8` tips | |
 
 **Prey temperature ramp.** Small prey is warm and light; large prey is cool with a silver flank. A player learns "warm and small is always food; cool and big, check the outline".
@@ -293,7 +304,7 @@ Notes:
 - The lime sits at hue 88°, far from the kelp fog (hue 166°) and the reef fog (hue 197°). Its contrast against fog is 2.5 : 1 in the Reef, 3.4 : 1 in the Kelp and 6.5 : 1 in the upper Drop-off.
 - The red has almost the same lightness as Reef and Kelp water (contrast 1.2 : 1). It separates by hue only. That is why the pulse to white is mandatory: white reaches 3.0 : 1 and 4.2 : 1 there. The same holds for the hot pink.
 - The alternative pair differs strongly in lightness (L\* 94 against 61), so it survives red-green colour blindness. **(tune)** with a colour-blind simulator before soft launch; I did not simulate it.
-- **Art may not use** any colour within 20° of hue of lime (68° to 108°) or red (334° to 14°), or within 10° of lantern amber (26° to 46°), when saturation is over 70% and value is over 85% (HSV). `minnow` mid (hue 29°, saturation 76%) is the one exception, approved because the starter is "home-coloured" on purpose. `ember` cracks use `#FF7A1F` at hue 24°, and `puffer` and `darter` yellows sit at hue 46° to 47°, all just outside the amber band; do not drift them inward.
+- **Art may not use** any colour within 20° of hue of lime (68° to 108°) or red (334° to 14°), or within 10° of lantern amber (26° to 46°), when saturation is over 70% and value is over 85% (HSV). `minnow` mid (hue 29°, saturation 76%) is the one exception, approved because the starter is "home-coloured" on purpose. `ember` cracks use `#FF7A1F` at hue 24°, and `puffer` and `darter` yellows sit at hue 46° to 47°, all just outside the amber band; do not drift them inward. The float above a fishing hook is red and white (chapter 03, section 5.2): its red is the soft tomato `#D2564B` (hue 5°, saturation 64%, value 82%), under both limits, so it is not an exception and must not be brightened toward the outline red.
 - **Amber is the player's own.** Lantern amber marks only the player's own cove mouth and the home marker (canon 5.2). Every other cove mouth and the Nursery's edge buoys glow lantern warm white `#FFF1DC` (hue 36°, saturation 14%), a neutral colour far below the saturation limit above, so it cannot be mistaken for home. The colour is chosen per viewer on the client: each player sees exactly one amber mouth. Chapter 03, section 6.7 owns the Door Lantern states and tints a friend's lantern teal.
 - Rarity gold (`#FFB01F`) appears in the world only as the two-particle sparkle on Mythic trait prey. A sparkle is never a steady glow, so it does not read as home.
 
@@ -530,7 +541,7 @@ Canon section 16 gives the patterns, the categories (`Species`, `Prey`, `Pred`, 
 
 | Thing | Pattern | Example |
 |---|---|---|
-| Mesh | `M_<Category>_<Name>[_Juv\|_Adult][_LOD1\|_LOD2][_Shell\|_ShellThick]` | `M_Species_Minnow_Adult_LOD1` |
+| Mesh | `M_<Category>_<Name>[_Juv\|_Adult][_<Form>][_LOD1\|_LOD2][_Shell\|_ShellThick]`, where the form is a second pose or state of the same mesh (`_Puffed`, `_Tucked`, `_Glide`, `_Dive`, `_Open`, `_Squeezed`) | `M_Species_Minnow_Adult_LOD1`, `M_Species_Puffer_Juv_Puffed` |
 | Texture | `T_<Name>_<Map>` with maps `Alb`, `Rgh`, `Emi`, `Mask`, `Nrm` | `T_Minnow_Adult_Alb` |
 | Animation | `A_<Rig>_<Action>` | `A_Fish_Bite`, `A_Minnow_Dart` |
 | Effect | `FX_<Name>` | `FX_TierUp_T4` |
@@ -750,8 +761,8 @@ Counts are unique meshes. All [MVP] unless tagged.
 | **Nursery Lagoon** | 4 sand chunks, 2 low rim pieces | 3 round pastel corals, 2 sea-grass tufts, 3 smooth pebbles, 2 shells | A ring of lantern warm-white (`#FFF1DC`) glow buoys marking the safe edge; water so shallow the surface ripples show on the sand |
 | **Sunlit Reef** | 8 sand chunks, 6 reef-rock blocks, 4 arches and tunnels | 12 corals (brain, staghorn, fan, tube, table; 3 sizes), 4 sponges, 3 sea grasses, `anemone` [L], 2 eel-hole rings | Crevices for `urchin_puff`, caves for `glowfry`, bait `hook`s hanging from the surface |
 | **Kelp Forest** | 6 silt chunks, 4 mossy boulders, 3 root mounds with moray holes | Kelp plant in 3 heights (40, 80, 140 studs), canopy leaf cards, 3 ferns, 2 fallen logs | The canopy: a broken ceiling of leaves with shafts of light between |
-| **The Drop-off** | 8 cliff modules, 4 ledges, 3 overhangs, 2 floor shelves | 4 dark sponges, 3 sea whips, 2 tube-worm clusters, `vent` chimneys [L] | The Tin Pickle wreck (home of `spark_eel` [L]), the pale bowl of Whale's Rest (the Whale Fall site [L]), current streams |
-| **Coves** | 1 interior shell, 1 mouth arch | Specimen perch marker (40 perches, one per cove slot; a kelp net covers a locked one), Name Shell, Trophy Bubble, Door Lantern, Home Stone, Pearl Clam, Trophy Rock, Codex Stone; 29 decoration spots and decorations [L] | Warm lantern light. All 24 coves use the same meshes. Chapter 03, sections 6.7 and 6.10 own the parts list and sizes. |
+| **The Drop-off** | 8 cliff modules, 4 ledges, 3 overhangs, 2 floor shelves | 4 dark sponges, 3 sea whips, 2 tube-worm clusters, nine `vent` chimneys at the Chimneys, each 12 studs tall (cold stone in the MVP, lit at launch [L]) | The Tin Pickle wreck (home of `spark_eel` [L]), the pale bowl of Whale's Rest (the Whale Fall site [L]), current streams |
+| **Coves** | 1 interior shell, 1 mouth arch | Specimen perch marker (40 perches, one per cove slot; a kelp net covers a locked one), Name Shell, Trophy Bubble, Door Lantern, Home Stone, Pearl Clam, Trophy Rock, Codex Stone, Species Wall, tide clock; Bubble Jar, 29 decoration spots and decorations [L] | Warm lantern light. All 24 coves use the same meshes. Chapter 03, sections 6.7 and 6.10 own the parts list and sizes. |
 | **The Trench** | — | — | [P2]. Not designed here beyond its colours. |
 
 ### 9.3 How each place is built
@@ -900,7 +911,7 @@ Events blend in over 3 seconds. During the 60-second warning, the event look is 
 |---|---|---|
 | **Feeding Frenzy** (`frenzy`) | [MVP] | Brightness +0.2. Fog colour moves 15% toward `#6FDDEE`. ColorCorrection Saturation 0.25, TintColor `#FFF1CC`. Bloom Intensity 0.8. Plankton motes sparkle gold-white. Light shafts double in number. Feels like midday at a fairground. |
 | **Moon Tide** (`moon_tide`) | [MVP] | See below |
-| **Whale Fall** (`whale_fall`) | [L] | Within 300 studs of the whale skeleton only: Atmosphere Density +0.06, Color `#25566B`, Saturation 0.00, a single wide pale shaft over the skeleton, heavy `FX_MarineSnow`. The skeleton is clean bone-white and cream with soft pink-cream `#FFC9B8` marrow glow. No flesh, no red. |
+| **Whale Fall** (`whale_fall`) | [L] | Within 300 studs of the whale skeleton only: Atmosphere Density +0.06, Color `#25566B`, Saturation 0.00, a single wide pale shaft over the skeleton, heavy `FX_MarineSnow`. The skeleton is clean bone-white and cream; the Marrow chunks are cream-white with a soft white glow (chapter 03, section 7.3). No flesh, no red, no pink. |
 
 **The night look for Moon Tide.** "The sea goes dark and glows."
 
@@ -960,7 +971,8 @@ Counts are live particles at the peak, on a phone. All **(tune)**.
 | `FX_MarineSnow` | Depth | 1 emitter fixed to the camera | 40 (60 in the deep Drop-off) | 4 s |
 | `FX_GodRay` | Light shafts | Beams (section 10.4) | 0 | — |
 | `FX_Current` | A current stream | Streak particles along the path | 24 per visible stream | 1.5 s |
-| `FX_VentPlume` | `vent` [L] | Wobbling column: 10 orange-white blobs, heat-shimmer is not possible so the blobs wobble instead | 12 | 1.2 s |
+| `FX_VentPlume` | `vent` [L], while `Erupting` | Wobbling column 10 studs wide and 40 tall, rising from the chimney top: 10 orange-white blobs, heat-shimmer is not possible so the blobs wobble instead. Chapter 03, section 5.1 owns the rule: nine vents at the Chimneys, the three at the centre always erupting and the six outer ones cycling (3 s on, 5 s off) | 12 per vent | 1.2 s |
+| `FX_VentRumble` | `vent` [L], the 1 s `Rumble` warning before a cycling vent erupts | The rim glow brightens and a burst of small bubbles rises from the chimney top | 8 | 1 s |
 | `FX_Splash` | Breaching the surface | Burst: 1 ring, 6 teardrops | 7 | 0.5 s |
 | `FX_GullShadow` | `gull` warning (1.5 s, canon) | A dark oval decal on the surface that shrinks and darkens; no particles | 0 | 1.5 s |
 | `FX_TraitSparkle` | Trait prey marker | 2 small sparkles in the rarity colour | 2 each | 0.6 s |
@@ -1015,7 +1027,7 @@ Values are in pixels on a 1920 × 1080 reference and scale with the screen.
 | Tilt | Titles and badges tilt 2° to 4°. Nothing sits on a perfect grid except lists. |
 | Dividers | Hand-drawn wavy lines, never 1-pixel rules |
 | Bars (mass to next tier, cooldowns) | Fat, 28 pixels high, rounded ends, navy stroke, a lighter "shine" strip on top. Here `UICorner` is correct. |
-| Touch targets | 96 pixels minimum on the reference; dash and ability buttons 180 and 150 |
+| Touch targets | Chapter 08 owns interface sizes, on its own 1280 × 720 canvas in reference pixels (rpx): a hit area of 88 × 88 rpx at least, the Dash button 136 × 136 rpx and the Ability button 108 × 108 rpx |
 | Transparency | Panels are opaque. The in-run heads-up display uses no panels at all: icons and numbers sit directly on the water with a navy stroke. |
 
 ### 12.3 Type
@@ -1028,7 +1040,7 @@ Roblox's built-in font list was checked on the [Font datatype page](https://crea
 | Body text, descriptions, small labels | **Nunito**, ExtraBold or Bold | Rounded and very legible small. Check available weights in Studio; if only Regular and Bold exist, use Bold. |
 | Never | Builder Sans, Gotham, Source Sans, Arial | These are the default Roblox voice |
 
-Sizes on the reference: title 64, button 44, body 32, smallest label 26. On a phone nothing renders under 13 points. Numbers that change (mass, Pearls) pop to 120% for 4 frames when they rise.
+Sizes are chapter 08's, in its reference pixels (rpx) on a 1280 × 720 canvas: Small 22 (the floor), Body 24, Number 28, Title 40, Hero 64. On a phone nothing renders under 13 points. Numbers that change (mass, Pearls) pop to 120% for 4 frames when they rise.
 
 ### 12.4 Icons
 
@@ -1123,7 +1135,7 @@ Whether flipped back faces draw as expected on a skinned `MeshPart` is [U] and i
 | Deep Drop-off and Moon Tide dim the bodies | Darkness floor on `Ambient` (L\* 30), plus the local follow light (section 10.3) |
 | Dark predators against dark water | Outlines are `Neon` and do not dim; red-outlined creatures within 120 studs show glowing eye dots; `old_scar` has a pale belly and a pale scar |
 | Cool prey (`bonito`, `tuna`) against blue | Their flank is silver (L\* 94 or more), 60 points above the fog, and it is the block the player sees side-on |
-| Hazards | `jelly_bloom` pulses with a soft inner glow; `vent` glows orange |
+| Hazards | `jelly_bloom` pulses with a soft inner glow; `vent` glows orange at the chimney top, brighter during its `Rumble` warning |
 | Finding home | Cove mouths are the only warm lights, and the player's own is the only amber one |
 
 ---

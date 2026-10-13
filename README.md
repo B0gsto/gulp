@@ -34,7 +34,7 @@ Background research that led to this concept is in [`docs/research/`](docs/resea
 
 - **Changing a rule, name or number:** change it in the canon first, then in the chapter that owns the detail.
 - **Prices and balance numbers** live in chapter 05 only. Other chapters refer to it.
-- **Scope tags** mark when something ships: `[MVP]` soft-launch build, `[L]` public launch, `[P1]` first month after launch, `[P2]` later.
+- **Scope tags** mark when something ships: `[MVP]` the core game (soft launch starts with a smaller slice of it), `[L]` public launch, `[P1]` first quarter after launch, `[P2]` later.
 - **`(tune)`** marks a starting value we expect to change from playtest data.
 - **If it is not in the asset list or the interface image list, it does not get built.** Add it there first.
 
@@ -43,7 +43,7 @@ Background research that led to this concept is in [`docs/research/`](docs/resea
 Pre-production. No code yet.
 
 - **Next step:** Sprint 0, a one-week spike starting 19 October 2026 that proves the no-avatar character and the Blender-to-Roblox pipeline in Roblox Studio, ending in a go, change or stop decision.
-- **Decisions needed first:** weekly hours available, cash budget, and acceptance of the reduced soft-launch build. See [chapter 14](docs/14-risks-and-open-questions.md).
+- **Decisions needed first:** weekly hours available, cash budget, acceptance of the reduced soft-launch build, who owns the game on Roblox (a personal account or a group, which is hard to change later), and how the publishing requirement is met. See [chapter 14](docs/14-risks-and-open-questions.md).
 - **Schedule:** depends on those hours. [Chapter 13](docs/13-sprint-plan.md) gives dates for 15, 30 and 45 hours a week.
 
 Nothing here has been tested in Roblox Studio yet. Platform facts are marked verified or unverified in each chapter, and chapter 14 collects the unverified ones.

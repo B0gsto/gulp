@@ -59,7 +59,7 @@ Canon section 16 gives the prefixes, the mesh categories and the mesh suffixes, 
 
 - Categories: `Species`, `Prey`, `Pred`, `Hazard`, `Env`, `Cove`, `Prop`, `Trait`. Trait prey use `Prey`. Cove decorations use `Prop` (`M_Prop_Deco_<Name>`).
 - Suffixes come in this order: age (`_Juv` for tiers 1 to 3, `_Adult` for tiers 4 to 7), form or pose (`_Puffed`, `_Tucked`; `_Glide` and `_Dive` for the Gull; `_Open` and `_Squeezed` for a jelly), distance version (`_LOD1` half the triangles, `_LOD2` a quarter), outline shell (`_Shell` or `_ShellThick`).
-- **Outline shells.** `_Shell` is the standard shell, drawn green for "you can eat it". `_ShellThick` is the 1.5× thicker shell, drawn red and pulsing for "it can eat you" (document 06, section 13.2). They are two files, so they need two names; `_ShellThick` is this chapter's one addition to the canon suffix list. A name that ends in `_Shell` is always an outline shell. Who has which: playable species have both, on every body mesh (wild creatures [L] use the same files); prey and trait prey have `_Shell` only; the Barracuda and the Grouper have both; the Gull, the Moray and Old Scar have `_ShellThick` only, because they cannot be eaten; Plankton, hook bait, hazards and scenery have none.
+- **Outline shells.** `_Shell` is the standard shell, drawn green for "you can eat it". `_ShellThick` is the 1.5× thicker shell, drawn red and pulsing for "it can eat you" (document 06, section 13.2). They are two files, so they need two names; canon section 16 lists both suffixes. A name that ends in `_Shell` is always an outline shell. Who has which: playable species have both, on every body mesh (wild creatures [L] use the same files); prey and trait prey have `_Shell` only; the Barracuda and the Grouper have both; the Gull, the Moray and Old Scar have `_ShellThick` only, because they cannot be eaten; Plankton, hook bait, hazards and scenery have none.
 - Shells and distance versions are made by script from the finished mesh and checked by eye. They are listed as one grouped row per creature.
 - Environment meshes are `M_Env_<Zone>_<Piece>`, with the zone written `Nursery`, `Reef`, `Kelp`, `DropOff` or `Trench`. Pieces shared by every zone have no zone part (`M_Env_Rock_03`). A piece may have two words, kind then type (`Coral_Brain`).
 - Landmarks are `M_Env_<Zone>_LM_<Landmark>`: the name from document 03, section 6, without "The" (`M_Env_Reef_LM_NogginRock`, `M_Env_Reef_LM_Hoop`). A landmark built from several different parts adds the part (`M_Env_DropOff_LM_TinPickle_Bow`).
@@ -92,7 +92,7 @@ A species, trait, predator or ability is never a group: it is the first word of 
 
 - `MUS_Event_<Event>` is a tide event theme (`MUS_Event_Warning` is the shared 60-second warning) and `MUS_Sting_<Name>` is a stinger. Every other track is `MUS_<Name>`, where the name is a zone or a state.
 - `LGT_<Name>` is a zone or state preset; `LGT_Event_<Event>` is the preset a tide event blends in.
-- `SCN_<Kind>_<Name>`: the kind is `Stage`, `Icon`, `Thumb`, `Brand` or `Event`. Icons and thumbnails put document 11's letter or number before the name.
+- `SCN_<Kind>_<Name>`: the kind is `Stage`, `Icon`, `Thumb`, `Brand` or `Event`. Icons and thumbnails put document 11's letter or number before the name. Where document 11 has a soft-launch and a public-launch version of one image under one name, the soft-launch scene keeps the plain name and the public-launch scene adds `_Launch` (`SCN_Icon_A_BehindYou_Launch`); where the two versions have different names, each scene takes its own (`SCN_Thumb_T4_FiveSizes`, `SCN_Thumb_T4_SevenSizes`).
 
 ### 1.3 Folder layout
 
@@ -160,7 +160,7 @@ The Status column in this file is the starting state. The live status is kept in
 
 ## 2. Playable species
 
-Each species has a juvenile mesh (tiers 1 to 3) and an adult mesh (tiers 4 to 7) on one skeleton and one UV layout, so clips, traits and patterns work on both. Both are built at body scale 1.0; the game scales them per tier. A Leviathan (tier 7) also wears a small crest piece.
+Each species has a juvenile mesh (tiers 1 to 3) and an adult mesh (tiers 4 to 7) on one skeleton and one UV layout, so clips, traits and patterns work on both. Both are built at body scale 1.0; the game scales them per tier. A Leviathan (tier 7) also wears a small crest piece. Document 06, section 3.6 defines one crest shape per body family: a back sail on `Fish`, a head fan on `Eel`, a shell keel on `Turtle` and a mantle crown on `Squid`.
 
 Budgets from document 06: juvenile 1,500 triangles with a 256 × 256 texture, adult 3,500 with 512 × 512; outline shell 600 triangles for a juvenile and 1,400 for an adult (about 40% of the body).
 
@@ -257,12 +257,12 @@ Family `Fish`. **Dart** is passive (shorter dash cooldown, no button); its only 
 | `M_Species_Minnow_Adult` | [MVP] | Longer body, smaller eyes, full signature feature. Swapped in at tier 4 inside `FX_Metamorph` | 3,500 tris | M_Species_Minnow_Juv | 5 | not started |
 | `M_Species_Minnow_*_LOD1, _LOD2` | [MVP] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1 | not started |
 | `M_Species_Minnow_*_Shell, _ShellThick` | [MVP] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile and the adult, each with its two distance versions | 600 tris juvenile, 1,400 adult | finished meshes | 1 | not started |
-| `M_Species_Minnow_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Fish | 0.8 | not started |
+| `M_Species_Minnow_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Fish` back sail, three rounded spines joined by a web, the front one tallest (document 06, section 3.6) | 150 tris | RIG_Fish | 0.8 | not started |
 | (fit) Minnow on RIG_Fish | [MVP] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Fish | 2.5 | not started |
 | `T_Minnow_Juv_Alb` | [MVP] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Minnow_Adult_Alb` | [MVP] | Adult colours | 512² | T_Minnow_Juv_Alb | 3 | not started |
-| `T_Minnow_PatSunrise_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_minnow_sunrise`: peach back, gold belly, pink fins. Starter Pack. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
-| `T_Minnow_PatBlueberry_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_minnow_blueberry`: deep blue back, pale belly, yellow tail. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Minnow_PatSunrise_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_minnow_sunrise`: rosy pink back fading to a gold belly, pale pink fins. Starter Pack. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Minnow_PatBlueberry_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_minnow_blueberry`: deep blue back, pale blue belly, yellow tail. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Minnow_PatMint_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_minnow_mint`: mint body, white fin tips, dark green tail. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `A_Minnow_Dart` | [MVP] | The Minnow's own dash: a sharper, shorter snap used in place of `A_Fish_Dash` | 12 frames | RIG_Fish | 0.6 | not started |
 | `A_Minnow_Fidget` | [MVP] | Cove fidget, about every 12 s: chases its own tail | 50 frames | RIG_Fish | 1 | not started |
@@ -279,13 +279,13 @@ Family `Fish`. **Puff** is a mesh swap. The round body shares the `Fish` skeleto
 | `M_Species_Puffer_Adult_Puffed` | [MVP] | Inflated adult: the same smooth pale sphere; must read as "do not eat" from 100 studs. Document 06 allows this one mesh above the adult budget | 4,000 tris | M_Species_Puffer_Juv | 2.5 | not started |
 | `M_Species_Puffer_*_LOD1, _LOD2` | [MVP] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1.5 | not started |
 | `M_Species_Puffer_*_Shell, _ShellThick` | [MVP] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile, the adult and the two puffed meshes, each with its two distance versions | 40% of each body: 600 and 1,400 tris; 720 and 1,600 puffed | finished meshes | 1 | not started |
-| `M_Species_Puffer_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Fish | 0.8 | not started |
+| `M_Species_Puffer_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Fish` back sail with three short, fat spines (document 06, section 3.6) | 150 tris | RIG_Fish | 0.8 | not started |
 | (fit) Pufferfish on RIG_Fish | [MVP] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Fish | 3.5 | not started |
 | `T_Puffer_Juv_Alb` | [MVP] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Puffer_Adult_Alb` | [MVP] | Adult colours | 512² | T_Puffer_Juv_Alb | 3 | not started |
-| `T_Puffer_PatLemon_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_puffer_lemon`: "Lemon Drop": yellow back, white belly, orange lips. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Puffer_PatLemon_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_puffer_lemon`: "Lemon Drop": pale lemon body dusted white like sugar, white fins, lime-green lips (a soft lime under the saturation limit in document 06, section 4.5). Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Puffer_PatBubblegum_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_puffer_bubblegum`: pink back, cream belly, pale blue fins. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
-| `T_Puffer_PatMidnight_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_puffer_midnight`: navy back, grey belly, cyan fin edges. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Puffer_PatMidnight_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_puffer_midnight`: navy back, grey belly, light cyan fin edges. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | (check) Fish clips on the Pufferfish | [MVP] | Play the whole `A_Fish_*` set on this body and fix poses that break | — | A_Fish_* | 1.5 | not started |
 | `A_Puffer_FinWhir` | [MVP] | Tiny fins whir on a 4-frame loop while the body barely bends; layered over the family swim | loop 4 frames | RIG_Fish | 0.4 | not started |
 | `A_Puffer_PuffIn` | [MVP] | Gulp; the puffed mesh is swapped in on frame 3 behind `FX_PuffInflate` | 9 frames | RIG_Fish | 0.8 | not started |
@@ -303,13 +303,13 @@ Family `Eel`. **Slip** is passive (no button): the Eel can pass through eel hole
 | `M_Species_Eel_Adult` | [MVP] | Longer body, smaller eyes, full signature feature. Swapped in at tier 4 inside `FX_Metamorph` | 3,500 tris | M_Species_Eel_Juv | 5 | not started |
 | `M_Species_Eel_*_LOD1, _LOD2` | [MVP] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1 | not started |
 | `M_Species_Eel_*_Shell, _ShellThick` | [MVP] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile and the adult, each with its two distance versions | 600 tris juvenile, 1,400 adult | finished meshes | 1 | not started |
-| `M_Species_Eel_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Eel | 0.8 | not started |
+| `M_Species_Eel_Crest` | [MVP] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Eel` head fan, five rounded lobes standing up behind the head (document 06, section 3.6) | 150 tris | RIG_Eel | 0.8 | not started |
 | (fit) Eel on RIG_Eel | [MVP] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Eel | 3 | not started |
 | `T_Eel_Juv_Alb` | [MVP] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Eel_Adult_Alb` | [MVP] | Adult colours | 512² | T_Eel_Juv_Alb | 3 | not started |
 | `T_Eel_PatLiquorice_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_eel_liquorice`: black back, red belly, red fin ribbon. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Eel_PatSeafoam_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_eel_seafoam`: pale green-white body, teal fin ribbon. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
-| `T_Eel_PatSunset_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_eel_sunset`: purple head fading to an orange tail. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Eel_PatSunset_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_eel_sunset`: coral head fading to an orange tail. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `A_Eel_Slip` | [MVP] | Straighten and thread through an eel hole | loop 18 frames | RIG_Eel | 1 | not started |
 | `A_Eel_Fidget` | [MVP] | Cove fidget: ties a loose knot and unties it | 60 frames | RIG_Eel | 1.2 | not started |
 
@@ -325,12 +325,12 @@ Family `Turtle`. **Shell** is a mesh swap. The only member of the `Turtle` famil
 | `M_Species_Turtle_Adult_Tucked` | [L] | Tucked adult | 2,000 tris | M_Species_Turtle_Juv | 1.5 | not started |
 | `M_Species_Turtle_*_LOD1, _LOD2` | [L] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1.5 | not started |
 | `M_Species_Turtle_*_Shell, _ShellThick` | [L] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile, the adult and the two tucked meshes, each with its two distance versions | 40% of each body: 600 and 1,400 tris; 360 and 800 tucked | finished meshes | 1 | not started |
-| `M_Species_Turtle_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Turtle | 0.8 | not started |
+| `M_Species_Turtle_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Turtle` shell keel, three rounded knobs down the centre line of the shell (document 06, section 3.6) | 150 tris | RIG_Turtle | 0.8 | not started |
 | (fit) Sea Turtle on RIG_Turtle | [L] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Turtle | 4 | not started |
 | `T_Turtle_Juv_Alb` | [L] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Turtle_Adult_Alb` | [L] | Adult colours | 512² | T_Turtle_Juv_Alb | 3 | not started |
 | `T_Turtle_PatMossback_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_turtle_mossback`: dark green shell with moss tufts, tan skin. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
-| `T_Turtle_PatTerracotta_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_turtle_terracotta`: clay-orange shell, cream skin. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Turtle_PatTerracotta_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_turtle_terracotta`: brick-red clay shell, cream skin. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Turtle_PatRoyal_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_turtle_royal`: purple shell with a gold rim, lilac skin. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `A_Turtle_ShellIn` | [L] | Head and flippers pull in; the tucked mesh is swapped in behind `FX_ShellTuck` | 9 frames | RIG_Turtle | 0.8 | not started |
 | `A_Turtle_ShellHold` | [L] | The shell rocks gently | loop 45 frames | RIG_Turtle | 0.4 | not started |
@@ -347,11 +347,11 @@ Family `Squid`. **Jet** is one clip. The only member of the `Squid` family and t
 | `M_Species_Squid_Adult` | [L] | Longer body, smaller eyes, full signature feature. Swapped in at tier 4 inside `FX_Metamorph` | 3,500 tris | M_Species_Squid_Juv | 7 | not started |
 | `M_Species_Squid_*_LOD1, _LOD2` | [L] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1 | not started |
 | `M_Species_Squid_*_Shell, _ShellThick` | [L] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile and the adult, each with its two distance versions | 600 tris juvenile, 1,400 adult | finished meshes | 1 | not started |
-| `M_Species_Squid_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Squid | 0.8 | not started |
+| `M_Species_Squid_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Squid` mantle crown, three leaf-shaped points at the tip of the mantle (document 06, section 3.6) | 150 tris | RIG_Squid | 0.8 | not started |
 | (fit) Squid on RIG_Squid | [L] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Squid | 5 | not started |
 | `T_Squid_Juv_Alb` | [L] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Squid_Adult_Alb` | [L] | Adult colours | 512² | T_Squid_Juv_Alb | 3 | not started |
-| `T_Squid_PatPeach_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_squid_peach`: "Peach Fizz": peach body, cream arms, pink tail fins. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Squid_PatPeach_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_squid_peach`: "Peach Fizz": soft peach-orange body, cream arms, yellow tail fins. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Squid_PatDeepSea_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_squid_deepsea`: dark teal body, pale glowing fin edges. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Squid_PatCherry_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_squid_cherry`: red body, white arm tips. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `A_Squid_Jet` | [L] | Arms snap shut and the body shoots backwards | 15 frames | RIG_Squid | 1.2 | not started |
@@ -367,12 +367,12 @@ Family `Fish`. **Rampage** is passive: it triggers by itself after three quick b
 | `M_Species_Shark_Adult` | [L] | Longer body, smaller eyes, full signature feature. Swapped in at tier 4 inside `FX_Metamorph` | 3,500 tris | M_Species_Shark_Juv | 6 | not started |
 | `M_Species_Shark_*_LOD1, _LOD2` | [L] | Half and quarter triangle versions of each mesh, made by script and checked | half and quarter | finished meshes | 1 | not started |
 | `M_Species_Shark_*_Shell, _ShellThick` | [L] | Outline shells by script: `_Shell` (green, "you can eat it") and the 1.5× thicker `_ShellThick` (red, "it can eat you") for the juvenile and the adult, each with its two distance versions | 600 tris juvenile, 1,400 adult | finished meshes | 1 | not started |
-| `M_Species_Shark_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest` | 150 tris | RIG_Fish | 0.8 | not started |
+| `M_Species_Shark_Crest` | [L] | Leviathan crest for tier 7, attached to `Sock_Crest`: the `Fish` back sail, kept low in front of the tall dorsal fin (document 06, section 3.6) | 150 tris | RIG_Fish | 0.8 | not started |
 | (fit) Shark Pup on RIG_Fish | [L] | Family skeleton fitted to this body, weights for every mesh, sockets placed | — | RIG_Fish | 2.5 | not started |
 | `T_Shark_Juv_Alb` | [L] | Juvenile colours: three clear values, hand-painted, eye and mouth in the standard layout | 256² | family UV layout | 2 | not started |
 | `T_Shark_Adult_Alb` | [L] | Adult colours | 512² | T_Shark_Juv_Alb | 3 | not started |
 | `T_Shark_PatSandbar_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_shark_sandbar`: sandy tan back, white belly. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
-| `T_Shark_PatStorm_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_shark_storm`: dark slate back, light grey fin tips. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
+| `T_Shark_PatStorm_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_shark_storm`: dark slate back, light grey fin tips, pale belly. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | `T_Shark_PatBubble_Juv_Alb, _Adult_Alb` | [L] | Pattern `pat_shark_bubble`: "Bubble Blue": bright blue back, white belly, yellow eyes. Large colour areas only, never bands, dots or glow | 256² and 512² | base textures | 2 | not started |
 | (check) Fish clips on the Shark Pup | [L] | Play the whole `A_Fish_*` set on this body and fix poses that break | — | A_Fish_* | 1.5 | not started |
 | `A_Shark_RampageStart` | [L] | Head shake and jaw snap when Rampage triggers | 15 frames | RIG_Fish | 0.8 | not started |
@@ -702,7 +702,7 @@ The one hero predator; its outline shows before its body does. Effects: `FX_OldS
 
 ### 5.6 Hazards and the helper current
 
-Hazards have no bones and no outline shell (document 06, section 6.3); hook bait has no outline either (canon section 5.2). The thermal vents are the chimneys of the landmark "The Chimneys": cold stone at soft launch, lit at launch. A current is drawn with streak particles and bent sea grass only (`FX_Current`). Effects: `FX_JellySting`, `FX_AnemoneSlow`, `FX_VentPlume`, `FX_VentBurn`, `FX_HookGlint`, `FX_HookYank`, `FX_Current`, `FX_CurrentEntry`.
+Hazards have no bones and no outline shell (document 06, section 6.3); hook bait has no outline either (canon section 5.2). The thermal vents are the chimneys of the landmark "The Chimneys": cold stone at soft launch, lit at launch. Document 03, section 5.1 owns the rule: nine vents, of which the three at the centre erupt all the time and the six outer ones cycle (4 s `Dormant`, 1 s `Rumble` warning, 3 s `Erupting`), each at its own offset. The burning column is 10 studs wide and 40 tall, the same for all nine. A current is drawn with streak particles and bent sea grass only (`FX_Current`). Effects: `FX_JellySting`, `FX_AnemoneSlow`, `FX_VentRumble`, `FX_VentPlume`, `FX_VentBurn`, `FX_HookGlint`, `FX_HookYank`, `FX_Current`, `FX_CurrentEntry`.
 
 | Asset | Tag | Description | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|
@@ -711,12 +711,12 @@ Hazards have no bones and no outline shell (document 06, section 6.3); hook bait
 | `T_Jelly_Emi` | [MVP] | Glow mask for the bell rim | 128² | T_Jelly_Alb | 0.4 | not started |
 | `M_Hazard_Anemone_01–03` | [L] | Soft candy-coloured anemones in three sizes for Tickle Garden. Colour by tint | 400 tris each | — | 3.5 | not started |
 | `T_Anemone_Alb` | [L] | One sheet for the three meshes | 256² | — | 1.5 | not started |
-| `M_Hazard_Vent_01–03` | [MVP] | Black stone chimneys: single, twin, cluster. Nine stand at The Chimneys | 500 tris each | — | 4 | not started |
+| `M_Hazard_Vent_01–03` | [MVP] | Lumpy black stone chimneys, 12 studs tall, in three shapes, each with one mouth at the top where the column rises. Nine stand within 70 studs of the centre of The Chimneys: three at the centre (always erupting at launch) and six around them (cycling) | 500 tris each | — | 4 | not started |
 | `T_Vent_Alb` | [MVP] | Dark crusted stone with pale mineral rims | 256² | — | 1.5 | not started |
-| `T_Vent_Emi` | [L] | Glow mask for the hot cracks when the vents wake at launch | 128² | T_Vent_Alb | 0.5 | not started |
+| `T_Vent_Emi` | [L] | Glow mask for the hot cracks and the orange rim at the top when the vents wake at launch. Code brightens it during `Rumble` | 128² | T_Vent_Alb | 0.5 | not started |
 | `M_Hazard_Hook` | [MVP] | Oversized cartoon fishing hook | 150 tris | — | 1 | not started |
 | `M_Hazard_Bait_01–02` | [MVP] | A fat worm and a shiny lure; rigid, jiggled in code | 120 tris each | — | 1 | not started |
-| `M_Hazard_Bobber` | [MVP] | Red and white float at the surface above each hook that is not under The Snooze | 120 tris | — | 0.5 | not started |
+| `M_Hazard_Bobber` | [MVP] | Red and white float at the surface above each hook that is not under The Snooze (document 03, section 5.2). Its red is the soft tomato `#D2564B` that document 06, section 4.5 allows, never the outline red | 120 tris | — | 0.5 | not started |
 | `T_HookSet_Alb` | [MVP] | One sheet for hook, baits and bobber | 256² | — | 1.2 | not started |
 | `T_FishingLine_Mask` | [MVP] | Thin line texture for the beam from the surface to the hook | 64 × 256 | — | 0.2 | not started |
 | `M_Env_SeaGrass_Bent_01–02` | [MVP] | Sea grass bent over in the flow, placed along current paths | 80 tris each | T_EnvShared_Alb | 0.8 | not started |
@@ -847,7 +847,7 @@ Documents 03 and 06 both build the whole Drop-off at soft launch, including the 
 | `T_Decal_ScarScrape_Mask` | [MVP] | "Scar's Run": three long pale scrape marks laid on the Wall along Old Scar's patrol path | 3 | 256 × 64 each | — | 1 | not started |
 | `T_EnvDropOff_Alb` | [MVP] | Atlas for sponges, whips, worms and bones | 1 | 512² | — | 3.5 | not started |
 | (assembly) The Drop-off | [MVP] | Stack the Wall and its ledges, lay the Ledge and Deep Floor, place nine landmarks and the nine cold chimneys, mark Old Scar's path | 1 | — | Drop-off kit, shared pieces | 14 | not started |
-| (assembly) The Drop-off, launch pass | [L] | Wake the vents, place Grouper spots, dress Whale's Rest for the Whale Fall | 1 | — | launch rows | 4 | not started |
+| (assembly) The Drop-off, launch pass | [L] | Wake the nine vents (three always on at the centre, six cycling at their own offsets), place Grouper spots, dress Whale's Rest for the Whale Fall | 1 | — | launch rows | 4 | not started |
 
 The Chimneys (landmark Y) are the vent meshes in section 5.6.
 
@@ -871,7 +871,8 @@ All 24 coves use the same pieces (document 03, sections 6.7 and 6.10). Specimens
 | `M_Cove_PerchNet` | [MVP] | Kelp net that covers a perch not yet opened. The nets on the ten Bigger Cove perches show a pass mark, painted in a second cell of the cove atlas | 1 | 200 tris | T_Cove_Alb | 1 | not started |
 | `M_Cove_TrophyRock` | [MVP] | Raised rock at the back with a light beam; the best specimen swims above it | 1 | 500 tris | T_Cove_Alb | 1.5 | not started |
 | `M_Cove_CodexStone` | [MVP] | Open stone book with glowing pages; opens the Codex | 1 | 400 tris | T_Cove_Alb | 2 | not started |
-| `M_Cove_TideClock` | [MVP] | Shell clock on the cove wall that shows the next tide event and nothing more, free for every player (document 04). Hand and four picture plates. The Tide Watcher tide board is interface (document 08) | 1 | 400 tris, 1 bone | T_Cove_Alb | 2 | not started |
+| `M_Cove_SpeciesWall` | [MVP] | Species Wall: a smooth oval patch of the back wall, left of the Trophy Rock, with a raised shell rim (document 03, section 6.10). The next species the player can unlock shows on it as a dark silhouette inside a progress ring; both are interface drawn on the patch (the species portrait tinted dark in code, document 08), so this row is the wall patch only. Lit at the first bank (document 04) | 1 | 200 tris | T_Cove_Alb | 1 | not started |
+| `M_Cove_TideClock` | [MVP] | Tide clock: a shell clock on the back wall, right of the Trophy Rock, that shows the next tide event and its countdown and nothing more, free in every cove (document 03, section 6.10) and revealed at the first bank (document 04). Hand and four picture plates; the countdown is interface text. The Tide Watcher tide board is interface (document 08) | 1 | 400 tris, 1 bone | T_Cove_Alb | 2 | not started |
 | `T_Cove_Alb` | [MVP] | One atlas for the whole cove kit, the egg and the Pearls | 1 | 512² | — | 4 | not started |
 | (assembly) Cove template and Rim | [MVP] | Build one cove; mark 40 perches and 29 decoration spots; set 24 mouths on the Rim at the positions in document 03 | 1 | — | cove kit | 6 | not started |
 | `M_Cove_BubbleCount` | [L] | Small cluster of bubbles under the Name Shell that shows the Bubbles received | 1 | 150 tris | M_Prop_BubbleShell | 0.8 | not started |
@@ -927,10 +928,10 @@ The 50 decorations in document 03, section 13, one row each. Size class sets the
 | `M_Prop_Deco_CdxDangerBoard` | [L] | `deco_cdx_danger_board` Danger Board: cork board of funny predator posters | 1 | M, wall | T_CoveDeco_01–03_Alb | 1 | not started |
 | `M_Prop_Deco_CdxSeaGlobe` | [L] | `deco_cdx_sea_globe` Sea Globe: glass globe with a tiny model of the whole map | 1 | M, floor | T_CoveDeco_01–03_Alb | 1 | not started |
 | `M_Prop_Deco_CdxTideChart` | [L] | `deco_cdx_tide_chart` Tide Chart: wall chart with a picture per tide event | 1 | S, wall | T_CoveDeco_01–03_Alb | 0.6 | not started |
-| `M_Prop_Deco_StreakSunShell` | [L] | `deco_streak_sun_shell` Sun Shell: golden scallop that glows like a small sun | 1 | S, floor | T_CoveDeco_01–03_Alb | 0.6 | not started |
-| `M_Prop_Deco_StreakWeekWheel` | [L] | `deco_streak_week_wheel` Week Wheel: small ship wheel with seven shells | 1 | S, wall | T_CoveDeco_01–03_Alb | 0.6 | not started |
-| `M_Prop_Deco_StreakLuckyStarfish` | [L] | `deco_streak_lucky_starfish` Lucky Starfish: smiling golden starfish that waves an arm | 1 | S, floor | T_CoveDeco_01–03_Alb | 1 | not started |
-| `M_Prop_Deco_StreakMessageBottle` | [L] | `deco_streak_message_bottle` Message in a Bottle: corked bottle with a note; bobs | 1 | S, floor | T_CoveDeco_01–03_Alb | 0.6 | not started |
+| `M_Prop_Deco_GoalsSunShell` | [L] | `deco_goals_sun_shell` Sun Shell: golden scallop that glows like a small sun. Daily goals, all three done on 3 days | 1 | S, floor | T_CoveDeco_01–03_Alb | 0.6 | not started |
+| `M_Prop_Deco_GoalsWeekWheel` | [L] | `deco_goals_week_wheel` Week Wheel: small ship wheel with seven shells on its rim. Daily goals, all three done on 7 days | 1 | S, wall | T_CoveDeco_01–03_Alb | 0.6 | not started |
+| `M_Prop_Deco_GoalsLuckyStarfish` | [L] | `deco_goals_lucky_starfish` Lucky Starfish: smiling golden starfish that waves an arm. Daily goals, all three done on 14 days | 1 | S, floor | T_CoveDeco_01–03_Alb | 1 | not started |
+| `M_Prop_Deco_GoalsMessageBottle` | [L] | `deco_goals_message_bottle` Message in a Bottle: corked bottle with a note; bobs. Daily goals, all three done on 28 days | 1 | S, floor | T_CoveDeco_01–03_Alb | 0.6 | not started |
 | `M_Prop_Deco_BuyGoldChest` | [L] | `deco_buy_gold_chest` Golden Chest: open chest overflowing with Pearls. Starter Pack | 1 | M, floor | T_CoveDeco_01–03_Alb | 1 | not started |
 | `M_Prop_Deco_BuyDiscoClam` | [L] | `deco_buy_disco_clam` Disco Clam: clam with a mirror-ball pearl throwing dots of light | 1 | M, floor | T_CoveDeco_01–03_Alb | 1.4 | not started |
 | `M_Prop_Deco_BuyJellyLamp` | [L] | `deco_buy_jelly_lamp` Jelly Lamp: glass tube of slow glowing blobs | 1 | S, floor | T_CoveDeco_01–03_Alb | 0.6 | not started |
@@ -1162,7 +1163,8 @@ Shared by many effects. Flipbooks are rendered from Blender or painted, then pac
 | `FX_GrouperSuction` | [L] | Cone of inward streaks and bubbles in front of the mouth | 24 particles | T_FX_SuctionLine_Mask | 1 | not started |
 | `FX_JellySting` | [MVP] | Zap flash and arcs at the touch point | 8 particles | T_FX_Zap_Flip | 0.6 | not started |
 | `FX_AnemoneSlow` | [L] | Sticky wisps cling to the creature for 2 s | 8 particles | T_FX_SoftPuff_Flip | 0.6 | not started |
-| `FX_VentPlume` | [L] | Wobbling column of ten orange-white blobs; must read as danger from far away | 12 particles | T_FX_HeatPlume_Flip, T_FX_Ember_Mask | 1.5 | not started |
+| `FX_VentPlume` | [L] | Wobbling column of ten orange-white blobs and bubbles, 10 studs wide and 40 tall, rising from the chimney top while a vent is `Erupting`; always on at the three centre vents. Must read as danger from far away | 12 particles per vent | T_FX_HeatPlume_Flip, T_FX_Ember_Mask | 1.5 | not started |
+| `FX_VentRumble` | [L] | The 1 s `Rumble` warning before a cycling vent erupts: a burst of small bubbles rises from the chimney top while the rim glow brightens | 8 particles | T_FX_Bubble_Mask | 0.4 | not started |
 | `FX_VentBurn` | [L] | Sizzle bubbles on a creature losing mass in a vent | 10 particles | T_FX_Bubble_Mask | 0.5 | not started |
 | `FX_HookGlint` | [MVP] | Glint on the bait so it tempts | 1 particle | T_FX_Star_Mask | 0.2 | not started |
 | `FX_HookYank` | [MVP] | Comic yank: the line snaps tight, a bubble column, a few mass blobs drop away | 20 particles | T_FX_Bubble_Mask, T_FishingLine_Mask | 1 | not started |
@@ -1334,7 +1336,8 @@ Each predator has a warning sound that plays before it can hurt the player. A pl
 | `SFX_JellyHum` | [MVP] | Faint electric hum near a bloom | loop 2 s | 0.4 | not started |
 | `SFX_JellySting` | [MVP] | Soft zap and wobble | 0.4 s | 0.4 | not started |
 | `SFX_AnemoneSlow` | [L] | Sticky squelch | 0.5 s | 0.3 | not started |
-| `SFX_VentLoop` | [L] | Rumbling hiss around a vent | loop 3 s | 0.5 | not started |
+| `SFX_VentLoop` | [L] | Rumbling hiss around a vent while it is `Erupting` | loop 3 s | 0.5 | not started |
+| `SFX_VentRumble` | [L] | Low rumble for the 1 s warning before a cycling vent erupts, heard within 60 studs | 1.0 s | 0.3 | not started |
 | `SFX_VentBurn` | [L] | Sizzle while a creature is inside | loop 1 s | 0.3 | not started |
 | `SFX_HookBite` | [MVP] | Metal ting: the bait was a hook | 0.3 s | 0.3 | not started |
 | `SFX_HookReel` | [MVP] | Comic fast reel with a rising whistle | 1.2 s | 0.6 | not started |
@@ -1381,7 +1384,7 @@ Each predator has a warning sound that plays before it can hurt the player. A pl
 | `SFX_TideClock` | [MVP] | The tide clock appears and ticks once | 0.8 s | 0.3 | not started |
 | `SFX_UI_CodexNew` | [MVP] | New Codex entry | 0.6 s | 0.3 | not started |
 | `SFX_UI_Toast` | [MVP] | A toast arrives | 0.4 s | 0.3 | not started |
-| `SFX_UI_Countdown` | [MVP] | Tick for the last ten seconds before an event | 0.15 s | 0.2 | not started |
+| `SFX_UI_Countdown` | [MVP] | Tick played at 3, 2 and 1 seconds before a tide event starts, inside the last-10-seconds banner (document 08). One file, played three times | 0.15 s | 0.2 | not started |
 | `SFX_UI_EventWarn` | [MVP] | Event warning banner | 0.5 s | 0.3 | not started |
 | `SFX_UI_EventStart` | [MVP] | Event start banner; also when a player calls the tide | 0.6 s | 0.3 | not started |
 | `SFX_UI_StreakClaim` | [L] | Login streak reward claimed | 1.0 s | 0.4 | not started |
@@ -1473,7 +1476,7 @@ Music hours assume composing from scratch. Licensing finished tracks instead cut
 **Roblox audio upload rules to check before any audio work is scheduled** (these change; confirm the current values in the Creator documentation):
 
 1. Which file types are accepted, and the per-file caps on length and size. Believed to be about 7 minutes and 20 MB; every file here is far below that.
-2. The free upload quota per month, and whether verifying the account raises it. This list has about 261 audio files, about 201 of them for soft launch, so the quota sets the upload calendar.
+2. The free upload quota per month, and whether verifying the account raises it. This list has about 262 audio files, about 201 of them for soft launch, so the quota sets the upload calendar.
 3. Ownership: upload every file from the account or group that owns the game, so the game has permission to play it. Audio is private to its owner.
 4. Moderation: each file is reviewed and can be rejected. Voice blips must not sound like words.
 5. Licences: any library sound must allow use in a commercial game and upload to a third-party platform. Keep the licence text in `assets/licences/`.
@@ -1482,25 +1485,29 @@ Music hours assume composing from scratch. Licensing finished tracks instead cut
 
 ## 13. Store-page source art
 
-Document 11 owns the store page: it defines five icons (A to E), eight thumbnails (T1 to T8) and a 24-second gameplay preview, and it names the finished files `UI_Store_…`. Each image is staged with the real game models, rendered, then lightly painted over. **This section lists only the staged 3D scenes** that produce the plates for that paint-over. Nothing may appear in a scene that is not in the build at that scope.
+Document 11 owns the store page: it defines five icons (A to E), eight thumbnails (T1 to T8) and a 24-second gameplay preview, and it names the finished files `UI_Store_…`. Icon A and thumbnails T3, T4 and T5 each have a soft-launch version [MVP], which shows only what is in the soft-launch slice (the Barracuda, not Old Scar), and a public-launch version [L] (document 11, sections 3.2 and 4.2). Each version is its own row here, with its own hours; a public-launch row is sized as a re-stage of its soft-launch scene. Each image is staged with the real game models, rendered, then lightly painted over. **This section lists only the staged 3D scenes** that produce the plates for that paint-over. Nothing may appear in a scene that is not in the build at that scope.
 
 The preview video is recorded gameplay, not a rendered trailer, so it needs capture set-ups, not scenes. Pass, product and badge icons (document 11, section 12, rows 12 to 18) are flat images; where one needs a creature, it uses a render from the pose set below.
 
 | Asset | Tag | Description | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|
 | `SCN_Stage_Reef` | [MVP] | Master stage: a dressed piece of Reef, the water look, a light rig with a warm key from top left, and camera presets. Every plate starts from it | — | Reef kit, water and sky, LGT_Reef | 6 | not started |
-| (pose) Marketing pose set, soft launch | [MVP] | Expression and action poses for Minnow, Pufferfish and Eel, Old Scar's open mouth, the Barracuda mid-lunge and Krill, following document 11, section 8.5. Rendered on clear backgrounds for icons and flat art | — | species and predator rigs | 5 | not started |
+| (pose) Marketing pose set, soft launch | [MVP] | Expression and action poses for Minnow, Pufferfish and Eel, the Barracuda mid-lunge and with its jaws open for icon A, and Krill, following document 11, section 8.5. Rendered on clear backgrounds for icons and flat art | — | species and predator rigs | 5 | not started |
 | (pose) Marketing pose set, launch | [L] | The same for Sea Turtle, Squid and Shark Pup, each in its ability pose, and the Grouper | — | launch species | 4 | not started |
-| `SCN_Icon_A_BehindYou` | [MVP] | Main icon. A Minnow that has just eaten, krill tail in its mouth, eyes turned back; behind it the open mouth of Old Scar fills the frame like a ring. Must read at 110 and 64 pixels | 2048² master | SCN_Stage_Reef, pose set | 5 | not started |
+| `SCN_Icon_A_BehindYou` | [MVP] | Main icon, soft-launch version (document 11, section 3.2). A Minnow that has just eaten, krill tail in its mouth, eyes turned back; behind it the long open jaws of the Barracuda, seen from the front and slightly to one side, close in from the top and the bottom. Old Scar is not in the soft-launch slice, so it is not in this scene. Must read at 110 and 64 pixels | 2048² master | SCN_Stage_Reef, pose set | 5 | not started |
 | `SCN_Icon_D_Puffed` | [MVP] | Test icon. One fully puffed Pufferfish face fills 85% of the frame, a Sardine tail sticking out of its lips | 2048² master | pose set | 3 | not started |
+| `SCN_Icon_A_BehindYou_Launch` | [L] | Main icon, public-launch version, live at public launch. The same Minnow, layout, colours and light as `SCN_Icon_A_BehindYou`; the predator changes to Old Scar, whose open mouth fills the whole frame like a ring, with the pale healed scar line across the upper lip. The hours include Old Scar's open-mouth pose. Must read at 110 and 64 pixels | 2048² master | SCN_Icon_A_BehindYou, M_Pred_OldScar | 2.5 | not started |
 | `SCN_Icon_B_TeethFrame` | [L] | Test icon. Camera inside the predator's mouth looking out; teeth frame the top and bottom; the Minnow brakes in bright water beyond | 2048² master | SCN_Icon_A_BehindYou | 3 | not started |
 | `SCN_Icon_C_FoodChain` | [L] | Test icon. A diagonal of Krill, Minnow and Barracuda, each with its mouth open behind the one before | 2048² master | pose set | 3 | not started |
-| `SCN_Icon_E_Wordmark` | [L] | Test icon. The Minnow half inside the U of the GULP wordmark, tail and one worried eye showing. The wordmark itself comes from documents 08 and 11 | 2048² master | pose set | 1.5 | not started |
+| `SCN_Icon_E_MouthMark` | [L] | Test icon "Mouth mark". The mouth shape of the logo's U (document 11, section 8.1), on its own with no letters, fills 80% of the width; a small Minnow is half inside it, tail and one worried eye showing. No text, as on every icon | 2048² master | pose set | 1.5 | not started |
 | `SCN_Thumb_T1_Chase` | [MVP] | Lead thumbnail. Side view: a Barracuda with a red outline, mouth opening; the Minnow at full dash ahead of it | 1920 × 1080 | SCN_Stage_Reef | 4 | not started |
 | `SCN_Thumb_T2_BecomeWhatYouEat` | [MVP] | Three panels: a trait prey on the left of each, the same Minnow on the right now wearing that trait | 1920 × 1080 | MVP trait rows | 4 | not started |
-| `SCN_Thumb_T3_GetHome` | [MVP] | From behind and above: a Snapper-tier Minnow with Glow races for a lit cove mouth; Old Scar's head enters the frame | 1920 × 1080 | M_Cove_Mouth, M_Pred_OldScar | 4 | not started |
-| `SCN_Thumb_T4_SevenSizes` | [MVP] | One species at tiers 1, 3, 5 and 7 in a line on a plain gradient; the tier 7 wears its crest | 1920 × 1080 | pose set | 3 | not started |
-| `SCN_Thumb_T5_YourCove` | [MVP] | Inside a cove in warm light: six specimens of mixed tier and trait at their perches, Pearls drifting up, a Minnow swimming in | 1920 × 1080 | cove kit | 4 | not started |
+| `SCN_Thumb_T3_GetHome` | [MVP] | Soft-launch version. From behind and above: a Nibbler-tier Minnow with Glow races for a lit cove mouth; a Barracuda, a little under twice the Minnow's size, enters from the left edge with a red outline. This is the chase of the first two minutes | 1920 × 1080 | M_Cove_Mouth, M_Pred_Barracuda | 4 | not started |
+| `SCN_Thumb_T3_GetHome_Launch` | [L] | Public-launch version. The same shot with a Snapper-tier Minnow; the predator is Old Scar's head, about four times the Minnow's size | 1920 × 1080 | SCN_Thumb_T3_GetHome, M_Pred_OldScar | 1.5 | not started |
+| `SCN_Thumb_T4_FiveSizes` | [MVP] | Soft-launch version, "Five sizes". The Minnow at tiers 1, 2, 3, 4 and 5 (Fry to Brute) in a line on a plain gradient, the adult mesh from tier 4; the Brute breaks the top and right edges of the frame. No Titan, no Leviathan and no crest: the slice does not reach them | 1920 × 1080 | pose set | 3 | not started |
+| `SCN_Thumb_T4_SevenSizes` | [L] | Public-launch version, "Seven sizes". The same line-up with the Minnow at tiers 1, 3, 5 and 7; the Leviathan wears its crest and breaks the top and right edges of the frame | 1920 × 1080 | SCN_Thumb_T4_FiveSizes, M_Species_Minnow_Crest | 1.5 | not started |
+| `SCN_Thumb_T5_YourCove` | [MVP] | Soft-launch version. Inside a cove in warm light: six specimens at their perches, Minnow and Pufferfish only, wearing the five slice traits (Glow, Stripes, Spots, Plated, Spiny); Pearls drifting up, a Minnow swimming in | 1920 × 1080 | cove kit | 4 | not started |
+| `SCN_Thumb_T5_YourCove_Launch` | [L] | Public-launch version. The same shot with six specimens of Minnow, Pufferfish and Eel, with traits | 1920 × 1080 | SCN_Thumb_T5_YourCove, Eel rows | 1 | not started |
 | `SCN_Thumb_T6_MoonTide` | [MVP] | The Reef at night with glowing edges; a school of Lunar Fry crosses; a Pufferfish with the Moonlit glow in the centre | 1920 × 1080 | Moon Tide rows | 4 | not started |
 | `SCN_Thumb_T7_PickYourCreature_3` | [MVP] | Optional soft-launch version of T7 with the three soft-launch species | 1920 × 1080 | pose set | 1.5 | not started |
 | `SCN_Thumb_T7_PickYourCreature` | [L] | Six species in a shallow arc, each in its ability pose | 1920 × 1080 | launch pose set | 3.5 | not started |
@@ -1547,17 +1554,17 @@ Each cell is **rows / hours**. A row can cover several files (variants, takes, s
 | Traits | 3 | 26 / 38 | 35 / 48 | — | — | 61 | 124 | 85 |
 | Prey | 4 | 30 / 44 | 7 / 10 | — | — | 37 | 67 | 54 |
 | Predators and hazards | 5 | 38 / 75 | 12 / 24 | — | — | 50 | 80 | 98 |
-| Environment | 6 | 101 / 336 | 50 / 60 | 3 / 3 | 8 / 65 | 162 | 305 | 464 |
+| Environment | 6 | 102 / 337 | 50 / 60 | 3 / 3 | 8 / 65 | 163 | 306 | 465 |
 | Water and sky | 7 | 13 / 26 | — | — | — | 13 | 60 | 26 |
 | Tide events | 8 | 6 / 10 | 7 / 24 | 3 / 42 | 1 / 12 | 17 | 17 | 88 |
-| Visual effects | 9 | 100 / 62 | 31 / 20 | — | — | 131 | 131 | 82 |
+| Visual effects | 9 | 100 / 62 | 32 / 20 | — | — | 132 | 132 | 82 |
 | Lighting | 10 | 10 / 22 | 1 / 2 | 3 / 6 | 2 / 4 | 16 | 16 | 34 |
-| Sound effects | 11 | 132 / 66 | 38 / 17 | — | 1 / 2 | 171 | 230 | 85 |
+| Sound effects | 11 | 132 / 66 | 39 / 17 | — | 1 / 2 | 172 | 231 | 85 |
 | Music | 12 | 14 / 79 | 3 / 15 | 3 / 21 | 2 / 16 | 22 | 31 | 131 |
-| Store-page source art | 13 | 14 / 54 | 8 / 25 | 2 / 4 | 1 / 2 | 25 | 25 | 84 |
+| Store-page source art | 13 | 14 / 54 | 12 / 32 | 2 / 4 | 1 / 2 | 29 | 29 | 91 |
 | Placeholders | 16 | 13 / 26 | — | — | — | 13 | 13 | 26 |
 | Pipeline | 14.1 | 12 / 65 | 1 / 8 | — | — | 13 | 13 | 73 |
-| **Total** | | **579 / 1,015** | **281 / 422** | **26 / 172** | **39 / 265** | **925** | **1,607** | **1,874** |
+| **Total** | | **580 / 1,016** | **287 / 429** | **26 / 172** | **39 / 265** | **932** | **1,614** | **1,882** |
 
 ### 14.3 Hours by scope tag
 
@@ -1565,12 +1572,12 @@ First-pass hours are the sums above. The allowance adds 30% (tune) for review lo
 
 | Scope | Rows | First-pass hours | With 30% allowance | Weeks at 25 h/week |
 |---|---|---|---|---|
-| [MVP] soft launch | 579 | 1,015 | 1,319 | 53 |
-| [L] added for launch | 281 | 422 | 549 | 22 |
-| **[MVP] + [L] public launch** | 860 | 1,437 | 1,868 | 75 |
+| [MVP] soft launch | 580 | 1,016 | 1,320 | 53 |
+| [L] added for launch | 287 | 429 | 558 | 22 |
+| **[MVP] + [L] public launch** | 867 | 1,445 | 1,878 | 75 |
 | [P1] first quarter after launch | 26 | 172 | 224 | 9 |
 | [P2] later | 39 | 265 | 344 | 14 |
-| **Everything on this list** | 925 | 1,874 | 2,436 | 97 |
+| **Everything on this list** | 932 | 1,882 | 2,447 | 98 |
 
 ### 14.4 Suggested production order
 
@@ -1579,30 +1586,30 @@ Sprints are themes, not fixed lengths. Hours are first-pass sums of the rows nam
 | Order | Sprint theme | Build it unlocks | What must exist | Hours | Running total |
 |---|---|---|---|---|---|
 | 1 | Pipeline, grey-box and one real fish | **First playable** | All tools and the rig and trait tests in 14.1 (not the import passes). Every placeholder in section 16. Finished: the `Fish` base mesh and skeleton, the Minnow juvenile with its fit, texture and outline shells, five family clips (Swim, SwimFast, Idle, Dash, Bite), the shared roughness textures; Plankton and Krill with the small-prey atlas and prey shells; `FX_BiteChomp`, the two smallest bubble pops and their two textures; three eating sounds; `LGT_Reef`. Everything else is a stand-in | 101 | 101 |
-| 2 | The first two minutes | **First-two-minutes build** | Everything document 04 scripts for a new player. The rest of the `Fish` clip set, the Minnow's Dart and fidget, its distance versions, the egg. The Nursery kit, landmarks and assembly. Shared pieces, the Rim and the four ground textures. A slice of Reef: floor, rock masses, brain and staghorn coral, Noggin Rock. Kelp plants for the kelp patch. The whole [MVP] cove with its tide clock. Tiny Shrimp, Sardine, Glowfry and the Glow overlay for the first trait. The Barracuda for the scripted chase. All daytime water and sky rows and the phone test. Effects for tier-ups 2 and 3, dash, bubbles, gulp pop, hatch, bank, cove membrane and beacon, home trail, Pearls, currents, light shafts, the first trait. Presets for Nursery, Cove, Surface and Gulped. About 45 sounds, including the Minnow voice and the interface sounds the first session calls. `MUS_Nursery`, `MUS_Chase`, `MUS_Current`, `MUS_Cove`, `MUS_Reef` and both stingers | 288 | 389 |
-| 3 | Creatures, prey and traits for soft launch | — | Minnow adult and crest; Pufferfish and Eel complete, with the `Eel` skeleton and clip set; the remaining prey; the other eight soft-launch trait prey; the eight remaining soft-launch traits on `Fish` and `Eel`; kit pieces, placement and the combination sheet | 147 | 536 |
-| 4 | The soft-launch world | — | The rest of the Reef and its landmarks; the Kelp Forest; the whole Drop-off with the Tin Pickle, the cold Chimneys and the Crack; eel holes; night sky; remaining presets and low-end variants | 212 | 748 |
-| 5 | Danger, events and effects | — | Gull, Moray, Old Scar, jelly bloom, hooks; Moon Tide glow masks, night tints and test; the rest of the [MVP] effects | 105 | 853 |
-| 6 | Sound, music, store page, import | **Soft launch** | Remaining [MVP] sounds and music including the theme; icons A and D, thumbnails T1 to T6, the pose set and the capture set-ups; the soft-launch import pass | 162 | 1,015 |
-| 7 | Launch creatures and traits | — | Sea Turtle and Squid with their two skeletons and clip sets; Shark Pup; 18 patterns; Spark, Camo, Ember and Bonefed on all four families; the soft-launch overlays on `Turtle` and `Squid`; launch trait prey | 227 | 1,242 |
-| 8 | Launch world and events | — | Grouper, anemones, lit vents; the Whale Fall skeleton; cove Bubble jar and count; 46 decorations; the Drop-off launch pass; Whale Fall preset | 110 | 1,352 |
-| 9 | Launch effects, sound and music | — | All [L] effects and sounds, `MUS_Event_WhaleFall`, `MUS_Tier7` | 52 | 1,404 |
-| 10 | Store page and launch import | **Public launch** | Icons B, C and E, thumbnails T7 and T8, the launch pose set, the launch-week plate, the preview re-cut; the launch import pass | 33 | 1,437 |
+| 2 | The first two minutes | **First-two-minutes build** | Everything document 04 scripts for a new player. The rest of the `Fish` clip set, the Minnow's Dart and fidget, its distance versions, the egg. The Nursery kit, landmarks and assembly. Shared pieces, the Rim and the four ground textures. A slice of Reef: floor, rock masses, brain and staghorn coral, Noggin Rock. Kelp plants for the kelp patch. The whole [MVP] cove with its Species Wall and tide clock. Tiny Shrimp, Sardine, Glowfry and the Glow overlay for the first trait. The Barracuda for the scripted chase. All daytime water and sky rows and the phone test. Effects for tier-ups 2 and 3, dash, bubbles, gulp pop, hatch, bank, cove membrane and beacon, home trail, Pearls, currents, light shafts, the first trait. Presets for Nursery, Cove, Surface and Gulped. About 45 sounds, including the Minnow voice and the interface sounds the first session calls. `MUS_Nursery`, `MUS_Chase`, `MUS_Current`, `MUS_Cove`, `MUS_Reef` and both stingers | 289 | 390 |
+| 3 | Creatures, prey and traits for soft launch | — | Minnow adult and crest; Pufferfish and Eel complete, with the `Eel` skeleton and clip set; the remaining prey; the other eight soft-launch trait prey; the eight remaining soft-launch traits on `Fish` and `Eel`; kit pieces, placement and the combination sheet | 147 | 537 |
+| 4 | The soft-launch world | — | The rest of the Reef and its landmarks; the Kelp Forest; the whole Drop-off with the Tin Pickle, the cold Chimneys and the Crack; eel holes; night sky; remaining presets and low-end variants | 212 | 749 |
+| 5 | Danger, events and effects | — | Gull, Moray, Old Scar, jelly bloom, hooks; Moon Tide glow masks, night tints and test; the rest of the [MVP] effects | 105 | 854 |
+| 6 | Sound, music, store page, import | **Soft launch** | Remaining [MVP] sounds and music including the theme; icons A and D and thumbnails T1 to T6, all in their soft-launch versions, the pose set and the capture set-ups; the soft-launch import pass | 162 | 1,016 |
+| 7 | Launch creatures and traits | — | Sea Turtle and Squid with their two skeletons and clip sets; Shark Pup; 18 patterns; Spark, Camo, Ember and Bonefed on all four families; the soft-launch overlays on `Turtle` and `Squid`; launch trait prey | 227 | 1,243 |
+| 8 | Launch world and events | — | Grouper, anemones, lit vents; the Whale Fall skeleton; cove Bubble jar and count; 46 decorations; the Drop-off launch pass; Whale Fall preset | 110 | 1,353 |
+| 9 | Launch effects, sound and music | — | All [L] effects and sounds, `MUS_Event_WhaleFall`, `MUS_Tier7` | 52 | 1,405 |
+| 10 | Store page and launch import | **Public launch** | Icons B, C and E, thumbnails T7 and T8, the public-launch versions of icon A and of thumbnails T3, T4 and T5, the launch pose set, the launch-week plate, the preview re-cut; the launch import pass | 40 | 1,445 |
 
-The first playable needs about 101 first-pass hours and the first-two-minutes build about 288 more. Those two builds decide whether the game is fun, and together they use roughly 38% of the [MVP] art and audio hours. Do not start sprint 3 until the first-two-minutes build has been played by new players.
+The first playable needs about 101 first-pass hours and the first-two-minutes build about 289 more. Those two builds decide whether the game is fun, and together they use roughly 38% of the [MVP] art and audio hours. Do not start sprint 3 until the first-two-minutes build has been played by new players.
 
 ### 14.5 Biggest cost drivers (launch scope)
 
 | Driver | First-pass hours | Share of launch | Note |
 |---|---|---|---|
-| Environment kits, landmarks, coves and assembly | 396 | 28% | Landmarks are 102 of it, decorations 54, assembly 52 |
+| Environment kits, landmarks, coves and assembly | 397 | 27% | Landmarks are 102 of it, decorations 54, assembly 52 |
 | Six playable species | 283 | 20% | Meshes and textures dominate; clips are only 72 because swimming is code and families share clip sets |
 | Sound and music | 178 | 12% | Music composed from scratch is 94 of it |
 | Pipeline, tests, import and placeholders | 98 | 7% | Not assets, but every other number relies on them |
 | Predators and hazards | 98 | 7% | Old Scar alone is 23 |
 | Trait visuals | 85 | 6% | 13 traits across 4 families; grows with each new family, not each new species |
-| Visual effects | 82 | 6% | 105 effects, most of them settings over shared textures |
-| Store-page scenes | 78 | 5% | Plates only; the paint-over and the video edit are in document 11 |
+| Store-page scenes | 85 | 6% | Plates only; the paint-over and the video edit are in document 11 |
+| Visual effects | 82 | 6% | 106 effects, most of them settings over shared textures |
 
 ## 15. Reuse plan
 
@@ -1624,7 +1631,7 @@ The hours in this list already assume the reuse below. If a reuse turns out not 
 | Six prey atlases | All 21 prey | Small cells in shared sheets, so schools batch | 8, plus frame rate |
 | Four tiling ground textures | Every floor, rock, cliff and Rim piece in every zone | Tint and vertex colour make silt, sandstone and deep slate | 30 |
 | Kit pieces at 80% to 125% with tints | Every zone | A dozen corals dress the whole Reef; night is a tint, not new meshes | 50 |
-| Vent chimneys | The Chimneys landmark at soft launch, the vent hazard at launch | Same meshes; launch adds a glow mask and a plume | 6 |
+| Vent chimneys | The Chimneys landmark at soft launch, the vent hazard at launch | Same meshes; launch adds a glow mask, a plume and a rumble warning | 6 |
 | One cove | All 24 coves | Same pieces; the lantern colour and the owner's specimens make them differ | 100 or more |
 | `M_Prop_BubbleShell` | Protection bubble, Trophy Bubble, Bubble count, Bubbles | One mesh | 3 |
 | `M_Prop_HatchEgg` | Nursery Hatch Bed and every cove's Home Stone | One egg | 1 |
@@ -1655,12 +1662,12 @@ Rules for stand-ins:
 | (placeholder) Traits | [MVP] | Overlays: a flat tint in the trait colour over the home zone, with the trait name in big letters. Pieces: cones for spines, boxes for plates, strips for ribbons and leaves, octahedra for shards, on the real sockets | 44 overlay sets, 11 pieces | placeholder species | 2 | not started |
 | (placeholder) Prey and trait prey | [MVP] | Low-poly ellipsoids sized by tier in one flat colour per prey; trait prey carry a ring. Shells by the real script | 21 prey | — | 1 | not started |
 | (placeholder) Predators and hazards | [MVP] | Red-toned primitives: wedge for Barracuda and Old Scar, tube for Moray, sphere with a hinged lid for Grouper, cross for Gull, sphere for jelly, cone for chimney, ring for anemone, torus for hook. Action clips of the final length | 5 predators, 5 hazards | — | 3 | not started |
-| (placeholder) Environment | [MVP] | Grey block-out pieces at final footprint and height: slabs for floor chunks, boxes and wedges for rocks, cliffs and the Rim, tubes for eel holes, poles for kelp. Each landmark is a block of its real size in a unique colour with its key letter on it. Each zone gets one tint | 205 pieces | — | 5 | not started |
+| (placeholder) Environment | [MVP] | Grey block-out pieces at final footprint and height: slabs for floor chunks, boxes and wedges for rocks, cliffs and the Rim, tubes for eel holes, poles for kelp. Each landmark is a block of its real size in a unique colour with its key letter on it. Each zone gets one tint | 206 pieces | — | 5 | not started |
 | (placeholder) Cove and decorations | [MVP] | Block-out mouth and chamber with the 40 perches and 29 decoration spots marked; fixtures are labelled boxes; each decoration is a box of its size class | cove kit, 46 decorations | — | 2 | not started |
 | (placeholder) Water and sky | [MVP] | Flat semi-clear sheet with one ripple frame, flat two-colour skybox, plain discs for sun and moon. No caustics | — | — | 1 | not started |
-| (placeholder) Effects | [MVP] | One white soft dot texture for everything. Each effect is a short burst with the final name, size and duration, tinted by type: green eat, gold Pearl, red danger, blue water | 105 effects | — | 2 | not started |
+| (placeholder) Effects | [MVP] | One white soft dot texture for everything. Each effect is a short burst with the final name, size and duration, tinted by type: green eat, gold Pearl, red danger, blue water | 106 effects | — | 2 | not started |
 | (placeholder) Lighting | [MVP] | One neutral preset copied under every preset name with only the fog colour and distance from document 06 changed | 10 presets | — | 0.5 | not started |
-| (placeholder) Sound effects | [MVP] | Script-made tones: a short beep per sound at the final length, pitched by group (eat high, danger low, interface mid). Loops are soft noise | 229 files | audio batch script | 2 | not started |
+| (placeholder) Sound effects | [MVP] | Script-made tones: a short beep per sound at the final length, pitched by group (eat high, danger low, interface mid). Loops are soft noise | 230 files | audio batch script | 2 | not started |
 | (placeholder) Music | [MVP] | One eight-bar mallet loop at the shared tempo, pitched differently per track name, cut into the right number of stems; stingers are three notes | 25 files | — | 1.5 | not started |
 | (placeholder) Store page | [MVP] | None needed: the soft launch uses the real [MVP] icons and thumbnails | — | — | 0 | not started |
 
@@ -1672,7 +1679,7 @@ What is left is still open. **Nothing in section 17.1 has been applied**: the ro
 
 ### 17.1 Proposals: the launch scope is large for one person
 
-Launch scope ([MVP] + [L]) is about **1,437 first-pass hours, or 1,868 with the 30% allowance: roughly 75 weeks at 25 hours a week** of art and audio alone, before any code. Soft launch alone is about 1,319 hours with allowance (53 weeks). Options that cut launch hours, with first-pass hours saved:
+Launch scope ([MVP] + [L]) is about **1,445 first-pass hours, or 1,878 with the 30% allowance: roughly 75 weeks at 25 hours a week** of art and audio alone, before any code. Soft launch alone is about 1,320 hours with allowance (53 weeks). Options that cut launch hours, with first-pass hours saved:
 
 | Proposal | Hours saved | Effect on the game |
 |---|---|---|
@@ -1681,7 +1688,7 @@ Launch scope ([MVP] + [L]) is about **1,437 first-pass hours, or 1,868 with the 
 | Make a third fewer variants of every environment kit piece | 38 | More visible repetition; variants can be added in updates |
 | License half the music instead of composing it | 47 | Zone tracks lose the shared tune; keep the theme, Nursery, Cove and the stingers original |
 | Launch with one pattern per species instead of three | 24 | Each species keeps one pattern. Document 05 (section 8.5) sells eleven for Robux and gives six through the Codex, so most of those would wait for an update |
-| **All of the above** | **217** | Launch drops to about 1,219 first-pass hours (15% less) |
+| **All of the above** | **217** | Launch drops to about 1,227 first-pass hours (15% less) |
 
 The scope stays large after these cuts because most of the cost is the base game: four zones built from meshes, six creatures in four families, and 13 traits.
 
@@ -1699,9 +1706,9 @@ Document 13 (the sprint plan) makes its own, deeper cut for the soft launch. It 
 
 | Subject | The difference | This list follows |
 |---|---|---|
-| Marrow glow | Document 06 gives the Marrow chunks a pink-cream glow. Document 03 says cream-white with a soft white glow, no red | Document 03 |
+| Leviathan crest shape | Document 02 (section 1.8) says documents 03 and 07 own the crest's shape per species. Document 06, section 3.6 now defines one shape per body family | Document 06; the six `M_Species_<Species>_Crest` rows quote it |
 | Where a new Fry appears | Document 04: a hatch pool at the centre of the cove. Document 03: the Home Stone | Document 03; the egg sits on the Home Stone |
-| Tide clock and tide board | Document 04 puts a shell clock on every cove wall in the first session. Document 03 has a brass Tide Clock decoration at Reef Rank 31. Canon section 12 sells a tide board (the next three tides and a marker to the event) with Tide Watcher | `M_Cove_TideClock` [MVP] and `M_Prop_Deco_RankTideClock` [L] both show only the next tide, which every player sees for free. The Tide Watcher board and marker are interface (document 08, the tide popover), so this list has no 3D asset for them |
+| Tide clock and tide board | Documents 03 and 04 put a free shell tide clock on every cove wall from the first session. Document 03 also has a brass Tide Clock decoration at Reef Rank 31, a second face for it. Canon section 12 sells a tide board (the next three tides and a marker to the event) with Tide Watcher | `M_Cove_TideClock` [MVP] and `M_Prop_Deco_RankTideClock` [L] both show only the next tide, which every player sees for free. The Tide Watcher board and marker are interface (document 08, the tide popover), so this list has no 3D asset for them |
 | Tide warning sound | Document 03: a bell, `SFX_TideBell`. Document 04: `SFX_TideHorn`. Document 08: `SFX_UI_EventWarn` | A world bell `SFX_TideBell` for the warning, a start horn per event `SFX_TideHorn_<Event>`, and the interface sounds from document 08 |
 | Emote sounds | Document 03 gives each of six emotes its own sound. Document 08 calls one `SFX_UI_Emote` | One name with six takes |
 | Chase music | Document 04 names `MUS_Chase` and `MUS_Current`. The audio plan here also has a `MUS_Danger` layer | All three are listed. If the chase track can serve as the danger layer, `MUS_Danger` is dropped |
@@ -1721,18 +1728,18 @@ Section 1.2 is the final naming rule. Effect and sound names that other document
 | `SFX_GoalDone` | 04 | `SFX_UI_GoalDone` |
 | `SFX_TideHorn` | 04 | `SFX_TideBell` (warning) and `SFX_TideHorn_<Event>` (start) |
 | `A_Minnow_Hatch` | 04 | `A_Fish_Hatch` (the family clip) |
-| `Juvenile`, `Adult` mesh parts | 09 | `M_Species_<Species>_Juv`, `_Adult` |
+| `Juvenile`, `Adult` mesh parts | 09 | No change needed: these are instance names inside the rig Model, not asset names. The files they hold are `M_Species_<Species>_Juv` and `_Adult` |
 | `M_Prop_Trait<Trait>_<Piece>`, `T_Trait<Trait>_<Family>_<Map>`, `T_TraitPieces_Alb` | 13 | `M_Trait_<Trait>_<Piece>`, `T_Trait_<Trait>_<Family>_<Map>`, `T_Trait_Pieces_Alb` (canon section 16) |
 | The Shark Pup ability clip under the old ability name | 13 | `A_Shark_RampageStart` |
 | `M_Species_Angler_*`, `T_Angler_*`, `A_Angler_*` | 13 | `M_Species_Anglerfish_*`, `T_Anglerfish_*`, `A_Anglerfish_*` |
 | `M_Cove_Interior_Shell` | 13 | `M_Cove_Interior` (a name that ends in `_Shell` is an outline shell) |
 | `M_Env_DropOff_LM_PickleShelf` | 13 | `M_Env_DropOff_LM_TinPickle_Shelf` |
 | `T_Sky_Moon` | 13 | `T_Sky_Moon_Alb` |
+| `SCN_Icon_E_Wordmark` | 11 | `SCN_Icon_E_MouthMark` (icon E has no text; document 11, section 3.3) |
 
-Two more points for other documents:
+One more point for other documents:
 
-1. **`_ShellThick` is new.** Canon section 16 lists `_Shell` only. Document 06 (section 13.2) already calls for a second, thicker shell file but gives it no name. Canon section 16 and document 06 (section 6.6) should add the suffix.
-2. **Document 13 quotes row names and hours from this list.** It needs the renames above; none of the effect or sound names it uses changed. The [MVP] total moved by −0.2 hours (`SFX_UI_Focus` is now [L]) and still rounds to the same figure.
+1. **Document 13 quotes row names and hours from this list.** It needs the renames above; none of the effect or sound names it uses changed. In the first consistency pass the [MVP] total moved by −0.2 hours (`SFX_UI_Focus` is now [L]). The second pass added `M_Cove_SpeciesWall` (+1 hour, [MVP]) and `FX_VentRumble` and `SFX_VentRumble` (+0.7 hours, [L]), and renamed the four daily-goal decorations from `M_Prop_Deco_Streak…` to `M_Prop_Deco_Goals…`. The third pass gave icon A and thumbnails T3, T4 and T5 one row per version: four public-launch rows were added (`SCN_Icon_A_BehindYou_Launch`, `SCN_Thumb_T3_GetHome_Launch`, `SCN_Thumb_T4_SevenSizes`, `SCN_Thumb_T5_YourCove_Launch`; +6.5 hours, [L]), the soft-launch T4 is now `SCN_Thumb_T4_FiveSizes` (same 3 hours, [MVP]) and `SCN_Icon_E_Wordmark` is now `SCN_Icon_E_MouthMark`. The [MVP] total did not move.
 
 ### 17.4 Tags and counts chosen here
 

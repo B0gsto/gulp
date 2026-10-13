@@ -4,7 +4,7 @@ This chapter turns chapters 01 to 12 and 15 into a week-by-week build. The canon
 
 Written on Tuesday 13 October 2026. Sprint 0 starts on Monday 19 October 2026.
 
-**The short version.** Everything tagged [MVP] needs about 1,015 first-pass hours of art and audio (chapter 07, section 14.2), before code and before the 30% review allowance. One person cannot do that in three months. This plan therefore soft-launches a smaller build, the **soft-launch slice** (section 3), which needs 565 of those hours. At 30 owner hours a week the slice reaches soft launch on **Thursday 1 April 2027**, which is 23 weeks and not three months. Three months is reachable only at about 45 hours a week (Thursday 4 February 2027). Every date in this chapter is an estimate that Sprint 0 to Sprint 2 will correct.
+**The short version.** Everything tagged [MVP] needs about 1,016 first-pass hours of art and audio (chapter 07, section 14.2), before code and before the 30% review allowance. One person cannot do that in three months. This plan therefore soft-launches a smaller build, the **soft-launch slice** (section 3), which needs 566 of those hours. The canon (section 15) names this slice as the build the soft launch starts with. At 30 owner hours a week the slice reaches soft launch on **Thursday 1 April 2027**, which is 23 weeks and not three months. Even at about 45 hours a week the slice takes three and a half months (Thursday 4 February 2027). Every date in this chapter is an estimate that Sprint 0 to Sprint 2 will correct.
 
 ## 1. How to read the plan
 
@@ -17,9 +17,9 @@ Written on Tuesday 13 October 2026. Sprint 0 starts on Monday 19 October 2026.
 | **Size** | **S** under 2 hours (1.5 WH), **M** half a day (4 WH), **L** one day (8 WH), **XL** two days or more (12 to 16 WH). Code sizes include one review round. |
 | **Who** | **Agent**: an agent finishes it from the bible and the headless gate; the owner reads a summary. **Agent + owner**: the owner must check it in Studio or on a device. **Owner**: done by hand. |
 | **Task ID** | `S<sprint>-C<n>` code, `-A<n>` art and audio, `-D<n>` design, data and tuning, `-T<n>` test, `-M<n>` marketing and operations. |
-| **Module ID** | `B00` to `B40` are the rows of chapter 09, section 19. |
+| **Module ID** | `B00` to `B42` are the rows of chapter 09, section 19. |
 | **Spike item** | "Spike S1" to "spike S18" are the rows of chapter 09, section 6.11. |
-| **Screen** | "Screen S01" to "screen S35" are the rows of chapter 08, section 2.1. |
+| **Screen** | "Screen S01" to "screen S36" are the rows of chapter 08, section 2.1. |
 | **`S` day, `P` day** | Soft-launch day and public-launch day, as in chapters 11 and 12. `S−4` means four weeks before soft launch. |
 | **Device row** | A row of the test matrix in chapter 15, section 8. Row 1 is the low Android phone, row 2 the small iPhone, row 7 the development Mac. |
 | **Reference** | "09 §6.11" means chapter 09, section 6.11. |
@@ -42,21 +42,23 @@ The owner's weekly hours are not confirmed (chapter 14, decision D1). The base c
 | Design, tuning, device tests, publishing, marketing | Agents save nothing. 1.00 OH per hour. | Assumption |
 | Heavy jobs on the Mac | At most two at once (Studio play test, Blender bake). Headless agents are not limited. | Fixed (09 §2.5) |
 
-**How the assumption is tested.** Every task records its WH estimate and the OH actually spent. At the Friday review of Sprint 2 the two ratios (code and art) are recomputed from Sprints 0 to 2 and every date in section 4 is recalculated. If the art ratio is above 0.70 OH per WH, gate G1 in section 9 applies.
+**How the assumption is tested.** Every task records its WH estimate and the OH actually spent. At the Friday review of Sprint 2 the two ratios (code and art) are recomputed from Sprints 0 to 2 and every date in section 4 is recalculated. If the art ratio is above 0.60 OH per WH or the code ratio is above 0.35, gate G1 in section 9 applies.
 
 **Totals for the slice, base case (estimates).**
 
 | Work | WH | OH |
 |---|---|---|
-| Sprint 0 spikes | — | 30 |
-| Art and audio in the slice (chapter 07 hours) | 565 | 300 |
+| Sprint 0 spikes (all of Sprint 0, including its 18 WH of art spikes) | — | 30 |
+| Art and audio in the slice (chapter 07 hours), Sprints 1 to 22 | 566 | 273 |
 | Interface images in the slice (no hours in chapter 08; estimated here at 0.4 WH a drawing for about 110 drawings) | 45 | 17 |
-| Code in the slice (sum of task sizes in section 5) | about 500 | 150 |
+| Code in the slice (sum of task sizes in section 5; OH is 0.30 × WH plus the device tuning named in the tasks) | about 535 | 171 |
 | Design, data and tuning | — | 35 |
 | Device, multi-client and playtest work beyond the Friday slot | — | 30 |
-| Marketing and operations before `S` | — | 45 |
-| Weekly rhythm, 23 sprints × 4 | — | 92 |
-| **Total to soft launch** | | **about 700 OH, 23 sprints** |
+| Marketing and operations before `S` | — | 47 |
+| Weekly rhythm, 22 sprints × 4 (Sprint 0 is all spikes) | — | 88 |
+| **Total to soft launch** | | **about 690 OH (691), 23 sprints** |
+
+The code, art, rhythm and total figures are the sums of the "Hours" lines of Sprints 1 to 22 in section 5 (code 171, art and audio with interface images 290, other 112, rhythm 88), plus the 30 OH of Sprint 0. The split of the 112 "other" hours into the three rows above is an estimate.
 
 ### 1.3 The three pace scenarios
 
@@ -65,9 +67,9 @@ All three use the same slice and the same agent assumptions. Soft launch itself 
 | Milestone | 15 OH a week | **30 OH a week (base)** | 45 OH a week |
 |---|---|---|---|
 | Spike decision | Fri 23 Oct 2026 | **Fri 23 Oct 2026** | Fri 23 Oct 2026 |
-| First playable | Sprint 9, early January 2027 | **Sprint 4, Fri 20 Nov 2026** | Sprint 3, Fri 13 Nov 2026 |
+| First playable | Sprint 9, Fri 25 Dec 2026 | **Sprint 4, Fri 20 Nov 2026** | Sprint 3, Fri 13 Nov 2026 |
 | First-two-minutes build, grey-box | Sprint 15, Fri 5 Feb 2027 | **Sprint 7, Fri 11 Dec 2026** | Sprint 5, Fri 27 Nov 2026 |
-| First-two-minutes build, finished art | Sprint 29, Fri 14 May 2027 | **Sprint 13, Fri 22 Jan 2027** | Sprint 9, first week of January 2027 |
+| First-two-minutes build, finished art | Sprint 29, Fri 14 May 2027 | **Sprint 13, Fri 22 Jan 2027** | Sprint 9, Fri 25 Dec 2026 |
 | Soft launch (`S`) | Sprint 49, Thu 30 Sep 2027 | **Sprint 23, Thu 1 Apr 2027** | Sprint 15, Thu 4 Feb 2027 |
 | Go/no-go read | Mon 20 Dec 2027 | **Mon 21 Jun 2027** | Mon 26 Apr 2027 |
 | Public launch (`P`), canon scope | 2029. Not a workable plan. | **Sprint 65, Thu 20 Jan 2028** | Thu 2 Sep 2027 |
@@ -183,11 +185,11 @@ The canon's go/no-go is day-1 retention and session time at or above the median 
 | Cove | Specimens, income, the 8-hour cap, offline claim, cove slots with Pearls, cove-full choice | Codex stone, perch net, trophy rock |
 | Meta | Daily goals (starter set on day one, then three a day), the "biggest on this server" strip. Codex discoveries are recorded in the save from day one. | Codex screens |
 | Purchases | Revive, Deep Pockets, Bigger Cove, four Pearl packs | Nothing |
-| Screens | 23 of the 27 [MVP] screens: S01 to S04, S07 to S16, S18, S19, S22, S25, S27, S28, S31, S33, S35 | S05 tide schedule, S17 specimen detail, S23 and S24 Codex |
+| Screens | 24 of the 28 [MVP] screens: S01 to S04, S07 to S16, S18, S19, S22, S25, S27, S28, S31, S33, S35, S36 | S05 tide popover, S17 specimen detail, S23 and S24 Codex |
 | Platforms | Phone, tablet, PC and Mac with keys (15 §9, soft-launch stage) | Nothing |
 | Analytics | Funnels 1 to 7 of 10 §3, the first-session and return funnels, economy events, the guard rules of 10 §9.2 | Events for content that is not in the slice |
-| Audio | About 90 of the 133 [MVP] sound rows. All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
-| Store page | Icon A, thumbnails T1, T2, T3 and T5, description, no video at `S` | Icon D, T4, T6, the page-cut video (all return during soft launch) |
+| Audio | About 90 of the 132 [MVP] sound rows. All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
+| Store page | Icon A, thumbnails T1, T2, T3 and T5, description, no video at `S`. Store art shows only what is in the build: in these soft-launch versions the threat in icon A and in T3 is the Barracuda (as it already is in T1), and T5 shows Minnow and Pufferfish specimens only. | Icon D, T4 (its soft-launch version, five sizes), T6, the page-cut video (all return during soft launch); the public-launch versions of icon A and T3 (with Old Scar), of T4 (seven sizes, with the Leviathan and its crest) and of T5 (with the Eel), which are [L] rows in chapter 07 and are made in Sprint 61, after Old Scar ships in Sprint 40 |
 
 ### 3.3 The deferral list, with hours
 
@@ -199,17 +201,17 @@ Hours are first-pass WH from chapter 07, section 14.2, split row by row for this
 | Traits (3) | 38 | 20 | 18 | Eel overlays and placement (8); Longfin pieces, Ink, Crystal and Moonlit overlays, Crystal shards (10) |
 | Prey (4) | 44 | 28 | 16 | Bonito, Tuna (4); Ribbonfish, Inklet, Crystal Jelly, Lunar Fry (6); `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_02_Alb`, `_03_Alb`, their shells (6) |
 | Predators and hazards (5) | 75 | 19 | 56 | Old Scar (22), Moray (16), Gull (9), cold vents (5), hook set (4) |
-| Environment (6) | 336 | 172 | 164 | The Drop-off (90); 13 landmarks (42); a third of the kit variants and the matching assembly time (25); eel holes (4); Codex stone, perch net, trophy rock (4) |
+| Environment (6) | 337 | 173 | 164 | The Drop-off (90); 13 landmarks (42); a third of the kit variants and the matching assembly time (25); eel holes (4); Codex stone, perch net, trophy rock (4) |
 | Water and sky (7) | 26 | 23 | 3 | `SKY_MoonTide`, `T_Sky_Moon_Alb` |
 | Tide events (8) | 10 | 0 | 10 | Moon Tide glow masks, night tints and the Moon Tide switch test |
 | Visual effects (9) | 62 | 46 | 16 | Effects for deferred traits, predators and Moon Tide |
 | Lighting (10) | 22 | 15 | 7 | `LGT_DropOff`, `LGT_Event_MoonTide`, part of the low-end variants |
-| Sound effects (11) | 67 | 45 | 22 | Eel voice; sounds for deferred traits, predators, events and screens |
+| Sound effects (11) | 66 | 45 | 21 | Eel voice; sounds for deferred traits, predators, events and screens |
 | Music (12) | 79 | 15 | 64 | All composing. The 15 hours are for choosing, licensing, trimming and looping ten tracks. |
-| Store-page source art (13) | 54 | 37 | 17 | `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_SevenSizes`, `SCN_Thumb_T6_MoonTide`, `SCN_Thumb_T7_PickYourCreature_3`, `SCN_Brand_Banner`, part of the pose set and the capture set-ups |
+| Store-page source art (13) | 54 | 37 | 17 | `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_FiveSizes`, `SCN_Thumb_T6_MoonTide`, `SCN_Thumb_T7_PickYourCreature_3`, `SCN_Brand_Banner`, part of the pose set (the Eel poses) and the capture set-ups |
 | Placeholders (16) | 26 | 18 | 8 | Stand-ins for rows no slice code loads |
 | Pipeline (14.1) | 65 | 59 | 6 | The part of the soft-launch import pass that belongs to deferred rows |
-| **Total** | **1,015** | **565** | **450** | |
+| **Total** | **1,016** | **566** | **450** | |
 
 The same deferrals as choices, largest first:
 
@@ -232,7 +234,7 @@ The same deferrals as choices, largest first:
 
 ### 3.4 The soft-launch top-up queue
 
-Soft launch runs for about 11.5 weeks and the owner keeps working. Funnel fixes come first (10 §11, priority order). Spare hours go to this fixed queue and nowhere else. Nothing from the big deferrals (Drop-off, Old Scar, composed music, landmarks) starts before a "go".
+Soft launch runs for about 11.5 weeks and the owner keeps working. Funnel fixes come first (10 §11, priority order). Spare hours go to this fixed queue and nowhere else. Nothing from the big deferrals (Drop-off, Old Scar, composed music, landmarks) starts before a "go", with one exception: task S32-C1 in Sprint 32, which is code only, done by agents behind flags, and costs at most 3 OH of owner time. No art for those deferrals starts before a "go".
 
 | Order | Item | WH | Why it is in the queue | Ships |
 |---|---|---|---|---|
@@ -286,7 +288,7 @@ The owner wants top-quality visuals. The slice cuts breadth and keeps finish.
 | 0 | 19–25 Oct 2026 | Technical and art spikes | A written go, change or stop decision |
 | 1 | 26 Oct–1 Nov | Repository, toolchain, art pipeline, placeholders | The headless gate is green; a place built entirely from named placeholders |
 | 2 | 2–8 Nov | First swim | The finished Minnow juvenile swims on a phone (M1) |
-| 3 | 9–15 Nov | Prey pipeline | 200 prey groups simulated; krill swarms scatter on a phone |
+| 3 | 9–15 Nov | Prey pipeline | 250 prey groups simulated; krill swarms scatter on a phone |
 | 4 | 16–22 Nov | First bite and growth | First playable (M2) |
 | 5 | 23–29 Nov | Saves, banking, cove in grey-box | Bank a creature; it is there after a rejoin |
 | 6 | 30 Nov–6 Dec | First two minutes, part 1 | Load to GLOW on a fresh account |
@@ -347,18 +349,18 @@ The owner wants top-quality visuals. The slice cuts breadth and keeps finish.
 | 61 | 20–26 Dec | Launch preparation, `P−4` | Launch build feature-frozen |
 | 62 | 27 Dec–2 Jan 2028 | Launch preparation, `P−3`: private test of the launch build | One week of [L] content in the test game |
 | 63 | 3–9 Jan | Launch preparation, `P−2` | Device rows 8 to 10 pass |
-| 64 | 10–16 Jan | Launch preparation, `P−1` | Build frozen; Launch Week event submitted |
+| 64 | 10–16 Jan | Launch preparation, `P−1` | Release candidate ready (the freeze is Tue 18 Jan, in Sprint 65); Launch Week event submitted |
 | 65 | 17–23 Jan | Public launch | `P`: Thu 20 Jan 2028 (M12) |
 | 66 | 24–30 Jan | Week 1 after launch: hotfixes | Fix update |
 | 67 | 31 Jan–6 Feb | Week 2: Anglerfish; console checks | Update A |
 | 68 | 7–13 Feb | Week 3: Storm tide; console switch | Update B (M13) |
-| 69 | 14–20 Feb | Week 4: Manta Ray; the `P` + 4 read | Update A; decision gate G8 |
+| 69 | 14–20 Feb | Week 4: Manta Ray; the `P` + 4 numbers | Update A; the numbers for gate G8, which is read on Mon 21 Feb 2028, the Monday after this sprint |
 
 If the owner removes the cut candidates (chapter 14, decisions D4 to D7), Sprints 55 to 60 disappear and Sprints 61 to 69 move six weeks earlier.
 
 ## 5. Sprints 0 to 34: from the spike to the go/no-go
 
-Each sprint lists hours as **rhythm + code + art and audio + other = total OH**, against a capacity of 30. Code OH is 0.30 × WH plus any device tuning named in the task. Art OH uses the shares in section 1.2. Art tables give the chapter 07 hours (WH) and the placeholder that code uses until the asset is final; every placeholder is the stand-in of 07 §16 with the final name.
+Each sprint lists hours as **rhythm + code + art and audio + other = total OH**, against a capacity of 30. Ten sprints are planned at 31 OH (Sprints 2, 8, 11, 12, 15, 18, 19, 21, 46 and 49) and three at 32 OH (Sprints 52, 53 and 54). That is inside the error of the estimates and is not extra owner time: the plan holds at 30 OH worked, and when a sprint reaches 30, the first item under "Cut first" moves to the next sprint (in Sprints 46 to 54, which have no such list, the interface images named in the art row move). Code OH is 0.30 × WH plus any device tuning named in the task. Art OH uses the shares in section 1.2. Art tables give the chapter 07 hours (WH) and the placeholder that code uses until the asset is final; every placeholder is the stand-in of 07 §16 with the final name.
 
 ### Sprint 0 · 19–25 October 2026 · Spikes and decision
 
@@ -376,7 +378,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S0-C3 | Swim feel: drag-to-swim on `LinearVelocity` and `AlignOrientation` at all seven tier scales; `Model:ScaleTo` from 1.0 to 6.5 on an animated skinned rig | S2, S18 | L | S0-C2 | Agent + owner (device rows 1 and 3) |
 | S0-C4 | Two clients at 100 and 200 ms: smoothing of the other player; server `CFrame` write on a client-owned root; anchor after `SetNetworkOwner(nil)` | S3, S4 | M | S0-C3 | Owner (two-client test is manual until S15 is answered) |
 | S0-C5 | Streaming: persistent collision shell, `PauseOutsideLoadedArea`, `GameplayPaused` | S5 | M | S0-C2 | Agent + owner |
-| S0-C6 | Prey bench: 200 groups and 1,500 members on the server, 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
+| S0-C6 | Prey bench: 250 groups and 1,300 members on the server (server step 2.0 ms or less per 100 ms tick; 6 kB/s or less per player), 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
 | S0-C7 | Skinned rigs: `AnimationController` and `Animator` on a client-made rig, two MeshParts on one skeleton, 24 rigs on screen | S8 | M | S0-A2 | Agent + owner (device row 1) |
 | S0-C8 | One `src/shared` module in Roblox, Lune and luau-lsp; ProfileStore session start, autosave, end and refusal of a second session; clock agreement; one engine spec run through Open Cloud | S11, S13, S14, S17 | M | S0-C1 | Agent |
 | S0-C9 | Server Authority, time-boxed to 6 hours | S12 | L | S0-C3 | Agent + owner |
@@ -391,8 +393,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S0-A2 | Rig: flipped-face shell as an outline on a skinned mesh; code writing `Bone.Transform` beside a playing clip; bone-spread stretch; a rigid piece on a socket bone; 32 bones accepted | (test) Rig test and trait test, half | 4 | A capsule fish on the real `RIG_Fish` bone names |
 | S0-A3 | Surface: vertex colour under a `SurfaceAppearance`; flat roughness against plastic shine; emissive mask on a game mesh | Same row | 1 | Same capsule |
 | S0-A4 | Trait: overlay option A, B or C of 06 §8.4 | (test) Rig test and trait test, half | 3 | A flat tint with the trait name |
-| S0-A5 | Lighting: Atmosphere or legacy fog; `LightingStyle` Realistic against Soft with `PrioritizeLightingQuality`; cost of beams and of 16 swapped caustic frames | (test) Surface, caustics and fog on a phone, half | 2 | Flat water sheet |
-| S0-A6 | Phone: the busy frame of 06 §14.2 on device rows 1 and 3 at automatic quality | — | 2 | Placeholder creatures |
+| S0-A5 | Lighting: Atmosphere or legacy fog; `LightingStyle` Realistic against Soft with `PrioritizeLightingQuality`; whether the Nursery, Reef and upper Drop-off looks hold at the 220-stud Smooth cap; the real ranges for every value in 06 §10.2; cost of beams and of 16 swapped caustic frames | (test) Surface, caustics and fog on a phone, half | 2 | Flat water sheet |
+| S0-A6 | Phone: the busy frame of 06 §14.2 on device row 1 (low phone) on Smooth and device row 3 (mid phone) on Balanced, the tiers of 15 §3.0 | — | 2 | Placeholder creatures |
 | S0-A7 | Agent art trial: one builder agent takes the Minnow juvenile from black silhouette to a first textured mesh through `build.py`, the contact sheet and a reviewer agent. Time-boxed to 4 OH. Record WH and OH. | `M_Species_Base_Fish`, start | 3 | — |
 
 **Other tasks**
@@ -400,7 +402,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | ID | Type | Task | Who |
 |---|---|---|---|
 | S0-D1 | Decision | Answer chapter 14 decisions D1 (hours), D2 (budget), D3 (the slice), D11 (who owns the game) and D12 (fee or Roblox Plus) | Owner |
-| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). Create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11. | Owner |
+| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). If D11 chooses the community (chapter 14's recommendation), create the Roblox community GULP first (100 Robux, 11 F23): ownership is hard to change later (chapter 14, R46). It is not opened or promoted until `S−4` (task S19-M2). Then create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11; the production experience GULP is created later under the same owner. | Owner |
 | S0-M2 | Operations | Account checks A1 to A3 of 12 §2.1: ID age check, 2-step verification, verified email | Owner |
 | S0-M3 | Operations | Have device row 1 (low Android phone, 4 GB) and device row 2 or 3 in hand. Buy a used phone if needed (12 §11, up to 120 US dollars). | Owner |
 | S0-T1 | Test | Every spike item is run on the Mac; S1, S2, S6, S8 and the phone spike also on device row 1; S2 also on device row 3 | Owner |
@@ -440,7 +442,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 - [ ] The report states the measured memory of Studio, a play test and Blender on this Mac.
 - [ ] The report states WH and OH for the agent art trial.
 - [ ] The owner has written "go", "change" (with the rows above that apply) or "stop".
-- [ ] Decisions D1, D2, D3, D11 and D12 are answered in chapter 14.
+- [ ] Decisions D1, D2, D3, D11 and D12 are answered in chapter 14, and the three experiences exist under the owner D11 chose (the community, if chosen, was created first).
 
 **Risks.** A phone is not in hand by Wednesday (then S2, S6 and S8 slip to Sprint 1 and the decision is provisional). Server Authority eats the week (hard stop at 6 hours). **Cut first:** S16, then S12.
 **Hours.** 30 OH, all owner-led.
@@ -527,7 +529,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 ### Sprint 3 · 9–15 November 2026 · Prey pipeline
 
 **Goal.** Prey exists as data on the server and as pooled meshes on each client, inside the byte and frame budgets.
-**Demo.** 200 groups simulate on the server; krill swarms and plankton are visible on device row 1 and scatter when approached; `prey_soak.sim` passes in CI.
+**Demo.** 250 groups simulate on the server; krill swarms and plankton are visible on device row 1 and scatter when approached; `prey_soak.sim` passes in CI.
 
 | ID | Code task | Module or file | Bible | Size | Depends on | Who |
 |---|---|---|---|---|---|---|
@@ -550,7 +552,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 **Acceptance criteria**
 
-- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 200 groups (09 §15.2).
+- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members (09 §15.2).
 - [ ] `prey_soak.sim` passes: bytes per player under 9,000 peak and 4,500 average; no packet over 900 bytes.
 - [ ] Device row 1 draws 80 prey meshes at 30 fps.
 - [ ] Krill scatter when the creature comes close; no prey Instance exists on the server.
@@ -758,7 +760,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Art and audio task | Chapter 07 assets | WH | Placeholder meanwhile |
 |---|---|---|---|---|
-| S9-A1 | Cove fixtures | `M_Cove_NameShell`, `M_Cove_TrophyBubbleMount`, `M_Cove_DoorLantern`, `M_Cove_KelpCurtain`, `M_Cove_HomeStone`, `M_Cove_PearlClam`, `A_PearlClam_Open`, `M_Prop_Pearl_01–03`, `M_Cove_Perch`, `M_Cove_TideClock` | 12.8 | Labelled boxes |
+| S9-A1 | Cove fixtures | `M_Cove_NameShell`, `M_Cove_TrophyBubbleMount`, `M_Cove_DoorLantern`, `M_Cove_KelpCurtain`, `M_Cove_HomeStone`, `M_Cove_PearlClam`, `A_PearlClam_Open`, `M_Prop_Pearl_01–03`, `M_Cove_Perch`, `M_Cove_TideClock`, `M_Cove_SpeciesWall` | 13.8 | Labelled boxes |
 | S9-A2 | Cove assembly and light | (assembly) Cove template and Rim, `LGT_Cove` | 8.5 | Block-out |
 | S9-A3 | Barracuda | `M_Pred_Barracuda`, `RIG_Barracuda`, `T_Barracuda_Alb`, `M_Pred_Barracuda_LOD1, _LOD2, _Shell`, `A_Barracuda_Burst`, `A_Barracuda_Bite`, `A_Barracuda_GiveUp` | 13.4 | Red wedge |
 
@@ -854,7 +856,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S12-C1 | Barracuda patrol, chase and give-up in the open world; jelly bloom; attack validation; `PredatorState` and `PredatorEvent` codecs | B24 | 09 §9, 02 §9, §10 | L | S7-C1, S8-C2 | Agent + owner |
 | S12-C2 | `BiteService` player bites: rules in order, lag compensation, tie-breaks, safe zones, first-run shield, newcomer bubble | B25 | 09 §10, 01 §5.2 | L | S4-C2, S8-C2 | Agent |
 | S12-C3 | `RunLoopService.gulp`, scraps (10%, 50% for the first three deaths), respawn; screen S11 gulped panel; death camera | B19, `client/UI/Screens` | 01 §5.5, 08 §4.4 | M | S5-C3 | Agent + owner |
-| S12-C4 | Mid-run disconnect by the canon rule: 10 s in the water, then suspended for 5 minutes (D15, settled) | B19, B20 | 01 §5.5, 09 §12.5 | M | S5-C3 | Agent |
+| S12-C4 | Mid-run disconnect by the canon rule: 10 s in the water, then suspended for 5 minutes | B19, B20 | 01 §5.5, 09 §12.5 | M | S5-C3 | Agent |
 
 | ID | Art and audio task | Chapter 07 assets | WH | Placeholder meanwhile |
 |---|---|---|---|---|
@@ -866,7 +868,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 |---|---|---|---|
 | S12-T1 | Test | Multi-client routine with the full list of 09 §16.5 step 1, at 0 and 150 ms | Owner |
 | S12-T2 | Test | Checklist items C9, P4, P5 and P6 of 04 §12 | Owner |
-| S12-D1 | Decision | None needed: D15 (mid-run disconnect) and D16 (the Revive offer: 30 mass or more, no countdown, not on the first death) are settled by canon §5.5. The owner confirms S12-C4 and S14-C1 use the canon rules. | Owner |
+| S12-D1 | Check | No decision is needed: mid-run disconnect and the Revive offer (30 mass or more, no countdown, not on the first death) are set by canon §5.5. The owner confirms S12-C4 and S14-C1 use the canon rules. | Owner |
 
 **Acceptance criteria**
 
@@ -918,7 +920,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 ### Sprint 14 · 25–31 January 2027 · Pufferfish; Revive and the receipt handler
 
 **Goal.** The first unlock is worth saving for, and the first Robux product is granted safely.
-**Demo.** Buy the Pufferfish with 500 Pearls, hatch as one, puff to survive a Barracuda. Buy a Revive in GULP Dev and come back at 70% mass.
+**Demo.** Buy the Pufferfish with 500 Pearls, hatch as one, puff to survive a Barracuda. Buy a Revive in GULP Staging and come back at 70% mass.
 
 | ID | Code task | Module or file | Bible | Size | Depends on | Who |
 |---|---|---|---|---|---|---|
@@ -934,7 +936,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Type | Task | Who |
 |---|---|---|---|
-| S14-T1 | Test | A simulated receipt in an engine spec; a real test purchase of Revive in GULP Dev on device row 1; a cancelled purchase returns to the panel | Owner + agent |
+| S14-T1 | Test | A simulated receipt in an engine spec; a real test purchase of Revive in GULP Staging on device row 1 (a test build is published there for it; GULP Dev runs on `ProfileStore.Mock`, 09 §17.1); a cancelled purchase returns to the panel | Owner + agent |
 | S14-T2 | Test | Pufferfish on the roster sheet beside the Minnow and Barracuda (06 §15.5); device row 1 | Owner |
 
 **Acceptance criteria**
@@ -989,7 +991,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 ### Sprint 16 · 8–14 February 2027 · The Reef; tide events; shop
 
 **Goal.** The first open-water zone is finished, the sea runs on a clock, and the shop sells the slice's passes and packs.
-**Demo.** A Feeding Frenzy starts on the quarter hour on two devices at once, with a 60-second warning. Deep Pockets bought in GULP Dev doubles the next bank.
+**Demo.** A Feeding Frenzy starts on the quarter hour on two devices at once, with a 60-second warning. Deep Pockets bought in GULP Staging doubles the next bank.
 
 | ID | Code task | Module or file | Bible | Size | Depends on | Who |
 |---|---|---|---|---|---|---|
@@ -1008,9 +1010,9 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Type | Task | Who |
 |---|---|---|---|
-| S16-D1 | Data | Offer timing and limits of 05 §9 into `Data/Generated/Products`; create the two passes and five products in GULP Dev and put their IDs in `Config/Defaults` | Owner + agent |
+| S16-D1 | Data | Offer timing and limits of 05 §9 into `Data/Generated/Products`; create the two passes and five products in GULP Staging and put their IDs in that environment's table in `Config/Defaults` | Owner + agent |
 | S16-T1 | Test | Tide clock on device rows 1 and 7 side by side: same phase within 1 second | Owner |
-| S16-T2 | Test | One test purchase of each pass and pack in GULP Dev; a cancelled prompt; a sixth pack in one day refused | Owner |
+| S16-T2 | Test | One test purchase of each pass and pack in GULP Staging; a cancelled prompt; a sixth pack in one day refused | Owner |
 
 **Acceptance criteria**
 
@@ -1041,7 +1043,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S17-A1 | Kelp kit | `M_Env_Kelp_Floor_01–04`, `M_Env_Kelp_MossBoulder_01–03`, `M_Env_Kelp_RootMound_01–02`, `M_Env_Kelp_CanopyCard_01–02`, `M_Env_Kelp_Fern_01–02`, `M_Env_Kelp_Log_01`, `T_EnvKelp_Alb` | 15.6 | Poles and slabs with the Kelp tint |
 | S17-A2 | Kelp landmarks | `M_Env_Kelp_LM_OldAnchor`, `M_Env_Kelp_LM_PeekabooRidge_01–03` | 11 | Coloured blocks |
 | S17-A3 | Interface art for stage 3, second half | `UI_Cove_*`, `UI_Daily_*`, `UI_Settings_*`, `UI_Species_*` rows for the slice, `UI_Atlas_Glyphs2` (about 35 drawings) | 13.5 (estimate) | Flat shapes |
-| S17-A4 | Store poses *(float)* | (pose) Marketing pose set, soft launch, without the Eel | 3.5 | — |
+| S17-A4 | Store poses *(float)* | (pose) Marketing pose set, soft launch, without the Eel poses (the Eel does not exist yet); it includes the Barracuda's open jaws for icon A | 3.5 | — |
 
 | ID | Type | Task | Who |
 |---|---|---|---|
@@ -1066,7 +1068,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Code task | Module or file | Bible | Size | Depends on | Who |
 |---|---|---|---|---|---|---|
-| S18-C1 | Screen S31 settings (every slice setting, saved per input type) and screen S02 reconnect | `client/UI/Screens` | 08 §6.7, §8.2, 15 §10 item 7 | L | S10-C2 | Agent + owner |
+| S18-C1 | Screen S31 settings (every slice setting, saved per input type), screen S02 reconnect and screen S36 Continue your run (a dialog from existing parts, no new image; shown only to accounts that have banked) | `client/UI/Screens` | 08 §6.7, §8.2, §8.3, 15 §10 item 7 | L | S10-C2 | Agent + owner |
 | S18-C2 | Analytics, second half: `tide_event` funnel, first-session and return funnels, the slice's custom events, `sess_device`, `perf_tier`, `cheat_flag`; the guard rules of 10 §9.2 | `Analytics`, services | 10 §3.3, §3.4, §3.7, §4.2, §9.2 | L | S17-C5 | Agent |
 | S18-C3 | `Dev/BotPlayers`, the soak routine, first performance pass, the ordered cuts of 09 §15.6 behind quality switches, memory guard | B34, `UIController` | 09 §15.5, §15.6, 15 §6 | L | S8-C2, S3-C3 | Agent + owner (device row 1) |
 | S18-C4 | Tablet scale and field of view; gulp assist strength per input type; input-mode detection finished | `InputController`, `CameraController` | 15 §3.2, §4.3, §5 | M | S8-C4 | Agent + owner |
@@ -1076,7 +1078,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S18-A1 | Kelp assembly and light | (assembly) Kelp Forest, slice share; `LGT_Kelp` | 10.5 | Block-out |
 | S18-A2 | Jelly bloom and current markers | `M_Hazard_Jelly_Open, _Squeezed`, `T_Jelly_Alb`, `T_Jelly_Emi`, `M_Env_SeaGrass_Bent_01–02` | 5.2 | Sphere; bent poles |
 | S18-A3 | Low-end lighting variants | (variant) Low-end device variants, for the slice presets | 1.5 | — |
-| S18-A4 | Main icon *(float)* | `SCN_Icon_A_BehindYou` | 5 | — |
+| S18-A4 | Main icon *(float)* | `SCN_Icon_A_BehindYou`, soft-launch version: the open mouth behind the Minnow is the Barracuda's, because Old Scar is not in the slice. No text on the icon. | 5 | — |
 
 | ID | Type | Task | Who |
 |---|---|---|---|
@@ -1116,7 +1118,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S19-M1 | Operations | Publish to GULP Staging by the steps of 09 §17.2. Invite up to 10 early testers (12 §1.1). Tell them saves will be wiped. | Owner |
 | S19-T1 | Test | Staging routine of 09 §16.5 steps 2 and 3: device row 1 and the Mac with 22 bots for 10 minutes; a 30-minute soak | Owner |
 | S19-T2 | Test | Device rows 2, 3 and 6 (small iPhone, mid phone, low laptop): one full session each | Owner, borrowed devices |
-| S19-M2 | Marketing | Name-collision check 1 (11 §2.4). Reserve `@playgulp`. Create the Roblox community (100 Robux). Post short videos 5 and 14 (11 §9.2). | Owner |
+| S19-M2 | Marketing | Name-collision check 1 (11 §2.4). Reserve `@playgulp`. Open the Roblox community (created in Sprint 0, task S0-M1) and start promoting it. Post short videos 5 and 14 (11 §9.2). | Owner |
 
 **Acceptance criteria**
 
@@ -1142,7 +1144,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | ID | Art and audio task | Chapter 07 assets | WH | Placeholder meanwhile |
 |---|---|---|---|---|
 | S20-A1 | Remaining slice sounds, first half | From 07 §11: Pufferfish voice, Puff, trait sounds for the five traits, jelly, remaining interface sounds for shop, goals and settings | 12 | Script-made tones |
-| S20-A2 | Lead thumbnails | `SCN_Thumb_T1_Chase`, `SCN_Thumb_T2_BecomeWhatYouEat`, `SCN_Thumb_T3_GetHome`, then the paint-over of 11 §4 | 12 + 3 OH | — |
+| S20-A2 | Lead thumbnails | `SCN_Thumb_T1_Chase`, `SCN_Thumb_T2_BecomeWhatYouEat`, `SCN_Thumb_T3_GetHome` in its soft-launch version (the Barracuda's head enters the frame, not Old Scar's), then the paint-over of 11 §4. Only slice assets are used. | 12 + 3 OH | — |
 
 | ID | Type | Task | Who |
 |---|---|---|---|
@@ -1153,8 +1155,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 **Acceptance criteria**
 
 - [ ] All three private-test exit criteria are met and written down.
-- [ ] Icon A reads at 150 px on device row 1 at arm's length: one creature, one threat, the word GULP.
-- [ ] T1 to T3 contain no control pictures (15 §7) and nothing that is not in the build (12 §7, C16).
+- [ ] Icon A reads at 150 px on device row 1 at arm's length: one creature, one threat (the Barracuda), and no text.
+- [ ] Icon A and T1 to T3 contain no control pictures (15 §7) and nothing that is not in the build (12 §7, C16): the threat is the Barracuda in all of them, and Old Scar appears in none.
 - [ ] A test share link shows up in the events.
 
 **Risks.** A severity 1 bug appears late in the week (the stage is extended by one week and `S` moves). **Cut first:** `SCN_Thumb_T3_GetHome`, then S20-C2.
@@ -1174,7 +1176,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 |---|---|---|---|---|
 | S21-A1 | Remaining slice sounds, second half | From 07 §11: Frenzy horn and warning bell, Kelp ambience, remaining ambience and transitions | 11 | Script-made tones |
 | S21-A2 | Music, last three | Tracks for `MUS_Kelp`, `MUS_Event_Frenzy`, `MUS_Event_Warning` | 4.5 | Mallet loop |
-| S21-A3 | Cove thumbnail and end card | `SCN_Thumb_T5_YourCove`, `SCN_Brand_EndCard` | 6 | — |
+| S21-A3 | Cove thumbnail and end card | `SCN_Thumb_T5_YourCove` (Minnow and Pufferfish specimens with slice traits only), `SCN_Brand_EndCard` | 6 | — |
 | S21-A4 | Import pass | (import) Studio import and fixes, soft launch, slice share | 8 | — |
 
 | ID | Type | Task | Who |
@@ -1204,13 +1206,13 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 |---|---|---|---|---|---|---|
 | S22-C1 | Funnel and bug fixes | — | 10 §11 | M | S21-T1 | Agent + owner |
 | S22-C2 | The config switches of 12 §2.6 mapped to `flag.*`, `kill.*` and `tune.*` keys with defaults; `min_place_version` notice | `LiveConfig` | 12 §2.6, 09 §17.4 | S | S5-C5 | Agent |
-| S22-C3 | Notification string 1 and the opt-in prompt after the first bank (N6, N8); the five [MVP] badges | `CoveService`, `PlayerLifecycle` | 12 §2.3, §2.5 | M | S5-C2 | Agent |
+| S22-C3 | Notification string 1 and the opt-in prompt after the first bank (N6, N8); awards for the [MVP] badges the slice can earn (03 §12). The other [MVP] badges are awarded from the update that ships their content. | `CoveService`, `PlayerLifecycle` | 12 §2.3, §2.5 | M | S5-C2 | Agent |
 
 | ID | Type | Task | Who |
 |---|---|---|---|
 | S22-M1 | Operations | 12 §2.1: pay the publishing fee or confirm Roblox Plus (decision D12); Developer Exchange eligibility; Open Cloud keys | Owner |
-| S22-M2 | Operations | 12 §2.2: every setting G1 to G24 at its `S` value; private servers off; playable devices phone, tablet, computer | Owner |
-| S22-M3 | Operations | 12 §2.3: create Deep Pockets, Bigger Cove, Revive and the four Pearl packs in GULP at chapter 05 prices, with icons; create the five [MVP] badges | Owner |
+| S22-M2 | Operations | 12 §2.2: every setting G1 to G25 at its `S` value (G25 is Roblox text chat, off); private servers off; playable devices phone, tablet, computer | Owner |
+| S22-M3 | Operations | 12 §2.3: create Deep Pockets, Bigger Cove, Revive and the four Pearl packs in GULP at chapter 05 prices, with icons; create [MVP] badge batch 1 (five badges) on Sun 28 March, `S−4` days. Batches 2 to 4 follow on Mon 29, Tue 30 and Wed 31 March in Sprint 23, five free a day (12 §2.3: 20 [MVP] badges in four batches). | Owner |
 | S22-M4 | Operations | 12 §2.4: the maturity questionnaire, answered for the most extreme content | Owner |
 | S22-M5 | Operations | Erasure templates (G21); the compliance checklists of 05 §14 and 12 §7 read line by line; licences filed in `docs/licences/` | Owner |
 | S22-M6 | Marketing | Name-collision check 2. Upload icon A and T1, T2, T3, T5 for moderation. Set up the Ads Manager account. Announce the date in the community. Videos 7 and 8. | Owner |
@@ -1235,8 +1237,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Type | When | Task (the runbook of 12 §2.7) | Who |
 |---|---|---|---|---|
-| S23-M1 | Operations | Tue 30 Mar, T−48 h | Freeze the build. Only severity 1 and 2 fixes from here. | Owner |
-| S23-M2 | Operations | Wed 31 Mar, T−24 h | Publish the frozen build to GULP Staging. One full session on device row 1 and one on the Mac. One test purchase of each item. | Owner |
+| S23-M1 | Operations | Tue 30 Mar, T−48 h | Freeze the build. Only severity 1 and 2 fixes from here. Create [MVP] badge batch 3 (batch 2 was created on Mon 29 Mar). | Owner |
+| S23-M2 | Operations | Wed 31 Mar, T−24 h | Publish the frozen build to GULP Staging. One full session on device row 1 and one on the Mac. One test purchase of each item. Create [MVP] badge batch 4, the last. | Owner |
 | S23-M3 | Operations | Thu 1 Apr, T−3 h | Data store snapshot through Open Cloud. Tag the commit. Check every config value. | Owner + agent |
 | S23-M4 | Operations | T−1 h | Publish to GULP. Join a fresh server; check the version in settings. | Owner |
 | S23-M5 | Operations | T | Set access to public. | Owner |
@@ -1279,10 +1281,10 @@ A/B tests follow 10 §8 and 04 §11 in the order 1, 2, 3, 4. A test needs about 
 | 25 | 12–18 Apr | Second funnel fix. Check evaluation progress daily; pause the Engagement campaign by hand when the threshold is reached (11 §10.3). | S25-A1 (fit) Eel on `RIG_Eel`, `T_Eel_Juv_Alb`, `T_Eel_Adult_Alb`, the 13 `A_Eel_*` clips, `A_Eel_Slip`, `A_Eel_Fidget` (24). S25-C1 Slip, eel-hole volumes (M). | Update 2: fixes | Eel contact sheet passes 06 §16.1 |
 | 26 | 19–25 Apr | Phase 3b expected. Switch the ad objective to Plays. Start A/B test 1 (`ftue_chase_mode`) if volume allows. | S26-A1 Eel overlays for Glow, Stripes, Spots, Plated; placement; `M_Env_EelHole_Ring_01–02`, `M_Env_EelHole_Tunnel_01–03`; Eel voice (11). S26-C1 unlock row 15 of 04 §7.3 (S). | **Update 3: the Eel** (Thu 22 Apr) | The Eel is unlockable at 3,000 Pearls; Slip passes eel holes; M9 recorded with its real date |
 | 27 | 26 Apr–2 May | First read with under-16s. **Old Scar watch:** if creatures of tier 5 and above bank more than 80% of their runs and are more than 15% of all runs, Old Scar moves into the queue after Moon Tide. | S27-A1 `SKY_MoonTide`, `T_Sky_Moon_Alb`, `T_EnvReef_Emi`, `T_EnvKelp_Emi`, `T_EnvNursery_Emi`, (data) Night tints, `LGT_Event_MoonTide` (12). S27-C1 night switch in `TideController`, Lunar Fry spawns, Moonlit rule (M + M). | Update 4: fixes | Moon Tide runs behind `flag.moonTide` in GULP Staging |
-| 28 | 3–9 May | Paid step 2 starts once under-16s can play: 10 US dollars a day for 14 days, to reach and hold 100 daily users. | S28-A1 (test) Moon Tide switch, `M_Prey_LunarFry`, `T_Trait_Moonlit_Fish_Emi`, `T_Trait_Moonlit_Eel_Emi`, Moon Tide effects and sounds, a track for `MUS_Event_MoonTide` (13) | **Update 5: Moon Tide** (Thu 6 May). Rotation becomes :00 Frenzy, :15 Moon Tide, :30 Frenzy, :45 Moon Tide. | P8 of 04 §12 passes: a newcomer in run 1 sees no darkening. Outlines stay readable at night on device row 1. |
-| 29 | 10–16 May | Tide pull read for the first time (10 §7). Replace the weakest thumbnail after round 1 (11 §7.2). | S29-A1 `M_Pred_Gull_Glide`, `_Dive`, `_Shell`, `T_Gull_Alb`, `T_Gull_Shadow_Mask`, Gull effects and sounds (11). S29-C1 Gull state machine: shadow, 1.5-second dive (M). | **Update 6: the Gull** (Thu 13 May) | The Gull targets only tiers 1 and 2 lingering at the Reef surface, never a newcomer in the predator grace |
+| 28 | 3–9 May | Paid step 2 starts once under-16s can play: 10 US dollars a day for 14 days, to reach and hold 100 daily users. It runs on the thumbnails that exist (T1, T2, T3 and T5); T4 and T6 are not made until Sprint 31, after the 14 days. | S28-A1 (test) Moon Tide switch, `M_Prey_LunarFry`, `T_Trait_Moonlit_Fish_Emi`, `T_Trait_Moonlit_Eel_Emi`, Moon Tide effects and sounds, a track for `MUS_Event_MoonTide` (13) | **Update 5: Moon Tide** (Thu 6 May). Rotation becomes :00 Frenzy, :15 Moon Tide, :30 Frenzy, :45 Moon Tide. | P8 of 04 §12 passes: a newcomer in run 1 sees no darkening. Outlines stay readable at night on device row 1. |
+| 29 | 10–16 May | Tide pull read for the first time (10 §7). Replace the weakest thumbnail after round 1 with T5, the only spare until T4 and T6 are made in Sprint 31 (11 §7.2). | S29-A1 `M_Pred_Gull_Glide`, `_Dive`, `_Shell`, `T_Gull_Alb`, `T_Gull_Shadow_Mask`, Gull effects and sounds (11). S29-C1 Gull state machine: shadow, 1.5-second dive (M). | **Update 6: the Gull** (Thu 13 May) | The Gull targets only tiers 1 and 2 lingering at the Reef surface, never a newcomer in the predator grace |
 | 30 | 17–23 May | Second A/B test if the first has ended on its planned date. | S30-A1 `M_Cove_CodexStone`; `UI_Codex_*` rows, about 15 drawings (2 + 6). S30-C1 screens S23 and S24, Codex rewards of 05 §3.8, unlock row 9 of 04 §7.3 (L). | **Update 7: the Codex** (Thu 20 May) | Counts per tab are right; discoveries recorded since `S` are all shown |
-| 31 | 24–30 May | Start the icon test once daily users pass 100 (11 §7.3). | S31-A1 `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_SevenSizes`, `SCN_Thumb_T6_MoonTide`, (staging) Gameplay preview capture set-ups (14). S31-M1 record and edit the page cut, real gameplay only (11 §5), 6 OH. | Update 8: fixes; the video and T6 go live | The video is approved (three uploads a month; a rejection uses one) |
+| 31 | 24–30 May | Start the icon test once daily users pass 100 (11 §7.3). | S31-A1 `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_FiveSizes` (the soft-launch T4: tiers 1 to 5, no crest), `SCN_Thumb_T6_MoonTide`, (staging) Gameplay preview capture set-ups (16). S31-M1 record and edit the page cut, real gameplay only and only content that is live that week, so no Drop-off, Old Scar, Moray or hook shots (11 §5), 6 OH. T4 and T6 become the spares for any later thumbnail replacement. | Update 8: fixes; the video and T6 go live | The video is approved (three uploads a month; a rejection uses one) |
 | 32 | 31 May–6 Jun | Hold 100 daily users. From here no change that touches the economy. | S32-C1 agent-only code for deferred [MVP] systems behind flags: `PredatorSim` states for Old Scar and Moray, trait rules for Longfin, Ink and Crystal (L, 3 OH of owner time at most) | Update 9: fixes | 100 daily users on each of the last 7 days, or the reason why not is written down |
 | 33 | 7–13 Jun | Read window, week 1. Fixes only. | None | Update 10: fixes only | Nothing shipped that could move retention or session time |
 | 34 | 14–20 Jun | Read window, week 2. Build the go/no-go pack: 7-day averages of day-1 retention and session time against the benchmark, organic and ad players apart; the 01 §17 funnel; earnings; the measured OH-per-WH ratios; the re-dated plan for both outcomes. | None. Decisions D4 to D8 answered. | No update unless severity 1 | The pack is complete by Sunday 20 June |
@@ -1300,11 +1302,11 @@ This section applies only after a "go" at gate G7. It is written in less detail 
 | Part | What | OH |
 |---|---|---|
 | Rhythm | As section 1.4 | 4 |
-| Live operations | The soft-launch game stays public. Daily routine, one update every two weeks on Thursday at 15:00 UTC, hotfix reserve. | 4 (average) |
+| Live operations | The soft-launch game stays public. Daily routine; a Thursday 15:00 UTC update in every week that finishes deferred [MVP] content (each week from Sprint 39 to Sprint 44) and otherwise a fix update about every two weeks; hotfix reserve. | 4 (average) |
 | Marketing | One video session a week; community post | 2 |
 | Build | About 25 WH of art (13 OH) and about 14 WH of code (4 OH), plus checks | 20 |
 
-Deferred [MVP] content ships to the live game as it is finished. [L] content is built behind `flag.*` keys, tested in GULP Staging, and released together on `P` day (12 §1.1). Interface art for [L] (113 drawings in 08 §13.13, estimated here at 45 WH) is spread across the sprints that need it.
+Deferred [MVP] content ships to the live game as it is finished. [L] content is built behind `flag.*` keys, tested in GULP Staging, and released together on `P` day (12 §1.1). Interface art for [L] (120 rows and 130 drawings in 08 §13.13, estimated here at 0.4 WH a drawing, about 52 WH) is spread across the sprints that need it. Sprints 43 to 54 name 45 WH of it; the other 7 WH or so are not yet placed in a sprint and are assigned when this section is re-sized at gate G7.
 
 ### 6.2 When each deferred item returns
 
@@ -1341,7 +1343,7 @@ Acceptance: the decision and the new dates are written in section 4; a Drop-off 
 |---|---|---|---|---|
 | S36-A1 | Deep floor and dressing | `M_Env_DropOff_DeepFloor_01–04`, `_WallCrack_01–02`, `_DarkSponge_01–04`, `_SeaWhip_01–03`, `_TubeWorm_01–02`, `_Bones_01–03` | 14 | Agent + owner |
 | S36-A2 | Late prey and cold chimneys | `M_Prey_Bonito`, `M_Prey_Tuna`, `M_Hazard_Vent_01–03`, `T_Vent_Alb` | 9.5 | Agent + owner |
-| S36-C1 | Bonito packs and Tuna flee behaviour in `PreySim`; screens S05 tide schedule and S17 specimen detail | B15, `client/UI/Screens` | M + M + M | Agent |
+| S36-C1 | Bonito packs and Tuna flee behaviour in `PreySim`; screens S05 tide popover and S17 specimen detail | B15, `client/UI/Screens` | M + M + M | Agent |
 
 Acceptance: Bonito and Tuna pass 06 §16.1; `economy.sim` reaches tier 6 within 25% of the 12-minute target of 01 §5.1. Hours: 30 OH.
 
@@ -1396,16 +1398,16 @@ Acceptance: **update on Thu 5 August.** The Moray warns before it lunges; the ho
 |---|---|---|---|---|
 | S42-A1 | Three traits on Fish and Eel | `M_Trait_Longfin_RibbonTail`, `_RibbonFin`, `T_Trait_Ink_Fish_Alb`, `_Eel_Alb`, `T_Trait_Crystal_Fish_Alb`, `_Eel_Alb`, `M_Trait_Crystal_Shard_01–03` | 9.4 | Agent + owner |
 | S42-A2 | Their prey; crests | `M_Prey_Ribbonfish`, `M_Prey_Inklet`, `M_Prey_CrystalJelly`, `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_02_Alb`, `T_TraitPrey_03_Alb`, shells; `M_Species_Minnow_Crest`, `_Puffer_Crest`, `_Eel_Crest`; effects and sounds | 17.5 | Agent + owner |
-| S42-C1 | Rules switched on from the pre-work; the Crystal drift (one drift per server every 5 minutes); gamepad scheme started | B19, B16, `InputController` | M + M | Agent |
+| S42-C1 | Rules switched on from the pre-work; the Crystal drift (one drift per server every 5 minutes); gamepad scheme started | B19, B16, B41 (`InputController`) | M + M | Agent |
 
-Acceptance: **update on Thu 12 August: full [MVP] live (M11).** The release check finds no placeholder among [MVP] rows. Gate G7a is read on Monday 16 August. Hours: 30 OH.
+Acceptance: **update on Thu 12 August: full [MVP] live (M11).** The release check finds no placeholder among [MVP] rows. Gate G7a is read on Monday 16 August, the first day of Sprint 43. Hours: 30 OH.
 
 **Sprint 43 · 16–22 August 2027 · Reef and Nursery landmarks; gamepad**
 
 | ID | Task | Assets or module | WH | Who |
 |---|---|---|---|---|
 | S43-A1 | Eight landmarks | `M_Env_Reef_LM_HoneycombCaves`, `_LM_Crackles_01–03`, `_LM_StripeAlley_01–02`, `_LM_Snooze`, `_LM_GullRock`; `M_Env_Nursery_LM_BubbleFountain`, `_LM_CoralRing`, `_LM_SleepyClam`, `A_SleepyClam_Snore` | 25.1 | Agent + owner |
-| S43-C1 | Pad scheme in `InputController`; `UI_Atlas_Hints1` (27 glyphs, 5 WH) | 08 §10.4, 15 §3.3 | L | Agent + owner (real Xbox pad and DualSense on the Mac) |
+| S43-C1 | Pad scheme in `InputController`; `UI_Atlas_Hints1` (27 glyphs, 5 WH) | B41; 08 §10.4, 15 §3.3 | L | Agent + owner (real Xbox pad and DualSense on the Mac) |
 
 Acceptance: update on Thu 19 August; a pad drives the same `SwimInput` as touch and keys. Hours: 30 OH.
 
@@ -1423,7 +1425,7 @@ Acceptance: update on Thu 26 August; every screen can be used with the four dire
 | ID | Task | Assets or module | WH | Who |
 |---|---|---|---|---|
 | S45-A1 | Turtle family base and meshes | `M_Species_Base_Turtle`, `RIG_Turtle`, `M_Species_Turtle_Juv`, `_Adult`, `_Juv_Tucked`, `_Adult_Tucked` | 24 | Agent + owner |
-| S45-C1 | Two-thumb phone scheme; left-handed layout; handheld scale; TV margins | `InputController`, `client/UI/Kit` | M + M | Agent + owner |
+| S45-C1 | Two-thumb phone scheme; left-handed layout; handheld scale; TV margins | B41 (`InputController`), `client/UI/Kit` | M + M | Agent + owner |
 
 Acceptance: the Turtle passes the roster sheet beside the three [MVP] species; the HUD mirrors correctly. Hours: 30 OH.
 
@@ -1432,7 +1434,7 @@ Acceptance: the Turtle passes the roster sheet beside the three [MVP] species; t
 | ID | Task | Assets or module | WH | Who |
 |---|---|---|---|---|
 | S46-A1 | Fit, textures, clips | `M_Species_Turtle_*_LOD1, _LOD2`, `_Shell`, `_Crest`, (fit) Sea Turtle on `RIG_Turtle`, `T_Turtle_Juv_Alb`, `T_Turtle_Adult_Alb`, the 14 `A_Turtle_*` clips, `A_Turtle_ShellIn`, `_ShellHold`, `_ShellOut`, `_Fidget` | 29.7 | Agent + owner |
-| S46-C1 | Shell ability; emote wheel, screen S06, with its nine `UI_Emote_*` images (4 WH) | B38, `client/UI` | M + M | Agent |
+| S46-C1 | Shell ability; emote wheel, screen S06, with its nine `UI_Emote_*` images (4 WH) and the Hide emotes setting (08 §6.7) | B38 (Shell), B42 (`EmoteService`, emote wheel), `client/UI` | M + M | Agent |
 
 Acceptance: a tucked Turtle cannot be eaten and cannot move for 2.5 seconds; playable behind `flag.turtle`. Hours: 31 OH.
 
@@ -1461,7 +1463,7 @@ Acceptance: Camo hides the outline after 1.5 seconds still; Ember ignores vents 
 |---|---|---|---|---|
 | S49-A1 | All eleven overlay traits on the Turtle family; placement; the launch combination sheet | The eleven `T_Trait_*_Turtle_*` rows, (placement) Trait pieces on the Sea Turtle and on the Shark Pup, (check) Trait combination sheet, launch | 17.7 | Agent + owner |
 | S49-A2 | One pattern for each of five species, with interface images (6 WH) | `T_Minnow_PatSunrise_*`, `T_Puffer_PatLemon_*`, `T_Eel_PatSeafoam_*`, `T_Turtle_PatMossback_*`, `T_Shark_PatStorm_*` (final choice by decision D5) | 16 | Agent + owner |
-| S49-C1 | Patterns tab and ownership; wild creatures, first half | B37, `Dev/BotPlayers` promoted to a service | M + L | Agent |
+| S49-C1 | Patterns tab and ownership; wild creatures, first half | B37, B42 (wild creatures: `Dev/BotPlayers` promoted to a service) | M + L | Agent |
 
 Acceptance: the combination sheet passes for every launch species; a pattern never changes silhouette or outline. Hours: 31 OH.
 
@@ -1470,7 +1472,7 @@ Acceptance: the combination sheet passes for every launch species; a pattern nev
 | ID | Task | Assets or module | WH | Who |
 |---|---|---|---|---|
 | S50-A1 | Grouper, anemones, vent glow, Old Scar's feeding clip, sounds and effects | `M_Pred_Grouper`, `RIG_Grouper`, `T_Grouper_Alb`, LOD and shell, the four `A_Grouper_*` clips, `M_Hazard_Anemone_01–03`, `T_Anemone_Alb`, `T_Vent_Emi`, `A_OldScar_Feed` | 26.5 | Agent + owner |
-| S50-C1 | Grouper pull, anemone slow, vent burn; wild creatures labelled "wild" that fill servers under 10 players | B39, wild creature service | M + L | Agent + owner |
+| S50-C1 | Grouper pull, anemone slow, vent burn; wild creatures labelled "wild" that fill servers under 10 players | B39, B42 (wild creatures) | M + L | Agent + owner |
 
 Acceptance: a wild creature is always labelled and never appears on a leaderboard; the Grouper can be eaten by a player one tier higher and gives 60 mass (canon 5.2). Hours: 30 OH.
 
@@ -1506,7 +1508,7 @@ Acceptance: a missed day never takes a reward away (05 §14); Reef Rank counts b
 | ID | Task | Assets or module | WH | Who |
 |---|---|---|---|---|
 | S54-A1 | Remaining [L] sounds; licensed tracks for `MUS_Event_WhaleFall`, `MUS_Tier7`, `MUS_Sting_Leviathan`; launch import pass; shop and content icons (14 WH) | 07 §11, §12, (import) Studio import and fixes, launch | 35 | Agent + owner |
-| S54-C1 | Tide Watcher, Keen Nose; Trait Lock, Call the Tide, Starter Pack with screen S34, Cove Boost, Goal Reroll; rewarded video behind `flag.rewardedVideo`; private servers with screen S32; notification string 2; ten launch badges; funnels 8 to 10 | B37, `Analytics` | L + L + M | Agent + owner |
+| S54-C1 | Tide Watcher, Keen Nose; Trait Lock, Call the Tide, Starter Pack with screen S34, Cove Boost, Goal Reroll; rewarded video behind `flag.rewardedVideo`; private servers with screen S32; notification string 2; awards for the nine [L] badges (03 §12), behind their flags; funnels 8 to 10 | B37, `Analytics` | L + L + M | Agent + owner |
 
 Acceptance: every [L] purchase is tested once in GULP Staging and granted once; Call the Tide never interrupts a scheduled tide; rewarded video stays off unless the eligibility rule has been re-read and met. Hours: 32 OH.
 
@@ -1531,11 +1533,11 @@ These follow the marketing calendar of 11 §11 (`P−4` to `P`) and the runbook 
 
 | Sprint | Dates | Tasks | Acceptance |
 |---|---|---|---|
-| 61 (`P−4`) | 20–26 Dec 2027 | Feature-freeze the launch build. Store art: `SCN_Icon_B_TeethFrame`, `SCN_Icon_C_FoodChain`, `SCN_Icon_E_Wordmark`, `SCN_Thumb_T7_PickYourCreature`, `SCN_Thumb_T8_WhaleFall`, (pose) Marketing pose set, launch (19 WH). Start creator outreach: 60 messages over two weeks (11 §9.3). Four videos a week; tease Whale Fall. Gate G7b, first half. | Every [L] flag can be turned on in GULP Staging with no error |
+| 61 (`P−4`) | 20–26 Dec 2027 | Feature-freeze the launch build. Store art: `SCN_Icon_B_TeethFrame`, `SCN_Icon_C_FoodChain`, `SCN_Icon_E_MouthMark` (no text: the mouth shape alone, 11 §3.3), `SCN_Thumb_T7_PickYourCreature`, `SCN_Thumb_T8_WhaleFall`, (pose) Marketing pose set, launch (19 WH); the four public-launch versions, each a re-stage of its soft-launch scene: `SCN_Icon_A_BehindYou_Launch` (Old Scar, with its open-mouth pose, in the build since Sprint 40; 2.5), `SCN_Thumb_T3_GetHome_Launch` (Old Scar; 1.5), `SCN_Thumb_T4_SevenSizes` (tiers 1, 3, 5 and 7, with the Leviathan crest of Sprint 42; 1.5) and `SCN_Thumb_T5_YourCove_Launch` (specimens now include the Eel; 1) (6.5 WH, chapter 07 §13). Store art in this sprint: 25.5 WH. Start creator outreach to tiers 1 and 2: 45 messages over two weeks (11 §9.3). Four videos a week; tease Whale Fall. Gate G7b, first half. | Every [L] flag can be turned on in GULP Staging with no error |
 | 62 (`P−3`) | 27 Dec 2027–2 Jan 2028 | One-week private test of the [L] content in GULP Staging (the entry criterion of 12 §1.1). Launch description drafted. Launch Week event created as private. Press kit: six screenshots, clean footage, fact sheet. | 10 sessions in a row with no severity 1 bug; no save loss; saves from the soft-launch schema load in the launch build |
 | 63 (`P−2`) | 3–9 Jan 2028 | Fixes. Device rows 8, 9 and 10 (gaming PC, Chromebook, handheld or its stand-in). Pad on every screen. `SCN_Event_LaunchWeek`, (staging) Gameplay preview, launch re-cut (6 WH). Hand-read Spanish, Portuguese and one more language. Name check for the title. Creators get early access, disclosed in their videos. Redo the questionnaire if any answer changed. | 15 §3.3, §3.4 and §3.7 checklists pass; no English text on a device set to Spanish |
-| 64 (`P−1`) | 10–16 Jan 2028 | Release candidate by Sunday 16 January (the T−48 h freeze is Tuesday 18 January). Create the public Launch Week event and submit it for featuring by Thursday 13 January (7 days ahead). Upload T7, T8 and the new page cut for moderation. Create Tide Watcher, Keen Nose, Shark Pup, Trait Lock, Call the Tide, Cove Boost (`prod_cove_boost`), Goal Reroll (`prod_goal_reroll`), Starter Pack, the pattern products and the three Robux decorations at chapter 05 prices. Create badge sets 2 and 3 over three days. Compliance lists of 05 §14 and 12 §7. Submit the paid step 3 campaign 48 hours ahead, only if both go/no-go measures are still at or above the median (11 §10.3). Gate G7b, second half. | The launch checklist of 12 §2 is ticked in full |
-| 65 (`P`) | 17–23 Jan 2028 | **Public launch on Thursday 20 January 2028 at 15:00 UTC.** Snapshot, tag, publish, restart outdated servers with a 5-minute delay. Turn the [L] flags on. Name gains `[NEW 🦈]` for 7 days; launch description; T7 and T8 active; private servers on at 99 Robux. Update announcement and community announcement. Watch for 2 hours; T+2 h check; T+24 h numbers. Paid step 3: 30 US dollars a day for 10 days. Video 19. | T+2 h check passes; every purchase completes; no save failure |
+| 64 (`P−1`) | 10–16 Jan 2028 | Release candidate by Sunday 16 January (the T−48 h freeze is Tuesday 18 January). Create the public Launch Week event and submit it for featuring by Thursday 13 January (7 days ahead). Upload the public-launch set for moderation: T7, T8, the public-launch versions of icon A, T3, T4 and T5, and the new page cut. Create Tide Watcher, Keen Nose, Shark Pup, Trait Lock, Call the Tide, Cove Boost (`prod_cove_boost`), Goal Reroll (`prod_goal_reroll`), Starter Pack, the pattern products and the three Robux decorations at chapter 05 prices. Compliance lists of 05 §14 and 12 §7. Submit the paid step 3 campaign 48 hours ahead, only if both go/no-go measures are still at or above the median (11 §10.3). Gate G7b, second half. | The launch checklist of 12 §2 is ticked in full |
+| 65 (`P`) | 17–23 Jan 2028 | **Public launch on Thursday 20 January 2028 at 15:00 UTC.** Snapshot, tag, publish, restart outdated servers with a 5-minute delay. Before the day: the freeze on Tue 18 January (T−48 h) and the two [L] badge batches of 12 §2.3 (batches 5 and 6, nine badges) on Tue 18 and Wed 19 January, `P−2` and `P−1` days. On the day: turn the [L] flags on. Name gains `[NEW 🦈]` for 7 days; launch description; T7 and T8 active; icon A (unless icon D won the soft-launch test), T3, T4 and T5 switch to their public-launch versions; private servers on at 99 Robux. Update announcement and community announcement. Watch for 2 hours; T+2 h check; T+24 h numbers. Paid step 3: 30 US dollars a day for 10 days. Video 19. | T+2 h check passes; every purchase completes; no save failure |
 
 Hours in each of Sprints 61 to 64: 4 + 4 + 6 marketing + 16 build and checks = 30 OH. Sprint 65: 4 + 20 operations + 6 marketing = 30 OH.
 
@@ -1569,10 +1571,10 @@ Quarters are counted from `P` (12 §10). Dates are for `P` = Thursday 20 January
 
 | Quarter | Dates | Species (canon order) | Events | Features | Other | At keep-steady pace |
 |---|---|---|---|---|---|---|
-| Q1, weeks 1 to 13 ([P1]: the first quarter after launch) | 20 Jan–19 Apr 2028 | Anglerfish, Manta Ray, Seahorse, Axolotl | Storm, Red Tide, Great Migration (week 12) | Pearlescent variants, first version | Console once the pad test passes; hand-check of three translations; rewarded video when eligible; browser play checked within a week of Roblox releasing it | Anglerfish, Storm, Manta Ray, Red Tide. Seahorse, Axolotl and Great Migration move to Q2. |
+| Q1, weeks 1 to 13 ([P1] is weeks 1 to 12 of it) | 20 Jan–19 Apr 2028 | Anglerfish, Manta Ray, Seahorse, Axolotl | Storm, Red Tide, Great Migration (week 12) | Pearlescent variants, first version | Console once the pad test passes; hand-check of three translations; rewarded video when eligible; browser play checked within a week of Roblox releasing it | Anglerfish, Storm, Manta Ray, Red Tide. Seahorse, Axolotl and Great Migration move to Q2. |
 | Q2, weeks 14 to 26 ([P2] from here on) | 20 Apr–19 Jul 2028 | Orca Calf | The Trench Opens; Storm, Red Tide and Great Migration return; seasonal events | The Trench zone; trading specimens with the compliance work of 12 §7, C22 | Second round of Pearlescent variants; first reading of whether paid random items are worth their compliance cost (default: no) | Seahorse, Axolotl, Pearlescent variants, Great Migration. The Trench and trading move to Q3. |
 | Q3, weeks 27 to 39 | 20 Jul–18 Oct 2028 | Narwhal | Seasonal events | Migration (prestige reset, new cove biome) | Decide whether to apply for standalone game apps | The Trench and The Trench Opens, Orca Calf, trading |
-| Q4, weeks 40 to 52 | 19 Oct 2028–17 Jan 2029 | The next species, chosen by a community poll (needs a canon entry first) | The Homecoming anniversary event | A second cove biome | The year-two decision by 12 §9: continue, hold, or reuse the technology | Narwhal, Migration |
+| Q4, weeks 40 to 52 | 19 Oct 2028–17 Jan 2029 | The next species, chosen by a community poll (needs a canon entry first) | The Homecoming anniversary event | A second cove biome | The year-two decision by 12 §9: continue, hold, or reuse the technology. The one VR review that 15 §3.8 promises twelve months after launch (January 2029). | Narwhal, Migration |
 
 Order that must hold at either pace: Pearlescent variants before trading; trading before Migration; the Trench before the Orca Calf (12 §10).
 
@@ -1610,7 +1612,7 @@ Sprint 0 spikes ──go──► B01 scaffold ─► B03 ─► B04 data ─►
         gamepad scheme tested on PC ─► real Xbox and PlayStation checks ─► M13 console switch
 ```
 
-**From Sprint 5 onward the critical path is art, not code.** Art and audio are about 300 of the 700 OH to soft launch and every milestone after M3 waits on a finished asset. Code has slack in most sprints from 9 onward; that slack is what absorbs art overruns, and it is why code tasks for deferred systems can be done early behind flags at low cost.
+**From Sprint 5 onward the critical path is art, not code.** Art and audio are about 290 of the 690 OH to soft launch and every milestone after M3 waits on a finished asset. Code has slack in most sprints from 9 onward; that slack is what absorbs art overruns, and it is why code tasks for deferred systems can be done early behind flags at low cost.
 
 **Waits that no amount of work shortens.**
 
@@ -1623,7 +1625,7 @@ Sprint 0 spikes ──go──► B01 scaffold ─► B03 ─► B04 data ─►
 | Ad review | About 24 to 48 hours | Sprints 23, 28, 64 |
 | Featuring submission for an event | 7 days ahead | Sprint 64 |
 | Roblox Plus, if chosen instead of the fee | 2 consecutive months before `S` | Decide in Sprint 0 (D12) |
-| Free badges | 5 a day | Sprints 22, 64 |
+| Free badges | 5 a day | Sprints 22 and 23 (four [MVP] batches), Sprint 65 (two [L] batches) |
 | Video thumbnail uploads | 3 a month, rejections count | Sprints 31, 64 |
 | A staging soak before a release with a save migration | 24 hours | Any release that changes the schema |
 
@@ -1655,14 +1657,14 @@ Not parallel: two tasks that edit the same module; the content generator and any
 | **G2 First two minutes** | Fri 22 Jan 2027 | Eight new players on a fresh account, finished art | 7 of 8 bite within 10 s; 6 of 8 reach tier 2 within 45 s; 5 of 8 bank within T = 120; 4 of 8 start run 2 and are playing at 10 minutes | One measure misses by one player: Sprint 14 becomes a fix sprint; re-test with 5 new players; later dates move one week | Fewer than 4 of 8 bank at all, or fewer than 4 are playing at 3 minutes: stop building breadth; two sprints of redesign on chapter 04; a second fail is stop condition 2 |
 | **G3 Friends-and-family exit** | Sun 28 Mar 2027 | 30 or more first-time players; the 01 §17 funnel; two 12-player sessions; saves | Every canon measure within 10 points of its target; no save loss | One or two measures 10 to 20 points under: extend the stage two weeks, fix the weakest step, `S` moves to Thu 15 Apr 2027 | Still playing at 60 seconds under 60%, or first bank under 40%: no soft launch. Back to gate G2's fail path. |
 | **G4 Launch day** | Thu 1 Apr 2027, T+2 h | Player-facing errors, save failures, purchases | Fewer than 1 in 200 sessions with an error; no save failure; purchases complete | One feature broken: turn it off with its switch; fix in the next update | Saves damaged or the first minute broken: rollback plan of 12 §2.8; revoke public access if it cannot be made safe quickly |
-| **G5 Evaluation** | Sat 1 May 2027 (`S` + 30 days) | Highly engaged plays on the Audience Reach dashboard against the live threshold | Evaluation passed | Above half the threshold: continue; Engagement ads up to the 300 US dollars in 12 §11 | Below half the threshold: it is a retention problem. Fix the first session; buy no more traffic. If the 60-day window closes on Mon 31 May 2027 without a pass, stop condition 5. |
-| **G6 Daily users** | Mon 31 May 2027 | Daily users over the last 7 days; cost per play; ad players' day-1 retention against organic | 100 or more on each of 7 days: the 14-day read window starts | 50 to 100: paid step 2 continues to its 140 US dollar limit; the go/no-go moves by the weeks lost | Under 50 after step 2 is spent, or cost per play above twice step 1: no benchmark can be read. One four-week cycle on the store page and first session, then stop condition 6. |
+| **G5 Evaluation** | Sat 1 May 2027 (`S` + 30 days, in Sprint 27; read at that day's routine check and acted on at the Monday review of 3 May) | Highly engaged plays on the Audience Reach dashboard against the live threshold | Evaluation passed | Above half the threshold: continue; Engagement ads up to the 300 US dollars in 12 §11 | Below half the threshold: it is a retention problem. Fix the first session; buy no more traffic. If the 60-day window closes on Mon 31 May 2027 without a pass, stop condition 5. |
+| **G6 Daily users** | Mon 31 May 2027 | Daily users over the last 7 days; cost per play; ad players' day-1 retention against organic | 100 or more on each of 7 days: the level is held through Sprint 32, the week in which the economy is frozen, and the 14-day read window then runs from Mon 7 Jun to Sun 20 Jun 2027 (Sprints 33 and 34), so gate G7 is read on Mon 21 Jun | 50 to 100: paid step 2 continues to its 140 US dollar limit; the go/no-go moves by the weeks lost | Under 50 after step 2 is spent, or cost per play above twice step 1: no benchmark can be read. One four-week cycle on the store page and first session, then stop condition 6. |
 | **G7 Go/no-go** | Mon 21 Jun 2027 | 7-day averages of day-1 retention and average session time against the similar-game median, organic players deciding (12 §1.5) | Both at or above the 50th percentile: **go**. Section 6 starts. | One or both below: **not yet**. One four-week cycle on numbers 1 to 5 of 10 §11, then read again (Mon 19 Jul). A second cycle at most (Mon 16 Aug). The Drop-off may start in the second cycle only. | Below the median after two extra cycles, or at the 20-week limit (Thu 19 Aug 2027): **no-go**. Maintenance as 12 §9 defines it. Stop condition 7. |
 | **G7a Launch scope** | Mon 16 Aug 2027 | Day-7 retention and session time with the full [MVP] live; measured ratios; earnings to date | Ratios hold: keep the dates | Art ratio 20% worse than planned: remove cut candidates in the order of section 6.5 until `P` is before 1 March 2028 | `P` would be after 1 June 2028 even with every cut candidate removed: launch with five species and no decorations, or pay for help if gate G8's "double down" row would apply |
 | **G7b Launch readiness** | Mon 20 Dec 2027 and Mon 10 Jan 2028 | The private test of [L] content; the launch checklist of 12 §2; both go/no-go measures during the build | Checklist ticked; measures at or above the median: launch on the date, with paid step 3 | A severity 2 bug open, or one device row not checked: `P` moves one week | Either measure fell below the median for 4 weeks: no paid traffic and no featuring request; launch quietly or hold and fix |
-| **G8 `P` + 4 weeks** | Mon 21 Feb 2028 | The table of 12 §9 | Double down: both measures at or above the 75th percentile and daily users rising in 3 of 4 weeks. Run the 12-week calendar at full pace; ads up to 300 US dollars a month. | Keep steady: a headline every two weeks; no ads | Stop: either measure below the 50th for 4 weeks after two extra cycles, or daily users under 100 for 4 weeks. Maintenance. |
+| **G8 `P` + 4 weeks** | Mon 21 Feb 2028 (the Monday review after Sprint 69, the last planned sprint) | The table of 12 §9 | Double down: both measures at or above the 75th percentile and daily users rising in 3 of 4 weeks. Run the 12-week calendar at full pace; ads up to 300 US dollars a month. | Keep steady: a headline every two weeks; no ads | Stop: either measure below the 50th for 4 weeks after two extra cycles, or daily users under 100 for 4 weeks. Maintenance. |
 | **G9 Console** | Thu 10 Feb 2028 | Device rows 11 and 12 on real hardware; the checklists of 15 §3.5 and §3.6 | Every line passes: Console switch on | A line fails: fix and re-test the next week | No hardware: the switch stays off (decision D8) |
-| **G10 `P` + 12 weeks** | Mon 17 Apr 2028 | The table of 12 §9 again; Earned Robux per month | As G8 | As G8 | Under 30,000 Earned Robux a month for 3 months: maintenance |
+| **G10 `P` + 12 weeks** | Mon 17 Apr 2028 (a Monday review; no sprint is planned this far ahead) | The table of 12 §9 again; Earned Robux per month | As G8 | As G8 | Under 30,000 Earned Robux a month for 3 months: maintenance |
 
 One rule applies between gates: if the daily routine and the weekly update together take more than 45 hours a week for four weeks, drop to the keep-steady pace whatever the numbers say (12 §9).
 

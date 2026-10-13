@@ -32,7 +32,7 @@ These terms are used by every later section.
 
 ### 0.2 Body dimensions
 
-Derived from the canon body scale. `species.*Mult` values live in document 03 and stay within 0.75 to 1.25.
+Derived from the canon body scale. `species.*Mult` values live in document 03. The six launch species stay within 0.75 to 1.25; post-launch species may go as far as 0.70 to 1.30 (document 03, section 1.4: Anglerfish mouth 1.30, Seahorse mouth 0.70 and turn 1.30). `dashMult` is separate (section 1.2).
 
 **Body scale follows mass, not tier** (canon 5.1). The table gives the scale at each tier's threshold mass. Between two thresholds the scale is a straight-line blend by mass, so every bite makes the creature slightly bigger:
 
@@ -221,6 +221,7 @@ A creature is **at the surface** (for Gulls) when it is `Airborne` or its depth 
 - **Large jumps** (eating a player, a revive at 70% mass, a hook): growth eases linearly over 0.6 s, shrinking over 0.4 s, with no overshoot.
 - If the larger sphere overlaps terrain, push out along the contact normal at up to 20 studs/s. If no free space exists (for example a tunnel narrower than the new diameter), move the creature to the newest fitting point on its 10 s position trail.
 - **Tier-down:** speed and turn rate switch at once. There is no pop.
+- **Leviathan crest** (canon 5.1): a creature that reaches tier 7 grows a crest, so the top tier is recognisable by silhouette. The crest grows in during the tier-up scale pop and pops off as bubbles on a tier-down to 6. It is part of the mesh only: it does not change the collision sphere, the mouth zone or any rule. Chapter 06, section 3.6 defines the crest shape for each body family and species; chapter 07 lists the crest meshes (`M_Species_<Name>_Crest`).
 
 ### 1.9 Server movement check
 
@@ -476,7 +477,7 @@ predator:           gain = predator.mass (document 03) × (1 + 0.25 Bonefed)
 ```
 
 - Spots applies to prey and trait prey only. Bonefed applies to every gain.
-- `feedGuard` (section 6.6) halves the gain for each repeat on the same victim inside 10 minutes.
+- `feedGuard` (section 6.6) halves the gain for the second and third time the same victim is eaten inside 10 minutes, and is 0 from the fourth time: 1, 0.5, 0.25, then 0.
 - **Nursery prey** (document 05, section 2.1): prey eaten inside `NurserySafe` gives 100% of its mass to a tier 1 creature, 50% to a tier 2 creature and nothing to tier 3 or higher (possible only during the 10 s exit prompt, section 6.5).
 - Mass is a decimal number. Display: one decimal below 10, whole numbers from 10.
 - Tier-up is checked after every gain (section 5).
@@ -485,7 +486,7 @@ predator:           gain = predator.mass (document 03) × (1 + 0.25 Bonefed)
 
 - Every accepted eat (prey, trait prey, player, predator) adds 1 to the chain. The chain resets 2.0 s after the last eat.
 - The chain gives **no mass bonus**. It is feedback only: the bite sound rises one semitone per step up to 12 steps, and the HUD shows "×N" from ×3.
-- Daily goals may read the best chain of a run (section 15.3).
+- The best chain of a run is kept on the run record. No daily goal reads it: chapter 03's goal list (section 9) has no chain goal, and one would be added there first (section 15.3).
 - A rejected eat removes its chain step.
 
 ### 4.6 Schools
@@ -526,6 +527,7 @@ Triggered on the server the moment mass ≥ the next tier's threshold. Size does
 - There is no pause of the world and no loss of control beyond the 0.10 s hit-stop.
 - During `Protected(tierUp)` the creature cannot be eaten by anyone. It can still eat. Eating a player does not end this window.
 - **Several tiers at once** (for example after eating a large player): one sequence, straight to the final tier. The banner shows the final tier. The Codex gets every tier passed.
+- **Reaching tier 7:** the Leviathan crest grows in during the scale pop (T+0.10 to T+0.70, section 1.8; canon 5.1).
 - **Tier-down:** no banner, no protection, no pop, `SFX_TierDown`. The body shrinks with the mass that was lost (section 1.8).
 
 ### 5.2 Juvenile to adult swap at tier 4
@@ -613,7 +615,7 @@ A protected creature shows a white bubble-shield outline to everyone and no red 
 
 There are no teams and no shared protection. Friends bump like anyone else.
 
-- **Feed guard:** each time a player eats the same victim again within 10 minutes, the mass gained is halved (30%, 15%, 7.5%, then 0 from the fourth time).
+- **Feed guard:** each time a player eats the same victim again within 10 minutes, the mass gained is halved, and from the fourth time it is nothing (30%, 15%, 7.5%, then 0).
 - **Leaderboard mass:** mass gained from eating players who are on the eater's Roblox friends list is tracked separately and subtracted from the mass submitted to the weekly leaderboard (section 15.5). It still counts for Pearls.
 - Feeding is always a loss overall: the victim loses 100%, the eater gains at most 30%.
 
@@ -670,7 +672,7 @@ Passive. Dash cooldown is 2.0 s instead of 2.5 s. No button.
 | State | Time from activation | Rules |
 |---|---|---|
 | `Ready` | — | Press to activate. Any dash in progress ends. |
-| `Puffed` | 0.00 to 2.00 s | Defence tier +1 from the first frame. Speed ×0.40. Mesh inflates to ×1.6 over 0.20 s (visual); collision radius ×1.3. Cannot dash. Can steer and bite. |
+| `Puffed` | 0.00 to 2.00 s | Defence tier +1 from the first frame. Speed ×0.40. Mesh inflates over 0.20 s into a sphere 1.5 times the normal height (visual; document 03, section 1.2); collision radius ×1.3. Cannot dash. Can steer and bite. |
 | `Deflating` | 2.00 to 2.30 s | No bonus, no slow. Mesh returns to normal. |
 | `Cooldown` | Until 10.0 s | — |
 
@@ -732,7 +734,7 @@ Passive, plus a start bonus. The ability is called Rampage (ID `rampage`); "Fren
 | `Rampaging` | 5.0 s. Speed ×1.25. Red trail. Eating during Rampage does not extend it. |
 | Lockout | 3.0 s after Rampage ends. The counter is cleared and ignores eats. |
 
-- The Shark Pup starts every run at tier 2 with mass 10. It has no tier 1 immunity, so the 5 s spawn window matters for it.
+- The Shark Pup starts every run at tier 2 with mass 10. It never has the tier 1 protection from other players, which canon 7 names as the species' intended drawback, so the 5 s spawn window matters for it.
 - The HUD shows three pips for the counter in place of the ability button.
 
 ### 7.8 What blocks an ability
@@ -869,16 +871,16 @@ Prey are data on the server and drawn by clients (canon section 14). The server 
 
 | Prey | Calm state | Detect radius | Flee | Flee speed × (studs/s) | End of flee |
 |---|---|---|---|---|---|
-| `plankton` | **Drift:** 1 stud/s in a slowly changing direction; carried by currents | None | Never flees | — | — |
-| `krill` | **Swarm** of 12 to 20 around a moving centre, 4 studs/s | 10 | **Scatter:** each member flees straight away from the threat | 0.55 (14) | After 2 s, regroups to the swarm centre over 3 s |
+| `plankton` | **Drift:** 2 studs/s in a slowly changing direction; carried by currents | None | Never flees | — | — |
+| `krill` | **Swarm** of 12 to 20 around a moving centre, 5.6 studs/s | 10 | **Scatter:** each member flees straight away from the threat | 0.55 (14) | After 2 s, regroups to the swarm centre over 3 s |
 | `shrimp` | **Hop:** every 1.2 s, a 6-stud hop along the floor (arc 2 studs high) | 8 | Hops away every 0.5 s, 6 studs per hop | 0.45 (12) | After 1.5 s |
-| `sardine` | **School** of 8 to 14, tight, 8 studs/s | 18 | The whole school turns away together. Members within 6 studs of the threat scatter for 1 s, then rejoin. | 0.75 (21) | When the threat has been over 40 studs away for 2 s |
-| `darter` | Solo or pairs, 6 studs/s, short stops | 20 | Flees with a sharp turn of 60° to 110° every 0.6 s | 0.85 (25.5) | Tires after 3 s: 0.60 speed for 2 s |
-| `mackerel` | Straight runs along set lanes, 12 studs/s | 28 | Straight line away; turn rate only 60°/s | 0.95 (30.4) | Tires after 4 s: cruise speed for 3 s |
-| `bonito` | Packs of 3 to 5, 14 studs/s | 34 | The pack splits; each member takes a different heading | 1.00 (34) | Tires after 5 s: 0.60 speed for 2.5 s |
-| `tuna` | Solo, 16 studs/s, wide loops | 50 | Flees early in a straight line; turn rate 50°/s | 1.10 (39.6) | Tires after 6 s: 0.60 speed for 2 s |
+| `sardine` | **School** of 8 to 14, tight, 8.4 studs/s | 18 | The whole school turns away together. Members within 6 studs of the threat scatter for 1 s, then rejoin. | 0.75 (21) | Tires after 3 s: cruise speed for 2 s |
+| `darter` | Solo or pairs, 10.2 studs/s, short stops | 20 | Flees with a sharp turn of 60° to 110° every 0.6 s | 0.85 (25.5) | Tires after 3 s: cruise speed for 2 s |
+| `mackerel` | Straight runs along set lanes, 12.2 studs/s | 28 | Straight line away; turn rate only 120°/s | 0.95 (30.4) | Tires after 4 s: cruise speed for 2 s |
+| `bonito` | Packs of 3 to 5, 13.6 studs/s | 34 | The pack splits; each member takes a different heading | 1.00 (34) | Tires after 5 s: cruise speed for 2 s |
+| `tuna` | Solo, 15.8 studs/s, wide loops | 50 | Flees early in a straight line; turn rate 90°/s | 1.10 (39.6) | Tires after 6 s: cruise speed for 2 s |
 
-- Flee speed, detect radius and the length of a flee are copies of document 03, section 2.1, which owns every per-prey number.
+- Flee speed, turn rate, detect radius and the length of a flee are copies of document 03, section 2.1, which owns every per-prey number. Calm speed is its **cruise speed**: 40% of flee speed. After a flee burst every prey is tired for 2 s and moves at cruise speed, which is the catch window for prey as fast as the player.
 - **School break-up:** when a school or swarm falls to two members or fewer, the rest become stragglers. Stragglers despawn after 10 s with no player within 80 studs. The school respawns whole (9.5).
 - A Spark stun freezes a prey in place for 1.5 s whatever its state.
 
@@ -895,14 +897,14 @@ Prey are data on the server and drawn by clients (canon section 14). The server 
 | `inklet` | [MVP] | `darter` | Leaves a 6-stud ink puff (2 s) when it starts to flee |
 | `leaf_drifter` | [L] | `plankton` | Looks like a kelp leaf; no outline until a player is within 15 studs |
 | `spark_eel` | [L] | `darter` | Lives inside the wreck; detect 24 |
-| `vent_snail` | [L] | `shrimp` | Sits on vent rims; reachable only while the vent is dormant (section 10.3) |
+| `vent_snail` | [L] | `shrimp` | Crawls around a vent rim, inside the burn area while the vent is on. Grab it while the vent is off; taking one from a vent that is on costs the burn (section 10.3). Does not flee. |
 | `crystal_jelly` | [MVP] | See below | — |
-| `lunar_fry` | [MVP] | `sardine` | Groups of 3 to 5. Moon Tide only (section 14.5). |
+| `lunar_fry` | [MVP] | `sardine` | Four to a moonbeam, circling inside it; a beam never holds more than 4. Moon Tide only (section 14.5). |
 | `marrow` | [L] | `plankton` | Whale Fall only (section 14.6) |
 
 Flee speed, flee distance, depth and spawn place for each trait prey are in document 03, sections 3.1 and 3.2.
 
-**Crystal Jelly:** roams as a **drift of five** (canon 8.2), so one drift can give one player the Crystal trait. A new drift appears every 300 s (tune), counted from the moment the previous drift appeared, at a random point on the jelly route (document 03, section 3.2) that is at least 100 studs from every player. The five stay within 12 studs of each other and drift along the route through all zones at 6 studs/s. They do not flee. A soft chime is heard within 150 studs. Jellies not eaten leave 240 s after the drift appeared, so at most one drift is alive at a time. Speed and lifetime are document 03's values.
+**Crystal Jelly:** roams as a **drift of five** (canon 8.2), so one drift can give one player the Crystal trait. A new drift appears every 300 s (tune), counted from the moment the previous drift appeared, at a random point on the jelly route (document 03, section 3.2) that is at least 100 studs from every player. The five stay within 12 studs of each other and drift along the route through the Reef, Kelp and Drop-off (canon 8.2; never the Nursery) at 6 studs/s. They do not flee. A soft chime is heard within 150 studs. Jellies not eaten leave 240 s after the drift appeared, so at most one drift is alive at a time. Speed and lifetime are document 03's values.
 
 ### 9.4 Predators
 
@@ -920,10 +922,10 @@ Shared rules:
 
 | State | Rules | Leaves when |
 |---|---|---|
-| `Patrol` | Follows a loop at 14 studs/s | A legal target is within 45 studs, inside a 120° forward cone, with a clear line → `Telegraph` |
-| `Telegraph` | 0.6 s. Stops, shakes, flashes red, "!" sound. | Always → `Chase` |
-| `Chase` | Straight charges: 0.8 s at 34 studs/s with direction locked, then a 0.25 s pause to re-aim (turn rate 70°/s). Average closing speed is about 26 studs/s. | 6 s total, or the target is lost or over 90 studs away, or the leash (150 studs from the loop) is reached → `Return`. Mouth contact → eat, then `Return`. |
-| `Return` | Swims back at 14 studs/s; ignores all targets for 4 s | Back on the loop → `Patrol` |
+| `Patrol` | Follows a loop at 18 studs/s | A legal target is within 45 studs, inside a 120° forward cone, with a clear line → `Telegraph` |
+| `Telegraph` | 0.8 s. Stops, shakes, flashes red, "!" sound. | Always → `Chase` |
+| `Chase` | Straight charges: 0.8 s at 36 studs/s with direction locked, then a 0.25 s pause to re-aim (turn rate 80°/s). Average closing speed is about 27 studs/s. | 6 s total, or the target is lost or over 90 studs away, or the leash (150 studs from the loop) is reached → `Return`. Mouth contact → eat, then `Return`. |
+| `Return` | Swims back at 18 studs/s; ignores all targets for 5 s | Back on the loop → `Patrol` |
 
 Counterplay: turn. A straight-line swimmer is caught; anything that turns during a charge is missed.
 
@@ -932,11 +934,11 @@ Counterplay: turn. A straight-line swimmer is caught; anything that turns during
 | State | Rules | Leaves when |
 |---|---|---|
 | `Hidden` | In its hole. Eyes glint. Eyes glow brighter when a legal target (tier 3 or lower) is within 30 studs. | A legal target is within 14 studs of the hole mouth, inside a 100° cone → `WindUp` |
-| `WindUp` | 0.45 s. Head comes out 2 studs, hiss. The aim point is fixed at the end of this state. | → `Lunge` |
+| `WindUp` | 0.6 s. Head comes out 2 studs, hiss. The aim point is fixed at the end of this state. | → `Lunge` |
 | `Lunge` | Extends 18 studs at 70 studs/s (0.26 s) toward the aim point. Does not track. Mouth radius 2.76. | → `Hold` |
 | `Hold` | 0.4 s extended | → `Retract` |
 | `Retract` | 0.8 s | → `Cooldown` |
-| `Cooldown` | 5 s in the hole; cannot trigger | → `Hidden` |
+| `Cooldown` | 6 s in the hole; cannot trigger | → `Hidden` |
 
 Counterplay: stay over 14 studs from holes (marked with bones), move sideways at the hiss, or pass during the cooldown.
 
@@ -946,19 +948,19 @@ Counterplay: stay over 14 studs from holes (marked with bones), move sideways at
 |---|---|---|
 | `Idle` | Not in the world | A legal target (defence tier 2 or lower) has been at the surface in the Sunlit Reef for 2.0 s without a break, and fewer than the allowed number of gulls are active → `Shadow` |
 | `Shadow` | 1.5 s. A round shadow, radius 5 studs, follows the target at up to 20 studs/s; a ring closes in on it; screech at 1.0 s. | → `Strike` |
-| `Strike` | Hits the shadow's position: a cylinder of radius 5 studs from the surface to 8 studs deep. The legal creature nearest the middle is gulped. Others are untouched. | → `Leave` |
+| `Strike` | Hits the shadow's position: a cylinder of radius 5 studs from the surface to 12 studs deep. The legal creature nearest the middle is gulped. Others are untouched. | → `Leave` |
 | `Leave` | Flies off | The same target cannot be shadowed for 8 s → `Idle` |
 
-Active gulls allowed: 3 at once, 5 during a Feeding Frenzy (document 03). Gulls do not hunt in the Nursery or during Moon Tide. Counterplay: dive below 8 studs or swim out of the shadow.
+Active gulls allowed: 3 at once, 5 during a Feeding Frenzy (document 03). Gulls do not hunt in the Nursery or during Moon Tide. Counterplay: dive below 12 studs or swim out of the shadow.
 
 **Grouper** [L] (tier 5)
 
 | State | Rules | Leaves when |
 |---|---|---|
-| `Patrol` | 8 studs/s along a ledge | A legal target is within 40 studs inside a 90° forward cone → `Inhale` |
-| `Inhale` | 0.7 s. Mouth opens wide, streak lines converge. | → `Suck` |
-| `Suck` | 2.5 s. Legal targets inside a 45° half-angle cone, up to 35 studs, are pulled toward the mouth: 22 studs/s at the mouth, falling linearly to 8 at 35 studs. Anything legal that reaches the mouth (radius 3.84) is eaten. Prey in the cone is pulled in for show. | → `Rest` |
-| `Rest` | 4 s, mouth shut, no suction | → `Patrol` |
+| `Patrol` | 12 studs/s along a ledge | A legal target is within 32 studs inside a 90° forward cone → `Inhale` |
+| `Inhale` | 1.0 s. Mouth opens wide, streak lines converge. | → `Suck` |
+| `Suck` | 2.5 s. Legal targets inside a cone 60° wide (30° half-angle) and 32 studs long are pulled toward the mouth: 22 studs/s at the mouth, falling linearly to 8 at 32 studs. Anything legal that reaches the mouth (radius 3.84) is eaten. Prey in the cone is pulled in for show. | → `Rest` |
+| `Rest` | 6 s, mouth shut, no suction | → `Patrol` |
 
 Counterplay: leave the cone sideways, or dash straight out (every tier's swim speed beats the pull). Creatures of tier 5 or higher are not pulled.
 
@@ -966,7 +968,7 @@ Counterplay: leave the cone sideways, or dash straight out (every tier's swim sp
 
 | State | Rules | Leaves when |
 |---|---|---|
-| `Roam` | Follows Drop-off waypoints at 22 studs/s | A legal target (defence tier 6 or lower; Spiny tier 6 is safe) is within 35 studs in any direction, or within 70 studs inside a 120° forward cone. If several, he picks the highest tier. → `Stalk` |
+| `Roam` | Follows Drop-off waypoints at 22 studs/s | A legal target (defence tier 6 or lower; Spiny tier 6 is safe) is within 90 studs (document 03's detect range), inside a 120° forward cone. If several, he picks the highest tier. → `Stalk` |
 | `Stalk` | 1.0 s. Turns to face the target. The target hears a sting and gets a red screen edge. | → `Chase` |
 | `Chase` | 40 studs/s, turn rate 70°/s | Target within 25 studs and within 20° of facing → `Lunge`. After 8 s, target lost, or the Drop-off edge + 30 studs is reached → `GiveUp`. |
 | `Lunge` | 0.4 s wind-up (jaw opens), then 45 studs straight at 70 studs/s (0.65 s), no turning. Mouth radius 7.8. | → `Recover` |
@@ -992,30 +994,30 @@ playerScale(n)     = clamp(0.6 + 0.4 × n / 24, 0.6, 1.0)
 eventScale         = 2.0 for normal prey during a Feeding Frenzy, else 1.0
 ```
 
-Base counts of individuals at 24 players (tune; documents 03 and 05 may rebalance):
+Base counts at 24 players (tune; documents 03 and 05 may rebalance). Plankton and tuna are counted as individuals; every other ordinary prey is counted in the groups document 03 uses (section 2.3). A target is never above document 03's live cap for that zone; if the two ever differ, the cap wins. Trait prey rows copy document 03's "alive per server" (section 3.1).
 
 | Type | Nursery | Sunlit Reef | Kelp Forest | Drop-off |
 |---|---|---|---|---|
 | `plankton` | See below | 300 | 200 | 150 |
 | `krill` (swarms) | See below | 8 | — | — |
-| `shrimp` | — | 60 | 50 | — |
+| `shrimp` (groups of 1 to 3) | — | 30 | 35 | — |
 | `sardine` (schools) | — | 6 | 5 | — |
-| `darter` | — | 24 | 20 | — |
-| `mackerel` | — | — | 14 | 16 |
+| `darter` (groups of 1 or 2) | — | 14 | 16 | — |
+| `mackerel` (groups of 1 to 3) | — | — | 12 | 14 |
 | `bonito` (packs) | — | — | — | 5 |
 | `tuna` | — | — | — | 3 |
-| `glowfry` | — | 10 | 6 | — |
+| `glowfry` | — | 6 | 4 | — |
 | `dotted_goby` | — | 10 | — | — |
 | `zebra_darter` | — | 8 | — | — |
-| `urchin_puff` | — | 8 | — | — |
-| `armor_shrimp` | — | — | 8 | — |
+| `urchin_puff` | — | 6 | — | — |
+| `armor_shrimp` | — | — | 6 | — |
 | `ribbonfish` | — | — | 6 | — |
-| `leaf_drifter` [L] | — | — | 6 | — |
-| `inklet` | — | — | — | 6 |
-| `spark_eel` [L] | — | — | — | 4 |
+| `leaf_drifter` [L] | — | — | 5 | — |
+| `inklet` | — | — | — | 5 |
+| `spark_eel` [L] | — | — | — | 5 |
 | `vent_snail` [L] | — | — | — | 4 |
 
-- **Nursery** scales with the players inside it, not with `n`: 60 plankton and 2 krill swarms, plus 20 plankton and 1 swarm per player inside, up to 160 plankton and 6 swarms. It is not affected by `playerScale`.
+- **Nursery** scales with the players inside it, not with `n`: 6 plankton patches (of 6 to 10 motes) and 2 krill swarms, plus 2 patches and 1 swarm per player inside, up to document 03's caps of 12 patches and 5 swarms (24 and 10 in a Feeding Frenzy). It is not affected by `playerScale`.
 - Trait prey targets ignore `playerScale` and `eventScale`.
 
 Predators and hazards per server:
@@ -1029,7 +1031,8 @@ Predators and hazards per server:
 | Gull | On demand, up to 3 dives at once (5 during a Feeding Frenzy) |
 | Jelly bloom | 6 (4 Kelp, 2 Drop-off) |
 | Hook | 8 |
-| Vent [L], anemone [L], current | Fixed by the zone layout |
+| Vent [L] | 9 (3 always on, 6 cycling; section 10.3) |
+| Anemone [L], current | Fixed by the zone layout (document 03: 24 anemones, 6 named currents) |
 
 ### 9.7 Keeping a quiet server lively
 
@@ -1065,10 +1068,10 @@ Predators and hazards per server:
 
 ### 10.1 Jelly bloom
 
-- **Shape:** 8 to 12 jellies drifting at 3 studs/s inside a fixed region. Each bell has a radius of 2.5 studs.
+- **Shape:** 8 to 12 jellies drifting at 3 studs/s inside a fixed region. Each bell is 2 studs across (document 03, section 5.2).
 - **Effect:** touching a bell gives `Stunned` for 1.5 s: no thrust, no turn, no dash, no ability, no bite; velocity decays at 4/s. The creature can be eaten.
 - **After:** 3.0 s of sting immunity when the stun ends. The jelly that stung goes dim and harmless for 3 s.
-- **Telegraph:** pink pulsing glow visible from 60 studs; soft chime within 30 studs.
+- **Telegraph:** pink pulsing glow visible from 60 studs; soft tingle sound within 20 studs.
 - **Counterplay:** steer around; lead a chaser through it (players who chase are stung too); Ember; Shell.
 
 ### 10.2 Anemone
@@ -1080,15 +1083,18 @@ Predators and hazards per server:
 
 ### 10.3 Thermal vent
 
+Document 03 (sections 5.1 and 5.2) owns the vents, and the rule below is a copy of it: 9 vents at the Chimneys. The **three centre vents are always erupting**. The **six outer vents cycle** `Dormant` 4 s → `Rumble` 1 s → `Erupting` 3 s (8 s in all: 3 s on, 5 s off), each from its own fixed offset, so the six never all erupt together. This section adds only how the burn is ticked and the upward push.
+
 | State | Length | Rules |
 |---|---|---|
-| `Dormant` | 6 s | Harmless. Vent Snails on the rim can be reached. |
-| `Rumble` | 1.5 s | Telegraph: the rim glows orange, small bubbles rise, low rumble within 60 studs |
-| `Erupting` | 4 s | A column of radius 8 studs and height 40 studs. A creature whose centre is inside loses 5% of its current mass per second, taken as 1.25% every 0.25 s, and is pushed up at 15 studs/s. |
+| `Dormant` (outer vents only) | 4 s | Harmless. No column. Vent Snails on the rim can be grabbed. |
+| `Rumble` (outer vents only) | 1 s | Harmless. The warning: the rim glows brighter, a burst of small bubbles rises, a low rumble plays. |
+| `Erupting` | 3 s for an outer vent; without end for a centre vent | The column is 10 studs wide (radius 5) and 40 studs tall, rising from the chimney top, the same size for all 9. A creature whose centre is inside loses 5% of its current mass per second, taken as 1.25% every 0.25 s, and is pushed up at 15 studs/s. |
 
-- Mass loss can cause a tier-down. It can reduce mass to 0 but never gulps the creature.
+- A centre vent never leaves `Erupting` and has no `Rumble`.
+- Mass loss can cause a tier-down and can reduce mass to 0, but a vent never gulps.
 - Ember stops the mass loss, not the push.
-- **Counterplay:** wait for `Dormant`; cross during `Rumble`; Ember.
+- **Counterplay:** at an outer vent, wait for `Dormant` or cross during `Rumble`; swim around a centre vent; Ember.
 
 ### 10.4 Fishing hook
 
@@ -1105,7 +1111,7 @@ The surface is a hazard only through the Gull (section 9.4).
 
 ### 10.6 Current
 
-- **Shape:** a tube along a spline, radius 10 studs, drawn as bright streaks. One direction per current.
+- **Shape:** a tube along a spline, 16 studs wide (radius 8), drawn as bright streaks. One direction per current.
 - **Effect:** a creature whose centre is inside gains `0.6 × its canon tier speed` along the stream, added to its own velocity, blended in over 0.3 s on entry and out over 0.3 s on exit. Swimming with it gives +60%; swimming against it leaves 40%.
 - Dash and all speed multipliers work normally inside.
 - Predators are not carried, so a current is an escape route.
@@ -1233,7 +1239,7 @@ rate   = 0.50 for the account's first three gulps, 0.10 after
 
 ### 13.1 Specimen display [MVP]
 
-- Each slot is an alcove. Its specimen swims a short idle loop there.
+- Each slot is a perch (document 03, section 6.10 owns the name). Its specimen swims a short idle loop there.
 - Display scale is `0.8 + 0.35 × tier` (tier 2: 1.5, tier 7: 3.25), not the in-run body scale. Document 03, section 6.10 owns this value.
 - Traits and pattern are shown on the specimen. Tapping one opens its card.
 - The owner can swap two specimens' slots in edit mode (only in state `InCove`).
@@ -1254,6 +1260,7 @@ cap            = 8 hours (24 with Tide Watcher [L])
 - There is one cap and one pile. The pile fills at the same rate online and offline and stops when the time since the last claim reaches the cap.
 - When the set of specimens changes (a bank or a release), the server first adds income up to that moment at the old rate, then switches to the new rate.
 - **Claim:** the owner touches or taps the Pearl clam in the cove. All of `pending` (rounded down) moves to Pearls and `lastClaim = now`.
+- **The one automatic payment** (canon 11): a new player's first specimen pays one hour of its income by itself, once per account, as a first-bank reward. Nothing else in the cove ever pays without a tap. Chapter 04, section 6.2 owns the amount and the timing.
 - The clam shows the pile and updates every 10 s. It shows "Full" at the cap.
 - All times are server UTC. If `now < lastClaim`, elapsed time is 0.
 - Income does not count toward Reef Rank.
@@ -1333,7 +1340,7 @@ slot  = floor(serverTimeUTC / 900) mod 4
 | T+230 | "Tide is going out" cue. Lighting blends back over 10 s. |
 | T+240 | Event rules switch off. Event prey fade out over 3 s. |
 
-Tide Watcher **[L]** adds an earlier alert at T−180, shows the next three events on the HUD clock, and puts a marker to the event on the HUD edge (canon 12; document 05 owns the pass).
+Tide Watcher **[L]** adds an in-game tide board that shows the next three tides, and a marker on the HUD edge that points to the event while a tide runs (canon 12; document 05 owns the pass). It gives no earlier alert and sends nothing outside the game: every player gets the same T−60 warning, and every player sees the clock and the next tide for free.
 
 ### 14.3 Joining mid-event [MVP]
 
@@ -1357,8 +1364,8 @@ Tide Watcher **[L]** adds an earlier alert at T−180, shows the next three even
 | Rule | Value |
 |---|---|
 | Light | Ambient light falls to 25% over 10 s. Fog end distance 400 → 140 studs. Prey and creatures gain a soft glow. Outline colours are unchanged. |
-| Lunar Fry | 40 per server per event, enough for 8 players to gain Moonlit (document 05, section 2.1 owns the count). They appear in groups of 3 to 5 under visible moonbeams, which document 03 places. |
-| Refill | An eaten group is replaced under a moonbeam after 10 s, until the 40 have been released |
+| Lunar Fry | 40 per server per event, enough for 8 players to gain Moonlit (document 05, section 2.1 owns the count). They appear inside the three visible moonbeams, one per zone, which document 03 places (section 7.2). Each beam starts with 4, so 12 at T+0. |
+| Refill | One more Lunar Fry appears every 7 s, at the beam with the fewest alive, until the 40 have been released. A beam never holds more than 4 at once. These are document 03's numbers. |
 | Predators | Detect radii ×0.75. Gulls do not hunt. |
 | End | Remaining Lunar Fry fade out over 3 s. Pips already collected are kept for the rest of the run. |
 
@@ -1368,7 +1375,7 @@ Lunar Fry are tier 2, so a tier 1 Fry must grow first.
 
 | Time | Event |
 |---|---|
-| T−60 | Whale song. A large shadow crosses the surface toward the Drop-off. The Whale Fall site is marked on the HUD edge. |
+| T−60 | Whale song. A large shadow crosses the surface toward the Drop-off and shows every player where the site is. The HUD-edge marker to the site is the Tide Watcher perk (section 14.2) and appears for pass owners while the tide runs. |
 | T+0 | The whale skeleton (clean white bones, about 60 studs long) appears at the surface over the site and sinks at 20 studs/s |
 | On landing | The first Marrow chunks drift out of the ribs. Old Scar leaves his route for the site. The Groupers move to within 50 studs and two more appear (6 in all). |
 | After landing | More Marrow in bursts until 60 chunks have been released in the event (document 05, section 2.1 owns the count; document 03 owns the burst times). Chunks drift up and outward. |
@@ -1384,11 +1391,11 @@ A product that starts a Feeding Frenzy on the buyer's server only.
 
 | Rule | Value |
 |---|---|
-| Purchase | Can be bought at any time. Every purchase grants one **Tide Token** on the buyer's profile and uses it at once (document 09, section 11.2). A player can hold up to three Tide Tokens; the buy button is closed while they hold three. |
+| Purchase | Can be bought at any time. Every purchase grants one **Tide Token** on the buyer's profile (document 09, section 11.2). The token is held, never spent by the purchase itself: it joins the server's queue in the order bought and is spent only when its own called tide starts. A player can hold up to three Tide Tokens; the buy button is closed while they hold three. |
 | Length | 10 s warning, then 240 s with the rules of 14.4 |
 | The clock | Never shifted. A called tide never interrupts or overlaps a scheduled tide or its warning (canon 10). |
-| Starts at once | When the phase is `Calm`, at least 250 s remain before the next `Warning` (`240 ≤ c ≤ 590`) and no called tide has run in this `Calm` phase |
-| Held | In every other case the token is held and the called tide starts when the current (or next) scheduled tide ends. The tide clock shows "Tide called" with the time left. |
+| Starts with no wait | The 10 s warning begins straight away when the token is first in the queue, the phase is `Calm`, at least 250 s remain before the next `Warning` (`240 ≤ c ≤ 590`) and no called tide has run in this `Calm` phase |
+| Waits | In every other case the token stays held and its called tide starts, after the 10 s warning, when the current (or next) scheduled tide ends. The tide clock shows "Tide called" with the time left. |
 | Limit | Up to three tokens per player. When several players hold tokens, the called tides start one at a time in the order the tokens were bought, each after its own 10 s warning, and only when no tide is running (no scheduled tide or warning, and no other called tide). One called tide per `Calm` phase per server, so each later token waits for the next `Calm` phase. |
 | Unused token | If the buyer leaves or the server closes before the tide starts, the token stays on the profile and is used free on a later server |
 | Credit | Banner for everyone: "<display name> called the tide!" with the buyer's species icon |
@@ -1402,16 +1409,19 @@ A product that starts a Feeding Frenzy on the buyer's server only.
 
 | Page | Entry is found when | Extra state |
 |---|---|---|
-| Species | The player owns the species. Others show as a silhouette once seen within 60 studs. | — |
-| Tiers (seven stamps per species) | That species reaches the tier in any run. Saved at tier-up; banking is not needed. | — |
+| Species | The player starts a run as the species (document 03, section 8.1). Others show as a silhouette once seen within 60 studs. | — |
+| Tiers (seven stamps per species) | That species reaches the tier in any run. Saved at tier-up; banking is not needed. The Shark Pup starts at tier 2, so its Fry stamp is filled the first time it is played. | — |
 | Traits | The trait is gained in a run | "Banked" once a specimen carries it |
 | Prey and trait prey | Eaten once | Count eaten; stars at 10, 100 and 1,000 **[L]** |
-| Dangers **[L]** | A predator or hazard is seen within 40 studs | Flags: "gulped by", "ate one", "hooked" |
+| Dangers **[L]** | The player comes within 30 studs of the predator or hazard, or is caught by it | Flags: "gulped by", "ate one", "hooked" |
+| Places **[L]** | The player swims within 40 studs of the landmark | — |
+| Tides **[L]** | The player eats 10 prey during the event | — |
 
 - Completion per page = found ÷ total entries in the current build. Only content that has shipped counts.
 - A page completed once keeps its completion badge when new content is added.
 - Stamps save the moment they are earned. A later gulp or disconnect does not remove them.
 - The Codex is account-wide and also fills in private servers.
+- The pages are Species, Tiers, Traits and Prey at [MVP], plus Dangers, Places and Tides at [L] (canon 11). Document 03, section 8 owns the entry lists and how each entry is filled; the table above copies it.
 - Rewards per entry and per page are in document 05.
 
 ### 15.2 Reef Rank [L]
@@ -1427,10 +1437,10 @@ A product that starts a Feeding Frenzy on the buyer's server only.
 | Rule | Value |
 |---|---|
 | Count | Three per UTC day |
-| Selection | Seeded by user ID and UTC day number. One Easy, one Medium and one Hard goal from chapter 03's list (canon 11); the one exception is an account's first day, which uses the fixed set `dg_eat_50`, `dg_tier3` and `dg_bank_snapper` (Easy, Easy, Medium). Where the list allows, the three also come from three different pools: **Eat** (eat N of a prey type; reach a chain of N), **Grow and bank** (reach tier N; bank with mass ≥ M; bank holding any trait), **World** (eat N prey during a tide event; ride a current; breach N times; give a Bubble **[L]**) |
+| Selection | Seeded by user ID and UTC day number. One Easy, one Medium and one Hard goal from chapter 03's list (canon 11); the one exception is an account's first day, which uses the fixed set `dg_eat_50`, `dg_tier3` and `dg_bank_snapper` (Easy, Easy, Medium). Where the list allows, the three also come from three different pools: **Eat** (eat N of a prey type; eat N prey in a zone), **Grow and bank** (reach tier N; bank with mass ≥ M; bank holding a trait), **World** (eat N prey during a tide event; ride a current; breach N times; dodge a predator; visit other coves **[L]**). Chapter 03, section 9 owns the list: it has no chain goal and no Bubble goal. |
 | Fit to the player | A tier goal is never above the account's best tier + 1. A goal never needs content that has not shipped, a species the player does not own, or a purchase. At most one goal a day needs eating players, and only on a server with 6 or more players. |
 | Progress | Counts from the moment the goal is given. Carries across servers and sessions. |
-| Completion | Automatic. The reward is claimed by a tap in the goals panel, or paid automatically at the next bank. Unclaimed rewards are paid at reset. |
+| Completion | Automatic. The reward is paid the moment the goal completes: the Pearls fly to the counter and there is no claim button (chapter 04, section 7.2), so nothing is left unpaid at reset. Document 05, section 3.5 owns the amounts. |
 | All three done | A bonus reward (document 05). **[L]** The lifetime count of days with all three done gives four free decorations, at 3, 7, 14 and 28 days (chapter 03, section 13). |
 | Reset | 00:00 UTC. A player online at reset gets the new goals at once with a toast; old progress is dropped. |
 | Reroll | One free reroll per day on any unfinished goal **[MVP]**. One more per day by rewarded video where eligible **[L]**; the same Goal Reroll is also sold as a product (document 05 owns the price and limits). The new goal has the same difficulty, differs from the current three, and starts at 0. |
@@ -1474,13 +1484,13 @@ Excluded runs still pay Pearls and still create specimens. Wild creatures never 
 ### 16.1 Server fill [MVP]
 
 - 24 players per server, 24 coves. Fill uses the Roblox default ("Roblox optimises server fill"). No slots are held back.
-- **Cove assignment:** on join a player gets the lowest-numbered free cove. If the player joined a friend **[L]**, the nearest free cove to that friend's is used.
+- **Cove assignment** (chapter 04, section 5.5 owns the rule; chapter 03, section 6.7 names the coves): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, measured from Little Arch: C16, C17, C15, C18, then the next nearest, so its first trip home is short. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible **(tune)**. If the player joined a friend **[L]**, the nearest free cove to that friend's is used instead.
 - A cove is kept for 120 s after its owner disconnects. If a new player joins and no other cove is free, the kept cove is given up at once.
 
 ### 16.2 Joining friends [L]
 
 - Roblox friend-join is on. A friend joins if the server has space.
-- A returning player always spawns in their own cove. A first-session player goes to the scripted intro (document 04).
+- A returning player always spawns in their own cove. A first-session player goes to the scripted intro (document 04), and so does an account that disconnected before its first bank (section 16.4).
 - There are no parties and no shared rewards.
 
 ### 16.3 AFK [MVP]
@@ -1506,6 +1516,8 @@ Excluded runs still pay Pearls and still create specimens. Wild creatures never 
 
 The 10 s rule stops players escaping a chase by quitting.
 
+**An account that has never banked** follows the same rule (canon 5.5). During the 10 s its first-run shield still protects it, so nothing can eat it while any of its 240 s remain. The run is then suspended for 300 s. If the player rejoins in time, the run resumes at once with no "Continue your run" card (chapter 08, screen S36, is shown only to accounts that have banked at least once), and the first-time script resumes from the last completed beat. If not, the run is lost, scraps are paid at the first-three-deaths rate of 50%, and the next join restarts the scripted intro, in its fast form the first time and as a plain Nursery start after that. The first-run shield does not restart; only what is left of its 240 s applies. Chapter 04, section 9 owns these rules.
+
 **Always saved on disconnect:** Pearls, specimens, `pendingSpecimen`, pending cove income and `lastClaim`, Codex stamps, daily goal progress, streak, Reef Rank points, tokens, and any suspended run.
 
 ### 16.5 Reconnect mid-run [MVP]
@@ -1513,10 +1525,11 @@ The 10 s rule stops players escaping a chase by quitting.
 | Rule | Value |
 |---|---|
 | Suspended run stores | Species, pattern, mass, traits, pips, Plated state, revive used or not, run time, feed-guard list, position, leaderboard flags |
-| Lifetime | 300 s from the disconnect |
-| Offer | On joining any server within that time, a card offers "Continue your run" or "Start fresh" |
+| Lifetime | 300 s, measured from the disconnect to the moment the player rejoins. The check is made once, at join. Time spent looking at the card is not counted: the card has no timer and the run cannot expire while it is open. |
+| Offer | On joining any server within that time, a card (chapter 08, screen S36) offers "Continue your run" or "Start fresh". It is shown only to an account that has banked at least once. An account that has never banked gets no card: its run resumes at once and the first-time script carries on from the last completed beat (section 16.4). |
 | Continue | The creature appears at the stored position (the map is the same on every server) if nothing that can eat it is within 60 studs; otherwise at the nearest revive point. `Protected(reconnect)` for 3 s. |
 | Start fresh, or the time runs out | The run is paid as scraps at the normal rate |
+| Leaving again with the card open | Nothing is chosen. The run stays suspended with its original expiry time. |
 | Server shutdown | Every run in progress is suspended with a 900 s lifetime. If it runs out, it pays the full `bankPearls` and creates no specimen. |
 
 ### 16.6 Private servers [L]
@@ -1570,7 +1583,7 @@ Six icon bubbles. No text. Chapter 03, section 14 owns the set, the IDs, the lab
 | Bubbles | [L] | Section 13.5 |
 | Cove plaque | [MVP] | Section 13.1 |
 
-The game has no feature that needs text chat. Whether the Roblox chat window is shown is decided in document 08.
+The game has no feature that needs text chat. Roblox text chat is switched off in the MVP and reviewed for launch (canon 14). If it ships at [L], document 08 owns where its window sits.
 
 ---
 
@@ -1633,8 +1646,8 @@ The game has no feature that needs text chat. Whether the Roblox chat window is 
 
 ## 19. Proposed canon changes
 
-Canon values are used as written throughout this chapter. The canon has adopted the earlier proposals from this chapter; one is still open.
+Canon values are used as written throughout this chapter. The canon has adopted every proposal from this chapter; none is open. The last one is kept below for the record.
 
-| # | Canon section | Issue | Suggestion |
-|---|---|---|---|
-| 1 | 7, `shark` | Starting at tier 2 removes the Shark Pup's tier 1 immunity from players. | Keep it, and note it in the canon as an intended drawback. |
+| # | Canon section | Issue | Suggestion | Status |
+|---|---|---|---|---|
+| 1 | 7, `shark` | Starting at tier 2 removes the Shark Pup's tier 1 immunity from players. | Keep it, and note it in the canon as an intended drawback. | **Closed: adopted.** Canon 7 now says the tier 2 start is the species' drawback: it never has the tier 1 protection from other players (section 7.7). |

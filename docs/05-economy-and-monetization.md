@@ -21,7 +21,7 @@ Pearls are the only persistent currency. They do three jobs:
 
 Pearls never buy power inside a run. There is no shop item that adds mass, speed, traits or protection for Pearls.
 
-The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,000 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. By day 30 about three quarters of a regular player's Pearls come from the cove (section 5.6). This is intended.
+The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,000 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. Over the first 30 days more than two thirds of a regular player's Pearls come from the cove (68%), and 78% on day 30 itself (section 5.6). This is intended.
 
 ### 1.2 What can never be bought
 
@@ -61,7 +61,7 @@ The canon allows these purchases to touch a fight between two players. Nothing e
 | Revive | The victim returns at 70% mass with 3 seconds of protection | Once per run. The eater keeps the mass they gained. The price never rises with use. |
 | Trait Lock | The next run starts with the lost traits | Traits were earned by play. No mass is kept. One use per purchase. |
 | Keen Nose | Traits arrive after 4 trait prey instead of 5 | Shortens a hunt by 20%. Gives no trait a free player cannot get. |
-| Shark Pup pass | A species with a tier 2 start and Rampage | The same species is free at about day 30. Starting at tier 2 also removes tier 1 immunity from players. |
+| Shark Pup pass | A species with a tier 2 start and Rampage | The same species is free at about day 30. Starting at tier 2 is also its drawback: a Shark Pup never has the tier 1 protection from other players (canon section 7). |
 | Call the Tide | A Feeding Frenzy | Every player on the server gets it, not only the buyer. |
 | Patterns | Nothing | Patterns never change silhouette, size, hitbox or the green and red outlines, and never imitate a trait's look. |
 
@@ -132,7 +132,7 @@ The model gives an average player a number of useful seconds per minute in each 
 | Nursery Lagoon | 20 | 18 | — | — | — | — | — | — |
 | Sunlit Reef | 20 | 4 | 1.5 | 3 | 1.6 | — | — | — |
 | Kelp Forest | 15 | — | 2 | 3.5 | 2.0 | 1.1 | — | — |
-| The Drop-off | 10 | — | — | — | 1.5 | 1.8 | 1.1 | 0.25 |
+| The Drop-off | 10 | — | — | — | — | 1.8 | 1.1 | 0.25 |
 
 **Result: what an average player eats in a minute in the zone that suits their tier.**
 
@@ -161,13 +161,15 @@ Bold marks the best zone for that tier. A player in a zone too deep for them fin
 |---|---|---|---|---|---|
 | 1 Fry | **19.0** | 10.2 | 6.0 | 2.0 | 28.4 |
 | 2 Nibbler | 11.0 | **14.4** | 11.6 | 2.0 | 24.8 |
-| 3 Snapper | 0.0 | **23.8** | 21.8 | 17.0 | 36.8 |
+| 3 Snapper | 0.0 | **23.8** | 21.8 | 2.0 | 36.8 |
 | 4 Hunter | 0.0 | 30.5 | **37.4** | 35.2 | 54.4 |
 | 5 Brute | 0.0 | 32.4 | 49.6 | **56.2** | 80.4 |
 | 6 Titan | 0.0 | 32.4 | 51.6 | **86.0** | 128.6 |
 | 7 Leviathan | 0.0 | 32.4 | 51.6 | **110.6** | 167.7 |
 
-During a Feeding Frenzy the model triples the available catches and cuts seconds per catch by 30% (less searching). That lifts mass per minute by roughly half for the four minutes (43% to 72% depending on tier). Frenzies run for 8 minutes in every hour, so the average uplift over time is about 7%.
+The Reef Darter lives in the Sunlit Reef and the Kelp Forest only (canon 8.1), so the Drop-off has no standard tier 3 prey: a Snapper there finds only plankton (10 × 0.2 = 2.0). A Hunter in the Drop-off spends all 36 useful seconds on mackerel (36 ÷ 25.6 = 1.41 catches, 35.2 mass), so its cell never depended on the darter.
+
+During a Feeding Frenzy the model assumes three times the available catches per minute and 30% fewer seconds per catch (less searching) **(tune)**. This is the canon's "three times the normal rate" read as catches per minute. Chapters 02 and 03 deliver it as twice the live prey (caps and density × 2) refilled three times as fast (respawn ÷ 3). That lifts mass per minute by roughly half for the four minutes (43% to 72% depending on tier). Frenzies run for 8 minutes in every hour, so the average uplift over time is about 7%.
 
 ### 2.4 Check against the canon's time-to-tier targets
 
@@ -218,7 +220,7 @@ bankPearls = floor(basePearls × crystal × deepPockets)
 | 2,000 | 7 | 4,400 | 6,600 | 8,800 | 13,200 |
 | 3,000 or more | 7 | 5,400 | 8,100 | 10,800 | 16,200 |
 
-The canon's rate of 3 Pearls per mass is kept up to 1,200 mass. Above that the rate drops, and it stops at 3,000 mass. The reason is in section 6.1: nothing in the game can eat a Leviathan, so without a ceiling the best move is to stay out forever. Mass still counts in full for the leaderboards.
+The canon's rate of 3 Pearls per mass is kept up to 1,200 mass. Above that the rate drops, and it stops at 3,000 mass. The reason is in section 6.1: a Leviathan is very hard to eat (canon 5.4), so without a ceiling the best move is to stay out forever. Mass still counts in full for the leaderboards.
 
 ### 3.2 Scraps **[MVP]**
 
@@ -270,24 +272,26 @@ Examples:
 
 Income is stored as a decimal and rounded down when claimed. Final mass does not change income; it decides leaderboard place and bragging rights only.
 
-On an account's first bank only, one hour of that specimen's income is paid at once, three seconds after it is placed (6 Pearls for a tier 2 Minnow with Glow), so a new player sees the cove pay (chapter 04, section 6).
+On an account's first bank only, one hour of that specimen's income is paid at once, three seconds after it is placed (6 Pearls for a tier 2 Minnow with Glow), so a new player sees the cove pay (chapter 04, section 6). This first-bank reward is the only cove income that is ever paid by itself (canon section 11); all other cove income waits in the pile for a claim (section 3.4).
 
 Section 5.5 shows why both tables moved: with the first-draft canon anchors a regular player buys the Shark Pup on day 11, not day 30. The canon now carries the values in this section.
 
 ### 3.4 Uncollected income cap and offline income **[MVP]**
 
-- Income fills a tank whether the player is online or offline. Being online gives no extra.
-- The tank holds 8 hours of the cove's current income (canon). Tide Watcher raises it to 24 hours.
-- The tank empties into the player's Pearls at login, on every bank, and when the player taps the Pearl clam in the cove.
-- When the cove changes (a bank, a release, a new slot), the server first adds income earned so far at the old rate, then switches to the new rate. A specimen never earns for hours before it was banked.
+- Income collects in one pile whether the player is online or offline (canon section 11). Being online gives no extra.
+- The pile stops growing after 8 hours unclaimed (canon), so it holds at most 8 hours of the cove's current income. Tide Watcher raises that to 24 hours.
+- The pile is paid into the player's Pearls only when the player claims it: by tapping the pile at the Pearl clam in the cove, or by tapping the welcome-back card. It is never claimed automatically: not at login, not on a bank, not on leaving the cove and not on a timer (canon section 11). The one exception is the first-bank reward in section 3.3.
+- When the cove changes (a bank, a release, a new slot), the server first adds the income earned so far to the pile at the old rate, then switches to the new rate. Nothing is paid out at that moment. A specimen never earns for hours before it was banked.
 - Maximum per day without the pass: 24 hours of income, by claiming three times at least 8 hours apart. Tide Watcher does not raise that ceiling; it removes the need to log in three times.
-- **Cove Boost [L]** pays 2 hours of the cove's current income straight to the player's Pearls, once per account per UTC day, for Robux or by rewarded video (section 8.3). It does not pass through the tank, so the cap does not limit it and it does not empty the tank. With it the daily ceiling is 26 hours of income.
+- **Cove Boost [L]** pays 2 hours of the cove's current income straight to the player's Pearls, once per account per UTC day, for Robux or by rewarded video (section 8.3). It does not pass through the pile, so the cap does not limit it and it does not empty the pile. With it the daily ceiling is 26 hours of income.
 
 | Sessions a day, evenly spread | Hours of income collected per day | With Tide Watcher |
 |---|---|---|
 | 1 | 8 | 24 |
 | 2 | 16 | 24 |
 | 3 or more | 24 | 24 |
+
+The table assumes the player claims once in every session, on entering the cove. Income from a session with no claim stays in the pile and is paid at the next claim, unless the pile reaches its cap first.
 
 ### 3.5 Daily goals **[MVP]**
 
@@ -517,14 +521,15 @@ All are assumptions to replace with data from the soft launch.
 6. Codex rewards arrive as `total × (1 − e^(−day ÷ 12))`: fast at first, then slowing.
 7. Spending rule: buy the next species the moment it is affordable. Spend up to 20% of all Pearls earned so far on slots, but only when the cove is full and after the Pufferfish is bought. Spend 5% on decorations from day 5. After the Shark Pup, spend 70% on slots and 30% on decorations.
 8. Fractions are carried over: "0.49 tier 6 specimens a day" becomes one tier 6 specimen every two days.
+9. The player claims the cove pile on entering the cove: on the welcome-back card at the start of a session, and at the pile after a bank. Income is never claimed for them (section 3.4). That is what gives the 8, 16 and 18 hours collected per day in section 5.1.
 
 ### 5.3 What a run is worth
 
-Mass at a given minute comes from the canon targets, with straight lines between them. A gulped run is assumed to end 60% of the way through.
+Mass at a given minute comes from the canon targets, with straight lines between them. A gulped run is assumed to end 60% of the way through. The first-days hop (A0) is the one exception to the straight line: a new player turns for home just short of the Hunter line, at 79 mass, so its specimen is a tier 3 Snapper (80 mass would be tier 4, canon 5.1).
 
 | Run type | Length (min) | Mass at bank | Pearls at bank | Bank chance | Gulped at (min) | Mass when gulped | Scraps | Expected Pearls per run | Expected minutes per run | **Pearls/min** | Specimen | Avg trait bonus |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A0 Reef hop, first days | 4 | 80 | 240 | 65% | 2.4 | 40 | 12.0 | 160.2 | 3.44 | **46.6** | Tier 3 | +0% |
+| A0 Reef hop, first days | 4 | 79 | 237 | 65% | 2.4 | 40 | 12.0 | 158.3 | 3.44 | **46.0** | Tier 3 | +0% |
 | A Reef hop | 4 | 80 | 240 | 80% | 2.4 | 40 | 12.0 | 194.4 | 3.68 | **52.8** | Tier 4 | +10% |
 | B Kelp run | 7 | 200 | 600 | 65% | 4.2 | 88 | 26.4 | 399.2 | 6.02 | **66.3** | Tier 5 | +25% |
 | C Drop-off run | 12 | 500 | 1,500 | 45% | 7.2 | 212 | 63.6 | 710.0 | 9.36 | **75.9** | Tier 6 | +45% |
@@ -542,20 +547,22 @@ Each player's mix of runs, and the banking income that follows:
 
 | Player | Days | Run-time mix | Pearls per run-minute | Run minutes/day | Banking Pearls/day |
 |---|---|---|---|---|---|
-| Casual | 1 to 3 | A0 100% | 46.6 | 12.75 | 594 |
+| Casual | 1 to 3 | A0 100% | 46.0 | 12.75 | 587 |
 | Casual | 4 to 10 | A 80%, B 20% | 55.5 | 12.75 | 708 |
 | Casual | 11 to 30 | A 60%, B 40% | 58.2 | 12.75 | 742 |
-| Regular | 1 | A0 100% | 46.6 | 34.00 | 1,583 |
+| Regular | 1 | A0 100% | 46.0 | 34.00 | 1,564 |
 | Regular | 2 | A 100% | 52.8 | 34.00 | 1,796 |
 | Regular | 3 to 7 | A 50%, B 50% | 59.6 | 34.00 | 2,025 |
 | Regular | 8 to 14 | A 25%, B 50%, C 25% | 65.3 | 34.00 | 2,221 |
 | Regular | 15 to 30 | A 15%, B 40%, C 35%, D 10% | 68.2 | 34.00 | 2,320 |
-| Heavy | 1 | A0 50%, A 50% | 49.7 | 76.50 | 3,802 |
+| Heavy | 1 | A0 50%, A 50% | 49.4 | 76.50 | 3,780 |
 | Heavy | 2 to 4 | A 30%, B 50%, C 20% | 64.2 | 76.50 | 4,910 |
 | Heavy | 5 to 10 | A+ 10%, B+ 35%, C+ 40%, D+ 15% | 83.5 | 76.50 | 6,384 |
 | Heavy | 11 to 30 | B+ 25%, C+ 40%, D+ 35% | 90.5 | 76.50 | 6,924 |
 
 ### 5.4 Day-by-day tables
+
+The three tables are the simulation's output and were not re-run after run A0 was corrected from 80 to 79 mass (section 5.3). On the days that use A0 the Banking column still shows the old rate: 594 where the mix table now gives 587 (casual, days 1 to 3), 1,583 for 1,564 (regular, day 1) and 3,802 for 3,780 (heavy, day 1). From then on every Cumulative and Balance figure is high by about 22 Pearls (casual), 19 (regular) and 22 (heavy). Section 5.5 records what that moves: no unlock day, and one rank day for the casual player.
 
 Columns: **Banking** includes scraps. **Cove** is yesterday's closing cove income per hour × hours collected. **Daily rewards** are goals, streak and tide bonuses. **One-time** is Codex, Reef Rank rewards and release refunds. **Balance** is Pearls in hand after the day's purchases. **Cove/h** is the cove's income per hour at the end of the day.
 
@@ -727,6 +734,9 @@ The anchors gave the Shark Pup away 19 days early and left a regular player owni
 | Cove Boost and Goal Reroll | None in the base model, which uses no Robux and no video. A regular player who takes a Cove Boost every day (free by video where eligible) gains 12.5% more cove Pearls, about 30,000 by day 28, and reaches the Shark Pup about one day sooner (day 29). This is an estimate from the regular table, not a simulation run. |
 | Crystal Jelly as a drift of five | None in the base model, which leaves the ×1.5 out. At the supply ceiling in section 2.1 a full server gives half a Crystal creature per player-hour. For a regular player that is at most one run in twenty, which adds at most about 5% to their banking and under 1% to their Pearls by day 30. |
 | Second Moon Tide at :45 in the MVP | None. Frenzy time is still 8 minutes an hour; Mythic supply is checked in section 2.1. |
+| Cove income is claimed by a tap, never automatically (canon section 11; section 3.4) | None. Hours collected per day were always an input (8, 16 and 18; section 5.1), and the model now states that the player claims on entering the cove (assumption 9). Check: the casual player's one session follows a gap of 23.75 hours, so the pile is at its 8-hour cap: 8 hours. The regular player's two sessions follow gaps of about 11.7 hours, both over the cap: 2 × 8 = 16 hours. The heavy player's three sessions follow gaps that total 22.5 hours, for example 5, 5 and 12.5: 5 + 5 + 8 = 18 hours. Income earned during a session and not tapped stays in the pile for the next claim; the day tables never counted it. No unlock day moves. |
+| Run A0 banks at 79 mass (237 Pearls), not 80 (240), so that its tier 3 specimen agrees with the canon tier table (section 5.3) | Not re-run; the day tables keep the old figures (section 5.4). Banking on A0 days falls by 1.2%: 7 Pearls a day on the casual player's days 1 to 3, 19 on the regular player's day 1 and 22 on the heavy player's day 1. The regular player ends day 1 with about 2,479 Pearls, not 2,498. The tightest unlock is the regular player's Squid on day 10, bought with 200 Pearls to spare, so no species day and no slot day moves. One rank day moves: the casual player's lifetime banked Pearls on day 14 fall from 9,706 to 9,685, under the 9,700 that rank 9 needs, so rank 9 and its 225 Pearls arrive on day 15, not day 14. The cove columns are unchanged: the simulation always counted an A0 specimen as tier 3 at 10 Pearls/h, which gives the casual player's 20, 40 and 60 Pearls/h on days 1 to 3 and the regular player's 60 on day 1. |
+| The Reef Darter is no longer counted in the Drop-off (section 2.2) | None. Only the tier 3 Drop-off cell in section 2.3 changed (17.0 to 2.0), and no player in the model feeds there at tier 3: time to tier uses each tier's home zone (section 2.4). |
 
 ### 5.6 Where the Pearls come from
 
@@ -778,7 +788,7 @@ So the ceiling without Crystal is about **25,000 Pearls an hour** for a free pla
 
 Crystal is capped by supply, not by skill: at most 12 drifts an hour per server. The ×1.5 adds at most 2,700 Pearls to one bank (5,400 base at 3,000 mass), so it can add at most 32,400 base Pearls an hour to a whole server, whatever its players do.
 
-**Without the cap in 3.1** a Leviathan would earn 241.9 × 3 = 726 Pearls a minute, 43,500 an hour, for as long as it liked. Old Scar eats tier 6 and below, players of the same tier bump off each other, and there is no tier 8. A Leviathan cannot be gulped. Unlimited reward at no risk breaks pillar 3 ("home is safe, open water is not"). With the cap, the extra 1,800 mass is worth 1,800 Pearls over about 16 minutes for an average Leviathan. That is about 110 Pearls a minute against about 72 for a fresh run, so the lap of honour is worth swimming, but it ends: after 3,000 mass there is nothing left to gain but leaderboard place.
+**Without the cap in 3.1** a Leviathan would earn 241.9 × 3 = 726 Pearls a minute, 43,500 an hour, for as long as it liked. Old Scar eats tier 6 and below, players of the same tier bump off each other, and there is no tier 8. A Leviathan is very hard to eat (canon 5.4): it can be gulped only after vents or a hook pull it back under 1,200 mass, because tier follows mass (canon 5.1). Unlimited reward at almost no risk breaks pillar 3 ("home is safe, open water is not"). With the cap, the extra 1,800 mass is worth 1,800 Pearls over about 16 minutes for an average Leviathan. That is about 110 Pearls a minute against about 72 for a fresh run, so the lap of honour is worth swimming, but it ends: after 3,000 mass there is nothing left to gain but leaderboard place.
 
 ### 6.2 The most a cove can earn
 
@@ -799,10 +809,10 @@ The point of the table: **cove income has a hard ceiling.** Slots stop at 30 (40
 
 | Exploit | Guard rail |
 |---|---|
-| A Leviathan farms forever at no risk | Banking pays 1 Pearl per mass above 1,200 and nothing above 3,000 (3.1) |
+| A Leviathan farms forever at almost no risk | Banking pays 1 Pearl per mass above 1,200 and nothing above 3,000 (3.1) |
 | A tier 2 or larger creature feeds in the Nursery where nothing can eat it | Tier 3 and above cannot enter the Nursery (canon 5.2). Nursery prey gives 50% mass to tier 2 and none to a creature that has just reached tier 3 inside (2.1). Model: tier 2 gets 11.0 mass/min in the Nursery against 14.4 in the Reef. |
-| Staying online all night to earn | One tank for online and offline, capped at 8 hours (3.4) |
-| Banking a great specimen just before a claim so it earns for hours it was not there | Income is settled at the old rate before the cove changes (3.4) |
+| Staying online all night to earn | One pile for online and offline, capped at 8 hours (3.4) |
+| Banking a great specimen just before a claim so it earns for hours it was not there | Income earned so far is added to the pile at the old rate before the cove changes (3.4) |
 | Bank and release in a loop for refunds | Refund is one hour of income; a tier 2 specimen refunds 6 Pearls for a 30-second run (3.10) |
 | Dying on purpose for scraps | Scraps are 10%. The 50% rate is three deaths per account, ever (3.2) |
 | A second account feeds mass to the first | Eating a player gives 30% of its mass; 70% is destroyed. Feeding always loses to eating prey. |
@@ -947,7 +957,7 @@ All prices must be read at run time with `MarketplaceService:GetProductInfo`, ne
 | `pass_bigger_cove` | [MVP] | +10 cove slots at once, on top of Pearl slots. Maximum 40. Pearl slot prices do not change. | 349 | 244 R$, $0.93 | The first draft of the canon said 249. The model gives +39% Pearls over a regular player's 30 days, and unlike Deep Pockets the gain does not fade: at the 30-slot ceiling it is still +33%. It is the strongest permanent pass, so it sits above Deep Pockets. | A button in the "cove is full" dialog, and beside the next-slot button. One small non-blocking card, once, the third time the cove is full: the pass panel opens only if the player taps the card (chapter 08, rule O-R8). Always in the shop. | The extra slots only hold specimens the player banked. No effect in a run. |
 | `pass_tide_watcher` | [L] | Uncollected income cap 24 hours instead of 8. An in-game tide board that shows the next three tides, and a marker that points to the event while a tide runs (canon section 12). Everything is inside the game: the pass sends no push notifications. | 249 | 174 R$, $0.66 | The first draft of the canon said 299. It is worth +123% to a one-session player and nothing to a three-session player, and it does not raise the 24-hour ceiling any free player can reach. A convenience pass belongs below the two passes that add something new. | One line on the welcome-back panel when the cap was hit: "Your cove was full for 6 hours." Once a day at most. Always in the shop. | It only removes the need to log in three times a day. |
 | `pass_keen_nose` | [L] | A trait is gained after 4 of its trait prey instead of 5. | 199 | 139 R$, $0.53 | The first draft of the canon said 349. The effect is a 20% shorter hunt and no Pearls. It is the smallest effect of the five, so it is the entry price. | A small button on the trait bar tooltip in the cove, and in the shop. Never shown during a run. | Every trait stays reachable without it. It grants no trait by itself. |
-| `pass_shark_pup` | [L] | Unlocks the `shark` species at once. | 499 | 349 R$, $1.33 | Canon anchor kept. The Pearl route is 250,000 Pearls, which would cost about 3,840 R$ in Pearl packs, so the pass is the clear way to pay. It is the top of the pass ladder. | On the Shark Pup card in the species screen, beside the Pearl price. Hidden once the species is owned either way. | The species is free at about day 30. Its tier 2 start gives up tier 1 immunity. |
+| `pass_shark_pup` | [L] | Unlocks the `shark` species at once. | 499 | 349 R$, $1.33 | Canon anchor kept. The Pearl route is 250,000 Pearls, which would cost about 3,840 R$ in Pearl packs, so the pass is the clear way to pay. It is the top of the pass ladder. | On the Shark Pup card in the species screen, beside the Pearl price. Hidden once the species is owned either way. | The species is free at about day 30. Its tier 2 start means it never has the tier 1 protection from other players (canon section 7). |
 
 All five passes together cost 1,595 R$ and earn the developer 4.24 US dollars.
 
@@ -976,10 +986,10 @@ What the three income passes do in the model (pass owned from day 1, nothing els
 | ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair |
 |---|---|---|---|---|---|---|---|
 | `prod_revive` | [MVP] | The gulped creature returns where it died with all traits, 70% of its mass and 3 seconds of protection. | 25 | 17.5 R$, $0.07 | Canon anchor kept. A tier 5 run holds about 600 Pearls and a specimen; 25 R$ is small enough to be an impulse and is the lowest price that still earns something after the platform share. | A button on the gulped screen. The screen has no countdown: it stays until the player picks Revive, Trait Lock or "Swim again". Offered only when the creature had 30 mass or more (tier 3), never on an account's first death, and never in the first two minutes of the first session (canon 5.5). | Once per run. The price never rises. The eater keeps what they gained. A free route exists by rewarded video for eligible players. |
-| `prod_trait_lock` | [L] | The player's next run starts with the traits the gulped creature held. One use. | 19 | 13.3 R$, $0.05 | The first draft of the canon said 35. Revive at 25 R$ returns the traits and 70% of the mass. Trait Lock returns the traits only, so it must cost less or nobody should pick it. | A second button on the gulped screen, only when the creature held an Uncommon or better trait. It is the only paid option when the run's revive is already used. | Returns only what the player earned. No mass. |
+| `prod_trait_lock` | [L] | The player's next run starts with the traits the gulped creature held. One use. | 19 | 13.3 R$, $0.05 | The first draft of the canon said 35. Revive at 25 R$ returns the traits and 70% of the mass. Trait Lock returns the traits only, so it must cost less or nobody should pick it. | A second button on the gulped screen (canon section 12), only when the creature held an Uncommon or better trait. This chapter owns that condition (chapter 02, section 8.3 leaves "when the button is shown" to it; chapter 08, offer O3 copies it). It is the only paid option when the run's revive is already used. | Returns only what the player earned. No mass. |
 | `prod_call_tide` | [L] | Gives one Tide token. The token starts a 4-minute Feeding Frenzy for the whole server after a 10-second warning that names the buyer. It never interrupts a scheduled tide: if a tide or its warning is running, or the next warning is too close for a full Frenzy to fit, the token is held and starts when that tide ends (canon section 10). | 99 | 69 R$, $0.26 | The first draft of the canon said 149. For the buyer alone a Frenzy is worth about 100 extra mass, a few hundred Pearls; 149 R$ buys 7,000 Pearls as a pack. This is a gift to the server, bought to be seen, and 99 R$ is the price a young player will pay for that. | A button on the tide clock. When the token would be held, the button says so before the purchase. | Everyone on the server benefits. One called tide per gap between scheduled tides per server; a player can hold up to three tokens; one starts at a time, when no tide is running, and tokens are used in the order they were bought. Chapter 02 owns the exact timing. |
-| `prod_starter_pack` | [L] | Once per account: the `pat_minnow_sunrise` pattern, the Golden Chest decoration (`deco_buy_gold_chest`, chapter 03) and 5,000 Pearls. | 99 | 69 R$, $0.26 | Canon anchor kept. The pattern and the Pearls are worth about 185 R$ at catalogue prices (a 79 R$ pattern plus 5,000 Pearls at the medium pack's rate of 47 per R$), before counting the decoration, so it is the best deal in the game and a first purchase. 5,000 Pearls buys the Eel and slot 7 on day 2 and nothing a free player lacks on day 3. | One card after the first bank of a session, once the bank sequence has finished. Only from the second session on and once the account has two banks. Never at login, during a run or on the gulped screen. It opens by itself in at most three sessions, then lives only in the shop (chapter 04, section 8.3). | One per account. No timer. It never expires. |
-| `prod_cove_boost` | [L] | Pays 2 hours of the cove's current income at once, straight to the player's Pearls: `floor(2 × covePearlsPerHour)`. It does not touch the income tank or Reef Rank. The button shows the exact number, for example "+2,190 Pearls". | 29 | 20.3 R$, $0.08 | New in the canon, priced here. Two hours of income is about 900 Pearls for a regular player on day 10 and 2,190 on day 30. At the small pack's rate 29 R$ buys 1,184 Pearls, so the boost is the worse deal until the cove earns about 590 Pearls/h (about day 15 for a regular player) and the better one after that. That is accepted because it is one a day and cannot stack. | A button beside the Pearl clam in the cove and on the welcome-back panel. Hidden in a player's first session and while the boost would pay under 200 Pearls (a cove earning under 100 Pearls/h). Where a rewarded video is available, the video button comes first. | One per account per UTC day, whether bought or earned by video. The amount is the player's own cove income, so it gives nothing a cove would not earn in two more hours. |
+| `prod_starter_pack` | [L] | Once per account: the `pat_minnow_sunrise` pattern, the Golden Chest decoration (`deco_buy_gold_chest`, chapter 03) and 5,000 Pearls. | 99 | 69 R$, $0.26 | Canon anchor kept. The pattern and the Pearls are worth about 185 R$ at catalogue prices (a 79 R$ pattern plus 5,000 Pearls at the medium pack's rate of 47 per R$), before counting the decoration, so it is the best deal in the game and a first purchase. 5,000 Pearls buys the Eel and slot 7 on day 2 and nothing a free player lacks on day 3. | One small non-blocking card after the first bank of a session, once the bank sequence has finished. The pack's purchase panel opens only if the player taps the card (section 9; chapter 08, rule O-R8). Only from the second session on and once the account has two banks. Never at login, during a run or on the gulped screen. The card appears in at most three sessions, then the pack lives only in the shop (chapter 04, section 8.3). | One per account. No timer. It never expires. |
+| `prod_cove_boost` | [L] | Pays 2 hours of the cove's current income at once, straight to the player's Pearls: `floor(2 × covePearlsPerHour)`. It does not touch the income pile or Reef Rank. The button shows the exact number, for example "+2,190 Pearls". | 29 | 20.3 R$, $0.08 | New in the canon, priced here. Two hours of income is about 900 Pearls for a regular player on day 10 and 2,190 on day 30. At the small pack's rate 29 R$ buys 1,184 Pearls, so the boost is the worse deal until the cove earns about 590 Pearls/h (about day 15 for a regular player) and the better one after that. That is accepted because it is one a day and cannot stack. | A button beside the Pearl clam in the cove and on the welcome-back panel. Hidden in a player's first session and while the boost would pay under 200 Pearls (a cove earning under 100 Pearls/h). Where a rewarded video is available, the video button comes first. | One per account per UTC day, whether bought or earned by video. The amount is the player's own cove income, so it gives nothing a cove would not earn in two more hours. |
 | `prod_goal_reroll` | [L] | Swaps one unfinished daily goal for another of the same difficulty. The new goal starts at 0. | 19 | 13.3 R$, $0.05 | New in the canon, priced here at the lowest price in the catalogue. A reroll is worth at most one goal's Pearls (175 × the rank multiplier, about 500 at rank 20). It is a convenience, and it exists as a product because Roblox requires a video reward to be one. | A button on the daily goals panel, shown only after the day's free reroll is used. Where a rewarded video is available, the video button comes first. | Every player keeps one free reroll a day. At most three paid rerolls and one video reroll per account per UTC day. No goal needs a reroll to be finished. |
 
 ### 8.4 Pearl packs **[MVP]**
@@ -1004,6 +1014,8 @@ A pattern recolours one species. Chapter 03, section 1.3 owns the list of 18 lau
 - **Robux (11):** developer products whose ownership is saved to the profile; the buy button is replaced by "Owned" after purchase. Three price steps: Classic 79 R$, Bold 129 R$, Showpiece 199 R$. The step is a price, not an art rule.
 
 No pattern is sold for Pearls: the canon lists patterns as Robux products and Pearls as spent on species, slots and decorations. Every species has a free pattern through the Codex (canon 12).
+
+**Purchase IDs.** A pattern or a Robux decoration is sold under its chapter 03 content ID (`pat_<species>_<name>`, `deco_buy_<name>`), unchanged: the item and its developer product share one ID, and chapters 08 and 10 use it as the SKU. These are the only developer products without the `prod_` prefix of canon section 16, which should record the exception.
 
 | ID | Species | Name | How it is obtained | Price (R$) | Earned per sale |
 |---|---|---|---|---|---|
@@ -1047,6 +1059,8 @@ The prices follow size and sit below the pattern of the same step, because a dec
 | ID | Effect | Price (R$) | Earned per month | Why this price | Where offered | Fairness rule |
 |---|---|---|---|---|---|---|
 | `private_server` | A reef for the owner and invited friends. Same map, clock, tide events and saves as a public server. | 99 a month | 69 R$, $0.26 (assuming the 70% share applies) | Canon anchor kept. Playing with friends is a discovery signal for Roblox, so the price is kept low; it still needs to be above zero because a private reef has no player predators. | The Roblox game page only. Never advertised inside the game. | Progress is identical. Banks on a private server do not count for the global weekly leaderboard. |
+
+`private_server` is a label for this table and for reports only. A private server is a Roblox setting on the game page, not a game pass or a developer product, so it has no purchase ID in code and the `pass_` and `prod_` prefixes of canon section 16 do not apply.
 
 ## 9. Offer timing and placement
 
@@ -1255,7 +1269,7 @@ The canon was updated after this chapter was written and now carries every value
 |---|---|---|---|
 | Cove income per hour, tiers 2 to 7 | 20, 40, 80, 160, 320, 640 | 6, 10, 18, 30, 50, 80 | The first draft gave the Shark Pup on day 11, not day 30 (section 5.5) |
 | Trait bonus to cove income | +25%, +50%, +100%, +200%, +400% | +10%, +20%, +35%, +60%, +100% | Same pacing miss |
-| Banking | Mass × 3, no limit | × 3 to 1,200 mass, × 1 to 3,000, nothing above | A Leviathan cannot be eaten (section 6.1) |
+| Banking | Mass × 3, no limit | × 3 to 1,200 mass, × 1 to 3,000, nothing above | A Leviathan is very hard to eat (section 6.1) |
 | Deep Pockets / Bigger Cove / Tide Watcher / Keen Nose | 399 / 249 / 299 / 349 R$ | 299 / 349 / 249 / 199 R$ | Priced by what each adds in the model (section 8.2) |
 | Trait Lock / Call the Tide | 35 / 149 R$ | 19 / 99 R$ | Section 8.3 |
 | Video reward "double an offline claim" | Doubled the claim | Replaced by Cove Boost: 2 hours of cove income, once a day, also sold for 29 R$ | Roblox requires a video reward to be a product; a full double was too much |
@@ -1264,6 +1278,6 @@ The canon was updated after this chapter was written and now carries every value
 
 Details this chapter sets that the canon leaves to it, so they are not differences: the prices of Cove Boost (29 R$) and Goal Reroll (19 R$); Nursery prey mass by the eater's tier (100%, 50%, 0%); trait prey masses; 60 Marrow chunks and 40 Lunar Fry per event; the amounts for Codex rewards, Reef Rank rewards, the tide bonus and the release refund; reward bands R1 to R5 (section 3.12) and decoration bands D1 to D4 (section 4.3).
 
-**Open points.** None. The two earlier points are settled: canon section 12 now notes the three Robux decorations, the Golden Chest in the Starter Pack and the six free Codex patterns, and chapter 03, section 1.3 copies this chapter's pattern sources (no pattern is sold for Pearls).
+**Open points.** One: canon section 16 should note that patterns and Robux decorations are sold under their content IDs, without the `prod_` prefix (section 8.5). The two earlier points are settled: canon section 12 now notes the three Robux decorations, the Golden Chest in the Starter Pack and the six free Codex patterns, and chapter 03, section 1.3 copies this chapter's pattern sources (no pattern is sold for Pearls).
 
 Where chapter 03's reward bands, shelf ranks and tags differ from this chapter, section 3.12, section 4.3 and section 7 say which value applies.

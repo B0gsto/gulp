@@ -159,7 +159,9 @@ gulp/
 │   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
-│   │   │   │                       Zones, Tides, Products, Goals, Strings (GENERATED, do not edit)
+│   │   │   │                       Zones, Tides, Products, Goals, Codex, RevivePoints, Strings; at [L]
+│   │   │   │                       also Patterns, Decorations, Emotes, RankRewards, Landmarks
+│   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
 │   │   ├── Logic/                  pure rules: BiteRules, TierMath, TraitRules, BankMath,
 │   │   │                           CoveIncome, TideClock, GoalRules, Migrations
@@ -274,7 +276,8 @@ export type PredatorDef = { id: string, wire: number, scope: Scope, tier: number
 	eatenMass: number? }            -- barracuda 25, grouper 60 (canon 5.2); nil for every other predator
 
 export type HazardDef = { id: string, wire: number, scope: Scope,
-	effect: "stun" | "slow" | "burn" | "yank" | "push", magnitude: number, duration: number }
+	effect: "stun" | "slow" | "burn" | "yank" | "push", magnitude: number, duration: number,
+	cycle: { dormant: number, rumble: number, erupting: number }? }   -- vent only: 4, 1 and 3 s (section 9.4)
 
 export type ZoneDef = { id: string, wire: number, scope: Scope, preyTierMin: number,
 	preyTierMax: number, safe: boolean, lightingPreset: string }
@@ -282,13 +285,46 @@ export type ZoneDef = { id: string, wire: number, scope: Scope, preyTierMin: num
 export type TideDef = { id: string, wire: number, scope: Scope, fallback: string?,
 	spawnRateMult: number, eventPrey: { string } }
 
-export type ProductDef = { id: string,   -- chapter 05 purchase ID, unchanged: pass_<name> or prod_<name>
+export type ProductDef = { id: string,   -- chapter 05 purchase ID, unchanged: pass_<name>, prod_<name>,
+	                                     -- pat_<species>_<name> or deco_buy_<name> (section 12.6)
 	kind: "pass" | "product", robloxId: number,
-	scope: Scope, grant: string, amount: number? }
+	scope: Scope,
+	grant: string,                       -- "pearls", "token", "pattern", "decoration", "flag" or "bundle"
+	amount: number?,
+	items: { string }? }                 -- pattern and decoration IDs granted; a bundle (prod_starter_pack) lists several
 
 export type AdPlacementDef = { id: string,   -- chapter 05 placement ID: ad_<name>
 	scope: Scope, productId: string, perDay: number }   -- the prod_ product it grants (section 18.3)
+
+-- Chapter 03 owns the rows of the next seven tables; chapter 05 owns their prices and Pearl amounts
+export type CodexCategoryDef = { id: string, wire: number, scope: Scope,   -- cdx_species, cdx_tiers, cdx_traits, cdx_prey [MVP];
+	                                 -- cdx_dangers, cdx_places, cdx_tides, cdx_all [L] (chapter 03, section 8.1)
+	entryPearls: { number },         -- Pearls per entry, by tier or rarity; empty when entries pay nothing
+	rewardPearls: number, rewardDecoration: string?, rewardTitle: string? }
+
+export type RevivePointDef = { id: string, wire: number, zone: string,     -- rp_01 to rp_12 (chapter 03, section 6.11)
+	x: number, z: number, depth: number }                                  -- world position (x, −depth, z)
+
+export type PatternDef = { id: string, wire: number, scope: Scope, species: string,   -- pat_<species>_<name>, 18 at launch
+	source: "robux" | "codex" | "starter_pack" }                           -- chapter 03, section 1.3
+
+export type DecorationDef = { id: string, wire: number, scope: Scope,      -- 50 rows (chapter 03, section 13); wire is sent in CoveView
+	size: "S" | "M" | "L", mount: "floor" | "wall" | "ceiling",
+	source: "pearls" | "rank" | "codex" | "goals" | "event" | "starter_pack" | "robux",
+	price: number?, shelf: number?,  -- Pearl items: chapter 05 price and shop shelf 1 to 8
+	need: number?,                   -- rank to reach, goals.fullDays to reach, or event count to reach
+	counter: string? }               -- event items: the stats.events key that is counted (section 12.2)
+
+export type EmoteDef = { id: string, wire: number, scope: Scope }          -- em_<name>; wire 1 to 6 is the index in EmoteAction
+
+export type RankRewardDef = { rank: number, title: string?, decoration: string?, shelf: number? }   -- chapter 03, section 11
+
+export type LandmarkDef = { id: string, wire: number, scope: Scope, zone: string,   -- lm_<name>: chapter 03's landmark IDs (sections 6.2 to 6.6)
+	x: number, z: number, depth: number,                                   -- found within 40 studs (cdx_places)
+	codexPlace: boolean }                                                  -- true for the 30 Places of chapter 03, section 8.2
 ```
+
+Decoration IDs are chapter 03's, used unchanged: `deco_<name>` (Pearls), `deco_rank_*`, `deco_cdx_*`, `deco_goals_*`, `deco_evt_*` and `deco_buy_*`. Landmark IDs are chapter 03's too, used unchanged: `lm_<name>` from the ID column of its landmark tables (sections 6.2 to 6.6), for example `lm_noggin_rock`, `lm_little_arch` and `lm_tin_pickle`. `LandmarkDef.id` is that ID, and the keys of `codex.places` are the `lm_*` IDs of the 30 landmarks chapter 03, section 8.2 lists as Places [L]; the other landmarks have a `LandmarkDef` row with `codexPlace = false` and are never written to the save.
 
 Zone **definitions** are data. Zone **geometry** is authored in Studio as tagged volumes (section 9.1). Roblox asset IDs and product IDs live in `Config/Defaults.luau` per environment (section 17.1), never in generated files.
 
@@ -438,7 +474,7 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **DataService** | MVP | Load, migrate, session-lock, autosave and release profiles; push state patches to the owner | The ProfileStore session, `Profile.Data` | `get(player): ProfileData?`, `patch(player, path: string, value: any)`, `saveNow(player): boolean`, `onLoaded: Signal<Player>` |
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
-| **WorldIndex** | MVP | Reads tagged volumes at start, builds the height field, answers point queries | Volume table, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean` |
+| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1) |
 | **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
 | **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
@@ -547,9 +583,11 @@ The model is built once per session and reused. Destroying and rebuilding it on 
 | Join | Build, place in the cove, assign, own, `Phase = cove`. One exception: an account that has never banked is placed in the Nursery for its first run (canon 5.5, chapter 04); every later run starts at the cove | Creature controllable within 1.0 s of `ClientReady` |
 | Run start | Player swims out of the cove mouth; `RunLoopService.start` sets `Phase = run` | Instant |
 | Gulped | `Phase = dead`; `SetNetworkOwner(nil)`; anchor; move to cove spawn; reset size to tier 1 (or tier 2 for `shark`); wait for the client's 0.8 s gulp effect; unanchor; `SetNetworkOwner(player)`; `Phase = cove`; `MovementValidator.grace(slot, 2)` | 2.0 s total, canon limit 3 s |
-| Revive | Same as gulped but placed 20 studs from the death point in open water, traits kept, mass × 0.7 (the tier is derived again from the new mass), `Protected = true` for 3 s | 1.0 s |
-| Resume a suspended run (12.5) | Place at the stored position if nothing that can eat the creature is within 60 studs, otherwise at the nearest safe point; restore mass, traits and progress; `Phase = run`; `Protected = true` for 3 s | 1.0 s |
+| Revive | Same as gulped but placed by the return rule below (the gulp position, or a revive point), traits kept, mass × 0.7 (the tier is derived again from the new mass), `Protected = true` for 3 s | 1.0 s |
+| Resume a suspended run (12.5): after Continue on the card, or at once with no card for an account that has never banked | Place by the return rule below (the stored position, or a revive point); restore mass, traits and progress; `Phase = run`; `Protected = true` for 3 s | 1.0 s |
 | Bank | No teleport; the player is already in the cove | Instant |
+
+**Return rule for a revive or a resume** (chapter 02, sections 12.3 and 16.5; chapter 03, section 6.11 owns the points). `RunLoopService` first tests the place the creature was: the gulp position for a revive, the stored `run.x, y, z` for a resume. That place is used if nothing that can eat the creature at its new mass (a player, a wild creature [L] or a predator, by `BiteRules`) is within 60 studs. Otherwise the server takes the 12 revive points `rp_01` to `rp_12` from `WorldIndex.revivePoints()` in order of distance and uses the nearest one that passes the same 60-stud test. If none passes, the nearest point is used anyway; the 3 s of protection covers the arrival. `CreatureService.teleport` moves the creature and `MovementValidator.grace(slot, 2)` follows.
 
 **Revive offer (canon 5.5).** `RunLoopService.offerRevive` makes the offer only when all of these hold: the run has not used its one revive (`reviveUsed`), the lost creature had 30 mass or more, and this is not the account's first death (`newcomer.firstDeath` is already true). The offer has no countdown: the server keeps the dead creature's `RunState` until the player picks Revive, Trait Lock or Continue on the gulped screen, or leaves (which counts as declining). While an offer is open the creature stays anchored at the cove spawn with `Phase = dead`, and the 3-second respawn limit runs from the choice. Reviving is `prod_revive` or, where eligible, `ad_revive` [L].
 
@@ -620,7 +658,7 @@ bodyScale(mass) = 6.5                                                           
 
 ### 6.9 Juvenile to adult mesh swap
 
-Each species is one rig Model containing one skeleton and two skinned MeshParts, `Juvenile` and `Adult` (canon section 7). Both are loaded; only one is visible. At tier 4 the client plays `FX_Metamorph` (with `FX_TierUp_T4`), and while the bubble cloud covers the body flips the two `Transparency` values in the same frame. If the tier falls below 4 the same swap runs in reverse. Animations keep playing because the skeleton does not change. Two MeshParts sharing one skeleton is spike item S8 (**U18**); the fallback is two separate rigs swapped at the same moment with the animation time copied across.
+Each species is one rig Model containing one skeleton and two skinned MeshParts, `Juvenile` and `Adult` (canon section 7). Those are the instance names inside the rig; the meshes they hold are chapter 07's `M_Species_<Species>_Juv` and `M_Species_<Species>_Adult`. Both are loaded; only one is visible. At tier 4 the client plays `FX_Metamorph` (with `FX_TierUp_T4`), and while the bubble cloud covers the body flips the two `Transparency` values in the same frame. If the tier falls below 4 the same swap runs in reverse. Animations keep playing because the skeleton does not change. Two MeshParts sharing one skeleton is spike item S8 (**U18**); the fallback is two separate rigs swapped at the same moment with the animation time copied across.
 
 Animations play through an `Animator` under an `AnimationController` in the client rig. Because rigs are client-made and each client animates what it sees from replicated state (speed, turn rate, dash, bite events), no animation is replicated.
 
@@ -928,7 +966,7 @@ Every codec has an encode and a decode function in `shared/Net/Codec/` and a rou
 - **Animation.** Prey of tier 0 to 3 are rigid meshes wiggled in code (yaw ± 12° and a roll, phase from `seed + i`). Tier 4 and above (`mackerel`, `bonito`, `tuna`) are few and use a two-bone skinned mesh.
 - **Far groups.** One `ParticleEmitter` on a pooled Attachment per far group, emitting `count` glints coloured by kind. Limit 60 emitters.
 - **Reuse.** Identical MeshId and texture across a pool lets the engine instance the draw (**V32**).
-- **Outlines.** Green, red or none (canon 5.2) is decided on the client from `BiteRules` and the local tier, and applied only to the nearest 20 edible and 10 dangerous things (8 and 4 on Smooth). An outline is a **mesh shell**: the asset's `_Shell` mesh (an inverted hull authored with it, chapter 06, section 13.2), in the built-in Neon material, pooled and moved with its owner. Roblox's `Highlight` instance is not used anywhere; it is unreliable on phones. The red shell pulses. `plankton` and hook bait never get a shell, nor does a `Protected` or Camo-hidden creature. Amber is kept for the home marker. The colour-blind setting swaps green and red for yellow and hot pink in `Render/Outlines`, with no other change.
+- **Outlines.** Green, red or none (canon 5.2) is decided on the client from `BiteRules` and the local tier, and applied only to the nearest 20 edible and 10 dangerous things (8 and 4 on Smooth). An outline is a **mesh shell**, an inverted hull authored with the asset (chapter 06, section 13.2), in the built-in Neon material, pooled and moved with its owner. `Render/Outlines` picks the mesh by colour (chapter 07, section 1.2): green "can eat" uses the asset's `_Shell`; red "can eat you" uses the 1.5 times thicker `_ShellThick`. `gull`, `moray` and `old_scar` have only `_ShellThick`, because they are never edible; `barracuda` and `grouper` have both, because a player one tier higher can eat them; playable species have both for the juvenile and the adult mesh. Roblox's `Highlight` instance is not used anywhere; it is unreliable on phones. The red shell pulses. `plankton` and hook bait never get a shell, nor does a `Protected` or Camo-hidden creature. Amber is kept for the home marker. The colour-blind setting swaps green and red for yellow and hot pink in `Render/Outlines`, with no other change.
 
 ### 8.9 The bite handshake
 
@@ -981,8 +1019,11 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 | `PreySpawn` | `PreyIds`, `MaxGroups`, `Floor` | PreyService spawner and leash |
 | `Current` | `Strength`; direction is the part's look vector | Movement (client applies, server allows) |
 | `EelHole` | — | Zone bounds check |
-| `Hazard` | `HazardId` | Hazard pass |
+| `Hazard` | `HazardId`; for a cycling `vent`, `CycleOffset` in seconds (0 to 8). A vent with no `CycleOffset` always erupts (section 9.4) | Hazard pass |
 | `GullSky`, `MorayHole`, `PredatorNode` | `PredatorId`, `Next` | PredatorService |
+| `RevivePoint` | `PointId`: `rp_01` to `rp_12` (chapter 03, section 6.11) | `RunLoopService`: where a revived or resumed creature returns (section 6.3) |
+
+A `RevivePoint` is a small Ball part; only its centre is kept. `WorldIndex` stores the 12 centres with the volume table and does not send them to clients. `tools/studio/check_place.luau` fails if any of the 12 IDs is missing, sits away from its row in the generated `RevivePoints` table, or lies inside the collision shell or a `Hazard` volume.
 
 `WorldIndex` also builds a floor height field: 256 × 256 `u16` values (8-stud cells) from 65,536 downward raycasts against the `World` group, spread over the first 2 s after start.
 
@@ -992,7 +1033,7 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 |---|---|---|
 | Prey, trait prey, hook bait | Data (`PreyService`) | Pooled meshes, particles |
 | `gull`, `moray`, `barracuda`, `grouper` [L], `old_scar` | Data: `PredatorService`, 32 slots, 20 Hz | Skinned rigs built by `PredatorController` |
-| `jelly_bloom`, `anemone` [L], `vent` [L], `current`, eel holes, safe zones, cove mouths | Data: volumes | Art in `Workspace.World` plus the volume table |
+| `jelly_bloom`, `anemone` [L], `vent` [L] (nine at the Chimneys), `current`, eel holes, safe zones, cove mouths | Data: volumes | Art in `Workspace.World` plus the volume table |
 | `hook` | A `Hazard` volume plus a one-member prey group with the bait flag set. The bait has no content ID of its own; it belongs to `hook` | Mesh. The bait never gets an outline shell (canon 5.2) |
 | Whale skeleton [L] | Data: position is a function of event time | Client-animated model |
 | Wild creatures [L] | Data: slots in `PredatorService`, driven by `PredatorSim` under the player rules (9.3). No root part, no `Player` | Species rigs with a "Wild" name tag |
@@ -1022,7 +1063,7 @@ Validation rules:
 
 **Players eating predators (canon 5.2).** A player at least one tier above a `barracuda` (tier 5 or higher) or a `grouper` (tier 6 or higher) can eat it. The claim is a `Bite` with `op = 3` and the predator's slot; `BiteService` checks the tier, then distance with the lag compensation of 10.3 against the predator's pose history, and calls `PredatorService.tryEat`. The eater gains `PredatorDef.eatenMass` (25 for `barracuda`, 60 for `grouper`, the same as prey of their tier, canon 5.2; nil means not edible) and the predator respawns at its home point 45 s later (chapter 02, section 9.4). `gull`, `moray` and `old_scar` are never edible: such a claim is rejected with reason `tier`.
 
-**Wild creatures [L]** (canon 15; chapter 02, section 9 owns the rules) fill a quiet server: `max(0, 10 − players)` of them, at most 8, labelled "Wild" and never shown as players or on a leaderboard. They are `PredatorSim` state machines that use the player species' sizes and follow every player rule in both directions (`BiteRules`, safe volumes, protection, the newcomer rules). A player eats one with the same `op = 3` claim and gains 30% of its mass.
+**Wild creatures [L]** (canon 15; chapter 02, section 9 owns the rules) fill a quiet server: `max(0, 10 − players)` of them, at most 8, labelled "Wild" and never shown as players or on a leaderboard. They are `PredatorSim` state machines that use the player species' sizes and follow every player rule in both directions (`BiteRules`, safe volumes, protection, the newcomer rules). A player eats one with the same `op = 3` claim and gains 30% of its mass. On a private server the owner can switch them off (section 18.4).
 
 ### 9.4 Hazards
 
@@ -1032,9 +1073,18 @@ A hazard pass runs at 10 Hz: each creature in a run is tested against `Hazard` v
 |---|---|---|
 | `jelly_bloom` | Status `stun` 1.5 s, then 3 s of sting immunity. Skipped with Ember | `vAllowed = 0` |
 | `anemone` [L] | Status `slow` 2 s | `vAllowed × 0.5` |
-| `vent` [L] | Mass × 0.95 each second inside. Skipped with Ember | Server-side mass only |
+| `vent` [L] | Only while the vent is `Erupting` (rule below): mass × 0.95 each second inside the column. Skipped with Ember | Server-side mass only |
 | `hook` | Biting the bait (the flagged prey member of 9.2) gives no mass; mass × 0.8; status `yank` 1.0 s | Server-side mass; 1.0 s validator grace for the pull upward |
 | `current` | None | `vAllowed × 1.6` while inside |
+
+**Thermal vents [L]** (chapter 03, section 5.1 owns the rule; chapter 02, section 10.3 owns how the burn is ticked). There are nine `Hazard` volumes with `HazardId = "vent"` at the Chimneys. Each is the burning column: a cylinder 10 studs wide (radius 5) and 40 studs tall, rising from the chimney top; a creature is inside when its centre is. Three vents have no `CycleOffset` and are `Erupting` all the time. The other six cycle every 8 s: `Dormant` 4 s, `Rumble` 1 s (the warning, harmless), `Erupting` 3 s. The lengths are `HazardDef.cycle` and each vent's `CycleOffset` is fixed in Studio so the six never all erupt together. The state is a pure function of the clock, like the tides (section 11.1):
+
+```lua
+local t = (Workspace:GetServerTimeNow() + cycleOffset) % 8          -- 8 = dormant + rumble + erupting
+local state = if t < 4 then "Dormant" elseif t < 5 then "Rumble" else "Erupting"
+```
+
+Server and clients evaluate the same line, so the rumble and the column are drawn with no packet. The server alone applies the burn.
 
 Mass lost to a vent or a hook goes through `CreatureService.addMass` with a negative amount, so the tier is derived again and can fall (section 6.8). No hazard affects a creature under the newcomer shield (9.3).
 
@@ -1173,14 +1223,19 @@ export type RunSnapshot = {
 	x: number, y: number, z: number,     -- last accepted position, for resuming
 	feedGuard: { [string]: number },     -- victim userId → times eaten in the last 10 minutes (chapter 02)
 	suspendedAt: number?,                -- Unix seconds; nil while the run is live on a server
-	expiresAt: number?,                  -- suspendedAt + 300 after a disconnect, + 900 after a server shutdown
+	expiresAt: number?,                  -- suspendedAt + 300 after a disconnect, + 900 after a server shutdown;
+	                                     -- compared with the clock once, at join (section 12.5)
 	onExpiry: ("scraps" | "bank_pearls")?,   -- what an expired run pays (section 12.5)
 }
 
 -- Device-shaped settings are saved once per input mode, so a phone setting never lands on a PC (chapter 15)
 export type InputSettings = {
 	scheme: string,                      -- control scheme: "drag" or "two_thumb" [L] on touch; one scheme on keys and pad
-	lookSpeed: number,                   -- sensitivity; range per input mode (chapter 15, section 10 item 7)
+	lookSpeed: number,                   -- sensitivity; range per input mode (chapter 15, section 10 item 7).
+	                                     -- On touch this is the drag sensitivity of "drag" (0.5 to 1.5)
+	twoThumbLookSpeed: number,           -- [L] touch only: how fast the view turns in "two_thumb" (0.5 to 2.0, default 1.0;
+	                                     -- chapter 15, section 3.1). A second saved value, not shared with lookSpeed.
+	                                     -- Present but unused on keys and pad
 	flipY: boolean,
 	graphics: "auto" | "smooth" | "balanced" | "pretty",
 }
@@ -1202,23 +1257,38 @@ export type ProfileData = {
 		lastClaim: { amount: number, at: number }?,
 		boostDay: number,                        -- [L] UTC day of the last Cove Boost (once a day)
 		bubbles: number,                         -- [L] Bubbles received
-		decorOwned: { [string]: boolean },       -- [L] decoration IDs owned
+		decorOwned: { [string]: boolean },       -- [L] decoration IDs owned (chapter 03, section 13), however they were
+		                                         -- obtained: Pearls, Reef Rank, Codex, goals, events, Robux, Starter Pack
 		decor: { [string]: string } },           -- [L] decorations placed: anchor ID → decoration ID
-	codex: { species: { [string]: number },      -- species ID → highest tier reached (the Species and Tiers pages)
+	codex: { species: { [string]: number },      -- species ID → highest tier reached (categories cdx_species and cdx_tiers)
 		traits: { [string]: boolean }, prey: { [string]: number },
-		dangers: { [string]: boolean }, places: { [string]: boolean }, tides: { [string]: boolean },   -- [L]
-		rewards: { [string]: boolean } },        -- page and whole-Codex rewards already paid
+		dangers: { [string]: boolean }, places: { [string]: boolean }, tides: { [string]: boolean },   -- [L]; places is keyed
+		                                         -- by landmark ID (lm_<name>, chapter 03, sections 6.2 to 6.6 and 8.2)
+		rewards: { [string]: boolean } },        -- rewards already paid: category ID (cdx_species ... cdx_all), or
+		                                         -- "cdx_tiers:<species>" for one species' Tiers page and its pattern
 	goals: { day: number,                        -- UTC day the list belongs to
 		list: { { id: string, progress: number, target: number, claimed: boolean } },
 		rerolls: number,                         -- free rerolls used today
 		paidRerolls: number,                     -- [L] Goal Reroll products used today
 		bonusClaimed: boolean,                   -- the all-three bonus
-		fullDays: number },                      -- [L] lifetime days with all three goals done; the daily-goal milestone
-		                                         -- decorations are granted at 3, 7, 14 and 28 (chapter 03, section 13)
+		fullDays: number },                      -- [L] lifetime days with all three goals done (at most +1 a day).
+		                                         -- Grants deco_goals_sun_shell at 3, deco_goals_week_wheel at 7,
+		                                         -- deco_goals_lucky_starfish at 14, deco_goals_message_bottle at 28
 	streak: { day: number, count: number },      -- [L] day = UTC day the last box was opened; count = boxes opened so far.
 	                                             -- A missed day changes nothing: count is never reset
 	stats: { runs: number, banks: number, deaths: number, bites: number,
-		playersEaten: number, bestMass: number, bestTier: number },
+		playersEaten: number, bestMass: number, bestTier: number,
+		gullDodges: number,                      -- lifetime Gull dives dodged: badge 17 "Not Today, Gull" at 10
+		breaches: number,                        -- lifetime breaches (entries into Airborne): badge 19 "Flying Fish" at 100
+		bubblesGiven: number,                    -- [L] lifetime Bubbles left on other coves: badge 25 "Good Neighbour" at 25
+		events: { [string]: number } },          -- [L] lifetime event-task counters; a missing key reads as 0. Keys and the
+		                                         -- decoration each unlocks (chapter 03, section 13):
+		                                         --   frenzy_prey   prey eaten during Feeding Frenzies   deco_evt_dinner_bell at 500
+		                                         --   lunar_fry     Lunar Fry eaten                      deco_evt_moon_lamp at 25
+		                                         --   marrow        Marrow chunks eaten                  deco_evt_whale_rib at 25
+		                                         --   [P1] storms_survived (deco_evt_storm_bottle at 5), red_tide_prey
+		                                         --   (deco_evt_red_bloom at 300), migrations_followed (deco_evt_fish_kite at 1)
+		                                         --   [P2] trench_quiet (deco_evt_trench_lantern at 1)
 	newcomer: { firstDeath: boolean,             -- true once the account has died; the Revive offer is hidden on that first death
 		biteAbsorbed: boolean,                   -- the one absorbed player bite has been used (10.2)
 		runsCompleted: number,                   -- runs ended by a bank, a gulp or an expiry
@@ -1233,7 +1303,9 @@ export type ProfileData = {
 	offers: { [string]: number },                -- offer ID → UTC day last dismissed (chapter 05, section 9)
 	social: { bubbleDay: number, bubbledUserIds: { number } },   -- [L] coves given a Bubble today, by owner
 	board: { week: number, weekBest: number },                   -- [L] avoids reads before writes
-	ftue: { stage: number, completed: boolean },                 -- tutorial state (chapter 04)
+	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04)
+		version: number,                         -- tutorial version the account saw, currently 1 (chapter 04, section 9)
+		attempts: number },                      -- +1 each time the tutorial restarts after a disconnect before the first bank
 	ab: { [string]: string },                    -- experiment key → arm, copied at first exposure (chapter 10, section 8.1)
 	settings: { sfx: number, music: number,      -- 0..10
 		colourBlind: boolean,
@@ -1241,7 +1313,9 @@ export type ProfileData = {
 		vibration: boolean, tapNotHold: boolean,
 		leftHanded: boolean,                     -- [L]
 		biggerText: boolean, language: string,   -- [L]; "" = same as Roblox
-		interfaceSize: number, swapSticks: boolean, hideEmotes: boolean,   -- [L]
+		interfaceSize: number, swapSticks: boolean,                        -- [L]
+		hideEmotes: boolean,                     -- [L] "A setting hides all emotes" (chapter 02, section 17.1). Chapter 08
+		                                         -- must expose this toggle in settings (S31); without the row it cannot be set
 		input: { touch: InputSettings, keys: InputSettings, pad: InputSettings },
 		lastGoodTier: { [string]: string } },    -- [L] screen class → graphics tier (chapter 15, section 6)
 	moderation: { kicks: number, flags: number },
@@ -1251,9 +1325,15 @@ export type ProfileData = {
 
 Rules: dictionary keys are always strings; arrays have no holes; no `NaN` or infinity; no Instances or buffers. `day` fields are `floor(unix / 86400)` (UTC days). Fields tagged [L] are in the version 1 template from the start with empty defaults, so shipping the feature needs no migration.
 
+**Lifetime counters for decorations [L].** `stats.events` and `goals.fullDays` only ever go up. `BiteService` adds to `stats.events` when prey is eaten (a Feeding Frenzy is running, or the prey is `lunar_fry` or `marrow`); `GoalsService` adds to `goals.fullDays` once a day, when the third goal of the day is done. After either changes, `CoveService` compares it with `DecorationDef.need` and sets `cove.decorOwned[id]` for each decoration reached. The check is repeated at join, so a decoration added later reaches players who already passed its count.
+
+**Lifetime counters for badges.** Roblox stores which badges an account holds, so the save keeps only the running counts a badge needs (chapter 03, section 12). `stats.gullDodges` (badge 17, at 10) goes up when a Gull dive aimed at the player ends without a catch, the same event daily goal `dg_gull_dodge_3` counts. `stats.breaches` (badge 19, at 100) goes up on each accepted change to `Airborne`, the same event `dg_breach_5` counts. `stats.bubblesGiven` [L] (badge 25, at 25) goes up with each Bubble left; `social.bubbledUserIds` only holds today's. These three only ever go up, and the badge check is repeated at join. Every other badge reads a value the save already holds (`stats.banks`, `stats.deaths`, `stats.bestTier`, `stats.playersEaten`, `cove.bubbles` for badge 26, `streak.count`, `species.owned`, `codex`, `rank.points`, the specimen list) or a single moment that needs no count. Two badges count inside one running of an event, so their count lives in server memory while the event runs and is not saved: badge 20 (100 prey in one Feeding Frenzy) and the 10 prey that fill a Codex Tides entry in `codex.tides`, which badge 24 reads for all three tides.
+
+**Two touch speeds.** The touch input type saves two values: `lookSpeed` (drag sensitivity, for drag to swim) and `twoThumbLookSpeed` [L] (how fast the view turns in the two-thumb scheme). Chapter 08, section 6.7 shows them as two sliders with different ranges, and switching scheme never overwrites the other value.
+
 Game pass ownership is asked from Roblox each session, and Roblox's answer is the authority. `passes` keeps the last answer so that a failed `UserOwnsGamePassAsync` call falls back to what the player owned before, not to nothing.
 
-Chapter 04 drives its first-run assists from `ftue.stage`, `stats.banks`, `stats.deaths` and `stats.runs` (it calls the last three `banks_total`, `deaths_total` and `runs_total`). The 50% scraps rate reads `stats.deaths < 3`.
+Chapter 04 drives its first-run assists from `ftue.stage`, `stats.banks`, `stats.deaths` and `stats.runs` (it calls the last three `banks_total`, `deaths_total` and `runs_total`). `ftue.version` and `ftue.attempts` are chapter 04's too. The 50% scraps rate reads `stats.deaths < 3`.
 
 Size: a full 40-slot cove is about 5 kB of JSON and a complete profile under 20 kB, against a 4 MB limit per key and a 4 MB per minute write limit per key (**V8**). `DataService` refuses to save and logs an error above 200 kB.
 
@@ -1299,13 +1379,17 @@ No player ever plays unsaved: without a loaded profile there is no creature. If 
 | Situation | Outcome |
 |---|---|
 | Player leaves while in a run in open water | The creature stays in the water for **10 s** under server ownership, drifting with no input, and can still be eaten. If eaten: a normal gulp, scraps paid (13.4), run cleared. If it survives: the creature is removed and the run is **suspended**: `run.suspendedAt = now`, `run.expiresAt = now + 300`, `run.onExpiry = "scraps"`. The profile is saved and the session ends only after this |
-| Player rejoins any server with `now < run.expiresAt` | `RunLoopService.resume` offers "Continue your run" or "Start fresh". Continue: the run resumes as in 6.3, with 3 s of protection, and `suspendedAt`, `expiresAt` and `onExpiry` are cleared. Start fresh: settled as expired |
+| Player rejoins any server with `now < run.expiresAt`, and the account has banked at least once (`stats.banks > 0`) | `RunLoopService.resume` offers "Continue your run" or "Start fresh" (chapter 08, screen S36). Continue: the run resumes as in 6.3, with 3 s of protection, and `suspendedAt`, `expiresAt` and `onExpiry` are cleared. Start fresh: settled as expired |
+| Player rejoins any server with `now < run.expiresAt`, and the account has never banked (`stats.banks == 0`) | No card. `RunLoopService.resume` resumes the run at once as in 6.3, and the first-time script carries on from the last completed beat (`ftue.stage`; chapter 04, section 9) |
+| Player leaves again while the card is open | Nothing is chosen. `run` is saved unchanged, with its original `expiresAt` |
 | Player joins with `now ≥ run.expiresAt`, or picks Start fresh | `RunLoopService.settleExpired` pays what `onExpiry` says (13.4) before the first spawn, counts the run in `newcomer.runsCompleted`, logs `run_abandoned`, and clears `run`. No specimen |
 | Player leaves while the gulped screen is open | Treated as a declined revive: scraps were already paid |
 | Player leaves inside their own cove | Already banked. Nothing to settle |
 | Server shutdown or update (`game:BindToClose`) | Every open run is suspended at once with `expiresAt = now + 900` and `onExpiry = "bank_pearls"`: if the player does not resume in time it pays the full bank value in Pearls with no specimen. No creature waits 10 s; a shutdown is not the player's choice |
 | Server crash (no settlement ran) | The next session finds `run` with no `suspendedAt`. It is treated as a shutdown that happened at `lastSeenAt` |
 | Kick at ladder level 4 | Run discarded, no payout |
+
+**The window is measured from the disconnect to the rejoin.** `expiresAt` is `suspendedAt + 300` (or `+ 900`), and `now < run.expiresAt` is tested once, when the profile loads at join. Time spent looking at the card is not counted: the card has no timer, and a run that passed the test at join cannot expire while the card is open, however long the player takes to choose.
 
 The expiry is lazy: nothing has to run while the player is away, because the profile is only read at the next join and the saved `expiresAt` decides. A suspended run blocks nothing: Pearls, the cove and income are settled as usual at the next join.
 
@@ -1322,7 +1406,7 @@ ProcessReceipt(info):                      -- info.PurchaseId, PlayerId, Product
    id in profile.Data.purchases.receipts:
        id also in profile.LastSavedData.purchases.receipts        → PurchaseGranted
        else                                                        → wait for save (step 5)
- 3 grant in memory through the product's grant function            (Pearls, token, pattern, flag)
+ 3 grant in memory through the product's grant function            (Pearls, token, pattern, decoration, flag)
  4 append id to purchases.receipts (drop the oldest beyond 100)    -- same table, same save as the grant
  5 profile:Save(); wait up to 30 s for OnAfterSave whose saved data contains id
        seen                                                        → PurchaseGranted
@@ -1333,15 +1417,17 @@ ProcessReceipt(info):                      -- info.PurchaseId, PlayerId, Product
 - **No lost purchase:** `PurchaseGranted` is returned only after the save containing the grant is confirmed. After `NotProcessedYet`, Roblox calls again when the player rejoins or starts another purchase (**V12**), and step 2 completes it.
 - Consumables used at a moment (`prod_revive`, `prod_trait_lock`, `prod_call_tide`, `prod_goal_reroll`) are granted as **tokens** and consumed by gameplay afterwards. If the moment passed, the token remains.
 - `prod_cove_boost` [L] pays 2 hours of the cove's current income straight to Pearls in step 3 (section 13.2) and sets `cove.boostDay`. `ShopService` does not open the prompt or the video when `boostDay` is today; a receipt that arrives anyway is still granted, because a paid purchase is never refused.
+- **One-time items [L]:** a pattern (`pat_<species>_<name>`) is added to `species.patterns`; a Robux decoration (`deco_buy_jelly_lamp`, `deco_buy_disco_clam`, `deco_buy_mini_pickle`) sets `cove.decorOwned[id] = true`, using the purchase ID as the decoration ID. `prod_starter_pack` is a bundle, granted in one step: the pattern `pat_minnow_sunrise`, the Golden Chest decoration `deco_buy_gold_chest` (which is not sold on its own), 5,000 Pearls, and `purchases.starterPack = true`. For a one-time item the player already owns, the client hides the button and `ShopService` refuses the `ShopAction`, so no prompt opens (chapter 05, section 14).
 - Rewarded video [L] arrives through the same callback with `ProductPurchaseChannel = Enum.ProductPurchaseChannel.AdReward` (**V21**) and takes the same path. The placements `ad_revive`, `ad_cove_boost` and `ad_goal_reroll` grant one unit of `prod_revive`, `prod_cove_boost` and `prod_goal_reroll` (canon 12) and are counted in `ads.counts` against chapter 05's daily caps (3, 1 and 1; 5 in all).
 - Game passes: `UserOwnsGamePassAsync` at join and again when `PromptGamePassPurchaseFinished` fires on the server (**V12**). The answer is cached in memory and copied to `passes` in the profile as the fallback for a failed call (12.2).
-- **Purchase IDs** are chapter 05's and are used unchanged as `ProductDef.id`, as the `sku` in `ShopAction` and as the keys of `passes` and `ads.counts` in the profile (canon 16): passes `pass_deep_pockets`, `pass_bigger_cove` [MVP], `pass_tide_watcher`, `pass_keen_nose`, `pass_shark_pup` [L]; products `prod_revive`, `prod_pearls_s`, `prod_pearls_m`, `prod_pearls_l`, `prod_pearls_xl` [MVP], `prod_trait_lock`, `prod_call_tide`, `prod_starter_pack`, `prod_cove_boost`, `prod_goal_reroll` [L]; rewarded video placements `ad_revive`, `ad_cove_boost`, `ad_goal_reroll` [L]. Patterns are sold by their own `pat_<species>_<name>` IDs (chapter 05, section 8.5). Analytics SKUs are a separate list in chapter 10.
+- **Purchase IDs** are chapter 05's and are used unchanged as `ProductDef.id`, as the `sku` in `ShopAction` and as the keys of `passes` and `ads.counts` in the profile (canon 16): passes `pass_deep_pockets`, `pass_bigger_cove` [MVP], `pass_tide_watcher`, `pass_keen_nose`, `pass_shark_pup` [L]; products `prod_revive`, `prod_pearls_s`, `prod_pearls_m`, `prod_pearls_l`, `prod_pearls_xl` [MVP], `prod_trait_lock`, `prod_call_tide`, `prod_starter_pack`, `prod_cove_boost`, `prod_goal_reroll` [L]; rewarded video placements `ad_revive`, `ad_cove_boost`, `ad_goal_reroll` [L]; Robux decorations `deco_buy_jelly_lamp`, `deco_buy_disco_clam`, `deco_buy_mini_pickle` [L]. Patterns are sold by their own `pat_<species>_<name>` IDs. Patterns and Robux decorations are one-time developer products (chapter 05, section 8.5), so they are `ProductDef` rows of kind `product` like the `prod_` ones. Analytics SKUs are a separate list in chapter 10.
 - `MarketplaceService:BindReceiptHandler` also exists; its behaviour was not verified, so it is not used (**U20**).
 - `ShopService.canSell(player)` is false for the first 120 s of a player's first session (canon section 12); no prompt can open before that.
 
 ### 12.7 Global leaderboards [L]
 
 - **Write:** on bank, if the mass beats `board.weekBest` for the current `week`, update the profile and mark the board dirty. A flush every 60 s per player writes dirty boards with `SetAsync`. Bubbles are flushed the same way.
+- **Private servers never write.** When `game.PrivateServerId ~= ""`, `LeaderboardService.submitBank` returns before it touches `board.weekBest`, whatever the player count, and a Bubble given there is shown in the cove but is not added to `cove.bubbles` or `LB_Bubbles` (chapter 02, sections 13.5 and 16.6; chapter 05, section 6.3). Private servers still read and show the global lists.
 - **Read:** each server calls `GetSortedAsync(false, 50)` per board every 120 s and shows the cached list. Page size can be up to 100 (**V8**).
 - **Server board (MVP):** computed in memory from `CreatureState`, no store.
 
@@ -1370,7 +1456,7 @@ Storage: the experience gets 500 MB plus 1 MB per lifetime user (**V8**); a prof
 
 The reef rim holds 24 physical cove sites built from one modular kit (identical meshes, so the engine instances them, **V32**). There is no per-player copy of anything on the server; a cove is a slot number, two volumes and a profile.
 
-- `PlayerLifecycle` gives a joining player the lowest free slot. Slot = cove index. `CoveService` sets `coveOwner[slot]`.
+- `PlayerLifecycle` gives a joining player a free slot once the profile is loaded. A new player (an account that has never banked, `stats.banks == 0`) gets the free cove nearest the Nursery, so the first trip home is short: C16, C17, C15, C18, then the next nearest (chapter 04, section 5.5 owns the rule; chapter 03, section 6.7 names the coves). A returning player (an account that has banked before, `stats.banks > 0`) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible **(tune)**. A player who joined a friend gets the nearest free cove to that friend's instead [L] (chapter 02, section 16.1). Slot = cove index. `CoveService` sets `coveOwner[slot]`.
 - Cove contents are data. When a creature enters a `CoveMouth`, the server sends that player a `CoveView` (owner name, slots, specimen list with species, tier, traits and pattern, Bubble count, decorations). The client draws specimens as idle-swimming rigs with reduced animation, at most 12 fully animated.
 - The sign over each mouth (owner name and best specimen) is drawn by every client from the owner's `Player` attributes plus a `BestSpecimen` attribute.
 - Entering **your own** `CoveMouth` during a run is the bank trigger. Banking happens at once, with no confirmation (canon 5.4). The server detects it from the validated pose; there is no bank remote. Entry also requires the last 0.5 s of poses to be a continuous path, so a teleport into the mouth does not bank. The payout is in 13.4. If the cove is full, the new specimen waits in `cove.pendingSpecimen` until the player releases an old one or the new one.
@@ -1449,9 +1535,11 @@ end
 3. Add rank points: the same bank computed without Deep Pockets. Reef Rank counts only base banking and scraps, before any pass multiplier, so it cannot be bought (canon 11).
 4. If the tier is 2 or higher and the run is allowed a specimen (7.3): `CoveService.addSpecimen`, or `cove.pendingSpecimen` when the cove is full.
 5. Codex, goals, `stats`, `newcomer.runsCompleted`; the first bank on an account also ends the first-run shield.
-6. `LeaderboardService.submitBank` with the full mass (the 3,000 limit applies to Pearls only); clear `profile.run`; log `run_banked`.
+6. `LeaderboardService.submitBank` with the full mass (the 3,000 limit applies to Pearls only; nothing is submitted on a private server, 12.7); clear `profile.run`; log `run_banked`.
 
 A gulp pays `BankMath.scraps` with the same two side steps (rank points without Deep Pockets, then `stats.deaths += 1` and `newcomer.firstDeath = true` after the Revive offer rule in 6.3 has been read), and logs `run_gulped` once any revive offer is declined.
+
+## 14. Security and anti-cheat
 
 ### 14.1 Trust model
 
@@ -1498,7 +1586,7 @@ Malformed input adds 5 suspicion, a flood adds 3 per second of flooding; both fe
 | Remote spam or malformed buffers | Validation wrapper and rate limits (14.2) |
 | Buying with Pearls twice in one frame | `EconomyService.spend` is synchronous and checks the balance before it changes anything |
 | Bubble farming with alternate accounts | One per visitor per owner per day, 24 a day, account must have banked once |
-| Leaderboard injection | Boards are written only by the server, from banks of runs not marked `untrusted` |
+| Leaderboard injection | Boards are written only by a public server, from banks of runs not marked `untrusted`. A private server never writes (12.7) |
 | Seeing prey, Camo or Ink-hidden players through walls | Not preventable while the engine replicates roots. Prey beyond 600 studs is never sent. Accepted at MVP (section 20, R12) |
 | Automated play for Pearls | Not a security matter at MVP; `playSeconds` and bank rate are logged for later review |
 
@@ -1527,7 +1615,7 @@ There is **one** client budget table for the project, and chapter 15, section 3.
 
 `QualityController` implements chapter 15, section 6 and adds no rule of its own: the starting tier by screen class, the 3-second start sample, one step down when the 10 s average is more than 5 fps under target, the memory guard, the cut order (15.6), and at [L] the step-up probe and the saved `lastGoodTier`. A player's fixed Graphics choice (`settings.input.<mode>.graphics`) turns the stepping off. It reports through `Telemetry`, and the session's result is logged as `perf_tier`. The tier changes GULP's own load only; scripts cannot read or set Roblox's own quality level.
 
-Asset ceilings are owned by chapter 06, section 6.3 and are not repeated here beyond the largest: playable species 1,500 triangles juvenile and 3,500 adult; prey from 2 (`plankton`) to 900 (`tuna`), trait prey 300 to 700; `moray` and `barracuda` 2,000; `grouper` 3,500; `old_scar` 8,000. The platform cap is 20,000 triangles per mesh and 4 bone influences per vertex (**V23**). Textures: 256 for prey, 512 for creatures, 1,024 only for atlases and Old Scar. The texture page contradicts itself on the maximum (**U7**); nothing above 1,024 is authored.
+Asset ceilings are owned by chapter 06, section 6.3 and are not repeated here beyond the largest: playable species 1,500 triangles juvenile and 3,500 adult; prey from 2 (`plankton`) to 900 (`tuna`), trait prey 300 to 700; `moray` and `barracuda` 2,000; `grouper` 3,500; `old_scar` 8,000. The platform cap is 20,000 triangles per mesh and 4 bone influences per vertex (**V23**). Textures: 256 for prey, 512 for creatures. The 1,024 textures are the list in chapter 06, section 14.2 and no others: `T_OldScar_Alb`, `T_EnvWreck_Alb` (the Tin Pickle), `T_Reef_NogginRock_Alb`, at most two effect flipbooks and the interface atlas sheets at [MVP], plus `T_WhaleFall_Alb` at [L]. The texture page contradicts itself on the maximum (**U7**); nothing above 1,024 is authored.
 
 ### 15.2 Server budgets
 
@@ -1684,7 +1772,7 @@ The world place cannot be published from the command line with its art intact (*
 1. `main` is green in CI, including `engine`.
 2. An agent bumps `Config/Version.luau`, writes the change list, and tags `vMAJOR.MINOR.PATCH`.
 3. Owner: open the dev place in Studio, `rojo serve`, connect, confirm the Rojo plugin reports no pending differences.
-4. Agent, through MCP: `tools/studio/check_place.luau` (place settings, required tagged volumes present, 24 cove mouths, asset folders complete), then the smoke test (16.4).
+4. Agent, through MCP: `tools/studio/check_place.luau` (place settings, required tagged volumes present, 24 cove mouths, 12 revive points, asset folders complete), then the smoke test (16.4).
 5. Owner: **Publish to Roblox As** → Staging. Play on a phone for 10 minutes (16.5 step 2).
 6. Owner: **Publish to Roblox As** → Production. In the Creator Dashboard, Restart Servers with "only servers with outdated versions" and a 10-minute delay so runs can finish (**V28**).
 7. Save a local copy of the place to `assets/place/` (Git LFS).
@@ -1776,7 +1864,8 @@ Because of the last row, a release that contains a migration is published to sta
 
 - All Robux prompts go through `ShopService`, which checks `canSell(player)`, `kill.purchases` and the policy table before calling `MarketplaceService:PromptProductPurchase` or `PromptGamePassPurchase`.
 - Every paid item states exactly what it gives before the prompt. Nothing paid is random.
-- Private servers [L]: `game.PrivateServerId ~= ""` marks one. Tides run on the same clock; global leaderboards accept banks from private servers only if at least 4 players are present **(tune)**.
+- Private servers [L]: `game.PrivateServerId ~= ""` marks one. Tides run on the same clock and everything else works as on a public server, with two things left out (chapter 02, section 16.6): banks never count toward the global leaderboards, whatever the player count, and Bubbles are not added to the lifetime count (12.7). There is no minimum number of players.
+- Private server owner settings [L] (chapter 02, section 16.6): the owner (`game.PrivateServerOwnerId`) can switch on "Friendly reef" and switch "Wild creatures" off. Both are server-wide, held in server memory, start at the public rules on every new server, and are changed with `SettingsSet`, which accepts these two keys only from the owner on a private server. With Friendly reef on, `BiteService` rejects every player-versus-player claim with reason `state` before rule 1 of 10.2, so players only bump; prey, predators and wild creatures are unchanged. With Wild creatures off, the count in 9.3 is 0. Chapter 08 has no screen for the two switches yet.
 
 ## 19. Build order
 
@@ -1821,7 +1910,7 @@ Sizes: **S** is under about 300 lines and one agent session; **M** is 300 to 800
 | B34 | `BotPlayers`, soak simulations, `QualityController` (screen class, three tiers, step down, cut order), first performance pass | B14, B16 | M | MVP |
 | B35 | Screens: shop, cove, Codex, goals, settings | B22, B23, B27, B28 | L | MVP |
 | B36 | Global leaderboards, cove visits and Bubbles, login streak, Reef Rank | B22, B29 | M | L |
-| B37 | Rewarded video, remaining passes and products (Tide Watcher, Keen Nose, Shark Pup, Trait Lock, Call the Tide, Cove Boost, Goal Reroll, Starter Pack, patterns), private servers | B27 | M | L |
+| B37 | Rewarded video, remaining passes and products (Tide Watcher, Keen Nose, Shark Pup, Trait Lock, Call the Tide, Cove Boost, Goal Reroll, Starter Pack, patterns, Robux decorations), private servers | B27 | M | L |
 | B38 | Sea Turtle, Squid, Shark Pup abilities (Shell, Jet, Rampage); Spark, Camo, Ember, Bonefed | B32 | M | L |
 | B39 | Grouper (including eating one), anemone, vents, Whale Fall | B24, B26 | M | L |
 | B40 | Text chat review for launch; a `TextChatService` panel only if the review says yes | B23 | S | L |

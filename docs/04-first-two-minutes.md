@@ -113,7 +113,7 @@ Times are J (seconds since `PlayerAdded`).
 | 0 to 8 | Normal | Loading toy | — |
 | 8 | Minimum set not complete | Start anyway if the hatch point floor, the Minnow mesh and krill are present. Missing textures show as flat colour and fade in. | `ftue_failsafe` = `load_partial` |
 | 15 | Still not startable | Stop preloading everything except the Minnow mesh and krill. Skip the hatch animation. | `ftue_failsafe` = `load_minimal` |
-| 20 | Profile still not loaded | Keep the toy running; the bubble row turns amber. Document 09's retry rule applies. | — |
+| 20 | Profile still not loaded | Keep the toy running; the bubble row dims to pale grey (not amber, which is kept for home). Document 09's retry rule applies. | — |
 | 30 | Still on the loading screen | Show a spinner with a weak-signal icon (`UI_Loading_SlowIcon`). No text. | `sys_load_time` bucket `gt20` on completion |
 | 45 | Profile failed | Document 09's rule: leave the player on the toy and retry, or disconnect with Roblox's standard message. No tutorial progress is lost because none has been made. | `sys_profile_fail` |
 
@@ -210,7 +210,7 @@ The world chapter owns the geometry. The script needs these distances **(tune)**
 | The channel | 135 to 335 studs | 200 studs long, 36 studs wide, rock walls on both sides, one bend of about 40° at its midpoint |
 | Home Current mouth | 335 studs | Start of the Home Current |
 
-**Not yet on the map.** Chapter 03, section 6.2 does not yet have the Glow Grotto, the kelp curtain, the walled channel or the Home Current, and it puts the nearest coves (C16 and C17) 140 studs from Little Arch, which is shorter than the channel alone. Chapter 03 owns the fix: either it adds this route, or the distances here and in section 5.5 shrink to fit its map. The beats stay the same either way.
+**On the map.** Chapter 03 places every point in this table: section 6.2 (first-run route) has the Hatch Bed, both swarms, the Glow Grotto, the kelp curtain, Little Arch and the channel, which it names the Elbow, and section 6.7 has the Home Current from the Elbow's end to each newcomer cove. Chapter 03 owns the coordinates; this chapter owns the beats.
 
 All scripted prey belongs to one player: only that player's client draws it and the server accepts bites on it only from that player. Other newcomers in the Nursery are visible but have their own prey.
 
@@ -225,7 +225,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 | Game does | Plays `A_Minnow_Hatch`. Gives control at 1.5 s. |
 | Prompt | None |
 | Sound | `SFX_Hatch` (a soft pop and a squeak). `MUS_Nursery` base layer continues from the loading screen. |
-| Camera | Starts 8 studs from the egg, low. Pulls back to the tier 1 follow distance (18 studs **(tune)**) over 1.5 s and settles behind the Fry facing Swarm A. |
+| Camera | Starts 8 studs from the egg, low. Pulls back to the tier 1 follow distance (14 studs **(tune)**; chapter 02, section 3.1 owns the camera table) over 1.5 s and settles behind the Fry facing Swarm A. |
 | Fail-safe | None needed; the beat ends on its own. |
 
 #### B2 · First bite (T 0 to 5)
@@ -261,7 +261,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 | Game does | Swim speed becomes 28 studs/s (canon). 1.0 s after the banner, the dash button pops in under the right thumb and pulses twice. Using it is optional here. |
 | Prompt | Banner only. |
 | Sound | `SFX_TierUp` (rising three-note chime). Music adds a percussion layer and keeps it. |
-| Camera | Follow distance grows from 18 to 21 studs over 0.6 s **(tune)**. The Fry's own animation freezes for 0.10 s as the swell starts (the hit-stop in chapter 02, section 5.1); the world does not slow. |
+| Camera | Follow distance grows from 14 to 17 studs over 0.6 s **(tune)** (chapter 02's tier 1 and tier 2 values). The Fry's own animation freezes for 0.10 s as the swell starts (the hit-stop in chapter 02, section 5.1); the world does not slow. |
 | Fail-safe | T = 30 and mass < 10: every krill within 30 studs homes on the mouth at 14 studs/s (`ftue_failsafe` = `grow_homing`). T = 40 and mass < 10: ten krill spawn 8 studs ahead and swim into the mouth (`ftue_failsafe` = `grow_burst`). Both need input in the last 10 s. |
 
 #### B5 · First trait (T 22 to 45)
@@ -399,7 +399,7 @@ There is no chat button: Roblox text chat is switched off in the MVP (canon sect
 | Prey swims toward the player | Scripted krill drift in at 6 studs/s inside 25 studs and never scatter | Only the `run2_homing` fail-safe | Krill scatter (canon) | When the player crosses the Gap in run 1 |
 | Glowfry in the Nursery | 5 scripted Glowfry, 8 studs/s, circling | None | Glowfry live in Reef caves and Kelp (canon) | When Glow is gained |
 | Scripted predator | Rubber-banded Barracuda that cannot bite (section 5) | None | Real Barracuda | When the chase ends |
-| First-run shield | No player, predator or hazard can eat, stun, hook, burn or slow the newcomer. Other players see no outline on them and bump off harmlessly. | Off | — | At the first bank, or after 240 s of play time **(tune)** if the player has not banked. The 240 s count only time in control of the creature on this account, are saved in the profile (`newcomer.shieldUsed`, chapter 09), and do not restart on a rejoin: a returning player has only what is left. The creature's bubble sheen flickers for the last 10 s. (`ftue_shield_end`) |
+| First-run shield | No player, predator or hazard can eat, stun, hook, burn or slow the newcomer. Other players see a white bubble-shield outline on them, never red or green (chapter 02, section 6.3), and bump off harmlessly. | Off | — | At the first bank, or after 240 s of play time **(tune)** if the player has not banked. The 240 s count only time in control of the creature on this account, are saved in the profile (`newcomer.shieldUsed`, chapter 09), and do not restart on a rejoin: a returning player has only what is left. The creature's bubble sheen flickers for the last 10 s. (`ftue_shield_end`) |
 | Predator grace | — | Computer-controlled predators do not target the newcomer for the first 45 s after leaving the cove | None | 45 s into run 2 |
 | Newcomer bubble | — | The first bite by another player on this account is absorbed: the bubble pops, the newcomer is thrown 30 studs clear with 3 s of protection, nothing is lost | None | When used (canon 5.2: absorbed once) |
 | Tide visuals | Moon Tide darkness is not shown to the newcomer; the tide clock is hidden | Normal | Normal | At the first bank |
@@ -485,12 +485,12 @@ Times are seconds after the player crosses the cove mouth.
 |---|---|---|
 | 0.0 | Server confirms the bank. Input is suspended. White flash (0.15 s). Stamp BANKED (0.8 s). | `SFX_Bank` |
 | 0.3 | The mass bar empties into a Pearl counter that appears at top right. The counter rolls up by the bank amount, 3 Pearls per mass (example: mass 20 → +60 Pearls). It appears already holding the Codex Pearls earned during run 1 (section 6.2), which were credited silently while the counter was hidden. | `SFX_PearlCount` |
-| 0.8 | Camera orbits the cove interior for 2.5 s. The banked creature swims on its own to alcove 1 and settles. A plate under it shows the species icon, the tier badge "2", the Glow icon and "6.6/h" beside a pearl. | `SFX_SpecimenPlace`, `MUS_Cove` |
+| 0.8 | Camera orbits the cove interior for 2.5 s. The banked creature swims on its own to perch 1 (chapter 03, section 6.10 owns the cove part names) and settles. A plate under it shows the species icon, the tier badge "2", the Glow icon and "6.6/h" beside a pearl. | `SFX_SpecimenPlace`, `MUS_Cove` |
 | 1.3 | From here any touch ends the orbit. | |
-| 3.3 | A new Fry hatches in the hatch pool at the centre of the cove. Control returns (3.5 s at the latest). `ftue.completed = true`. | `SFX_Hatch` |
-| 6.3 | **First income tick.** Six Pearls pop out of the specimen one by one and fly to the counter: "+6". The amount is small on purpose: it is one true hour of this specimen's income, so the plate and the payout agree. | `SFX_IncomeTick` |
-| 8.3 | **Cliffhanger 1.** On the wall behind the hatch pool a dark Pufferfish silhouette lights at the edges. A ring around it fills to Pearls owned / 500 (example: 261 / 500, 52%). | `SFX_SilhouetteReveal` |
-| 10.3 | **Cliffhanger 2.** The tide clock appears: a shell clock on the cove wall and a small copy on the HUD, showing the next event's icon and a countdown in minutes and seconds. If an event is running it shows the event icon, a pulsing ring and the time left. | `SFX_TideClock` |
+| 3.3 | A new Fry hatches on the Home Stone, near the front of the cove. Control returns (3.5 s at the latest). `ftue.completed = true`. | `SFX_Hatch` |
+| 6.3 | **First income tick.** Six Pearls pop out of the specimen one by one and fly to the counter: "+6". The amount is small on purpose: it is one true hour of this specimen's income, so the plate and the payout agree. This is the only income ever paid without a tap (canon section 11: the first-bank reward); every later claim is a tap on the pile or the welcome-back card. | `SFX_IncomeTick` |
+| 8.3 | **Cliffhanger 1.** On the Species Wall, at the back of the cove, a dark Pufferfish silhouette lights at the edges. A ring around it fills to Pearls owned / 500 (example: 261 / 500, 52%). | `SFX_SilhouetteReveal` |
+| 10.3 | **Cliffhanger 2.** The tide clock appears: a shell clock on the back wall of the cove and a small copy on the HUD, showing the next event's icon and a countdown in minutes and seconds. If an event is running it shows the event icon, a pulsing ring and the time left. | `SFX_TideClock` |
 | 12.3 | The cove mouth pulses and a bubble trail leads out. | |
 
 If the player leaves the cove before 12.3 s, the remaining items still fire in order, 4 s apart, as HUD pings in open water.
@@ -512,10 +512,10 @@ If the player leaves the cove before 12.3 s, the remaining items still fire in o
 
 | Thing | State after the first bank |
 |---|---|
-| Alcove 1 | The specimen, glowing, with its plate |
-| Alcoves 2 to 6 | Empty, each with a faint creature outline. Alcove 2's outline carries a tier 3 badge, which matches the third starter goal. |
-| Hatch pool | The player's new Fry |
-| Species wall | Pufferfish silhouette with its progress ring. Tapping it shows the Pufferfish card (name, the Puff ability as a 2-second looping clip, price 500 Pearls). Other species are not shown yet. |
+| Perch 1 | The specimen, glowing, with its plate |
+| Perches 2 to 6 | Empty, each with a faint creature outline. Perch 2's outline carries a tier 3 badge, which matches the third starter goal. |
+| Home Stone | The player's new Fry |
+| Species Wall | Pufferfish silhouette with its progress ring. Tapping it shows the Pufferfish card (name, the Puff ability as a 2-second looping clip, price 500 Pearls). Other species are not shown yet. |
 | Tide clock | Next event and countdown |
 | Cove sign (outside) | Player's name and best specimen (canon section 6) |
 
@@ -557,11 +557,11 @@ Completing a goal sends its Pearls flying to the counter with `SFX_GoalDone`. No
 | 6 | A larger player | First player one or more tiers higher within 40 studs | 3:00 to 8:00 | They carry a red outline (canon). If they bite, the newcomer bubble pops and throws the newcomer clear (section 4). | [MVP] |
 | 7 | Being gulped | First death | 4:00 to 7:00 | The creature pops into bubbles. The gulped screen shows who did it (creature icon and tier badge) and the scraps (50%) flying to the counter. Respawn at the cove in under 3 s. **No Revive offer on the account's first death.** | [MVP] |
 | 8 | First goal complete | Goal progress | 4:00 to 6:00 | Pearls fly to the counter; the row gets a tick | [MVP] |
-| 9 | Second bank | Banking run 2 or 3 | 6:00 to 8:00 | Specimen 2 goes to alcove 2. The Codex button appears with a dot and opens to three filled entries. The shop button appears with no ping. | [MVP] |
+| 9 | Second bank | Banking run 2 or 3 | 6:00 to 8:00 | Specimen 2 goes to perch 2. The Codex button appears with a dot and opens to every entry filled so far: usually seven or more (Plankton mote, Krill, Glowfry, Sardine, Glow, and the Minnow's tier 2 and tier 3 stamps). The shop button appears with no ping. | [MVP] |
 | 10 | Offline earning | Second bank | 6:00 to 8:00 | A moon icon with a pearl and "8h" appears on the cove wall beside the specimens | [MVP] |
 | 11 | First tide event | The clock: 60 s warning before the next quarter hour | 0:00 to 15:00 | The tide clock pulses, `SFX_TideHorn` sounds, a wave sweeps across the top of the screen. At the start, a banner with the event's name (two words at most) shows for 1.5 s and the cove mouth glows in the event's colour. In the first 10 s a ping shows the event's key prey icon. | [MVP] |
 | 12 | Revive offer | Second or later death on the account, when the lost creature had 30 mass or more (canon 5.5) | 6:00 onward | On the gulped screen: the creature as a ghost and a "25" Robux button. There is no timer and no ring: the offer stays until the player takes it or chooses to respawn (canon 5.5). Document 05 owns the price. | [MVP] |
-| 13 | First species purchase | Pearls reach 500 | 6:00 to 9:00 | The silhouette's ring fills and it lights up in colour wherever the player is (HUD ping with the Pufferfish icon). At the cove, tapping it buys with a 0.6 s hold. The Pufferfish hatches in the hatch pool. | [MVP] |
+| 13 | First species purchase | Pearls reach 500 | 6:00 to 9:00 | The silhouette's ring fills and it lights up in colour wherever the player is (HUD ping with the Pufferfish icon). At the cove, tapping it buys with a 0.6 s hold. The Pufferfish hatches on the Home Stone. | [MVP] |
 | 14 | Ability button | First run as Pufferfish | 6:30 to 9:30 | The button appears beside the dash button. It pulses once, the first time a red-outlined creature comes within 30 studs. | [MVP] |
 | 15 | Next species | Pufferfish bought | Same | The Eel silhouette replaces it on the wall with a ring at Pearls / 3,000 | [MVP] |
 | 16 | Kelp Forest | First time within 80 studs of a current that leads there | 8:00 onward | The current is visible (canon). No prompt. | [MVP] |
@@ -595,11 +595,11 @@ A **session** is one join. For rules that say "second session", a join counts as
 
 | Step | Time from control | What happens | Tag |
 |---|---|---|---|
-| 1 | — | Same loading screen. The player spawns as a Fry in the hatch pool of their own cove. No hatch close-up. | [MVP] |
-| 2 | 0 to 2 s | Camera sweeps low across the specimens. Beside each sits a pile of Pearls sized to what it earned. Control is live throughout. | [MVP] |
-| 3 | 2 s | A large clam in the middle of the cove opens, full of Pearls. Swimming into it or tapping it collects everything: the piles fly to the counter and it rolls up. | [MVP] |
+| 1 | — | Same loading screen. The player spawns as a Fry on the Home Stone of their own cove. No hatch close-up. | [MVP] |
+| 2 | 0 to 2 s | Camera sweeps low across the specimens and ends on the Pearl Clam, where everything the cove earned sits in one pile, sized to the total (canon section 11: income collects in one pile; there is no pile beside each specimen). Control is live throughout. | [MVP] |
+| 3 | 2 s | The Pearl Clam, left of the Home Stone (chapter 03, section 6.10), opens, full of Pearls, and the welcome-back card shows the amount with a Claim button (chapter 08). Tapping the clam's pile or the card's button collects everything: the pile flies to the counter and it rolls up. Swimming into the clam collects nothing (canon section 11). | [MVP] |
 | 4 | With step 3 | Where the player is eligible for rewarded video and has not used today's Cove Boost, a small film-icon button sits beside the clam. Watching gives a Cove Boost: 2 more hours of cove income at once, once a day (canon section 12). It is never the default and collecting normally dismisses it. | [L] |
-| 5 | 1 s after collecting | Streak card: the 7-day calendar with today stamped and today's reward flying to the counter. It closes itself after 2.5 s or on a tap. | [L] |
+| 5 | 1 s after collecting, or on leaving the cove if the player did not collect | Streak card: the 7-day calendar with today stamped and today's reward flying to the counter. It closes itself after 2.5 s or on a tap. | [L] |
 | 6 | 1 s later | The goals chip shows three new goals (random from day 2 on). | [MVP] |
 | 7 | — | The tide clock is already running. The cove mouth pulses. | [MVP] |
 
@@ -608,10 +608,10 @@ Target: collecting and leaving the cove within 12 seconds of control **(tune)**.
 | Rule | Value |
 |---|---|
 | Offline income | Sum of each specimen's hourly income × hours away, capped at 8 hours (canon); 24 with Tide Watcher [L] |
-| Away under 10 minutes | No clam. Any income is added silently. |
-| Under 10 Pearls earned | No clam. Added silently. |
-| Player leaves the cove without collecting | Collected automatically as they cross the mouth |
-| Away 8 hours or more | The clam is visibly overflowing and the moon icon reads "8h" in amber: the cap was reached |
+| Away under 10 minutes | No welcome-back card and no camera sweep. The income stays in the pile at the Pearl Clam until the player taps it. Nothing is added by itself. |
+| Under 10 Pearls earned | The same: no card, the income waits in the pile for a tap. |
+| Player leaves the cove without collecting | Nothing is collected. The income stays in the pile and keeps growing up to the cap; the clam can be tapped on any later visit (canon section 11: claimed by a tap, never automatically). |
+| Away 8 hours or more | The clam is visibly overflowing, its bubble reads "Full" and the moon icon reads "8h" in white: the cap was reached. (Amber is kept for home, canon section 5.2.) |
 
 ### 8.2 Day 2
 
@@ -641,8 +641,9 @@ Target: collecting and leaving the cove within 12 seconds of control **(tune)**.
 | Skip button | None. The FTUE never blocks input, lasts about 100 seconds, and a fast player finishes it faster. |
 | Player ignores the script | They cannot leave the Nursery before `S5`. After that, banking by any route completes the FTUE and plays the section 6 sequence. |
 | Shield runs out (240 s of play time used) before the first bank | Normal rules apply. The home marker and trail stay until the first bank. If gulped, they respawn at the cove (canon) and the first bank, whenever it happens, still plays section 6. |
-| Disconnect before the first bank, first time | Next join restarts the FTUE from the hatch in a fast form: 0.6 s hatch, all idle timers halved, one chase attempt at most. `ftue.attempts` goes up by one. |
-| Disconnect before the first bank, twice or more | Third join onward: spawn in the Nursery with the kelp curtain open, the home marker on, and no scripted prey or chase. The first-run shield does not restart: only what is left of its 240 s of play time applies. |
+| Disconnect mid-run before the first bank | Canon 5.5 applies, with no exception for a newcomer. The creature stays in the water for 10 s, open to attack by the rule, but the first-run shield still protects it (section 4), so nothing can eat it while any of its 240 s remain; those 10 s are not play time and use none of the shield. The run is then saved as suspended for 5 minutes. Rejoining in that time resumes the run at once, with no choice card, with its mass, traits and trait progress, and the first-time script resumes from the last completed beat (the saved `ftue.stage`, section 3.1): nothing already done is replayed. If the run is not resumed, it is lost and scraps are paid at the first-three-deaths rate of 50% (canon 5.5). |
+| No run to resume on the next join (it was lost as above, or the disconnect came before control), first time | Next join restarts the FTUE from the hatch in a fast form: 0.6 s hatch, all idle timers halved, one chase attempt at most. `ftue.attempts` goes up by one. |
+| The same, twice or more | From then on: spawn in the Nursery with the kelp curtain open, the home marker on, and no scripted prey or chase. The first-run shield does not restart: only what is left of its 240 s of play time applies. |
 | Disconnect after the first bank | The FTUE is complete. Next join uses the welcome-back flow; any cliffhanger items not yet shown are already in the cove. |
 | New device, same account | The profile belongs to the account, so there is no tutorial. |
 | New input type on any device | The first time an account plays with touch, keyboard and mouse, or gamepad **[L]**, a controls hint for that input shows for 5 s at the start of the first run (`seen_controls[inputType]`). The keyboard and mouse hint shows the arrow keys alongside W (chapter 15, section 3.3). |
@@ -743,7 +744,7 @@ A tester ticks each item on the reference phone unless it says otherwise. "Fresh
 - [ ] B2. The cove a fresh account is given is the free cove nearest the Gap.
 - [ ] B3. The ride from the current mouth to the cove takes 12 s or less.
 - [ ] B4. On crossing the cove mouth: flash, BANKED, the Pearl counter appears holding the run's Codex Pearls and rises by 3 Pearls per mass banked.
-- [ ] B5. The specimen sits in alcove 1 with a plate showing Minnow, tier 2, Glow and 6.6/h.
+- [ ] B5. The specimen sits on perch 1 with a plate showing Minnow, tier 2, Glow and 6.6/h.
 - [ ] B6. Control returns within 3.5 s of the bank; a touch after 1.3 s returns it sooner.
 - [ ] B7. 3 s after placement, +6 Pearls fly from the specimen to the counter.
 - [ ] B8. The Pufferfish silhouette shows a ring that reads Pearls owned / 500.
@@ -764,10 +765,10 @@ A tester ticks each item on the reference phone unless it says otherwise. "Fresh
 
 ### Returning and skipping
 
-- [ ] R1. Leaving at T = 30 and rejoining restarts the FTUE in the fast form.
-- [ ] R2. Leaving before the first bank twice gives the short form on the third join.
+- [ ] R1. Leaving at T = 30: nothing can eat the shielded creature in its 10 s in the water. Rejoining within 5 minutes resumes the run and the script from the last completed beat. Rejoining later finds the run lost, with 50% scraps paid, and restarts the FTUE in the fast form.
+- [ ] R2. Losing the run that way twice before the first bank gives the short form on the next join.
 - [ ] R3. An account that has banked once never sees the hatch or the chase again, on any device.
-- [ ] R4. The second session starts in the cove with the clam, and Pearls collected equal specimen income × hours away, capped at 8.
+- [ ] R4. The second session starts in the cove with the clam, and Pearls collected by tapping it equal specimen income × hours away, capped at 8. Leaving without tapping collects nothing.
 - [ ] R5. Rejoining after 2 minutes does not count as a second session.
 
 ### Analytics and performance

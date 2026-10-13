@@ -51,20 +51,25 @@ Checked on 13 October 2026. Status key: **V** = read on an official page this se
 |---|---|---|---|---|
 | **Goal** | The loop works on a phone and saves are safe | Strangers to the design get through the first session without help; servers work with real players | Pass Roblox's evaluation, reach 100 daily users, and read the benchmarks | Release the full launch content to everyone and begin weekly updates |
 | **Who can play** | The developer and up to 10 invited early testers (L8) | People on the Playtest list and the developer's Roblox friends (L8). 30 to 60 people (tune). | Public. In practice **3a:** only age-checked users of 16 and over until evaluation passes (L3). **3b:** everyone the maturity label allows. | Everyone the maturity label allows |
-| **Build** | MVP, in the test game | MVP, in the test game | MVP, in the live game | MVP plus everything tagged [L] |
-| **How long** | 2 weeks after the MVP is feature-complete (tune) | 2 weeks (tune) | 8 to 12 weeks (tune). Hard limit 20 weeks. | The launch period is 4 weeks, then live operations |
-| **Entry criteria** | Every [MVP] item in the canon exists and is playable on a phone | Stage 1 exit met | Stage 2 exit met. Account requirements in L2 met. Store page assets approved by moderation. | The canon go/no-go is passed. The [L] content has been through a one-week private test. |
+| **Build** | The soft-launch slice (chapter 13, section 3), in GULP Staging | The slice, in GULP Staging | The slice at `S`, in the live game. The rest of [MVP] is added during soft launch (canon section 15): the Eel, Moon Tide, the Gull and the Codex before the go/no-go, the remainder after a "go" (chapter 13, sections 3.4 and 6.2). | The full [MVP] plus everything tagged [L] |
+| **How long** | 2 weeks after the slice is feature-complete (tune) | 2 weeks (tune) | 8 to 12 weeks to the go/no-go (tune). Hard limit 20 weeks. After a "go" the game stays live while the launch content is built. | The launch period is 4 weeks, then live operations |
+| **Base-case dates** (chapter 13, section 4.1; they move if chapter 13 re-dates) | Mon 1 Mar to Sun 14 Mar 2027 | Mon 15 Mar to Sun 28 Mar 2027 | `S` is Thu 1 Apr 2027, 15:00 UTC. 3b is estimated for Thu 22 Apr 2027. Go/no-go on Mon 21 Jun 2027. Full [MVP] live on Thu 12 Aug 2027. | `P` is Thu 20 Jan 2028, or Thu 9 Dec 2027 if the cut candidates are removed |
+| **Entry criteria** | Every item of the soft-launch slice (chapter 13, section 3.2) exists and is playable on a phone | Stage 1 exit met | Stage 2 exit met. Account requirements in L2 met. The soft-launch store set (rows G4 to G6) approved by moderation. | The canon go/no-go is passed. The [L] content has been through a one-week private test. |
 | **Exit criteria** | 10 sessions in a row with no severity 1 bug (section 8.2). No save loss in 100 test saves. First bite within 10 seconds for 9 of 10 testers. | With 30 or more first-time players, each canon success measure is within 10 points of its target (tune). Two sessions with 12 or more players on one server. No save loss. | **Go:** with 100 or more daily users, day-1 retention and session time are at or above the median for similar games (canon section 17). | None. Section 9 sets the decision points. |
 | **What we measure** | Crashes, script errors, save round-trips, frame rate on the reference phone, time to first bite | The canon section 17 funnel, session length, where players die, server performance with 12 to 24 players, written feedback | Qualified play-through rate, first-play bounce, the section 17 funnel, day-1 and day-7 retention, session time, highly engaged plays, daily users, purchase success rate | All of stage 3, plus day-30 retention, payer conversion, revenue per paying user, play days per user |
 
-### 1.2 Two games, not one
+### 1.2 Four experiences, not one
+
+Document 09, section 17.1 owns this list. Data stores belong to an experience, so test saves and player saves never mix.
 
 | Game | Purpose | Access | Saves |
 |---|---|---|---|
-| **GULP Dev** | Stages 1 and 2, and the test of every later update | Private, early testers, Playtest list | Its own data stores, safe to wipe |
+| **GULP Dev** | Daily development in Studio | The developer only | Mock saves by default |
+| **GULP CI** | Automated checks | Nobody | Mock saves |
+| **GULP Staging** | Stages 1 and 2, and the test of every later update | Private, early testers, Playtest list | Its own real data stores, safe to wipe |
 | **GULP** | Stages 3 and 4 | Public from `S` | Player saves. Never wiped. |
 
-A build is always published to GULP Dev first. The same commit is then published to GULP. Saves made during stages 1 and 2 do not carry over, and testers are told so before they start.
+A build is always published to GULP Staging first. The same commit is then published to GULP. Saves made during stages 1 and 2 do not carry over, and testers are told so before they start.
 
 ### 1.3 Stage 2: younger testers
 
@@ -96,7 +101,7 @@ How it is applied:
 
 ## 2. Launch checklist
 
-### 2.1 Account and ownership (before `S−4`)
+### 2.1 Account and ownership (A5 and A6 in Sprint 0; the rest before `S−4`)
 
 | # | Item | Value | Status |
 |---|---|---|---|
@@ -104,8 +109,8 @@ How it is applied:
 | A2 | 2-step verification on | Required (L2, L20) | V |
 | A3 | Verified email | Required for Ads Manager | V |
 | A4 | Publishing requirement | Pay the one-time refundable fee for GULP (cheapest for a game that updates weekly), or hold Roblox Plus. Plus must have been active for 2 consecutive months, so if that route is chosen, subscribe by `S−9` weeks. | V (L2); confirm the price in Audience, Reach |
-| A5 | Roblox community "GULP" created | 100 Robux (document 11, F23) | S |
-| A6 | Owner of the game | **The GULP community owns the game** (tune). Events then show on the community page, and roles can be given to helpers later. Decide before the first publish. Whether a game can be moved between owners later is unverified. | U |
+| A5 | Roblox community "GULP" created | **In Sprint 0**, before the first experience is created, because it owns the game (A6) and ownership is hard to change later. 100 Robux (document 11, F23). It is opened and promoted to players four weeks before soft launch, at `S−4`, and not before (document 11, section 9.4). | S |
+| A6 | Owner of the game | **The GULP community owns the game** (tune). Events then show on the community page, and roles can be given to helpers later. Decide in Sprint 0 (chapter 14, decision D11), before the first experience is created: all four experiences in section 1.2 are created under the community. Whether a game can be moved between owners later is unverified. | U |
 | A7 | Developer Exchange eligibility checked | Needed to cash out and for Audience Expansion rewards | R |
 | A8 | Open Cloud keys | One key for data store snapshots and one for the place publish script, each with the smallest scope that works. Stored outside the repository. | Our rule |
 
@@ -114,11 +119,11 @@ How it is applied:
 | # | Setting | Where | Value at `S` | Change at `P` |
 |---|---|---|---|---|
 | G1 | Name | Game details | `GULP 🐟 Eat. Grow. Get Home.` | Add `[NEW 🦈]` for 7 days |
-| G2 | Description | Game details | Document 11, section 6.1 | Launch version |
+| G2 | Description | Game details | Document 11, section 6.1: the soft-launch text with the slice numbers (2 creatures, 5 traits). The numbers change with each update that adds content. | Launch version |
 | G3 | Genre and subgenre | Game details | Document 11, section 6.3 | No change |
-| G4 | Icon | Configurations, Places, start place, Icon | Icon A | Winner of the icon tests |
-| G5 | Thumbnails | Same, Thumbnails | T1 to T6 uploaded. T1, T2 and T3 active for Home personalisation. | Add T7 and T8 |
-| G6 | Video | Same, Videos | Page cut | Launch page cut |
+| G4 | Icon | Configurations, Places, start place, Icon | **Soft-launch set:** icon A in its soft-launch version (the Barracuda; document 11, section 3.2). No text on the icon. Icon D is tested against it from Sprint 31. | **Public-launch set** [L]: icon A in its public-launch version (Old Scar), or icon D if it won the soft-launch test. Icons B, C and E are tested from `P+4` (document 11, section 7.3). |
+| G5 | Thumbnails | Same, Thumbnails | **Soft-launch set:** T1, T2, T3 and T5 uploaded, with T3 and T5 in their soft-launch versions (document 11, section 4.2). T1, T2 and T3 active for Home personalisation. T4 and T6 are added in Sprint 31. Nothing shows Old Scar, the Moray, Tuna, the Drop-off or Whale Fall. | **Public-launch set** [L]: add T7 and T8, and replace T3, T4 and T5 with their public-launch versions |
+| G6 | Video | Same, Videos | None at `S`. The soft-launch page cut is uploaded in Sprint 31 (document 11, section 5). | The public-launch page cut [L] |
 | G7 | Maturity & Compliance Questionnaire | Configurations, Content Rating | Complete. See section 2.4. | Resubmit if [L] content changes any answer (L7) |
 | G8 | Playable devices | Game settings | Phone, tablet, computer. Console and VR off. | No change at `P`: the gamepad scheme ships at [L] on computer, phone and tablet, and the Console switch stays off. Console (Xbox and PlayStation) goes on early in [P1], target weeks 2 to 4, on the day both pass their real-hardware checklists (gate: document 15, sections 3.5 and 3.6). VR stays off. |
 | G9 | Maximum players per server | Place settings | 24 (canon) | No change |
@@ -131,7 +136,7 @@ How it is applied:
 | G16 | Notification strings | Engagement, Notifications | One string: N6 in section 2.5 | Two strings: N6 and N7 [L]. Tides never use notifications (section 3.4). |
 | G17 | Events and updates | Engagement, Events & Updates | None | "Launch Week" event, created at `P−7` days and submitted for featuring (L15) |
 | G18 | Share links | Creations, Share Links | One each for TikTok, YouTube, Instagram, the community and creators (document 11) | One per creator |
-| G19 | Localisation | Localisation settings | Source language English. Automatic Text Capture on. "Use Translated Content" on. All 17 other languages enabled for game information and for strings (L27). | Read Spanish, Portuguese and one more top language by hand (tune); lock corrected entries |
+| G19 | Localisation | Localisation settings | Source language English. Automatic Text Capture off: the game translates by key only (document 09, section 18.1). "Use Translated Content" on. All 17 other languages enabled for game information and for strings (L27). | Read Spanish, Portuguese and one more top language by hand (tune); lock corrected entries |
 | G20 | Configs | Configs | The switches in section 2.6, all at safe values | Launch values |
 | G21 | Erasure automation | Right to erasure templates | Templates for every data store that holds per-player keys (L25) | Add any new stores |
 | G22 | Security switches | Game settings, Security | Third-party sales off. Third-party teleports off. HTTP requests off unless document 09 needs them. Studio access to API services off on GULP and on only on GULP Dev. | No change. Switch names unverified (L32). |
@@ -154,23 +159,23 @@ Document 05 owns the prices and the purchase IDs (`pass_*`, `prod_*`, `ad_*`). T
 | Pass | Shark Pup | 499 | `P` | Same |
 | Product | Trait Lock | 19 | `P` | Same |
 | Product | Call the Tide | 99 | `P` | Same |
-| Product | Cove Boost | Document 05 | `P` | Same |
-| Product | Goal Reroll | Document 05 | `P` | Same |
+| Product | Cove Boost | 29 | `P` | Same |
+| Product | Goal Reroll | 19 | `P` | Same |
 | Product | Patterns | 79 to 199 | `P` | Same |
 | Product | Starter Pack | 99 | `P` | Same |
 | Private server | Monthly | 99 | `P` | None |
 | Rewarded video [L] | A free Revive, Cove Boost or Goal Reroll. Each is one of the products above, also sold for Robux (L20). No other video reward. | Free | When the game is eligible (2,000 unique visitors a month, L20) and only for players Roblox reports as eligible. Not on day one. | None |
 
-Checks for every purchasable item: the name and description say exactly what it does; the purchase is granted through one receipt handler that is safe to run twice; a test purchase has been made in GULP Dev; nothing is offered in a new player's first two minutes (canon).
+Checks for every purchasable item: the name and description say exactly what it does; the purchase is granted through one receipt handler that is safe to run twice; a test purchase has been made in GULP Staging; nothing is offered in a new player's first two minutes (canon).
 
-Badges. Document 03, section 12 owns the badge names, descriptions and unlock conditions: 29 badges, 20 tagged [MVP] and 9 tagged [L]. This chapter only schedules their creation. Five are free per 24 hours (L17), so create them five a day and pay nothing.
+Badges. Document 03, section 12 owns the badge names, descriptions and unlock conditions: 29 badges, 20 tagged [MVP] and 9 tagged [L]. This chapter only schedules their creation. Five are free per 24 hours (L17), so create them five a day and pay nothing. A badge is created only when the live build can award it, so the 20 [MVP] badges follow the soft-launch slice (chapter 13, section 3): five exist at `S`, and the other fifteen are created as their content ships.
 
 | Batch | Badges (numbers and names from document 03, section 12) | Create on | Tag |
 |---|---|---|---|
-| 1 | 1 to 5: Welcome to GULP, First Gulp, Home Safe, Gulped!, Growing Up | `S−4` days | [MVP] |
-| 2 | 6 to 10: Big Fish, Titan, Leviathan, Giant at Home, You Are What You Eat | `S−3` days | [MVP] |
-| 3 | 11 to 13, 15 and 16: Triple Treat, Moon Child, Gem of the Sea, Full House, Close Shave | `S−2` days | [MVP] |
-| 4 | 17 to 21: Not Today, Gull; Hooked; Flying Fish; Frenzy Feeder; Big Bite | `S−1` day | [MVP] |
+| 1 | 1 to 5: Welcome to GULP, First Gulp, Home Safe, Gulped!, Growing Up | `S−4` days. These are the five badges at `S`. | [MVP] |
+| 2 | 6, 7, 10, 11 and 15: Big Fish, Titan, You Are What You Eat, Triple Treat, Full House | In soft launch, on the day of the first update whose code awards them. The slice content already supports all five. | [MVP] |
+| 3 | 12, 17 and 19 to 21: Moon Child; Not Today, Gull; Flying Fish; Frenzy Feeder; Big Bite | In soft launch, after Moon Tide and the Gull have shipped (Thu 13 May 2027 in chapter 13's base case) | [MVP] |
+| 4 | 8, 9, 13, 16 and 18: Leviathan, Giant at Home, Gem of the Sea, Close Shave, Hooked | After a "go", when the full [MVP] is live (Thu 12 Aug 2027 in the base case). They need the Drop-off, Old Scar, the hook and Crystal. | [MVP] |
 | 5 | 14 and 22 to 25: Bone Deep, Whole Family, Safe in the Shell, Tide Tourist, Good Neighbour | `P−2` days | [L] |
 | 6 | 26 to 29: Popular Cove, Seven Days of Sea, Know-It-All, Reef Legend | `P−1` day | [L] |
 
@@ -182,7 +187,7 @@ If document 03 changes its list, the batches follow it; no badge is named here t
 |---|---|---|
 | Violence | Mild, repeated | Creatures eat each other constantly. They are swallowed whole and pop into bubbles. |
 | Blood | None | Canon |
-| Fear | None, or mild if the reviewer counts the Old Scar chase | Answer for the most extreme content (L7) |
+| Fear | None, or mild if the reviewer counts a predator chase (the Barracuda at `S`; Old Scar once it is in the build) | Answer for the most extreme content (L7) |
 | Crude humour | None | |
 | Gambling content | None | |
 | Paid random items | No | Canon: none at launch |
@@ -231,16 +236,16 @@ Read through `ConfigService` (L12). Document 09 owns the implementation and the 
 
 ### 2.7 Day-of-launch runbook
 
-Launch time `T` is **Thursday 15:00 UTC** (tune). A Thursday leaves a working day to fix problems before the weekend. The same runbook is used for `S` and `P`.
+Launch time `T` is **Thursday 15:00 UTC** (tune). A Thursday leaves a working day to fix problems before the weekend. The same runbook is used for `S` and `P`. In chapter 13's base case `S` is Thursday 1 April 2027 and `P` is Thursday 20 January 2028.
 
 | When | Step |
 |---|---|
-| T−7 days | `P` only: create the public Launch Week event, 7 days long, and submit it for featuring (L15). Upload new thumbnails and the video for moderation. |
-| T−48 h | Submit the ad campaign so that review is finished (document 11). Freeze the build. Only fixes for severity 1 and 2 bugs after this point. |
-| T−24 h | Publish the frozen build to GULP Dev. Play one full session on a phone and one on a computer. Make one test purchase of each new item. Confirm the questionnaire is current. |
+| T−7 days | `S`: upload the soft-launch store set for moderation (rows G4 and G5: icon A in its soft-launch version, and T1, T2, T3 and T5). No video. `P`: create the public Launch Week event, 7 days long, and submit it for featuring (L15). Upload the public-launch set for moderation (rows G4 to G6: the new icon, the new thumbnails and the public-launch page cut). |
+| T−48 h | Submit the ad campaign so that review is finished (document 11). Freeze the build; the release candidate has been in GULP Staging since the Sunday before (chapter 13). Only fixes for severity 1 and 2 bugs after this point. |
+| T−24 h | Publish the frozen build to GULP Staging. Play one full session on a phone and one on a computer. Make one test purchase of each new item. Confirm the questionnaire is current. |
 | T−3 h | Take a data store snapshot through Open Cloud (L13). Tag the commit in the repository. Check every config value against section 2.6. |
 | T−1 h | Publish the build to GULP. Join a fresh server and check the version number on the settings screen. |
-| T | `S`: set access to public. `P`: restart outdated servers with a 5-minute delay (L10); change the name, description and thumbnails; send the update announcement (60 characters) and the community announcement with notification. |
+| T | `S`: set access to public, with the soft-launch set on the page. `P`: restart outdated servers with a 5-minute delay (L10); change the name, description, icon, thumbnails and video to the public-launch set; send the update announcement (60 characters) and the community announcement with notification. |
 | T to T+2 h | Stay in the game and on the dashboard. Every 15 minutes read the error count, the purchase failures, the server count, and the funnel steps "first bite" and "60 seconds". |
 | T+2 h | First go-ahead check: fewer than 1 in 200 sessions with a script error that reaches the player (tune), no save failures, purchases completing. If it fails, go to the rollback plan. |
 | T+6 h | Post the first short video. Reply to the first community posts. |
@@ -270,7 +275,7 @@ One update a week, published on **Thursday at 15:00 UTC** (tune).
 |---|---|---|
 | Monday | Read the weekend's numbers. Triage bugs. Choose this week's fixes and balance changes. Write the update note first. | Half a day |
 | Tuesday | Build | Full day |
-| Wednesday | Build. Content freeze at 18:00 UTC. Publish to GULP Dev and play it on a phone. | Full day |
+| Wednesday | Build. Content freeze at 18:00 UTC. Publish to GULP Staging and play it on a phone. | Full day |
 | Thursday | Snapshot if saved data changes. Publish at 15:00. Restart outdated servers with a 5-minute delay. Announce. Watch for 2 hours. | Half a day |
 | Friday | Hotfix window until 15:00. A limited-time tide starts at 15:00 if one is scheduled. Record short videos. | Half a day |
 | Saturday and Sunday | Two 15-minute checks a day. No publishing unless severity 1. | 1 hour in total |
@@ -317,7 +322,7 @@ Why the Trench is not in this calendar: the canon tags the Trench zone and The T
 
 ### 3.4 How limited-time tides are scheduled and announced
 
-The canon rotation is fixed so that players can learn it: :00 Feeding Frenzy, :15 Moon Tide, :30 Feeding Frenzy, :45 Whale Fall. In the MVP, before Whale Fall ships at launch, the :45 slot runs a second Moon Tide. After launch the :30 slot is the flexible one (canon section 10).
+The canon rotation is fixed so that players can learn it: :00 Feeding Frenzy, :15 Moon Tide, :30 Feeding Frenzy, :45 Whale Fall. In the MVP, before Whale Fall ships at launch, the :45 slot runs a second Moon Tide. At `S` the slice runs a Feeding Frenzy on all four slots until Moon Tide ships during soft launch (chapter 13, section 3.4). After launch the :30 slot is the flexible one (canon section 10).
 
 Scheduling rules:
 
@@ -485,7 +490,7 @@ A purchase log is kept per player: receipt ID, product, time and whether it was 
 | C13 | Off-platform links | Only the Social Links on the game page. No link, handle, code or QR code in the game or the description. | [Social links](https://create.roblox.com/docs/production/promotion/social-media-links), [Community Standards](https://about.roblox.com/community-standards) | Verified |
 | C14 | Notifications | Only messages about the player's own cove. Opt-in only. Never needed to progress. No false time pressure. | [Experience notifications](https://create.roblox.com/docs/production/promotion/experience-notifications) | Verified |
 | C15 | Tide Watcher pass | The pass is the 24-hour pile cap plus an in-game tide board (the next three tides and a marker to the event). It sends no push notification and its store text promises no alarm: Roblox notifications reach only opted-in players of 13 and over, once a day, so nothing paid depends on them. Every player sees the clock and the next tide for free. | Same | Verified |
-| C16 | Honest store page | The name, icon, thumbnails, video and description show only what is in the live build | [Community Standards](https://about.roblox.com/community-standards), [Thumbnails](https://create.roblox.com/docs/production/publishing/thumbnails) | Verified |
+| C16 | Honest store page | The name, icon, thumbnails, video and description show only what is in the live build at that stage: the soft-launch set from `S` (slice content only) and the public-launch set from `P` (rows G2 and G4 to G6) | [Community Standards](https://about.roblox.com/community-standards), [Thumbnails](https://create.roblox.com/docs/production/publishing/thumbnails) | Verified |
 | C17 | Contests and giveaways | None with real-money value. No Robux prizes. | [Community Standards](https://about.roblox.com/community-standards) | Verified |
 | C18 | Original creatures | Every species, predator and name is original. No licensed or meme characters (canon). Old Scar is a named great white of our own design. Search each new name before use. | Canon section 3 | Our rule |
 | C19 | Music | Either Creator Store music (free to use on Roblox, L26) or music commissioned or licensed with a written licence that covers the Roblox game, the store-page video and social video worldwide. Whether Creator Store audio may be used in videos posted outside Roblox is unverified, so off-platform videos use only music we hold a licence for. | [Audio assets](https://create.roblox.com/docs/en-us/audio/assets) | Part verified. Read the Audio Terms of Use before `S`. |
@@ -540,8 +545,8 @@ Monitoring uses Roblox's own analytics and data stores only. Sending data from t
 | 2. Classify | Severity 1 to 4 (section 5.3) | 5 minutes |
 | 3. Contain | Severity 1 or 2: use a config switch, roll back, or revoke access (section 2.8). Contain first, diagnose second. | 15 minutes for severity 1 |
 | 4. Tell players | One short notice in the community and on the cove notice board: what is wrong, what is safe, when the next message will come | 1 hour for severity 1 |
-| 5. Diagnose | Reproduce in GULP Dev. Find the commit. | |
-| 6. Fix | The smallest change that works. Test in GULP Dev on a phone. | Same day for severity 1, 48 hours for severity 2 |
+| 5. Diagnose | Reproduce in GULP Staging, or in Studio on GULP Dev. Find the commit. | |
+| 6. Fix | The smallest change that works. Test in GULP Staging on a phone. | Same day for severity 1, 48 hours for severity 2 |
 | 7. Release | Publish. Restart outdated servers. Restore the switches. | |
 | 8. Make good | Grant what players lost, from logs (section 6.3 and 8.4) | Within 3 days |
 | 9. Write up | Five lines in the tracker: what happened, how many were affected, the cause, the fix, and what will stop it happening again | Within a week |
@@ -557,7 +562,7 @@ Monitoring uses Roblox's own analytics and data stores only. Sending data from t
 | A purchase log per player | Purchases can be granted again after a restore | |
 | The repository | Every published build can be rebuilt from its tag | |
 
-A restore is tested before `S`: damage a test save in GULP Dev on purpose and bring back the version from the hour before, using `ListVersionsAsync`, `GetVersionAsync` and a write-back. The time it takes is written down.
+A restore is tested before `S`: damage a test save in GULP Staging on purpose and bring back the version from the hour before, using `ListVersionsAsync`, `GetVersionAsync` and a write-back. The time it takes is written down.
 
 ### 8.4 If a save bug ships
 
@@ -597,11 +602,11 @@ A column applies when the first two rows are both true. If the rows disagree, ch
 
 ## 10. Roadmap for the first year
 
-Quarters are counted from `P`. The canon's [P1] is weeks 1 to 12, so Q1 is [P1] and everything from Q2 on is [P2]. Content is from the canon post-launch lists. The pace assumes "double down"; in "keep steady" each quarter's list takes about twice as long.
+Quarters are counted from `P`. The canon's [P1] is weeks 1 to 12, so the content of Q1 is [P1] (it all ships by week 12; week 13 adds nothing new) and everything from Q2 on is [P2]. Content is from the canon post-launch lists. The pace assumes "double down"; in "keep steady" each quarter's list takes about twice as long.
 
 | Quarter | Species (canon order) | Events | Features | Other |
 |---|---|---|---|---|
-| **Q1** (weeks 1 to 13) [P1] | Anglerfish, Manta Ray, Seahorse, Axolotl | Storm, Red Tide, Great Migration | Pearlescent variants (first version) | Xbox and PlayStation switched on in weeks 2 to 4, on the day both pass their real-hardware checks (gate: document 15, sections 3.5 and 3.6). Hand-check of the top three translations. Rewarded video when the game and the player are eligible. A one-week check of browser play when Roblox releases it (document 15). |
+| **Q1** (weeks 1 to 13; weeks 1 to 12 are [P1]) | Anglerfish, Manta Ray, Seahorse, Axolotl | Storm, Red Tide, Great Migration | Pearlescent variants (first version) | Xbox and PlayStation switched on in weeks 2 to 4, on the day both pass their real-hardware checks (gate: document 15, sections 3.5 and 3.6). Hand-check of the top three translations. Rewarded video when the game and the player are eligible. A one-week check of browser play when Roblox releases it (document 15). |
 | **Q2** (weeks 14 to 26) [P2] | Orca Calf | **The Trench Opens**; Storm, Red Tide and Great Migration return; seasonal events from section 4 | **The Trench** zone opens, with its predators, trait prey and a deepest-bank leaderboard. **Trading specimens**, with the compliance work in C22. | Second round of Pearlescent variants. The first reading of whether paid random items are worth their compliance cost; the default is no. |
 | **Q3** (weeks 27 to 39) | Narwhal | Seasonal events | **Migration**: the prestige reset for a permanent bonus and a new cove biome | Follow Roblox's announced standalone game apps (reported in September 2026; terms not researched) and decide whether GULP should apply. |
 | **Q4** (weeks 40 to 52) | The next species, chosen by a community poll (not in the canon; needs a canon entry first) | The Homecoming anniversary event; seasonal events | A second cove biome through Migration. Quality and performance work based on a year of data. | The year-two decision using section 9: continue, hold, or reuse the technology for the next game. |
@@ -652,4 +657,4 @@ The canon values are used unchanged above. These are the suggestions that are st
 1. **Go/no-go limits (section 17).** Add the limits used here and in document 10: 100 daily users for 14 days, at most two extra four-week cycles, and a 20-week cap on soft launch.
 2. **Limited-time tides (section 10).** Add that a limited-time tide runs Friday 15:00 UTC to Monday 15:00 UTC, and that it always returns.
 3. **Post-launch traits (section 4.4).** The canon promises new traits week to week, but neither the canon nor document 03 names one. Either name at least two post-launch traits (Red Tide [P1] and the Trench [P2] are the natural sources) or remove "new traits" from section 4.4. The 12-week calendar here ships none.
-4. **Game ownership.** Record whether the game is owned by the GULP community or by the developer account, since it may be hard to change later.
+4. **Game ownership.** Record that the game is owned by the GULP community, which is created in Sprint 0 (row A5), since ownership may be hard to change later.

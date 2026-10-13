@@ -16,6 +16,7 @@ Every number marked **(tune)** is a first guess. Every entry carries a scope tag
 | **Body size** | Length × height × width in studs at body scale 1.0. Multiply by the creature's body scale, which grows smoothly with mass between the tier values (canon 5.1). |
 | **Reward bands** | R1 to R5. Chapter 05, section 3.12 sets the amounts: R1 = 100 Pearls, R2 = 125, R3 = 175, R4 = 2,500, R5 = 5,000 (tune). Where this chapter repeats any Pearl amount it is a copy, and chapter 05 wins. |
 | **Decoration price bands** | D1 to D4. Chapter 05, section 4.3 sets the prices: D1 = 200 Pearls, D2 = 4,500, D3 = 30,000, D4 = 360,000 (tune). |
+| **Landmark IDs** | Every landmark has a stable ID, `lm_<name>` in lowercase with no leading "the" (`lm_noggin_rock`, `lm_tin_pickle`), given in the ID column of the landmark tables in sections 6.2 to 6.6. An ID never changes once shipped, even if the display name does. Chapter 09 uses these IDs unchanged for `LandmarkDef.id` and the keys of `codex.places`. |
 | **Body families** | Traits are drawn once per family, not once per species. Fish-shaped: Minnow, Pufferfish, Shark Pup, Anglerfish, Orca Calf, Narwhal. Eel-shaped: Eel, Axolotl. Turtle: Sea Turtle. Squid: Squid. These four families are chapter 06's (section 3.1). Post-launch, Manta Ray and Seahorse each need a new family (Ray and Upright; chapter 07, section 2.8). |
 
 ## 1. Playable species
@@ -130,7 +131,7 @@ A pattern changes base colours only. Patterns use large colour areas (two-tone, 
 | `pat_puffer_midnight` | Pufferfish | Midnight | Navy back, grey belly, light cyan fin edges | Free: Codex, all 7 Pufferfish tiers |
 | `pat_eel_liquorice` | Eel | Liquorice | Black back, red belly, red fin ribbon | Robux |
 | `pat_eel_seafoam` | Eel | Seafoam | Pale green-white body, teal fin ribbon | Robux |
-| `pat_eel_sunset` | Eel | Sunset | Hot pink head fading to an orange tail | Free: Codex, all 7 Eel tiers |
+| `pat_eel_sunset` | Eel | Sunset | Coral head fading to an orange tail (warm coral, never the hot pink of the colour-blind danger outline) | Free: Codex, all 7 Eel tiers |
 | `pat_turtle_mossback` | Sea Turtle | Mossback | Dark green shell with moss tufts, tan skin | Robux |
 | `pat_turtle_terracotta` | Sea Turtle | Terracotta | Brick-red clay shell, cream skin | Robux |
 | `pat_turtle_royal` | Sea Turtle | Royal | Purple shell with a gold rim, lilac skin | Free: Codex, all 7 Sea Turtle tiers |
@@ -266,8 +267,8 @@ Intended effort for one player with no competition (tune): Common about 1 minute
 | `inklet` | In and around the 8 Ink Pots on the Wall, depth 140 to 320 | Hovers at a pot mouth. When approached it puffs a 6-stud ink cloud (2 s) and jets 20 studs | Tiny squid, 2.2 studs, deep indigo with big pale eyes | Pale eyes in a dark hole, and small ink puffs |
 | `spark_eel` | Inside and within 30 studs of the Tin Pickle wreck, depth 220 to 260 | Loops in and out through the wreck's portholes and hull gaps; a small arc crackles off it every 5 s (harmless) | Short thin eel, 4.0 studs, dark navy with a bright cyan zig-zag line | Cyan flashes lighting the wreck's windows |
 | `leaf_drifter` | Drifting among the loose kelp leaves of Leafy Lane, depth 50 to 90 | Hangs still and looks like a leaf. Shows no outline or halo until a player is within 15 studs. Flees weakly | Flat leaf-shaped fish, 2.6 studs, olive green with leafy frills and two small eyes | A "leaf" that sways out of time with the others, and has eyes |
-| `crystal_jelly` | A drift of five follows one fixed route through all four zones: Noggin Rock → North Pass → Ribbon Roof → Lookout Stack → Ink Pots → the Ledge → East Pass → Noggin Rock. The drift starts at a random point on the route at least 100 studs from every player | The five stay within 12 studs of each other and drift at 6 studs/s, depth 20 to 90. They never flee. A chime plays for players within 150 studs. About one drift every 5 minutes (canon); at most one drift is alive at a time | Bell-shaped jelly, 2.8 studs, clear and faceted like cut glass, throws small rainbow glints | Five sets of rainbow glints and a chime; a zone-name banner tells the server where the drift is |
-| `vent_snail` | On the rims of the 9 vents at the Chimneys | Crawls around the vent rim, inside the burn area while the vent is on. Grab it while the vent is off | Fat snail, 2.4 studs, black shell with glowing orange cracks, sleepy eyes on stalks | An orange glow that stays put on a chimney |
+| `crystal_jelly` | A drift of five follows one fixed route through three zones (Reef, Kelp, Drop-off): Noggin Rock → North Pass → Ribbon Roof → Lookout Stack → Ink Pots → the Ledge → East Pass → Noggin Rock. The drift starts at a random point on the route at least 100 studs from every player | The five stay within 12 studs of each other and drift at 6 studs/s, depth 20 to 90. They never flee. A chime plays for players within 150 studs. About one drift every 5 minutes (canon); at most one drift is alive at a time | Bell-shaped jelly, 2.8 studs, clear and faceted like cut glass, throws small rainbow glints | Five sets of rainbow glints and a chime; a zone-name banner tells the server where the drift is |
+| `vent_snail` | On the rims of the 6 cycling vents at the Chimneys (never on the 3 always-on vents) | Crawls around the vent rim, inside the burn area while the vent is on. Grab it while the vent is off (`Dormant` or `Rumble`, section 5.1) | Fat snail, 2.4 studs, black shell with glowing orange cracks, sleepy eyes on stalks | An orange glow that stays put on a chimney |
 | `lunar_fry` | Inside the three active moonbeams during Moon Tide (section 7.2) | Circles inside the beam. If chased out of the beam it fades after 3 s and reappears inside | Small fry, 1.5 studs, silver-white with a crescent mark on its side, leaves silver motes | It is the brightest thing in the dark sea, always inside a beam |
 | `marrow` | Released from the whale skeleton at Whale's Rest during Whale Fall (section 7.3) | A chunk, not an animal. Drifts up and outward from the skeleton at 3 studs/s for up to 60 s | Puffy cream-white nugget, 2.0 studs, like a piece of honeycomb, with a soft white glow. No red, no flesh | White glowing chunks rising from the skeleton |
 
@@ -341,9 +342,22 @@ All numbers beyond the canon behaviour line are (tune). "Detect" is how close a 
 | `old_scar` | [MVP] | Old Scar | 7 · eats tier 6 and lower | The Drop-off, depth 110 and below | 1 | 22 / 40 | 90 | Chase for 8 s, turn rate 70°/s | 10 |
 | `jelly_bloom` | [MVP] | Jelly bloom | Hazard | Kelp, Drop-off | 6 blooms (4 Kelp, 2 Drop-off), 8 to 12 jellies each | Drifts at 3 | Touch | Stun 1.5 s, then 3 s of sting immunity | None |
 | `anemone` | [L] | Anemone | Hazard | Sunlit Reef | 24 | Fixed | Touch, radius 5 | Slow by 50% for 2 s | None |
-| `vent` | [L] | Thermal vent | Hazard | The Drop-off (the Chimneys) | 9 (3 always on, 6 cycling 3 s on, 5 s off) | Fixed | Inside a column 10 wide, 40 tall | Burns 5% of mass per second | None |
+| `vent` | [L] | Thermal vent | Hazard | The Drop-off (the Chimneys) | 9 (3 always on, 6 cycling; rule below) | Fixed | Creature's centre inside the column: 10 wide (radius 5), 40 tall, rising from the chimney top | Burns 5% of current mass per second | None |
 | `hook` | [MVP] | Fishing hook | Hazard | Sunlit Reef, depth 8 to 20 | 8 | Fixed | Eating the bait | Yanked 30 studs up and out of the water; lose 20% of mass | Bait returns after 45 |
 | `current` | [MVP] | Current | Helper | Between zones | 6 named currents (section 6.8) | +60% speed for riders | Entering the stream | Carries creatures along its path | None |
+
+**Thermal vent rule (tune).** This chapter owns it; chapter 02, section 10.3 copies it and adds only how the burn is ticked and the upward push.
+
+| Vent state | Length | What it does |
+|---|---|---|
+| `Dormant` | 4 s | Harmless. No column. Vent Snails on the rim can be reached. |
+| `Rumble` | 1 s | Harmless. The warning: the rim glows brighter, a burst of small bubbles rises, a low rumble plays. |
+| `Erupting` | 3 s | The column burns: a creature whose centre is inside loses 5% of its current mass per second (canon 8.3). |
+
+- **Cycling vents (6):** the six outer chimneys loop `Dormant` → `Rumble` → `Erupting`, 8 s in all (3 s on, 5 s off). Each starts at its own fixed offset, so the six never all erupt together.
+- **Always-on vents (3):** the three chimneys at the centre of the cluster stay in `Erupting` for good, with no `Rumble`. They are a wall to swim around, and they mark the Chimneys from far away.
+- **Column:** 10 studs wide (radius 5) and 40 studs tall, rising from the chimney top. The same size for all 9.
+- A vent can burn mass down to 0 and cause a tier-down, but it never gulps. Ember stops the burn (canon 9).
 
 **Eating a predator (canon 5.2).** A player one tier higher can eat a Barracuda (tier 5 or higher) or a Grouper (tier 6 or higher). A Barracuda gives 25 mass and a Grouper gives 60 mass, the same as prey of their tier (tune). The Gull, the Moray and Old Scar cannot be eaten.
 
@@ -358,7 +372,7 @@ All numbers beyond the canon behaviour line are (tune). "Detect" is how close a 
 | `old_scar` | Great white, 30 studs, pale grey, a long pale scar across the left eye, slow heavy tail. Calm, not angry. Never bloody. | Patrols Scar's Run: along the Wall face and Deep Floor between B055 and B215, depth 250 to 420. Never comes above depth 110, so the Ledge is always safe from it. | Within 120 studs: a slow heartbeat sound and a dark edge on the screen. Its red outline is visible from further than any other creature. It surges with a tail kick 1.0 s before a chase. |
 | `jelly_bloom` | Pale pink bells, 2 studs each, with long thin threads. Glow softly and pulse. | Kelp: 3 blooms in Jelly Meadow, 1 drifting a loop between the Tall Stand and Glowgrove. Drop-off: 1 by the Ink Pots (depth 150 to 250), 1 in the Blue Mile (depth 200 to 300). | Always pulsing with light. A soft tingle sound within 20 studs. Stunned creatures show a spiral over the head. |
 | `anemone` | Fat stalk, 5 studs, with waving candy-coloured arms (pink, yellow or teal). Looks soft and friendly. | 14 in the Tickle Garden, 10 on coral heads across the east half of the Reef. | Arms reach toward anything within 8 studs. A creature that touches one turns slightly pink and trails slow bubbles while slowed. |
-| `vent` | A lumpy black stone chimney, 12 studs tall, with an orange glow at the top. | 9 chimneys within 70 studs of the centre of the Chimneys. | Cycling vents rumble and release a burst of small bubbles 1 s before they switch on. The burning column is bright orange water full of bubbles. A creature inside flashes orange each second. |
+| `vent` | A lumpy black stone chimney, 12 studs tall, with an orange glow at the top. | 9 chimneys within 70 studs of the centre of the Chimneys. | Cycling vents rumble and release a burst of small bubbles for 1 s (`Rumble`) before they switch on. The burning column is bright orange water full of bubbles, 10 wide and 40 tall. The 3 always-on vents show the column all the time. A creature inside flashes orange each second. |
 | `hook` | A shiny silver hook with a fat pink worm that wiggles, on a thin line that goes up to a float or boat. | 5 under the Snooze rowboat, 3 single lines with red-and-white floats: by the Hoop, by Gull Rock, by the Tickle Garden. | The line and float are always visible. The bait wiggles on the spot and has no outline (canon 5.2), unlike real food; a metal glint every 2 s is the only other cue. Getting hooked is a joke: a "boing" sound, a flight into the air, a splash back down. |
 | `current` | A stream of fast-moving bubbles and pale streaks, 16 studs wide, with sea grass bending along it. | Six named paths, section 6.8. | Visible from 150 studs. Arrow-shaped bubble bursts show its direction. A whoosh plays on entry. |
 
@@ -455,6 +469,8 @@ W  .  "  "  "  J           I        A       E          ----%%        . E
 | I | Gull Rock | R | Glowgrove | 2 | The Crack |
 | | | S | Hush Hollow | | |
 
+The letters are map keys only. Each landmark's stable ID (`lm_<name>`) is in the ID column of its zone table (sections 6.2 to 6.6).
+
 **Side view.** A west-to-east slice just north of the West and East Passes, bent at the east end to cross the Crack. One character is 30 studs wide; one row is 40 studs of depth.
 
 ```
@@ -492,16 +508,16 @@ depth  WEST                                                              EAST
 | **Rule (canon)** | Nobody can be eaten here. Creatures of tier 3 or higher cannot enter (document 02, section 6.5 has the mechanism). No predators, no hazards, and no trait prey except five scripted Glowfry during a new player's first run. Only a player's very first run starts here; every later run starts at the cove. Prey eaten here gives full mass at tier 1 and half at tier 2 (chapter 05, section 2.1). |
 | **Spawns** | Plankton (cap 12 patches) everywhere. Krill (cap 5 swarms): 3 in Krill Corner, 2 around the Bubble Fountain. A first run adds chapter 04's scripted krill, plankton and Glowfry, drawn only for that player (first-run route, below). |
 
-| Landmark | Position (X, Z) · depth | Size | What it is |
-|---|---|---|---|
-| **Little Arch** | (−290, 290) · 6 to 28 | Opening 50 wide × 22 high, tunnel 25 long | The only way in or out. A pink coral arch with a row of small shell lights. Its Reef end opens into the Elbow (section 6.3). Chapter 04 calls it the Gap. |
-| **Hatch Bed** | (−398, 340) · floor 24 | Sea-grass patch 10 across | Where a new player's egg hatches at the start of their very first run. Nothing starts here after that. |
-| **Glow Grotto** | (−322, 301) · 10 to 26 | Rock shelf 24 wide that juts 15 out of the north-east wall | A shaded overhang 20 studs north-west of Little Arch. Empty, except for the five scripted Glowfry of a first run. |
-| **Bubble Fountain** | (−361, 361) · floor 28 | Ring of stones 12 across, bubble column 8 wide | A column of bubbles that lifts a creature to the surface and pops it into the air. Teaches the breach. |
-| **Krill Corner** | (−418, 304) · 12 to 20 | Sandy bowl 50 across | A bowl where krill always gather. Three krill swarms live here. |
-| **Three Rings** | (−304, 418) · 15 | Three coral rings, each 14 across, 30 apart on a curve | Dash practice. A plankton patch sits inside each ring. |
-| **Sleepy Clam** | (−403, 403) · floor 30 | Giant clam 16 across | Opens and closes slowly and snores bubbles. A shell signpost beside it points to Little Arch. |
-| **Baby Slide** | From Sleepy Clam to Little Arch | Current 110 long, 12 wide | A short, gentle current (+60% speed). Teaches currents and carries leaving players to the exit. |
+| Landmark | ID | Position (X, Z) · depth | Size | What it is |
+|---|---|---|---|---|
+| **Little Arch** | `lm_little_arch` | (−290, 290) · 6 to 28 | Opening 50 wide × 22 high, tunnel 25 long | The only way in or out. A pink coral arch with a row of small shell lights. Its Reef end opens into the Elbow (section 6.3). Chapter 04 calls it the Gap. |
+| **Hatch Bed** | `lm_hatch_bed` | (−398, 340) · floor 24 | Sea-grass patch 10 across | Where a new player's egg hatches at the start of their very first run. Nothing starts here after that. |
+| **Glow Grotto** | `lm_glow_grotto` | (−322, 301) · 10 to 26 | Rock shelf 24 wide that juts 15 out of the north-east wall | A shaded overhang 20 studs north-west of Little Arch. Empty, except for the five scripted Glowfry of a first run. |
+| **Bubble Fountain** | `lm_bubble_fountain` | (−361, 361) · floor 28 | Ring of stones 12 across, bubble column 8 wide | A column of bubbles that lifts a creature to the surface and pops it into the air. Teaches the breach. |
+| **Krill Corner** | `lm_krill_corner` | (−418, 304) · 12 to 20 | Sandy bowl 50 across | A bowl where krill always gather. Three krill swarms live here. |
+| **Three Rings** | `lm_three_rings` | (−304, 418) · 15 | Three coral rings, each 14 across, 30 apart on a curve | Dash practice. A plankton patch sits inside each ring. |
+| **Sleepy Clam** | `lm_sleepy_clam` | (−403, 403) · floor 30 | Giant clam 16 across | Opens and closes slowly and snores bubbles. A shell signpost beside it points to Little Arch. |
+| **Baby Slide** | `lm_baby_slide` | From Sleepy Clam to Little Arch | Current 110 long, 12 wide | A short, gentle current (+60% speed). Teaches currents and carries leaving players to the exit. |
 
 - **Links:** Little Arch only. Its Reef end opens into the Elbow, a 200-stud walled channel that ends 25 studs short of Goby Flats. Cove mouths C16 and C17 are each 140 studs from Little Arch.
 - **Eel holes:** none.
@@ -536,18 +552,18 @@ depth  WEST                                                              EAST
 | **Mood** | A sunny playground: bright warm water, moving light beams, lots of colour and life. Busy, never threatening at first sight. |
 | **Gentle side, risky side** | The west half (near the Nursery) has no Barracuda and no anemones. The east half has both. |
 
-| Key | Landmark | Position (X, Z) · depth | Size | What it is | What lives there |
-|---|---|---|---|---|---|
-| A | **Noggin Rock** | (0, 0) · top 6, base 50 | 70 across, 44 tall | A giant brain coral dome at the exact centre. Visible within fog range (chapter 15 caps the view at 220 studs on Smooth and 350 on Balanced), so not from every cove mouth; the home marker steers beyond that. | Sardine schools circle it. Crystal Jelly route starts here. Moon Tide site. |
-| B | **The Hoop** | (0, −330) · 15 to 45 | Opening 40 wide × 30 tall | A coral arch the Home Loop current runs through. Start of the North Chute. | Sardines, krill. 1 hook nearby. Moon Tide site. |
-| C | **Honeycomb Caves** | (−200, −180) · 20 to 55 | Mound 90 across with 12 holes, each 5 across | A lumpy coral mound full of small dark holes. | Glowfry (6). Krill above it. |
-| D | **The Crackles** | (190, −190) · 40 to 58 | Rubble field, radius 80 | Broken grey rock full of cracks 2 to 3 studs deep. | Urchin Puff (6). Shrimp. On the Barracuda's arc. |
-| E | **Tickle Garden** | (250, 0) · floor 48 | Radius 60 | A field of soft candy-coloured anemones [L]. In [MVP] it is a harmless soft-coral garden. | 14 anemones [L]. Darters between them. 1 hook nearby. |
-| F | **Stripe Alley** | From (110, 110) to (215, 215) · 25 to 55 | 150 long, 24 wide | A narrow coral canyon with tall orange walls. | Zebra Darter (8). Darters. |
-| G | **The Snooze** | (60, 240) · surface | Rowboat hull 22 long | A small rowboat with "The Snooze" painted on it. Its dark hull shows from below. Five fishing lines hang from it. | 5 hooks at depth 8 to 20. |
-| H | **Goby Flats** | (−100, 100) · floor 45 | Open sand, radius 75 | A wide flat patch of pale sand with a few shells. | Dotted Goby (10). Shrimp. Krill above. |
-| I | **Gull Rock** | (−270, 20) · rises above the surface | 30 across, 10 above the water | A rock that breaks the surface, white on top, where the gulls sit. A navigation mark. | Gulls rest here. 1 hook nearby. |
-| (route) | **The Elbow** | From (−281, 281) through the bend at (−210, 210) to (−110, 201) · floor 30 at Little Arch, 56 beyond the first 40 studs | 200 long, 36 wide; walls 20 tall (tops at depth 36) | A walled channel with one 40° bend, running from Little Arch into the Reef and ending 25 studs short of Goby Flats. Smooth rock walls on both sides, open above. The Home Loop current crosses over its first leg, 3 studs clear of the wall tops. Chapter 04 calls it the channel. | Krill and plankton. Nothing dangerous. |
+| Key | Landmark | ID | Position (X, Z) · depth | Size | What it is | What lives there |
+|---|---|---|---|---|---|---|
+| A | **Noggin Rock** | `lm_noggin_rock` | (0, 0) · top 6, base 50 | 70 across, 44 tall | A giant brain coral dome at the exact centre. Visible within fog range (chapter 15 caps the view at 220 studs on Smooth and 350 on Balanced), so not from every cove mouth; the home marker steers beyond that. | Sardine schools circle it. Crystal Jelly route starts here. Moon Tide site. |
+| B | **The Hoop** | `lm_hoop` | (0, −330) · 15 to 45 | Opening 40 wide × 30 tall | A coral arch the Home Loop current runs through. Start of the North Chute. | Sardines, krill. 1 hook nearby. Moon Tide site. |
+| C | **Honeycomb Caves** | `lm_honeycomb_caves` | (−200, −180) · 20 to 55 | Mound 90 across with 12 holes, each 5 across | A lumpy coral mound full of small dark holes. | Glowfry (6). Krill above it. |
+| D | **The Crackles** | `lm_crackles` | (190, −190) · 40 to 58 | Rubble field, radius 80 | Broken grey rock full of cracks 2 to 3 studs deep. | Urchin Puff (6). Shrimp. On the Barracuda's arc. |
+| E | **Tickle Garden** | `lm_tickle_garden` | (250, 0) · floor 48 | Radius 60 | A field of soft candy-coloured anemones [L]. In [MVP] it is a harmless soft-coral garden. | 14 anemones [L]. Darters between them. 1 hook nearby. |
+| F | **Stripe Alley** | `lm_stripe_alley` | From (110, 110) to (215, 215) · 25 to 55 | 150 long, 24 wide | A narrow coral canyon with tall orange walls. | Zebra Darter (8). Darters. |
+| G | **The Snooze** | `lm_snooze` | (60, 240) · surface | Rowboat hull 22 long | A small rowboat with "The Snooze" painted on it. Its dark hull shows from below. Five fishing lines hang from it. | 5 hooks at depth 8 to 20. |
+| H | **Goby Flats** | `lm_goby_flats` | (−100, 100) · floor 45 | Open sand, radius 75 | A wide flat patch of pale sand with a few shells. | Dotted Goby (10). Shrimp. Krill above. |
+| I | **Gull Rock** | `lm_gull_rock` | (−270, 20) · rises above the surface | 30 across, 10 above the water | A rock that breaks the surface, white on top, where the gulls sit. A navigation mark. | Gulls rest here. 1 hook nearby. |
+| (route) | **The Elbow** | `lm_elbow` | From (−281, 281) through the bend at (−210, 210) to (−110, 201) · floor 30 at Little Arch, 56 beyond the first 40 studs | 200 long, 36 wide; walls 20 tall (tops at depth 36) | A walled channel with one 40° bend, running from Little Arch into the Reef and ending 25 studs short of Goby Flats. Smooth rock walls on both sides, open above. The Home Loop current crosses over its first leg, 3 studs clear of the wall tops. Chapter 04 calls it the channel. | Krill and plankton. Nothing dangerous. |
 
 - **Other spawns:** krill swarms hang in mid-water over open sand all across the Reef. Shrimp hop on the floor between coral heads. Sardine schools circle Noggin Rock and the Hoop. Darters hover by coral heads, mostly in the east half. Plankton is everywhere.
 - **Dangers:** Gulls at the surface everywhere. One Barracuda on the east arc (section 5.2). 8 hooks. 24 anemones [L].
@@ -565,18 +581,18 @@ depth  WEST                                                              EAST
 | **Mood** | A dim green hall: tall swaying stalks, slanting light shafts, quiet creaks. Calm but watchful. |
 | **Kelp density** | About 260 stalks (tune) in three densities. Thick stands: stalks 10 apart. Open forest: 25 apart. Lanes: no stalks, 30 wide, used by Mackerel and Barracuda. |
 
-| Key | Landmark | Position (X, Z) · depth | Size | What it is | What lives there |
-|---|---|---|---|---|---|
-| J | **Old Anchor** | (−640, 0) · floor 88 | Anchor 60 tall, chain to a buoy at the surface | A huge rusty anchor at the outer end of the West Pass. "Follow the chain home." | Sardines. End of the Kelp Slide. Feeding Frenzy bait-ball site. |
-| K | **The Tall Stand** | (−676, −390) · floor 120 | Thick stand, radius 140 | The densest, tallest kelp in the forest. | Darters. 2 Moray holes in floor rocks. |
-| L | **Peekaboo Ridge** | (−350, −606) · top 65, base 100 | Rock ridge 180 long, 35 tall | A long rock ridge with five dark holes facing the Kelp Slide. | 5 Morays. Shrimp along its base. |
-| M | **Jelly Meadow** | (−228, −850) · 40 to 110 | Clearing, radius 90 | An open clearing where pink jellies gather. | 3 jelly blooms. Start of the Kelp Slide. |
-| N | **Ribbon Roof** | (0, −800) · canopy 10 to 35 | Canopy patch, radius 130 | The thickest part of the canopy, like a green ceiling. | Ribbonfish (6). Sardines below. Moon Tide site. |
-| O | **Leafy Lane** | (246, −677) · 50 to 90 | 200 long, 40 wide | A lane full of loose, drifting kelp leaves. | Leaf Drifter (5) [L]. Mackerel. Feeding Frenzy site. |
-| P | **Lookout Stack** | (551, −551) · floor 120, rises above the surface | Rock stack 40 across | A tall rock pillar on the border with the Drop-off. From its east side the Wall falls away. | Darters. Crystal Jelly passes here. |
-| Q | **Root Ball** | (−869, −233) · floor 150 | Dome 50 across, hollow | A giant tangle of kelp roots with a hollow inside. | 1 Moray. Shrimp. Eel tunnel start. |
-| R | **Glowgrove** | (−867, 76) · 90 to 140 | Dark pocket, radius 60 | A dark hollow where the stalks carry glowing algae. | Glowfry (4). Eel tunnel end. |
-| S | **Hush Hollow** | (−771, 280) · floor 150 | Bowl, radius 80 | A quiet bowl-shaped clearing with a soft silt floor. | Armor Shrimp (6). Shrimp. Moon Tide site. |
+| Key | Landmark | ID | Position (X, Z) · depth | Size | What it is | What lives there |
+|---|---|---|---|---|---|---|
+| J | **Old Anchor** | `lm_old_anchor` | (−640, 0) · floor 88 | Anchor 60 tall, chain to a buoy at the surface | A huge rusty anchor at the outer end of the West Pass. "Follow the chain home." | Sardines. End of the Kelp Slide. Feeding Frenzy bait-ball site. |
+| K | **The Tall Stand** | `lm_tall_stand` | (−676, −390) · floor 120 | Thick stand, radius 140 | The densest, tallest kelp in the forest. | Darters. 2 Moray holes in floor rocks. |
+| L | **Peekaboo Ridge** | `lm_peekaboo_ridge` | (−350, −606) · top 65, base 100 | Rock ridge 180 long, 35 tall | A long rock ridge with five dark holes facing the Kelp Slide. | 5 Morays. Shrimp along its base. |
+| M | **Jelly Meadow** | `lm_jelly_meadow` | (−228, −850) · 40 to 110 | Clearing, radius 90 | An open clearing where pink jellies gather. | 3 jelly blooms. Start of the Kelp Slide. |
+| N | **Ribbon Roof** | `lm_ribbon_roof` | (0, −800) · canopy 10 to 35 | Canopy patch, radius 130 | The thickest part of the canopy, like a green ceiling. | Ribbonfish (6). Sardines below. Moon Tide site. |
+| O | **Leafy Lane** | `lm_leafy_lane` | (246, −677) · 50 to 90 | 200 long, 40 wide | A lane full of loose, drifting kelp leaves. | Leaf Drifter (5) [L]. Mackerel. Feeding Frenzy site. |
+| P | **Lookout Stack** | `lm_lookout_stack` | (551, −551) · floor 120, rises above the surface | Rock stack 40 across | A tall rock pillar on the border with the Drop-off. From its east side the Wall falls away. | Darters. Crystal Jelly passes here. |
+| Q | **Root Ball** | `lm_root_ball` | (−869, −233) · floor 150 | Dome 50 across, hollow | A giant tangle of kelp roots with a hollow inside. | 1 Moray. Shrimp. Eel tunnel start. |
+| R | **Glowgrove** | `lm_glowgrove` | (−867, 76) · 90 to 140 | Dark pocket, radius 60 | A dark hollow where the stalks carry glowing algae. | Glowfry (4). Eel tunnel end. |
+| S | **Hush Hollow** | `lm_hush_hollow` | (−771, 280) · floor 150 | Bowl, radius 80 | A quiet bowl-shaped clearing with a soft silt floor. | Armor Shrimp (6). Shrimp. Moon Tide site. |
 
 - **Other spawns:** Shrimp on the floor everywhere. Sardine schools under the canopy. Darters inside stands. Mackerel run the lanes and the Kelp Slide.
 - **Dangers:** 8 Morays, 2 Barracudas (loop A: Old Anchor to Hush Hollow; loop B: Leafy Lane to Lookout Stack), 4 jelly blooms.
@@ -594,19 +610,19 @@ depth  WEST                                                              EAST
 | **Mood** | Big, cold and quiet. Blue turns to blue-black with depth. Far shapes move in the dark. The music thins out to low notes. |
 | **In [MVP]** | Groupers, vents, Spark Eels and Vent Snails are absent. The Chimneys are cold stone. Whale's Rest is an empty bowl with a few old bones. |
 
-| Key | Landmark | Position (X, Z) · depth | Size | What it is | What lives there |
-|---|---|---|---|---|---|
-| (strip) | **The Ledge** | r 560 to 680, all along the zone · 70 to 100 | 120 wide | A sunny rock shelf between the Rim and the cliff. Old Scar never comes up here. | Mackerel. 1 Grouper below the Ink Pots [L]. Feeding Frenzy and Moon Tide site at the East Pass. |
-| T | **Ink Pots** | (658, −239) · 140 to 320 | 8 round holes, each 10 across, over 180 of cliff height | Dark round pockets in the Wall, stained blue-black. | Inklet (5). 1 jelly bloom. |
-| U | **The Tin Pickle** | (729, 128) · 220 to 260 | Hull 90 long, 30 wide, 40 tall | A small sunken tugboat, pickle green, lying on a rock shelf that sticks out of the Wall. Its name is on the bow. | Spark Eel (5) [L]. 1 Grouper [L]. Moon Tide site. |
-| 1 | **The Blue Mile** | Around (840, −225), B060 to B140 · 150 to 350 | Open water, 240 wide | A wide band of empty blue water above the Deep Floor. | Tuna. Bonito packs. 1 jelly bloom. Feeding Frenzy site. |
-| V | **Whale's Rest** | (655, 459) · floor 470 | Sandy bowl, radius 80 | A flat pale bowl on the Deep Floor. The Whale Fall site [L]. | Nothing between events. |
-| W | **The Overbite** | (239, 658) · 180 to 230 | Overhang 80 wide, sticks out 40 | A rock overhang shaped like a big lower jaw. | 2 Groupers [L]. Bonito pass below. |
-| X | **The Lift** | (0, 730) · 440 up to 90 | Current column 16 wide | A rising current against the Wall, straight below the South Pass. The fast way home from the deep. | Mackerel ride it. |
-| Y | **The Chimneys** | (−280, 771) · 450 to 470 | 9 chimneys within radius 70 | A cluster of black stone chimneys on the Deep Floor. | 9 vents [L]. Vent Snail (4) [L]. |
-| Z | **Slipstone Slope** | (−566, 566) · 150 down to 450 | Ramp 300 long, 120 wide | A smooth rock ramp on the border with the Kelp Forest. The only way to the Deep Floor without the cliff. | Mackerel. |
-| (path) | **Scar's Run** | Wall face and Deep Floor, B055 to B215 · 250 to 420 | About 2,100 long | Old Scar's patrol path. Marked by long pale scrape marks on the rock. | Old Scar. |
-| 2 | **The Crack** | r 900 to 980, B100 to B170 · 480 | 1,150 long, 80 wide | A long dark split in the Deep Floor, sealed by the Coldline. Mouth of the Trench [P2]. Until then it is sealed scenery. | Nothing until [P2]. |
+| Key | Landmark | ID | Position (X, Z) · depth | Size | What it is | What lives there |
+|---|---|---|---|---|---|---|
+| (strip) | **The Ledge** | `lm_ledge` | r 560 to 680, all along the zone · 70 to 100 | 120 wide | A sunny rock shelf between the Rim and the cliff. Old Scar never comes up here. | Mackerel. 1 Grouper below the Ink Pots [L]. Feeding Frenzy and Moon Tide site at the East Pass. |
+| T | **Ink Pots** | `lm_ink_pots` | (658, −239) · 140 to 320 | 8 round holes, each 10 across, over 180 of cliff height | Dark round pockets in the Wall, stained blue-black. | Inklet (5). 1 jelly bloom. |
+| U | **The Tin Pickle** | `lm_tin_pickle` | (729, 128) · 220 to 260 | Hull 90 long, 30 wide, 40 tall | A small sunken tugboat, pickle green, lying on a rock shelf that sticks out of the Wall. Its name is on the bow. | Spark Eel (5) [L]. 1 Grouper [L]. Moon Tide site. |
+| 1 | **The Blue Mile** | `lm_blue_mile` | Around (840, −225), B060 to B140 · 150 to 350 | Open water, 240 wide | A wide band of empty blue water above the Deep Floor. | Tuna. Bonito packs. 1 jelly bloom. Feeding Frenzy site. |
+| V | **Whale's Rest** | `lm_whales_rest` | (655, 459) · floor 470 | Sandy bowl, radius 80 | A flat pale bowl on the Deep Floor. The Whale Fall site [L]. | Nothing between events. |
+| W | **The Overbite** | `lm_overbite` | (239, 658) · 180 to 230 | Overhang 80 wide, sticks out 40 | A rock overhang shaped like a big lower jaw. | 2 Groupers [L]. Bonito pass below. |
+| X | **The Lift** | `lm_lift` | (0, 730) · 440 up to 90 | Current column 16 wide | A rising current against the Wall, straight below the South Pass. The fast way home from the deep. | Mackerel ride it. |
+| Y | **The Chimneys** | `lm_chimneys` | (−280, 771) · 450 to 470 | 9 chimneys within radius 70 | A cluster of black stone chimneys on the Deep Floor. | 9 vents [L]. Vent Snail (4) [L]. |
+| Z | **Slipstone Slope** | `lm_slipstone_slope` | (−566, 566) · 150 down to 450 | Ramp 300 long, 120 wide | A smooth rock ramp on the border with the Kelp Forest. The only way to the Deep Floor without the cliff. | Mackerel. |
+| (path) | **Scar's Run** | `lm_scars_run` | Wall face and Deep Floor, B055 to B215 · 250 to 420 | About 2,100 long | Old Scar's patrol path. Marked by long pale scrape marks on the rock. | Old Scar. |
+| 2 | **The Crack** | `lm_crack` | r 900 to 980, B100 to B170 · 480 | 1,150 long, 80 wide | A long dark split in the Deep Floor, sealed by the Coldline. Mouth of the Trench [P2]. Until then it is sealed scenery. | Nothing until [P2]. |
 
 - **Other spawns:** Mackerel on the Ledge and along its edge. Bonito packs along the Wall face at depth 120 to 300. Tuna in the Blue Mile. Plankton falls slowly at every depth as "sea snow".
 - **Dangers:** Old Scar (1), Groupers (4) [L], jelly blooms (2), vents (9) [L].
@@ -626,14 +642,14 @@ depth  WEST                                                              EAST
 | **Spawns** | Section 2.3. Prey tiers 5 and 6 only (canon 6): there is no tier 7 prey. Plus 1 extra drift of five Crystal Jellies along the length of the Trench each opening, and 2 Vent Snails on Hot Row (tune). |
 | **Dangers** | 2 Groupers, 2 jelly blooms, 4 vents. Old Scar follows creatures in. |
 
-| Landmark | Place · depth | What it is |
-|---|---|---|
-| **The Crack** | Whole length · 480 | The mouth. Jagged rock lips with the Coldline between them. |
-| **Lantern Field** | B110 · 500 to 540 | Hundreds of thin glowing stalks, soft green. The brightest place in the Trench. |
-| **The Ribs** | B135 · 500 to 580 | Huge old arched bones standing across the Trench like a row of gates. Clean, pale, coral-grown. |
-| **Bubble Stairs** | B120, B145 and B165 · 600 up to 480 | Three bubble columns that lift creatures back out. The exits. |
-| **Hot Row** | B160 · 560 | A line of 4 vents. |
-| **The Quiet** | B150 · 600 | The deepest point in the game: a round bowl of pale silt where Tuna gather. |
+| Landmark | ID | Place · depth | What it is |
+|---|---|---|---|
+| **The Crack** | `lm_crack` | Whole length · 480 | The mouth. Jagged rock lips with the Coldline between them. |
+| **Lantern Field** | `lm_lantern_field` | B110 · 500 to 540 | Hundreds of thin glowing stalks, soft green. The brightest place in the Trench. |
+| **The Ribs** | `lm_ribs` | B135 · 500 to 580 | Huge old arched bones standing across the Trench like a row of gates. Clean, pale, coral-grown. |
+| **Bubble Stairs** | `lm_bubble_stairs` | B120, B145 and B165 · 600 up to 480 | Three bubble columns that lift creatures back out. The exits. |
+| **Hot Row** | `lm_hot_row` | B160 · 560 | A line of 4 cycling vents (section 5.1). |
+| **The Quiet** | `lm_quiet` | B150 · 600 | The deepest point in the game: a round bowl of pale silt where Tuna gather. |
 
 - **Links:** in and out through the Crack only. When the event ends, a cold surge lifts every creature out over 10 s; nobody can be trapped.
 - **Eel holes:** none.
@@ -685,7 +701,7 @@ Coves are spaced 11° apart (12° in the north-west arc), which is 77 to 84 stud
 | **Bubble Count** [L] | A small cluster of bubbles under the sign with the number of Bubbles the cove has received. |
 | **Empty cove** | A kelp curtain hangs across the mouth. No sign, no lantern. |
 
-**Cove assignment** (chapter 04, section 5.5 owns the rule): an account that has never banked gets the free cove nearest Little Arch, in the order C16, C17, C15, C18, then the next nearest. Everyone else gets a free cove away from those four where possible, chosen to keep the four arcs evenly filled. Friends are placed side by side where possible.
+**Cove assignment** (chapter 04, section 5.5 owns the rule): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, Little Arch, in the order C16, C17, C15, C18, then the next nearest. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible (tune). A player who joined a friend gets the nearest free cove to that friend's instead [L].
 
 **First-run route: the trip home.** Chapter 04's Home Current starts at the far end of the Elbow, (−110, 201), 335 studs along the first-run route (section 6.2), and ends 30 studs short of the newcomer's cove mouth. It is drawn only for that player and is gone after the first bank. Straight-line lengths (tune):
 
@@ -750,11 +766,13 @@ All 24 coves share one layout. Document 09 decides whether a cove is built in pl
 |---|---|---|---|
 | **Throat** | Entrance | The tunnel from the mouth. Swimming through it in your own cove banks the run. | [MVP] |
 | **Home Stone** | 15 studs inside, centre | A flat round stone with a spiral mark. Where the player's Fry appears at the start of a run. | [MVP] |
-| **Pearl Clam** | Left of the Home Stone | A large clam that fills with Pearls as the cove earns. It opens when the player swims to it. Fuller clam, bigger pile. | [MVP] |
-| **Specimen perches** | Along both side walls, 4 rows of 5 per side | 40 marked spots, one per cove slot (canon 11: 6 at the start, 30 with Pearls, 40 with the Bigger Cove pass). A specimen swims a slow 6-stud loop at its perch. Locked perches are covered by a kelp net. The lower three rows are slots 1 to 30; the top row is the 10 Bigger Cove slots and shows a pass mark on its nets. | [MVP] |
+| **Pearl Clam** | Left of the Home Stone | A large clam that fills with Pearls as the cove earns. It opens when the owner swims near, to show the pile; the owner claims by tapping the pile (canon 11). Swimming to it or past it never claims. Fuller clam, bigger pile. | [MVP] |
+| **Specimen perches** | Along both side walls, 4 rows of 5 per side | 40 marked spots, one per cove slot (canon 11: 6 at the start, 30 with Pearls, 40 with the Bigger Cove pass). A specimen swims a slow 6-stud loop at its perch. Perch 1 is slot 1, and so on. "Perch" is the one name for this part (not "alcove"). Locked perches are covered by a kelp net. The lower three rows are slots 1 to 30; the top row is the 10 Bigger Cove slots and shows a pass mark on its nets. | [MVP] |
 | **Bank camera point** (`BankCam`) | 30 studs inside, by the right wall, 12 above the floor | Where the camera sits while the bank results show, looking back at the Home Stone and the throat (document 02). | [MVP] |
 | **Trophy Rock** | Centre back | A raised rock with a light beam. The best specimen swims above it. The same specimen shows in the Trophy Bubble outside. | [MVP] |
 | **Codex Stone** | Right of the Home Stone | An open stone book with glowing pages. Opens the Codex. | [MVP] |
+| **Species Wall** | Back wall, left of the Trophy Rock | A smooth patch of wall where the next species the player can unlock shows as a dark silhouette inside a progress ring (Pearls owned out of its price). Tapping it opens that species' card. Chapter 04 lights it at the first bank. | [MVP] |
+| **Tide clock** | Back wall, right of the Trophy Rock | A shell clock with a hand and four picture plates. It shows the next tide event and its countdown, and nothing more. Every cove has one for free; chapter 04 reveals it at the first bank. | [MVP] |
 | **Bubble Jar** | Beside the throat | A glass jar that fills with the Bubbles visitors leave. | [L] |
 | **Decoration spots** | Floor, walls and ceiling | 10 small floor spots, 6 medium floor spots, 3 large floor spots, 6 wall spots, 4 ceiling spots (tune). Section 13. | [L] |
 | **Visitor lane** | Throat to Trophy Rock | The middle strip of the chamber. Visitors stay on it and look; they cannot touch anything. | [L] |
@@ -836,7 +854,7 @@ After launch the :30 slot is the flexible one (canon 10): these events replace i
 
 ## 8. Codex
 
-Canon 11 lists the Codex categories: Species, Tiers per species (called Growth here), Traits and Prey at [MVP], plus Dangers, Places and Tides at [L]. An entry shows as a grey outline until it is filled.
+Canon 11 lists the Codex categories: Species, Tiers (one page per species), Traits and Prey at [MVP], plus Dangers, Places and Tides at [L]. An entry shows as a grey outline until it is filled.
 
 ### 8.1 Categories and rewards
 
@@ -845,11 +863,11 @@ Pearl amounts are chapter 05's (section 3.8) and are paid once per account. The 
 | ID | Category | Tag | Entries at MVP | Entries at launch | How an entry is filled | Pearls per entry (chapter 05) | Reward for completing the category |
 |---|---|---|---|---|---|---|---|
 | `cdx_species` | Species | [MVP] | 3 | 6 | Start a run as the species | None | Family Portrait decoration + Pearls R3 (175) |
-| `cdx_growth` | Growth | [MVP] | 21 | 42 | Reach the tier in a run as that species (no banking needed) | Tiers 2 to 7: 25 / 50 / 100 / 200 / 400 / 800 | Per species page (7 tiers): 500 Pearls + that species' Codex pattern (section 1.3). All pages: title "Leviathan Maker" + Pearls R5 (5,000) |
+| `cdx_tiers` | Tiers | [MVP] | 21 | 42 | Reach the tier in a run as that species (no banking needed) | Tiers 2 to 7: 25 / 50 / 100 / 200 / 400 / 800 | Per species page (7 tiers): 500 Pearls + that species' Codex pattern (section 1.3). All pages: title "Leviathan Maker" + Pearls R5 (5,000) |
 | `cdx_traits` | Traits | [MVP] | 9 | 13 | Gain the trait in a run | Common 100, Uncommon 200, Rare 400, Epic 800, Mythic 1,500 | Trait Totem decoration + Pearls R4 (2,500) |
 | `cdx_prey` | Prey | [MVP] | 17 | 21 | Eat one | Ordinary prey 20, trait prey 30 | Prey Mobile decoration + Pearls R3 (175) |
 | `cdx_dangers` | Dangers | [L] | None | 9 | Come within 30 studs of it, or get caught by it | None | Danger Board decoration + Pearls R3 (175) |
-| `cdx_places` | Places | [L] | None | 30 | Swim within 40 studs of the landmark | None | Sea Globe decoration + Pearls R3 (175) |
+| `cdx_places` | Places | [L] | None | 30 | Swim within 40 studs of the landmark (entry key: its `lm_*` ID) | None | Sea Globe decoration + Pearls R3 (175) |
 | `cdx_tides` | Tides | [L] | None | 3 | Eat 10 prey during the event | None | Tide Chart decoration + Pearls R2 (125) |
 | `cdx_all` | Whole Codex | [L] | 50 | 124 | Complete every category above | None | Badge "Know-It-All" + title "Reef Scholar" + Pearls R5 (5,000) |
 
@@ -860,11 +878,11 @@ Post-launch species, traits, places and events add entries to their categories. 
 | Category | Entries |
 |---|---|
 | **Species** | [MVP] Minnow, Pufferfish, Eel. [L] Sea Turtle, Squid, Shark Pup. |
-| **Growth** | One page per species, each with 7 entries: Fry, Nibbler, Snapper, Hunter, Brute, Titan, Leviathan. Shark Pup's Fry entry is filled on first play, because it starts at tier 2. |
+| **Tiers** | One page per species, each with 7 entries: Fry, Nibbler, Snapper, Hunter, Brute, Titan, Leviathan. Shark Pup's Fry entry is filled on first play, because it starts at tier 2. |
 | **Traits** | [MVP] Glow, Stripes, Spots, Plated, Spiny, Longfin, Ink, Crystal, Moonlit. [L] Spark, Camo, Ember, Bonefed. |
 | **Prey** | [MVP] Plankton mote, Krill, Tiny Shrimp, Sardine, Reef Darter, Mackerel, Bonito, Tuna, Glowfry, Zebra Darter, Dotted Goby, Armor Shrimp, Urchin Puff, Ribbonfish, Inklet, Crystal Jelly, Lunar Fry. [L] Spark Eel, Leaf Drifter, Vent Snail, Marrow chunk. |
 | **Dangers** | [L] Gull, Moray, Barracuda, Grouper, Old Scar, Jelly bloom, Anemone, Thermal vent, Fishing hook. |
-| **Places** | [L] Nursery: Little Arch. Reef: Noggin Rock, the Hoop, Honeycomb Caves, the Crackles, Tickle Garden, Stripe Alley, the Snooze, Goby Flats, Gull Rock. Kelp: Old Anchor, the Tall Stand, Peekaboo Ridge, Jelly Meadow, Ribbon Roof, Leafy Lane, Lookout Stack, Root Ball, Glowgrove, Hush Hollow. Drop-off: the Ledge, Ink Pots, the Tin Pickle, the Blue Mile, Whale's Rest, the Overbite, the Lift, the Chimneys, Slipstone Slope, the Crack. |
+| **Places** | [L] Nursery: Little Arch. Reef: Noggin Rock, the Hoop, Honeycomb Caves, the Crackles, Tickle Garden, Stripe Alley, the Snooze, Goby Flats, Gull Rock. Kelp: Old Anchor, the Tall Stand, Peekaboo Ridge, Jelly Meadow, Ribbon Roof, Leafy Lane, Lookout Stack, Root Ball, Glowgrove, Hush Hollow. Drop-off: the Ledge, Ink Pots, the Tin Pickle, the Blue Mile, Whale's Rest, the Overbite, the Lift, the Chimneys, Slipstone Slope, the Crack. Each entry is saved under the landmark's ID from sections 6.2 to 6.5 (`lm_little_arch`, `lm_noggin_rock` … `lm_crack`). The other landmarks (the rest of the Nursery, the Elbow, Scar's Run and the Trench landmarks) have IDs but are not Codex entries. |
 | **Tides** | [L] Feeding Frenzy, Moon Tide, Whale Fall. |
 
 ## 9. Daily goals · [MVP]
@@ -984,64 +1002,66 @@ Ten bands of five ranks. Entering a band gives a **title** (shown on the Name Sh
 
 ## 13. Cove decorations · [L]
 
-Decorations arrive at launch (canon). They are for looks only and never change stats, except that the Tide Clock really shows the next event and the Dinner Bell really rings.
+Decorations arrive at launch (canon). They are for looks only and never change stats, except that the Tide Clock really shows the next event and the Dinner Bell really rings. The Tide Clock decoration is a brass second face for the free shell tide clock every cove already has (section 6.10): it shows the same next event and no more.
 
 There are 50, of which 46 arrive at launch; chapter 05, section 4.3 has the same count and owns the prices. 18 are bought with Pearls in price bands D1 to D4, on eight shop shelves that open at Reef Rank 1, 6, 11, 16, 21, 26, 31 and 36 (section 11). The rest are earned or bought another way: 11 free from Reef Rank, 6 free from the Codex, 4 free from daily-goal milestones, 7 from tide events (3 at launch), 1 in the Starter Pack and 3 for Robux (49, 99 and 149; chapter 05, section 8.5). The login streak gives no decoration, because canon 11 makes its rewards Pearls only. The four Monument decorations chapter 05 plans for [P1] are not named yet.
 
 **Size classes:** S fits a 4 × 4 stud spot, M fits 8 × 8, L fits 14 × 14. **Mounts:** floor, wall, ceiling. A cove has 10 small floor spots, 6 medium floor spots, 3 large floor spots, 6 wall spots and 4 ceiling spots (tune); a smaller item may use a bigger spot of the same mount.
 
-| ID | Name | Appearance brief | Size · mount | How obtained | Tag |
-|---|---|---|---|---|---|
-| `deco_shell_pile` | Shell Pile | A heap of five mixed shells, pink and cream | S · floor | Pearls D1 · shelf 1 | [L] |
-| `deco_sea_fan` | Sea Fan | A flat pink coral fan that sways | S · floor | Pearls D1 · shelf 1 | [L] |
-| `deco_bubble_stone` | Bubble Stone | A round grey stone with a crack that leaks a thin stream of bubbles | S · floor | Pearls D1 · shelf 1 | [L] |
-| `deco_starfish_trio` | Starfish Trio | Three starfish, orange, red and purple, stuck to the wall | S · wall | Pearls D1 · shelf 2 | [L] |
-| `deco_glow_sprouts` | Glow Sprouts | Three small sea plants with softly glowing teal tips | S · floor | Pearls D1 · shelf 2 | [L] |
-| `deco_old_pot` | Old Pot | A cracked clay pot; a tiny crab peeks out now and then | S · floor | Pearls D2 · shelf 2 | [L] |
-| `deco_kelp_curtain` | Kelp Curtain | A hanging row of green kelp strands that sway | M · ceiling | Pearls D2 · shelf 3 | [L] |
-| `deco_sand_castle` | Sand Castle | A three-tower sand castle with a shell flag | M · floor | Pearls D2 · shelf 3 | [L] |
-| `deco_clam_couch` | Clam Couch | A big open clam with a soft pink cushion inside | M · floor | Pearls D2 · shelf 3 | [L] |
-| `deco_rusty_anchor` | Rusty Anchor | A small anchor leaning on a rock, with barnacles | M · floor | Pearls D2 · shelf 4 | [L] |
-| `deco_porthole` | Porthole | A round brass ship window that glows soft blue | S · wall | Pearls D2 · shelf 4 | [L] |
-| `deco_lantern_string` | Lantern String | A string of six small glowing shell lanterns | M · ceiling | Pearls D3 · shelf 4 | [L] |
-| `deco_bottle_ship` | Ship in a Bottle | A large glass bottle with a tiny sailing ship inside | M · floor | Pearls D3 · shelf 5 | [L] |
-| `deco_net_hammock` | Net Hammock | A fishing net slung as a hammock, with a starfish asleep in it | M · ceiling | Pearls D3 · shelf 5 | [L] |
-| `deco_coral_arch` | Coral Arch | A tall arch of orange and pink coral to swim through | L · floor | Pearls D3 · shelf 6 | [L] |
-| `deco_treasure_barrel` | Treasure Barrel | An open barrel spilling gold coins and beads | M · floor | Pearls D4 · shelf 6 | [L] |
-| `deco_mini_volcano` | Mini Volcano | A small stone cone that puffs warm orange bubbles every 10 s | L · floor | Pearls D4 · shelf 7 | [L] |
-| `deco_golden_minnow` | Golden Minnow | A gold statue of a leaping Minnow on a stone base | M · floor | Pearls D4 · shelf 8 | [L] |
-| `deco_rank_pebble_tower` | Pebble Tower | Seven smooth pebbles balanced in a stack | S · floor | Reef Rank 3 | [L] |
-| `deco_rank_bubble_fountain` | Bubble Fountain | A stone ring with a steady column of bubbles, like the one in the Nursery | M · floor | Reef Rank 6 | [L] |
-| `deco_rank_shell_throne` | Shell Throne | A giant scallop-shell chair with a pearl on top | L · floor | Reef Rank 11 | [L] |
-| `deco_rank_reef_map` | Reef Map | A painted map of the whole reef on stretched sailcloth | M · wall | Reef Rank 16 | [L] |
-| `deco_rank_kelp_swing` | Kelp Swing | A seat hanging on two kelp ropes; it swings slowly | M · ceiling | Reef Rank 21 | [L] |
-| `deco_rank_pearl_lamp` | Giant Pearl Lamp | A pearl the size of a beach ball in an open clam, glowing white | M · floor | Reef Rank 26 | [L] |
-| `deco_rank_tide_clock` | Tide Clock | A brass clock with four pictures; its hand points to the next tide event | M · wall | Reef Rank 31 | [L] |
-| `deco_rank_diving_helmet` | Diving Helmet | An old brass diving helmet with a small fish living inside | M · floor | Reef Rank 36 | [L] |
-| `deco_rank_storm_glass` | Storm Glass | A glass globe holding a tiny swirling storm cloud with sparks | S · floor | Reef Rank 41 | [L] |
-| `deco_rank_leviathan_statue` | Leviathan Statue | A dark stone statue of a huge sea creature rising from waves | L · floor | Reef Rank 46 | [L] |
-| `deco_rank_golden_gulp` | Golden Gulp | A gold trophy: an open fish mouth around a pearl | M · floor | Reef Rank 50 | [L] |
-| `deco_evt_dinner_bell` | Dinner Bell | A brass ship's bell on a post. It rings by itself when a Feeding Frenzy starts | S · floor | Event: eat 500 prey during Feeding Frenzies (lifetime) | [L] |
-| `deco_evt_moon_lamp` | Moon Lamp | A glowing crescent moon on a stand, shedding slow silver motes | M · floor | Event: eat 25 Lunar Fry (lifetime) | [L] |
-| `deco_evt_whale_rib` | Whale Rib Arch | Two tall white rib bones with glowing algae, meeting as an arch | L · floor | Event: eat 25 Marrow chunks (lifetime) | [L] |
-| `deco_evt_storm_bottle` | Lightning in a Bottle | A corked bottle with a small bolt of lightning bouncing inside | S · floor | Event: survive 5 Storms without being struck | [P1] |
-| `deco_evt_trench_lantern` | Trench Lantern | A tall glowing green stalk from the Lantern Field in a stone pot | M · floor | Event: reach the Quiet in the Trench | [P2] |
-| `deco_evt_red_bloom` | Red Bloom | A glass jar of slowly swirling rust-red water | S · floor | Event: eat 300 prey inside a Red Tide (lifetime) | [P1] |
-| `deco_evt_fish_kite` | Fish Kite | A silver cloth fish on a string that flutters as if in a current | M · ceiling | Event: follow the Great Migration from start to end | [P1] |
-| `deco_cdx_family_portrait` | Family Portrait | A framed picture of the six launch species in a row | M · wall | Codex: complete Species | [L] |
-| `deco_cdx_prey_mobile` | Prey Mobile | A hanging mobile of eight small wooden prey that turn slowly | M · ceiling | Codex: complete Prey | [L] |
-| `deco_cdx_trait_totem` | Trait Totem | A tall carved pole with one face per trait, each lit in its trait colour | L · floor | Codex: complete Traits | [L] |
-| `deco_cdx_danger_board` | Danger Board | A cork board with funny "watch out" posters of each predator | M · wall | Codex: complete Dangers | [L] |
-| `deco_cdx_sea_globe` | Sea Globe | A water-filled glass globe with a tiny model of the whole map | M · floor | Codex: complete Places | [L] |
-| `deco_cdx_tide_chart` | Tide Chart | A wall chart with a picture for each tide event | S · wall | Codex: complete Tides | [L] |
-| `deco_streak_sun_shell` | Sun Shell | A golden scallop that glows like a small sun | S · floor | Daily goals: all three done on 3 days (lifetime) | [L] |
-| `deco_streak_week_wheel` | Week Wheel | A small ship's wheel with seven shells on its rim | S · wall | Daily goals: all three done on 7 days (lifetime) | [L] |
-| `deco_streak_lucky_starfish` | Lucky Starfish | A smiling golden starfish that waves one arm | S · floor | Daily goals: all three done on 14 days (lifetime) | [L] |
-| `deco_streak_message_bottle` | Message in a Bottle | A corked bottle with a rolled note; it bobs gently | S · floor | Daily goals: all three done on 28 days (lifetime) | [L] |
-| `deco_buy_gold_chest` | Golden Chest | An open chest overflowing with Pearls, softly glowing | M · floor | Purchase: Starter Pack | [L] |
-| `deco_buy_disco_clam` | Disco Clam | A clam holding a mirror-ball pearl that throws moving dots of light | M · floor | Purchase: Robux | [L] |
-| `deco_buy_jelly_lamp` | Jelly Lamp | A tall glass tube with slow glowing blobs shaped like jellies | S · floor | Purchase: Robux | [L] |
-| `deco_buy_mini_pickle` | Mini Tin Pickle | A 12-stud model of the tugboat wreck with lit windows | L · floor | Purchase: Robux | [L] |
+**How obtained** is one short line written for the player: chapter 08 shows it unchanged as the decoration's "how to get it" text (`decoitem.<id>.how`). **Source** is the data behind that line: the price band and shop shelf, the Reef Rank, the Codex category, the count of full goal days, or the `stats.events` counter and count that chapter 09 checks (section 12.2). Every count is a lifetime total.
+
+| ID | Name | Appearance brief | Size · mount | How obtained (shown to the player) | Source | Tag |
+|---|---|---|---|---|---|---|
+| `deco_shell_pile` | Shell Pile | A heap of five mixed shells, pink and cream | S · floor | Buy it with Pearls in the shop. | Pearls D1 · shelf 1 | [L] |
+| `deco_sea_fan` | Sea Fan | A flat pink coral fan that sways | S · floor | Buy it with Pearls in the shop. | Pearls D1 · shelf 1 | [L] |
+| `deco_bubble_stone` | Bubble Stone | A round grey stone with a crack that leaks a thin stream of bubbles | S · floor | Buy it with Pearls in the shop. | Pearls D1 · shelf 1 | [L] |
+| `deco_starfish_trio` | Starfish Trio | Three starfish, orange, red and purple, stuck to the wall | S · wall | Buy it with Pearls in the shop. Opens at Reef Rank 6. | Pearls D1 · shelf 2 | [L] |
+| `deco_glow_sprouts` | Glow Sprouts | Three small sea plants with softly glowing teal tips | S · floor | Buy it with Pearls in the shop. Opens at Reef Rank 6. | Pearls D1 · shelf 2 | [L] |
+| `deco_old_pot` | Old Pot | A cracked clay pot; a tiny crab peeks out now and then | S · floor | Buy it with Pearls in the shop. Opens at Reef Rank 6. | Pearls D2 · shelf 2 | [L] |
+| `deco_kelp_curtain` | Kelp Curtain | A hanging row of green kelp strands that sway | M · ceiling | Buy it with Pearls in the shop. Opens at Reef Rank 11. | Pearls D2 · shelf 3 | [L] |
+| `deco_sand_castle` | Sand Castle | A three-tower sand castle with a shell flag | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 11. | Pearls D2 · shelf 3 | [L] |
+| `deco_clam_couch` | Clam Couch | A big open clam with a soft pink cushion inside | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 11. | Pearls D2 · shelf 3 | [L] |
+| `deco_rusty_anchor` | Rusty Anchor | A small anchor leaning on a rock, with barnacles | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 16. | Pearls D2 · shelf 4 | [L] |
+| `deco_porthole` | Porthole | A round brass ship window that glows soft blue | S · wall | Buy it with Pearls in the shop. Opens at Reef Rank 16. | Pearls D2 · shelf 4 | [L] |
+| `deco_lantern_string` | Lantern String | A string of six small glowing shell lanterns | M · ceiling | Buy it with Pearls in the shop. Opens at Reef Rank 16. | Pearls D3 · shelf 4 | [L] |
+| `deco_bottle_ship` | Ship in a Bottle | A large glass bottle with a tiny sailing ship inside | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 21. | Pearls D3 · shelf 5 | [L] |
+| `deco_net_hammock` | Net Hammock | A fishing net slung as a hammock, with a starfish asleep in it | M · ceiling | Buy it with Pearls in the shop. Opens at Reef Rank 21. | Pearls D3 · shelf 5 | [L] |
+| `deco_coral_arch` | Coral Arch | A tall arch of orange and pink coral to swim through | L · floor | Buy it with Pearls in the shop. Opens at Reef Rank 26. | Pearls D3 · shelf 6 | [L] |
+| `deco_treasure_barrel` | Treasure Barrel | An open barrel spilling gold coins and beads | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 26. | Pearls D4 · shelf 6 | [L] |
+| `deco_mini_volcano` | Mini Volcano | A small stone cone that puffs warm orange bubbles every 10 s | L · floor | Buy it with Pearls in the shop. Opens at Reef Rank 31. | Pearls D4 · shelf 7 | [L] |
+| `deco_golden_minnow` | Golden Minnow | A gold statue of a leaping Minnow on a stone base | M · floor | Buy it with Pearls in the shop. Opens at Reef Rank 36. | Pearls D4 · shelf 8 | [L] |
+| `deco_rank_pebble_tower` | Pebble Tower | Seven smooth pebbles balanced in a stack | S · floor | Reach Reef Rank 3. | Free · Reef Rank 3 | [L] |
+| `deco_rank_bubble_fountain` | Bubble Fountain | A stone ring with a steady column of bubbles, like the one in the Nursery | M · floor | Reach Reef Rank 6. | Free · Reef Rank 6 | [L] |
+| `deco_rank_shell_throne` | Shell Throne | A giant scallop-shell chair with a pearl on top | L · floor | Reach Reef Rank 11. | Free · Reef Rank 11 | [L] |
+| `deco_rank_reef_map` | Reef Map | A painted map of the whole reef on stretched sailcloth | M · wall | Reach Reef Rank 16. | Free · Reef Rank 16 | [L] |
+| `deco_rank_kelp_swing` | Kelp Swing | A seat hanging on two kelp ropes; it swings slowly | M · ceiling | Reach Reef Rank 21. | Free · Reef Rank 21 | [L] |
+| `deco_rank_pearl_lamp` | Giant Pearl Lamp | A pearl the size of a beach ball in an open clam, glowing white | M · floor | Reach Reef Rank 26. | Free · Reef Rank 26 | [L] |
+| `deco_rank_tide_clock` | Tide Clock | A brass clock with four pictures; its hand points to the next tide event, the same as the cove's free shell tide clock | M · wall | Reach Reef Rank 31. | Free · Reef Rank 31 | [L] |
+| `deco_rank_diving_helmet` | Diving Helmet | An old brass diving helmet with a small fish living inside | M · floor | Reach Reef Rank 36. | Free · Reef Rank 36 | [L] |
+| `deco_rank_storm_glass` | Storm Glass | A glass globe holding a tiny swirling storm cloud with sparks | S · floor | Reach Reef Rank 41. | Free · Reef Rank 41 | [L] |
+| `deco_rank_leviathan_statue` | Leviathan Statue | A dark stone statue of a huge sea creature rising from waves | L · floor | Reach Reef Rank 46. | Free · Reef Rank 46 | [L] |
+| `deco_rank_golden_gulp` | Golden Gulp | A gold trophy: an open fish mouth around a pearl | M · floor | Reach Reef Rank 50. | Free · Reef Rank 50 | [L] |
+| `deco_evt_dinner_bell` | Dinner Bell | A brass ship's bell on a post. It rings by itself when a Feeding Frenzy starts | S · floor | Eat 500 prey during Feeding Frenzies. | Event · `frenzy_prey` 500 (lifetime) | [L] |
+| `deco_evt_moon_lamp` | Moon Lamp | A glowing crescent moon on a stand, shedding slow silver motes | M · floor | Eat 25 Lunar Fry during Moon Tides. | Event · `lunar_fry` 25 (lifetime) | [L] |
+| `deco_evt_whale_rib` | Whale Rib Arch | Two tall white rib bones with glowing algae, meeting as an arch | L · floor | Eat 25 Marrow chunks at Whale Falls. | Event · `marrow` 25 (lifetime) | [L] |
+| `deco_evt_storm_bottle` | Lightning in a Bottle | A corked bottle with a small bolt of lightning bouncing inside | S · floor | Get through 5 Storms without being struck. | Event · `storms_survived` 5 (lifetime) | [P1] |
+| `deco_evt_trench_lantern` | Trench Lantern | A tall glowing green stalk from the Lantern Field in a stone pot | M · floor | Reach the Quiet, deep in the Trench. | Event · `trench_quiet` 1 | [P2] |
+| `deco_evt_red_bloom` | Red Bloom | A glass jar of slowly swirling rust-red water | S · floor | Eat 300 prey inside Red Tides. | Event · `red_tide_prey` 300 (lifetime) | [P1] |
+| `deco_evt_fish_kite` | Fish Kite | A silver cloth fish on a string that flutters as if in a current | M · ceiling | Follow the Great Migration from start to end. | Event · `migrations_followed` 1 | [P1] |
+| `deco_cdx_family_portrait` | Family Portrait | A framed picture of the six launch species in a row | M · wall | Fill every Species entry in the Codex. | Codex · `cdx_species` complete | [L] |
+| `deco_cdx_prey_mobile` | Prey Mobile | A hanging mobile of eight small wooden prey that turn slowly: the eight ordinary prey of canon 8.1, Plankton mote to Tuna (not all 21 Prey entries) | M · ceiling | Fill every Prey entry in the Codex. | Codex · `cdx_prey` complete | [L] |
+| `deco_cdx_trait_totem` | Trait Totem | A tall carved pole with one face per trait, each lit in its trait colour | L · floor | Fill every Traits entry in the Codex. | Codex · `cdx_traits` complete | [L] |
+| `deco_cdx_danger_board` | Danger Board | A cork board with funny "watch out" posters of each predator | M · wall | Fill every Dangers entry in the Codex. | Codex · `cdx_dangers` complete | [L] |
+| `deco_cdx_sea_globe` | Sea Globe | A water-filled glass globe with a tiny model of the whole map | M · floor | Fill every Places entry in the Codex. | Codex · `cdx_places` complete | [L] |
+| `deco_cdx_tide_chart` | Tide Chart | A wall chart with a picture for each tide event | S · wall | Fill every Tides entry in the Codex. | Codex · `cdx_tides` complete | [L] |
+| `deco_goals_sun_shell` | Sun Shell | A golden scallop that glows like a small sun | S · floor | Finish all three daily goals on 3 days. | Daily goals · 3 full days (lifetime) | [L] |
+| `deco_goals_week_wheel` | Week Wheel | A small ship's wheel with seven shells on its rim | S · wall | Finish all three daily goals on 7 days. | Daily goals · 7 full days (lifetime) | [L] |
+| `deco_goals_lucky_starfish` | Lucky Starfish | A smiling golden starfish that waves one arm | S · floor | Finish all three daily goals on 14 days. | Daily goals · 14 full days (lifetime) | [L] |
+| `deco_goals_message_bottle` | Message in a Bottle | A corked bottle with a rolled note; it bobs gently | S · floor | Finish all three daily goals on 28 days. | Daily goals · 28 full days (lifetime) | [L] |
+| `deco_buy_gold_chest` | Golden Chest | An open chest overflowing with Pearls, softly glowing | M · floor | Comes with the Starter Pack. | Starter Pack (chapter 05) | [L] |
+| `deco_buy_disco_clam` | Disco Clam | A clam holding a mirror-ball pearl that throws moving dots of light | M · floor | Buy it with Robux in the shop. | Robux (chapter 05, section 8.5) | [L] |
+| `deco_buy_jelly_lamp` | Jelly Lamp | A tall glass tube with slow glowing blobs shaped like jellies | S · floor | Buy it with Robux in the shop. | Robux (chapter 05, section 8.5) | [L] |
+| `deco_buy_mini_pickle` | Mini Tin Pickle | A 12-stud model of the tugboat wreck with lit windows | L · floor | Buy it with Robux in the shop. | Robux (chapter 05, section 8.5) | [L] |
 
 ## 14. Quick emotes · [L]
 
@@ -1093,13 +1113,13 @@ Friendly, short, a little funny, readable by a nine-year-old, easy to translate.
 | **Tide events** | Feeding Frenzy, Moon Tide, Whale Fall; later Storm, The Trench Opens, Red Tide, Great Migration | |
 | **Passes and currents** | North Pass, East Pass, South Pass, West Pass, Little Arch; Home Loop, North Chute, East Chute, Kelp Slide, Wall Run, the Lift, Baby Slide | "Chute" and "Slide" = something you ride down. |
 | **Landmarks** | All names in sections 6.2 to 6.6 | Noggin = a playful word for head (the rock looks like a brain). The Snooze = a short nap. The Tin Pickle = a silly boat name. Peekaboo = the baby's hiding game. The Overbite = a jaw that sticks out. The Elbow = a channel with one bend, like a bent arm. |
-| **Cove parts** | Name Shell, Trophy Bubble, Door Lantern, Home Stone, Pearl Clam, Trophy Rock, Codex Stone, Bubble Jar | |
+| **Cove parts** | Name Shell, Trophy Bubble, Door Lantern, Home Stone, Pearl Clam, Trophy Rock, Codex Stone, Species Wall, tide clock, Bubble Jar | |
 | **Reef Rank titles** | Bubble Blower, Sand Scooter, Shell Seeker, Reef Rover, Kelp Creeper, Pearl Hunter, Tide Rider, Deep Diver, Storm Chaser, Leviathan Keeper, Reef Legend; Codex titles Leviathan Maker, Reef Scholar | Two words: a sea thing plus a doer. |
 | **Currencies and terms** | Mass, Pearls, Bubbles, Codex, Reef Rank, specimen, scraps, run, bank, gulped | Canon glossary. |
 
 ### 15.3 Short strings
 
-These are source briefs for tone. Chapter 08, section 14 owns the final string keys and text and wins wherever it differs; no build reads the `str_*` keys below. `{braces}` are filled in by the game.
+These are source briefs for tone. Chapter 08, section 14 owns the final string keys and text and wins wherever it differs; no build reads the `str_*` keys below. `{braces}` are filled in by the game; `{max}` is 5, or 4 with the Keen Nose pass.
 
 | Key | Text | Tag |
 |---|---|---|
@@ -1109,7 +1129,7 @@ These are source briefs for tone. Chapter 08, section 14 owns the final string k
 | `str_hint_red` | Red means run! | [MVP] |
 | `str_hint_home` | Swim home to keep it all. | [MVP] |
 | `str_tier_up` | You grew! Now you are a {tier}. | [MVP] |
-| `str_trait_progress` | {trait}: {n} of 5 | [MVP] |
+| `str_trait_progress` | {trait}: {n} of {max} | [MVP] |
 | `str_trait_gained` | New trait: {trait}! | [MVP] |
 | `str_trait_full` | Trait slots full. Tap one, then hold to drop it. | [MVP] |
 | `str_bank_done` | Home safe! +{n} Pearls | [MVP] |

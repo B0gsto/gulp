@@ -141,7 +141,7 @@ All ScreenGuis: `ResetOnSpawn = false`, `ZIndexBehavior = Sibling`.
 | S10 | Toasts | [MVP] | Toast | No | Any time |
 | S11 | Gulped panel (with the revive offer; Trait Lock offer [L]) | [MVP] | Panel | Yes (run is over) | After being gulped |
 | S12 | Bank summary | [MVP] | Panel | Yes (safe) | On banking |
-| S13 | Cove-full choice | [MVP] | Panel | Yes (safe) | Inside the bank summary |
+| S13 | Cove-full choice | [MVP] | Panel | Yes (safe) | Inside the bank summary; alone, on join, when a specimen is pending (4.6) |
 | S14 | Cove HUD | [MVP] | HUD | No | Own cove |
 | S15 | Offline claim | [MVP] | Dialog | Yes (safe) | Own cove, on arrival |
 | S16 | Specimen grid | [MVP] | Menu | Yes (safe) | Own cove, visit (read only) |
@@ -164,8 +164,9 @@ All ScreenGuis: `ResetOnSpawn = false`, `ZIndexBehavior = Sibling`.
 | S33 | Guide layer (first-time prompts) | [MVP] | Overlay | No | Driven by chapter 04 |
 | S34 | Starter Pack card | [L] | Offer card | No | Own cove |
 | S35 | Species unlocked | [MVP] | Moment | Yes (safe) | Species select |
+| S36 | Continue your run (a suspended run, on rejoin) | [MVP] | Dialog | Yes (safe: the creature has not appeared yet) | On join, after loading (8.3) |
 
-35 screens and overlays: 27 [MVP], 8 [L].
+36 screens and overlays: 28 [MVP], 8 [L].
 
 ### 2.2 Flow
 
@@ -177,7 +178,12 @@ JOIN
  v
 [S01 Loading] --first session--> Nursery Lagoon: [S03 Run HUD] + [S33 Guide] (chapter 04 script)
       |
-      +--returning player--> own cove: [S15 Offline claim] -> [S26 Gifts, once a day] -> [S14 Cove HUD]
+      +--suspended run (left mid-run, back in time)--> [S36 Continue your run]
+      |        |-- Continue your run --> [S03 Run HUD], where the run stopped
+      |        \-- Start fresh --> own cove, as a returning player (next line)
+      |
+      +--returning player--> own cove: ([S13 Cove-full choice], only if a specimen is pending)
+                             -> [S15 Offline claim] -> [S26 Gifts, once a day] -> [S14 Cove HUD]
 
 [S14 Cove HUD]
  |-- dock: Creatures -> [S22 Species select] -> [S19 Confirm] -> [S35 Species unlocked]
@@ -191,6 +197,7 @@ JOIN
  |                            \-> Add a slot -> [S18 Slot upgrade] -> [S19 Confirm]
  |-- rank badge -----> [S30 Reef Rank track]
  |-- tide clock -----> [S05 Tide popover] -> Call the Tide -> Roblox purchase prompt
+ |-- Species Wall ---> [S22 Species select], on the next species' card
  |-- gear -----------> [S31 Settings] -> [S32 Private reef info]
  |-- offer card -----> [S34 Starter Pack card] -> Roblox purchase prompt -> [S28]
  \-- swim out of the cove mouth --> [S03 Run HUD]
@@ -211,7 +218,7 @@ ANY TIME: [S02 Reconnect], [S10 Toasts]
 
 - Every menu, dialog and popover has one close control in the same place (top right of the panel, 88 rpx hit area). Tapping the scrim outside the panel also closes it. Esc is taken by the Roblox menu, so on desktop the close key is **Backspace**; on a gamepad [L] it is **B**.
 - Menus do not stack more than two deep (menu, then dialog). Closing a dialog returns to the menu under it; closing a menu returns to the cove HUD.
-- The gulped panel, bank summary, cove-full choice and offline claim have no close control; each ends with a button that moves the player on.
+- The gulped panel, bank summary, cove-full choice, offline claim and the Continue your run card (S36) have no close control; each ends with a button that moves the player on.
 - If the player's safe state ends while a menu is open (for example the cove owner leaves during a visit), the menu closes in 150 ms.
 
 ## 3. The in-run HUD (S03)
@@ -434,7 +441,7 @@ Outlines are not an interface effect. They are mesh shells drawn by the world on
 
 | Target | Outline | Rule |
 |---|---|---|
-| Prey, players and wild creatures [L] the player can eat now | Edible (green) | Within 120 studs (tune) |
+| Prey, players and wild creatures [L] the player can eat now. Also the two predators that can be eaten: a Barracuda, and a Grouper [L], when the player is at least one tier above it (canon 5.2). | Edible (green) | Within 120 studs (tune). The Gull, the Moray and Old Scar can never be eaten and never show green. |
 | Players, wild creatures [L] and predators that can eat the player now | Danger (red, pulsing to white twice a second and 1.5 × thicker, in every mode) | Always when on screen, at any distance |
 | Plankton and hook bait | None | Always (canon 5.2) |
 | Everything else | None | Same-tier players, tier 1 players, anything in safe water |
@@ -495,7 +502,7 @@ A centred row of 48 rpx icons, each with a ring that drains over the effect's le
 | Icon | Tag | When |
 |---|---|---|
 | `UI_HUD_StatusStun` | [MVP] | Jelly sting, Spark stun |
-| `UI_HUD_StatusShield` | [MVP] | 3 s protection after a revive; Shell and Puff while active |
+| `UI_HUD_StatusShield` | [MVP] | 3 s protection after a revive or after continuing a suspended run (8.3); Shell and Puff while active |
 | `UI_HUD_StatusHidden` | [MVP] | Inside an ink cloud, Camo active |
 | `UI_HUD_StatusSlow` | [L] | Anemone |
 | `UI_HUD_StatusBurn` | [L] | Inside a thermal vent |
@@ -526,6 +533,7 @@ Six icon emotes, no text. Roblox text chat is off in the MVP and the game never 
 | Emotes | In chapter 03's order: `UI_Emote_Hi`, `UI_Emote_ThisWay`, `UI_Emote_LookOut`, `UI_Emote_Thanks`, `UI_Emote_HaHa`, `UI_Emote_Oops` (IDs `em_hi`, `em_this_way`, `em_look_out`, `em_thanks`, `em_ha_ha`, `em_oops`) |
 | Result | The icon shows in a bubble (`UI_Emote_WorldBubble`) above the creature for 2.5 s, visible to creatures within the distance chapter 03 sets (120 studs, tune); `SFX_UI_Emote` |
 | Limit | One emote every 3 s; the button shows a cooldown wedge |
+| Hidden | A player who turns on "Hide emotes" in settings (6.7) sees no emote bubble above other creatures and hears no `SFX_UI_Emote` from them. Their own wheel still works. |
 | Desktop and gamepad | Desktop: hold T, move the mouse toward a slot or press 1 to 6, release. Gamepad: hold D-pad down, pick with the right stick, release. There are no direct emote keys (F1 to F6 are not sent by Mac laptops and Chromebooks). Chapter 15, section 3.3 owns the bindings. |
 
 ## 4. Moment overlays
@@ -576,9 +584,9 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 |                              by (icon) Barracuda (T4)                                    |
 |                                                                                          |
 |    +---------- what you lost ----------+     +---------- keep going ------------+        |
-|    | (T4) Hunter            mass 86    |     | [ (revive) Revive      R$ price ]|        |
-|    | (tr) (tr) (tr)   greyed out       |     | [ (video)  Watch to revive ] [L] |        |
-|    | Scraps    o +26   Beginner bonus  |     | [ (lock)   Keep traits R$ ]  [L] |        |
+|    | (T4) Hunter            mass 86    |     | [ (video)  Watch to revive ] [L] |        |
+|    | (tr) (tr) (tr)   greyed out       |     | [ (revive) Revive      R$ price ]|        |
+|    | Scraps    o +129  Beginner bonus  |     | [ (lock)   Keep traits R$ ]  [L] |        |
 |    +-----------------------------------+     +----------------------------------+        |
 |                                                                                          |
 |                                                                       [ Swim again ]     |
@@ -595,7 +603,8 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 
 | Part | Detail |
 |---|---|
-| What you lost | Tier badge and name, final mass, trait icons greyed out. Scraps row: `UI_Moment_Scraps`, Pearls counted up over 400 ms. For the first three deaths on the account the row adds `gulped.beginner`. |
+| What you lost | Tier badge and name, final mass, trait icons greyed out. Scraps row: `UI_Moment_Scraps`, Pearls counted up over 400 ms. For the first three deaths on the account the row adds `gulped.beginner`. (The wireframe shows such a death: 86 mass would bank 258 Pearls, and the beginner rate of 50% pays 129; the normal 10% would pay 26.) |
+| Order of the "keep going" column | Top to bottom, as chapter 05 (section 9) sets it: Watch to revive [L] when a video is available, then Revive, then Keep traits [L]. The free way back is never below the paid one. |
 | Swim again | Primary button, 280 × 96, bottom right (zone A). Always present. Leads to the cove as a Fry in under 3 s. |
 | Revive | Offer O1, product `prod_revive`. Secondary size (360 × 80). Icon `UI_Moment_Revive`, `gulped.revive`, `gulped.revive_note`, live Robux price (price from chapter 05). Opens the Roblox purchase prompt. Shown only when all three are true (canon 5.5): the revive has not been used this run; this is not the account's first death; the lost creature had 30 mass or more (tier 3). |
 | Watch to revive [L] | Offer O2, placement `ad_revive`. Same size, `UI_Common_Video` icon, `gulped.revive_video`. Shown under the same three conditions as Revive, and only when a rewarded video is available for this player. It counts as the run's one revive. |
@@ -613,7 +622,7 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 |  | Mass                                   86            |   |   [ 3D creature ]     |    |
 |  | (trait) Crystal                        x1.5          |   |   (T4) Hunter         |    |
 |  | (pass)  Deep Pockets                   x2            |   |   (tr) (tr) (tr)      |    |
-|  | ---------------------------------------------        |   |   o 120 an hour       |    |
+|  | ---------------------------------------------        |   |   o 32 an hour        |    |
 |  |  o  774                          New best!           |   |   New specimen!       |    |
 |  +------------------------------------------------------+   +-----------------------+    |
 |  New in Codex (icon)(icon)(icon)     Reef Rank [=====---] 12      goals (g) (g) (g)      |
@@ -627,7 +636,7 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 | 2 | 300 ms | Mass row appears |
 | 3 | 600 ms | One row per multiplier, 300 ms apart (Crystal, Deep Pockets) |
 | 4 | after step 3 | Pearl total counts up over 1,000 ms with `SFX_UI_PearlTick` every 60 ms, ends with `SFX_UI_PearlBurst`. `bank.best` and `UI_Moment_PersonalBest` if it is the player's best run. |
-| 5 | +200 ms | Specimen card flips in (400 ms, `SFX_UI_BankCard`): 3D render, tier, traits, Pearls an hour, `bank.new_specimen` |
+| 5 | +200 ms | Specimen card flips in (400 ms, `SFX_UI_BankCard`): 3D render, tier, traits, Pearls an hour, `bank.new_specimen`. (In the wireframe a Hunter earns 18 an hour; Crystal and two Common traits add 80%, which gives 32.) |
 | 6 | +300 ms | Bottom row: Codex entries found this run (150 ms apart, `SFX_UI_CodexNew`), Reef Rank bar [L], the three daily goal icons with any progress made |
 | 7 | on Continue | Pearls fly to the cove HUD Pearl chip (500 ms). Panel out (150 ms). Cove HUD in (250 ms). |
 
@@ -642,7 +651,7 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 |  New:  +---------+     Your cove (lowest earners first, scrolls)                |
 |        | 3D      |     +------+ +------+ +------+ +------+ +------+             |
 |        | (T4)    |     | card | | card | |[card]| | card | | card |             |
-|        | o 120/h |     | o 10 | | o 20 | | o 40 | | o 40 | | o 80 |             |
+|        | o 32/h  |     | o 10 | | o 20 | | o 40 | | o 40 | | o 80 |             |
 |        +---------+     +------+ +------+ +------+ +------+ +------+             |
 |  Cove is full. Pick one to release.                                             |
 |  [ Release new one  o +refund ]   [ Release picked  o +refund ]   [ More slots ]|
@@ -654,7 +663,8 @@ Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`,
 | Release new one | Releases the creature just banked. Refund shown on the button (amount from chapter 05). |
 | Release picked | Disabled until a card is picked. Hold 600 ms to confirm (or tap, then `common.yes`). |
 | More slots | Opens S18. Returning with a free slot keeps the new specimen without releasing anything. |
-| No close, no timer | The player must choose. If the player disconnects here, the new creature is released and refunded (assumption for chapter 02). |
+| No close, no timer | The player must choose, and leaving never chooses for them. If the player disconnects here, nothing is released and nothing is refunded: the new creature is saved as a pending specimen (`pendingSpecimen`; chapter 02, sections 11.5 and 11.6; chapter 09, section 12.2) and this choice is shown again on return. |
+| On return | On the next join the choice opens by itself in the cove before anything else: before the offline claim (S15), the gifts (S26) and the cove HUD. It uses the bank summary's frame without the Pearls table (those Pearls were paid when the run was banked): `full.title`, `full.pick`, the waiting creature under `full.new`, the cards and the same three buttons. It stays until the player chooses, however many times they leave. |
 | Feedback | The released creature swims out of the cove mouth (chapter 06); `SFX_UI_Release` |
 
 ### 4.7 Event banners (S09) [MVP]
@@ -691,7 +701,7 @@ Toasts stack at `HUD.Toasts` (two visible, five queued, same kind merges into on
 | Moment | Detail |
 |---|---|
 | Species unlocked | Over species select, 1,200 ms: the silhouette fills with colour from left to right, `UI_Common_Rays` behind, `species.unlocked` with the species name, `SFX_UI_SpeciesUnlock`. The card becomes Picked. Any tap ends it. |
-| Purchase result | Over the shop, 1,500 ms: the item's art at 192 rpx, `shop.thanks`, `SFX_UI_Purchase`. Any tap ends it. The item card then shows its new state. |
+| Purchase result | Over the shop, 1,500 ms: the item's art at 192 rpx (a live render for a pattern or a decoration [L]), `shop.thanks`, `SFX_UI_Purchase`. Any tap ends it. The item card then shows its new state. A decoration bought from the tray plays it over decoration mode (5.6). |
 
 ## 5. Cove screens
 
@@ -701,7 +711,7 @@ Toasts stack at `HUD.Toasts` (two visible, five queued, same kind merges into on
 +------------------------------------------------------------------------------------------+
 | [R]        (rank 12)   [ o 12,480 (+) ]   [ o 340 an hour ]   [ 7/12 ]       (TIDE)[gear]|
 |                                                                               0:45       |
-|                                                                                          |
+|        back wall (3D):  [Species Wall: next species]   (Trophy Rock)   [tide clock]      |
 |                       specimens swim around the cove (3D)                                |
 |                    (o) one Pearl pile at the Pearl Clam: tap it to claim                 |
 |                                                                                          |
@@ -724,13 +734,15 @@ In the cove the player is a Fry and can still swim and dash. The run HUD's mass 
 
 **Badges.** A red dot (`UI_Common_Badge`) with a count sits on a dock button only when something free is waiting: Daily (goal reward or gift to claim), Creatures (a species became affordable), Codex (new entries). The Shop button never carries a badge.
 
-**In the world (BillboardGuis)**
+**In the world (BillboardGuis, and SurfaceGuis on the back wall)**
 
 | Element | Tag | Detail |
 |---|---|---|
 | Cove nameplate | [MVP] | At every cove mouth: `UI_Cove_Nameplate` with the owner's display name and a 3D render of their best specimen. [L] adds the Bubble count. Readable from 80 studs. |
 | Specimen tag | [MVP] | Tier badge (32 rpx) above each specimen within 60 studs |
 | Pearl pile | [MVP] | Cove income collects in one pile at the Pearl Clam (canon 11). `UI_Cove_IncomeBubble` (72 rpx) floats above the clam with the amount, and reads `cove.pile_full` when the pile has stopped growing. Tapping the pile or the bubble claims it. Nothing is claimed by swimming past: income is never claimed automatically. |
+| Species Wall | [MVP] | On the back wall, left of the Trophy Rock (chapter 03, section 6.10). A SurfaceGui 256 × 256 rpx on the wall patch (`M_Cove_SpeciesWall`, chapter 07) shows the next species the player can unlock: its portrait (`UI_Species_PortraitPuffer` and so on) tinted to a flat dark silhouette, inside a progress ring made of two `UI_Common_RingHalf` that fills to Pearls owned out of the price, with `species.need` under it. When the price is reached the ring is full, `UI_Common_RingPulse` beats at 1 Hz and the label is `species.unlock`. Tapping the wall (it is far larger than 88 rpx on screen from the Home Stone) opens species select (S22) on that species' card. Hidden until chapter 04 lights it at the first bank; empty once every species is owned. No new image. |
+| Tide clock | [MVP] | On the back wall, right of the Trophy Rock: the shell clock every cove has for free (`M_Cove_TideClock`, chapter 07). The mesh has the hand and the four picture plates; the interface adds only the countdown under it (m:ss, Number 28, the same value as `HUD.TideClock`), readable from 60 studs. It shows the next tide and its countdown and nothing more (chapter 03): the tide board [L] and Call the Tide stay in the tide popover (S05), which opens from `HUD.TideClock`. Hidden until chapter 04 reveals it at the first bank. |
 | Cove Boost bubble | [L] | Offer O12. A second bubble beside the Pearl Clam: `UI_Shop_CoveBoost` at 56 rpx in an 88 rpx hit area, with `cove.boost` and the exact Pearls. Tapping it opens the Cove Boost dialog (5.4). Shown under the O12 conditions only. |
 | Leaving | [MVP] | No button. The player swims out of the cove mouth to start a run. |
 
@@ -745,7 +757,7 @@ Menu frame (6.0). Grid of cards, five columns, scrolls vertically.
 |   3D render    |   static ViewportFrame of the real creature with its traits
 |                |
 | (tr)(tr)(tr)   |   up to three trait icons, 32 rpx
-|  o 120 an hour |
+|  o 32 an hour  |
 +----------------+   150 x 196, frame by highest trait rarity
 ```
 
@@ -766,7 +778,7 @@ Dialog 880 × 560.
 |---|---|
 | Left, 360 × 360 | 3D render that turns slowly; drag to spin it |
 | Right, top | Species name, tier badge and tier name, mass, `spec.banked` with the date |
-| Right, middle | `spec.traits`: one row per trait with icon, name, rarity and cove income bonus (for example +50%). `spec.no_traits` when there are none. |
+| Right, middle | `spec.traits`: one row per trait with icon, name, rarity and cove income bonus (for example +35% for a Rare trait). `spec.no_traits` when there are none. |
 | Right, bottom | Pearls an hour (`common.per_hour`), `spec.best` tag if it is the best |
 | Release | Secondary button, bottom right, `spec.release` with the refund (amount from chapter 05). Hold 600 ms, then S19 asks `spec.release_ask` with `spec.release_note`. |
 | Read-only mode | In another player's cove: no Release button; the title shows the owner's name |
@@ -776,7 +788,7 @@ Dialog 880 × 560.
 | Item | Detail |
 |---|---|
 | Claim all | Pearl sprites fly from the pile to `Cove.Pearls` (500 ms), the balance counts up, `SFX_UI_Claim`, light haptic. The button hides until more is ready. |
-| Offline claim (the welcome-back card) | On arriving in the cove after joining, if 10 or more Pearls (tune) are waiting in the pile: dialog 640 × 420 with `UI_Cove_OfflineArt`, `offline.title`, `offline.away` (time away), the amount, and `common.claim` as the primary button. Income is never claimed without a tap (canon 11): a smaller amount shows no dialog and waits in the pile for Claim all. |
+| Offline claim (the welcome-back card) | On arriving in the cove after joining, if 10 or more Pearls (tune) are waiting in the pile: dialog 640 × 420 with `UI_Cove_OfflineArt`, `offline.title`, `offline.away` (time away), one total, and `common.claim` as the primary button. The total is everything waiting in the cove's one pile, shown as a single Pearl number that counts up over 600 ms; there is no list per specimen. Income is never claimed without a tap (canon 11): a smaller amount shows no dialog and waits in the pile for Claim all. |
 | Capped | If the pile stopped growing the dialog adds `offline.cap` (8 hours, or 24 with Tide Watcher). [L]: one line `offline.pass_row` for players without Tide Watcher, from the second session on. |
 | Cove Boost [L] | Offer O12 (chapter 05, section 8.3). A second, smaller button on the offline claim: `cove.boost` with the exact amount, which is 2 hours of the cove's income paid at once (canon 12). It opens the Cove Boost dialog. If the Tide Watcher line also qualifies, only the Cove Boost button shows (O-R6). |
 | Cove Boost dialog [L] | 520 × 320, S19 frame: `UI_Shop_CoveBoost`, `product.cove_boost`, the exact Pearls. Buttons, in this order: `cove.boost_video` with `UI_Common_Video` (placement `ad_cove_boost`, only when a video is available), then `cove.boost_buy` with the live Robux price (product `prod_cove_boost`), then the close cross. One Cove Boost a day, bought or by video. |
@@ -802,7 +814,7 @@ Dialog 640 × 420: `UI_Cove_SlotArt`, `slot.title`, slots now and after (for exa
 |                 the cove from a pulled-back camera; grid cells light up                  |
 |                          [item]   (Move) (Turn) (Put away)                               |
 |                                                                                          |
-| [ tray: (deco x2) (deco) (deco: Rank 8) (deco: o price) ...  scrolls sideways          ] |
+| [ tray: (deco x2) (deco) (deco: Rank 8) (deco: o price) (deco: R$ price) ...  scrolls  ] |
 +------------------------------------------------------------------------------------------+
 ```
 
@@ -812,8 +824,23 @@ Dialog 640 × 420: `UI_Cove_SlotArt`, `slot.title`, slots now and after (for exa
 | Tray | Full width × 136 rpx at the bottom. Items 104 rpx: live 3D render of the decoration (`M_Prop_*`), count owned. No images are needed per decoration. |
 | Place | Drag an item from the tray into the cove. Cells show `UI_Cove_DecoCell` in the valid or invalid tint. Dropping on an invalid cell returns the item and shows `deco.cant`. |
 | Edit | Tap a placed item: three 88 rpx buttons appear above it: `UI_Cove_DecoMove` (drag), `UI_Cove_DecoTurn` (45° per tap), `UI_Cove_DecoStore` (back to the tray) |
-| Locked items | Show the Reef Rank needed (`deco.rank`) or a Pearl price (price from chapter 05); buying uses S19 |
+| Locked items | Shown dimmed, with what is needed to get them. That depends on how chapter 03 says the decoration is obtained: the table below has every case. Buying with Pearls uses S19; buying with Robux is offer O15 (section 9). |
 | Done | Top right, 200 × 88. Every drop is saved at once, so leaving or disconnecting loses nothing. |
+
+**Tray item states, by how the decoration is obtained.** The 50 decorations, their IDs and their names are chapter 03's (section 13); the prices are chapter 05's (sections 4.3 and 8.5). All of it is [L].
+
+| Group (ID pattern) | Count | State in the tray while locked | How it becomes owned |
+|---|---|---|---|
+| Pearl items (`deco_<name>`) | 18 | Pearl icon and Pearl price (price from chapter 05). Before the Reef Rank that opens its shelf: `deco.rank` in place of the price. | A tap, then S19 |
+| Reef Rank (`deco_rank_*`) | 11 | `deco.rank` | Free at that rank (6.6) |
+| Codex (`deco_cdx_*`) | 6 | `UI_Common_Lock`; a tap shows the line `decoitem.<id>.how` (14.13) in a chip above the item for 3 s | Free for completing that Codex category (6.2) |
+| Daily-goal milestones (`deco_goals_*`) | 4 | `UI_Common_Lock` and a bar of days done out of 3, 7, 14 or 28; a tap shows `decoitem.<id>.how` | Free when all three daily goals have been done on that many days (6.3) |
+| Tide events (`deco_evt_*`) | 7 (3 at launch) | `UI_Common_Lock`; a tap shows `decoitem.<id>.how` | Free for the event task chapter 03 sets |
+| Starter Pack (`deco_buy_gold_chest`, the Golden Chest) | 1 | `deco.starter`. From the second session on, a tap opens the shop at the Starter Pack banner (6.4). It is never sold on its own. | Comes with `prod_starter_pack` |
+| Robux (`deco_buy_jelly_lamp`, `deco_buy_disco_clam`, `deco_buy_mini_pickle`) | 3 | The Robux glyph and the live Robux price under the render. A tap opens a dialog (S19 frame, 520 × 420) holding the decoration's item card (6.4); only the price button on that card opens the Roblox purchase prompt. | One purchase, kept for good (offer O15) |
+
+- Chapter 05 (section 8.5) sells the Robux decorations "on the decoration shelf beside the Pearl items": in the tray they sit straight after the Pearl items. They never carry a badge (O-R4), and nothing with a Robux price shows in the first two minutes of a first session (O-R7).
+- A decoration that has just become owned, by any route, carries `UI_Common_New` in the tray until it is first placed.
 
 ### 5.7 Visiting another cove (S21) and leaving a Bubble [L]
 
@@ -888,7 +915,7 @@ Six cards of 164 × 380 with 12 rpx gaps fit without scrolling. Later species sc
 
 ### 6.2 Codex (S23) and entry page (S24) [MVP]
 
-Tabs: `codex.tab_species`, `codex.tab_traits`, `codex.tab_food` [MVP]; `codex.tab_dangers`, `codex.tab_places`, `codex.tab_tides` [L] (canon 11). Chapter 03, section 8 owns the categories, the entries and how each is filled. Tiers are not a tab: they are the seven pips on each species entry. The header shows a progress bar and `codex.found` for the open tab.
+One tab per category of chapter 03 (section 8.1), in its order: `codex.tab_species` (`cdx_species`), `codex.tab_tiers` (`cdx_tiers`), `codex.tab_traits` (`cdx_traits`), `codex.tab_prey` (`cdx_prey`) [MVP]; `codex.tab_dangers` (`cdx_dangers`), `codex.tab_places` (`cdx_places`), `codex.tab_tides` (`cdx_tides`) [L] (canon 11). Chapter 03, section 8 owns the categories, the entries, how each is filled and what each pays. The Tiers tab has one page per species; the same seven tiers also show as pips on each species card (6.1). The header shows a progress bar and `codex.found` for the open tab.
 
 Grid: cells of 128 × 148 (icon 96, name), seven columns.
 
@@ -903,8 +930,9 @@ Tapping a cell opens the entry page (dialog 760 × 520). Arrows on its left and 
 | Tab | Entry page content |
 |---|---|
 | Creatures [MVP] (3 in the MVP, 6 at launch) | Portrait 256, name, feel line, ability icon with name and description, seven tier badges (lit when reached with this species), `codex.banked` count, `codex.best_mass` |
+| Tiers [MVP] (3 pages of 7 in the MVP, 6 pages at launch) | The grid has one cell per species: its head icon and seven pips of `UI_Common_Pip`, one lit for each tier reached with it. The page: the species name, then under `codex.sizes` the seven tier badges at 96 in a row, each with its tier name and the Pearls it pays the first time it is reached (tiers 2 to 7; amounts from chapter 05). A tier not reached yet is a silhouette. Under the row, `codex.page_reward` with the Pearls for filling the page and, [L], a live render of that species' Codex pattern in `UI_Species_PatternFrame`. Every reward is paid once per account. |
 | Traits [MVP] (9 in the MVP, 13 at launch) | Icon 128 in its rarity frame, name, rarity, effect line, `codex.from` with the trait prey's icon (shown as unknown until that prey is found), cove income bonus, `codex.gained` count |
-| Food [MVP] (8 prey + 9 trait prey in the MVP, 13 trait prey at launch) | Icon 128, name, tier badge, zone icons (`UI_Codex_ZoneNursery`, `UI_Codex_ZoneReef`, `UI_Codex_ZoneKelp`, `UI_Codex_ZoneDropoff`) under `codex.where`, `codex.eaten` count, and for trait prey `codex.gives` with the trait icon |
+| Prey [MVP] (8 prey + 9 trait prey in the MVP, 13 trait prey at launch) | Icon 128, name, tier badge, zone icons (`UI_Codex_ZoneNursery`, `UI_Codex_ZoneReef`, `UI_Codex_ZoneKelp`, `UI_Codex_ZoneDropoff`) under `codex.where`, `codex.eaten` count, and for trait prey `codex.gives` with the trait icon |
 | Dangers [L] (9) | Predator or hazard icon 128 (`UI_Icon_PredGull` and so on, `UI_Icon_HazardJellyBloom` and so on), name, the tier it eats up to or its effect line (text from chapter 03), zone icons under `codex.where`, `codex.met` count |
 | Places [L] (30) | The zone icon of the landmark's zone at 128, the landmark's name and one line (text from chapter 03), `codex.visited` with the date. No picture per landmark is needed. |
 | Tides [L] (3) | Event icon 128 (`UI_Icon_EventFrenzy`, `UI_Icon_EventMoonTide`, `UI_Icon_EventWhaleFall`), name, the event's one line, `codex.tide_when` with its place in the hourly rotation |
@@ -930,6 +958,7 @@ Tapping a cell opens the entry page (dialog 760 × 520). Arrows on its left and 
 | Swap | An 88 rpx button `UI_Daily_Swap` on each unfinished row replaces that goal with another of the same difficulty. The line under the list says what the next swap costs. |
 | Swap: free [MVP] | One free swap a day for every player (chapter 05, section 3.5): `goals.swap_free`. After it is used, the swap buttons hide in the MVP. |
 | Swap: Goal Reroll [L] | Offer O13, after the free swap is used. Tapping a swap button opens a small dialog (S19 frame) with up to two buttons: `goals.swap_video` with `UI_Common_Video` (placement `ad_goal_reroll`, only when a video is available, once a day) and `goals.swap_buy` with the live Robux price (product `prod_goal_reroll`, up to three a day; limits from chapter 05). |
+| Milestone [L] | One row under the reset line, 1000 × 88, for the four daily-goal milestone decorations (`deco_goals_sun_shell`, `deco_goals_week_wheel`, `deco_goals_lucky_starfish`, `deco_goals_message_bottle`; chapter 03, section 13). It shows a live render of the next one at 72 rpx, a progress bar, and `goals.milestone` with the days on which all three goals were done and the days it needs (3, 7, 14 or 28; a lifetime count that a missed day never resets). When the bar fills, the decoration is given free and waits in the decoration tray with `UI_Common_New` (5.6); the row moves to the next one and hides after the fourth. Nothing is sold on this row. |
 
 ```
 | [Goals]   +------+ +------+ +------+ +------+ +------+ +------+ +-----------+ |
@@ -956,19 +985,20 @@ Tapping a cell opens the entry page (dialog 760 × 520). Arrows on its left and 
 | [Pearls]  |    art    | |    art    | |    art    | |    art    |               |
 | [Boosts]  | Deep      | | Bigger    | | Tide      | | Keen Nose |               |
 | [Pattern] | Pockets   | | Cove      | | Watcher   | |           |               |
-|           | 2x Pearls | | +10 slots | | Tide board| | 4, not 5  |               |
+| [Decor.]  | 2x Pearls | | +10 slots | | Tide board| | 4, not 5  |               |
 |           | [R$ price]| | [ Owned ] | | [R$ price]| | [R$ price]|               |
 |           +-----------+ +-----------+ +-----------+ +-----------+               |
 ```
 
 | Tab | Tag | Items |
 |---|---|---|
-| Passes | [MVP] | `pass_deep_pockets`, `pass_bigger_cove` [MVP]; `pass_tide_watcher`, `pass_keen_nose`, `pass_shark_pup` [L]. From the second session until bought, the Starter Pack banner (`prod_starter_pack`, 1000 × 140) sits above the cards [L]. |
+| Passes | [MVP] | `pass_deep_pockets`, `pass_bigger_cove` [MVP]; `pass_tide_watcher`, `pass_keen_nose`, `pass_shark_pup` [L]. From the second session until bought, the Starter Pack banner (`prod_starter_pack`, 1000 × 140) sits above the cards [L]. It names what is inside with `starter.what` and shows it: the Pearls, the `pat_minnow_sunrise` pattern and the Golden Chest decoration (`deco_buy_gold_chest`), the last two as live renders at 96 rpx. |
 | Pearls | [MVP] | Four Pearl packs: `prod_pearls_s`, `prod_pearls_m`, `prod_pearls_l`, `prod_pearls_xl` |
 | Boosts | [L] | Cove Boost (`prod_cove_boost`), Goal Reroll (`prod_goal_reroll`), Call the Tide (`prod_call_tide`). Trait Lock is not here: it is sold only on the gulped panel (4.4). |
 | Patterns | [L] | Patterns grouped by species (IDs `pat_*`, chapter 05, section 8.5) |
+| Decorations | [L] | The three Robux decorations (chapter 05, section 8.5): `deco_buy_jelly_lamp`, `deco_buy_disco_clam`, `deco_buy_mini_pickle`. Each is an item card with a live 3D render in place of art, its name (`decoitem.<id>`, 14.13) and the line `deco.desc`. The same three also sit in the decoration tray (5.6). The Golden Chest (`deco_buy_gold_chest`) has no card: it comes only in the Starter Pack. Pearl decorations are bought in the tray, not here. The tab uses the dock's `UI_Cove_DockDeco` as its icon and `shop.tab_decorations` as its label. |
 
-Purchase IDs are owned by chapter 05 (canon 16) and are used here unchanged. Text keys are formed from them: `pass.<name>` for `pass_<name>` and `product.<name>` for `prod_<name>`.
+Purchase IDs are owned by chapter 05 (canon 16) and are used here unchanged. Text keys are formed from them: `pass.<name>` for `pass_<name>` and `product.<name>` for `prod_<name>`. The Robux decorations keep chapter 05's IDs (`deco_buy_<name>`) and take their names from chapter 03 like every other decoration (`decoitem.<id>`, 14.13).
 
 **Item card** 232 × 340 (`UI_Shop_Card`): art 192, name (Body 24), one line of description (Small 22, two lines at most), price button 200 × 72 (`UI_Common_ButtonRobux`, Robux glyph, live price). Every price is "price from chapter 05" and is read from Roblox at run time, never typed into the interface, because Roblox may show a different regional price.
 
@@ -976,14 +1006,14 @@ Purchase IDs are owned by chapter 05 (canon 16) and are used here unchanged. Tex
 |---|---|
 | For sale | As above |
 | Pending | After the tap: spinner in the button until the Roblox prompt closes |
-| Owned (passes, patterns) | Owned sprite, tick, `common.owned`; no button |
+| Owned (passes, patterns, decorations) | Owned sprite, tick, `common.owned`; no button. An owned decoration waits in the decoration tray (5.6); after the Starter Pack is bought, the Golden Chest is there too. |
 | Held (Call the Tide) | The player holds a token that has not started: the held-token chip with `tide.called_wait` shows the number held beside the price button, and replaces it at three tokens, the most a player can hold (chapter 02, section 14.7) |
 | Used today (Cove Boost, Goal Reroll) | The daily limit from chapter 05 is reached: `shop.tomorrow`, button disabled |
 | Unavailable | The price could not be loaded: `shop.unavailable`, button disabled |
 
 **Robux purchase flow:** tap the price button; Roblox shows its own purchase prompt (it cannot be restyled or replaced); on success S28 plays and the card updates; on cancel the card returns to For sale with no message; on an error `toast.buy_failed`.
 
-**Pearl purchase flow (S19 confirm dialog)** for species, slots and decorations: dialog 520 × 320 with the item picture and name, `shop.cost`, `shop.after` (balance after), buttons `common.cancel` and `common.buy`. If the player cannot afford it: `shop.need_more` and `shop.get_pearls` (opens the Pearls tab; it never opens a Robux prompt directly).
+**Pearl purchase flow (S19 confirm dialog)** for species, slots and Pearl decorations: dialog 520 × 320 with the item picture and name, `shop.cost`, `shop.after` (balance after), buttons `common.cancel` and `common.buy`. If the player cannot afford it: `shop.need_more` and `shop.get_pearls` (opens the Pearls tab; it never opens a Robux prompt directly).
 
 ### 6.5 Ranks (S29) [L]
 
@@ -1022,13 +1052,16 @@ A side panel 360 rpx wide and the full safe height, docked to the right edge, sl
 | Vibration | [MVP] | Toggle | Off, on | On | Phone; gamepad [L] |
 | Tap instead of hold | [MVP] | Toggle | Off, on | Off | All |
 | Bigger text | [L] | Toggle | Off, on | Off | All |
+| Hide emotes | [L] | Toggle (`settings.hide_emotes`). The row icon is `UI_Emote_Hi` drawn at 48 rpx, so no new image is needed. | Off, on | Off | All. It arrives with the emote wheel (S06); in the MVP there are no emotes and this row is absent. |
 | Language | [L] | List | Same as Roblox, then each supported language in its own name | Same as Roblox | All |
 | Private reef | [L] | Row that opens S32 | | | All |
 | Reset settings | [MVP] | Button, then S19 with `settings.reset_ask` | | | All |
 | Version | [MVP] | Text `settings.version` | | | All |
 
 - Chapter 15 owns the ranges and defaults of the control settings (sections 3.1 and 3.3). The panel shows only the rows for the input in use, and settings that describe the device (scheme, look speeds, flip, swap sticks, graphics) are saved per input type, so a phone setting never lands on a PC.
+- Drag sensitivity and Two-thumb look speed [L] are two saved values, not one: they mean different things (how far the thumb moves for full speed; how fast the view turns) and chapter 15 (section 3.1) gives them different ranges. Chapter 09's save has one `lookSpeed` per input type, so the touch type needs a second field when the two-thumb scheme arrives (section 19).
 - Each row is 328 × 88: icon 48, label above, control below. A change applies at once and is saved to the profile; sliders play `SFX_UI_Tap` at the new volume.
+- "Hide emotes" [L] is the setting chapter 02 (section 17.1) defines: while it is on, this player sees no emote bubble (`UI_Emote_WorldBubble`) above any other creature and hears no `SFX_UI_Emote` from them. The player's own emote button and wheel stay, and other players still see what this player sends. It is saved as `hideEmotes` in the profile's settings (chapter 09, section 12.2) and, like every setting that describes the player and not the device, it follows the account to every device.
 - "Graphics" changes GULP's own effects only (particle counts, prey draw distance, water effects, outline quality). Roblox's own graphics quality lives in the Roblox menu and scripts cannot change it.
 
 ### 6.8 Private reef info (S32) [L]
@@ -1108,9 +1141,39 @@ Full screen: dimmed `UI_Load_Background`, `UI_Load_Reconnect` art (192 rpx), a t
 | Case | Trigger | Text | Action |
 |---|---|---|---|
 | Save not loaded | The player's save could not be opened | `reconnect.save_title`, `reconnect.save_body`, spinner | Retries every 5 s, three times, then shows `common.retry` (rejoins) |
-| Server update | The server is closing for a new version | `reconnect.update_title`, `reconnect.update_body` | Moves the player by itself |
+| Server update | The server is closing for a new version | `reconnect.update_title`, `reconnect.update_body` | Moves the player by itself. A run that was in progress is offered back on arrival (8.3). |
 | Connection lost | Roblox drops the connection | Roblox shows its own dialog on top; it cannot be replaced. Behind it: `reconnect.lost_title` and, only if the last save was confirmed, `reconnect.saved`. | Roblox's own button |
 | Weak connection | No server reply for 5 s | `HUD.Lag` icon, then `reconnect.weak` in the moment slot | None; play continues |
+
+### 8.3 Continue your run (S36) [MVP]
+
+Canon 5.5: a player who leaves in the middle of a run and comes back within 5 minutes can pick the run up again. Chapter 02 (section 16.5) and chapter 09 (section 12.5) own the rule; this is the card it needs.
+
+```
++----------------------------------------------------------------------+
+|                         Your run is waiting                          |
+|                                                                      |
+|   +--------------+     (T4) Hunter                 mass 86           |
+|   |  3D creature |     (tr) (tr) (tr)                                |
+|   |  240 x 240   |     Starting fresh ends this run.                 |
+|   +--------------+                                                   |
+|                                                                      |
+|   [ Start fresh  o +26 ]                    [ Continue your run ]    |
++----------------------------------------------------------------------+
+```
+
+| Item | Detail |
+|---|---|
+| When | On joining any server, straight after loading (S01) and before the creature appears, if the save holds a suspended run that has not run out: 300 s after a disconnect, 900 s after a server shutdown or update. A run that has already run out shows no card: it was settled before the first spawn. |
+| Who sees it | Only an account that has banked at least once. An account that has never banked gets no card: its run resumes at once and chapter 04's first-time script carries on from the last completed beat (chapter 02, sections 16.4 and 16.5). |
+| The 5-minute window | It is measured from the disconnect to the moment the player rejoins, and it is checked once, at join. Time spent on the card is not counted: the run cannot run out while the card is open, however long the player takes to choose. The same holds for the 15 minutes after a server shutdown. |
+| Frame | Dialog 760 × 420 (the 6.0 frame without tabs) over a dimmed `UI_Load_Background`, so nothing can reach the player while they read. `SFX_UI_Open`. |
+| Content | `resume.title`; a live 3D render of the saved creature (240 × 240, with its pattern and traits); tier badge and tier name; mass; trait icons at 48 rpx; `resume.fresh_note`. No new image is needed. |
+| Continue your run | Primary button, 320 × 96, bottom right (zone A), `resume.continue`. The card leaves in 150 ms and the run HUD comes in; the creature is at its saved place, or at the nearest revive point if a danger is close (chapter 02), with 3 s of protection shown on `HUD.Status`. `SFX_UI_Revive`. |
+| Start fresh | Secondary button, 280 × 88, bottom left, `resume.fresh` with the Pearl icon and the Pearls the saved run pays when it is given up: scraps at the normal rate after a disconnect, the full bank value with no specimen after a server shutdown (chapter 09, section 12.5). The number comes from the server. Hold 600 ms to confirm (or tap, then `common.yes`), because it cannot be undone. The Pearls fly to the Pearl chip and the player arrives in the cove as a Fry, as any returning player does. |
+| No close, no timer, nothing sold | The player must choose one of the two. The card carries no countdown and no offer of any kind. |
+| Order | It comes before everything else on join. It can never meet a pending cove-full choice (4.6), because that one follows a finished bank. After Start fresh the offline claim and the gifts follow as usual; after Continue they wait until the player is next in the cove. |
+| Leaving again | If the player disconnects with the card open, nothing is chosen: the run stays suspended with its original expiry time (chapter 02, section 16.5), which is checked again at the next join. |
 
 ## 9. Offers
 
@@ -1137,8 +1200,8 @@ Full screen: dimmed `UI_Load_Background`, `UI_Load_Reconnect` art (192 rpx), a t
 | ID | Offer | Tag | Where | Layout | Shown when | Way out |
 |---|---|---|---|---|---|---|
 | O1 | Revive (`prod_revive`) | [MVP] | Gulped panel, right column | Row 360 × 80: icon 56, `gulped.revive`, `gulped.revive_note`, Robux price. No timer. | Revive not used this run; not the account's first death; the lost creature had 30 mass or more; not in the first two minutes | Swim again |
-| O2 | Watch to revive (`ad_revive`) | [L] | Gulped panel, under O1 | Row 360 × 80: video icon, `gulped.revive_video` | The O1 conditions, and a video is available | Swim again |
-| O3 | Keep traits (Trait Lock, `prod_trait_lock`) | [L] | Gulped panel, under O2. Sold nowhere else. | Row 360 × 80: `UI_Moment_TraitLock` at 56, `gulped.keep_traits`, Robux price | The lost creature held an Uncommon or better trait; shown even when the revive is used; not in the first two minutes | Swim again |
+| O2 | Watch to revive (`ad_revive`) | [L] | Gulped panel, above O1 | Row 360 × 80: video icon, `gulped.revive_video` | The O1 conditions, and a video is available | Swim again |
+| O3 | Keep traits (Trait Lock, `prod_trait_lock`) | [L] | Gulped panel, under O1. Sold nowhere else. | Row 360 × 80: `UI_Moment_TraitLock` at 56, `gulped.keep_traits`, Robux price | The lost creature held an Uncommon or better trait; shown even when the revive is used; not in the first two minutes | Swim again |
 | O4 | Deep Pockets row (`pass_deep_pockets`) | [MVP] | Bank summary, Pearls table | Greyed row 520 × 48: pass art at 40, `bank.pass_row` | Pass not owned; third bank or later; once per session | Continue |
 | O5 | Bigger Cove row (`pass_bigger_cove`) | [MVP] | Slot upgrade dialog | Row 560 × 112: pass art at 96, `pass.bigger_cove.desc`, Robux price button 200 × 72 | Pass not owned; second session or later | Dialog close |
 | O6 | Tide Watcher row (`pass_tide_watcher`) | [L] | Offline claim, only when the cap was hit | One line 520 × 48: `offline.pass_row` | Pass not owned; second session or later | Claim |
@@ -1150,6 +1213,7 @@ Full screen: dimmed `UI_Load_Background`, `UI_Load_Reconnect` art (192 rpx), a t
 | O12 | Cove Boost (`prod_cove_boost`, `ad_cove_boost`) | [L] | A bubble beside the Pearl Clam; a second button on the offline claim; shop, Boosts tab | Button 260 × 72: `UI_Shop_CoveBoost` at 48, `cove.boost` with the exact Pearls. It opens the Cove Boost dialog (5.4): the video button first when a video is available, then the Robux price button. | Second session or later; the boost would pay 200 Pearls or more; today's Cove Boost is unused | Dialog close; Claim |
 | O13 | Goal Reroll (`ad_goal_reroll`, `prod_goal_reroll`) | [L] | Daily, Goals tab, in the swap dialog; shop, Boosts tab | Up to two buttons 260 × 88: video icon with `goals.swap_video`; `goals.swap_buy` with the Robux price | The day's free swap is used. Video: one is available, once a day. Robux: up to three a day. | Dialog close |
 | O14 | Tide board row (`pass_tide_watcher`) | [L] | Tide popover, in safe water only | One line 328 × 48: pass art at 40, `tide.board_locked`; tapping it opens the pass card in the shop | Pass not owned; second session or later | Popover close |
+| O15 | Robux decorations (`deco_buy_jelly_lamp`, `deco_buy_disco_clam`, `deco_buy_mini_pickle`) | [L] | Decoration tray (5.6); shop, Decorations tab | Item card (6.4): live 3D render at 192, the name (`decoitem.<id>`), `deco.desc`, Robux price button 200 × 72. In the tray the item shows the Robux glyph and the live price, and a tap opens the same card as a dialog. | Not owned. Always there, like patterns (O11). | Dialog close; menu close; Done |
 
 ```
 Starter Pack card (O7), 360 x 168                 Gulped panel row (O1), 360 x 80
@@ -1239,10 +1303,11 @@ This chapter stays the reference for focus order on each screen and for on-scree
 | Specimen detail | Close | Down: Release (hold A). |
 | Ranks | The player's own row | Up and down. A: show the way. |
 | Settings | First row | Up and down through rows. Left and right change a value. A flips a toggle. |
-| Gulped panel | Swim again | Up: Revive, Watch to revive, Keep traits. |
+| Gulped panel | Swim again | Up, from the bottom: Keep traits, Revive, Watch to revive. |
 | Bank summary | Continue | None. In the cove-full choice: four-way through cards, down to the three buttons. |
 | Confirm dialog | Cancel for release and reset; Buy for a Pearl purchase | Left and right |
 | Offline claim | Claim | Right: Cove Boost |
+| Continue your run (S36) | Continue your run | Left: Start fresh (hold A). |
 | Tide popover | Call the Tide | Up: the Tide board row (players without Tide Watcher). The tide rows are display only. |
 
 **On-screen prompts**
@@ -1355,7 +1420,7 @@ Chapter 07 lists the sound assets; these are the names the interface calls. All 
 | `SFX_UI_TierUp` | Tier-up (a longer version for tier 7, up to 1,500 ms) |
 | `SFX_UI_ThreatNear` | A threat comes within 30 studs |
 | `SFX_UI_Gulped` | The player is gulped |
-| `SFX_UI_Revive` | A revive succeeds |
+| `SFX_UI_Revive` | A revive succeeds; a suspended run is continued (8.3) |
 | `SFX_UI_BankStart` | Bank summary opens |
 | `SFX_UI_PearlTick` | Each step of a Pearl count-up |
 | `SFX_UI_PearlBurst` | A Pearl count-up ends |
@@ -1617,7 +1682,7 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_Cove_DockDaily` | [MVP] | Dock and menu title: Daily | 56x56 | No | 1 | Glyphs |
 | `UI_Cove_DockShop` | [MVP] | Dock and menu title: Shop | 56x56 | No | 1 | Glyphs |
 | `UI_Cove_DockRanks` | [L] | Dock and menu title: Ranks | 56x56 | No | 1 | Glyphs |
-| `UI_Cove_DockDeco` | [L] | Dock: Decorate | 56x56 | No | 1 | Glyphs |
+| `UI_Cove_DockDeco` | [L] | Dock: Decorate. Also the shop tab: Decorations | 56x56 | No | 1 | Glyphs |
 | `UI_Cove_CardPlain` | [MVP] | Specimen card frame, no traits | 96x128 | Yes | 1 | No |
 | `UI_Cove_CardCommon` | [MVP] | Specimen card frame, Common | 96x128 | Yes | 1 | No |
 | `UI_Cove_CardUncommon` | [MVP] | Specimen card frame, Uncommon | 96x128 | Yes | 1 | No |
@@ -1652,8 +1717,9 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_Species_PassTag` | [L] | Tag: can be bought as a game pass | 48x48 | No | 1 | Glyphs |
 | `UI_Species_PatternFrame` | [L] | Pattern swatch frame | 72x72 | Yes | normal, picked | No |
 | `UI_Codex_TabSpecies` | [MVP] | Tab: Creatures | 48x48 | No | 1 | Glyphs |
+| `UI_Codex_TabTiers` | [MVP] | Tab: Tiers (a row of badges that grow) | 48x48 | No | 1 | Glyphs |
 | `UI_Codex_TabTraits` | [MVP] | Tab: Traits | 48x48 | No | 1 | Glyphs |
-| `UI_Codex_TabFood` | [MVP] | Tab: Food | 48x48 | No | 1 | Glyphs |
+| `UI_Codex_TabPrey` | [MVP] | Tab: Prey | 48x48 | No | 1 | Glyphs |
 | `UI_Codex_TabDangers` | [L] | Tab: Dangers | 48x48 | No | 1 | Glyphs |
 | `UI_Codex_TabPlaces` | [L] | Tab: Places | 48x48 | No | 1 | Glyphs |
 | `UI_Codex_TabTides` | [L] | Tab: Tides | 48x48 | No | 1 | Glyphs |
@@ -1804,11 +1870,11 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 
 | Tag | Table rows (images) | Drawings (rows × art states) |
 |---|---|---|
-| [MVP] | 203 | 224 |
+| [MVP] | 204 | 225 |
 | [L] | 120 | 130 |
 | [P1] | 0 | 0 |
 | [P2] | 1 | 1 |
-| **Total** | **324** | **355** |
+| **Total** | **325** | **356** |
 
 **By group**
 
@@ -1820,16 +1886,18 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 | `UI_Emote_` | 9 | `UI_Settings_` | 18 |
 | `UI_Moment_` | 12 | `UI_Guide_` | 8 |
 | `UI_Cove_` | 25 | `UI_Load_` | 4 |
-| `UI_Species_` and `UI_Codex_` | 21 | `UI_Hint_` | 34 |
+| `UI_Species_` and `UI_Codex_` | 22 | `UI_Hint_` | 34 |
 
-38 rows are nine-sliced. 75 rows (89 drawings) are standalone files; the other 249 rows (266 drawings) sit in atlases. The TV layout [P1] needs no image of its own.
+38 rows are nine-sliced. 75 rows (89 drawings) are standalone files; the other 250 rows (267 drawings) sit in atlases. The TV layout [P1] needs no image of its own.
+
+[P1] is 0 because the images for [P1] content are not listed yet, not because there are none: the Storm, Red Tide and Great Migration tides and the first post-launch species (Anglerfish, Manta Ray) each bring images by the per-item rule in section 15, stage 5 (an event icon and its start art; a head icon, a portrait and an ability icon). Their rows are added here when chapter 12 schedules them.
 
 **Atlas plan.** Sheets are 1024 × 1024 px unless noted. [MVP] drawings fill the lowest-numbered sheets, so a soft-launch sheet is never rebuilt when [L] art arrives.
 
 | Sheet | Cell | Capacity | Holds | Tag |
 |---|---|---|---|---|
 | `UI_Atlas_Glyphs1` | 144 px (72 rpx) + 2 px gap | 49 | Run HUD glyphs first: status, markers, pips, close, gear, home, drag knob | [MVP] |
-| `UI_Atlas_Glyphs2` | same | 49 | The other 33 [MVP] glyphs: dock, tabs, goals, settings, zones, stamps (16 cells free) | [MVP] |
+| `UI_Atlas_Glyphs2` | same | 49 | The other 34 [MVP] glyphs: dock, tabs, goals, settings, zones, stamps (15 cells free) | [MVP] |
 | `UI_Atlas_Glyphs3` | same | 49 | 48 [L] glyphs and the 1 [P2] glyph (full; the next new glyph starts `UI_Atlas_Glyphs4`) | [L] |
 | `UI_Atlas_Content1` | 192 px (96 rpx) + 12 px gap | 25 | Tiers, Pearl, Pearl pile, [MVP] species, abilities and predators, six prey | [MVP] |
 | `UI_Atlas_Content2` | same | 25 | The other 23 [MVP] content icons: two prey, traits, trait prey, events (2 cells free) | [MVP] |
@@ -1876,7 +1944,7 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 | `common.continue` | Continue | Button; moves on after a summary |
 | `common.buy` | Buy | Button; spends Pearls |
 | `common.claim` | Claim | Button; collects a free reward |
-| `common.claim_all` | Claim all | Button; collects all cove Pearls |
+| `common.claim_all` | Claim all | Button; collects the whole Pearl pile in the cove |
 | `common.owned` | Owned | Tag on something the player already has |
 | `common.locked` | Locked | Tag |
 | `common.new` | New! | Tag on something just found |
@@ -2117,6 +2185,8 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 | `deco.move` | Move | [L] Tool label |
 | `deco.turn` | Turn | [L] Tool label: rotate |
 | `deco.store` | Put away | [L] Tool label: back to the tray |
+| `deco.starter` | In the Starter Pack | [L] On a decoration that comes only with the Starter Pack |
+| `deco.desc` | For your cove. Just for looks. | [L] Line on a decoration card in the shop: it changes nothing but the look of the cove |
 | `visit.title` | {Name}'s cove | [L] Banner on entering another player's cove |
 | `visit.look` | Just looking | [L] Visitors cannot take anything |
 | `visit.bubble` | Leave a Bubble | [L] Button label: like this cove |
@@ -2138,14 +2208,16 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 | `species.patterns` | Patterns | [L] Header: colour patterns for a creature |
 | `species.pass` | Get it now | [L] Button beside a Robux price |
 | `codex.tab_species` | Creatures | Tab |
+| `codex.tab_tiers` | Tiers | Tab: the seven sizes reached with each creature |
 | `codex.tab_traits` | Traits | Tab |
-| `codex.tab_food` | Food | Tab: everything that can be eaten |
+| `codex.tab_prey` | Prey | Tab: everything that can be eaten |
 | `codex.tab_dangers` | Dangers | [L] Tab: predators and hazards |
 | `codex.tab_places` | Places | [L] Tab: landmarks |
 | `codex.tab_tides` | Tides | [L] Tab: tide events |
 | `codex.found` | {Found} of {Total} found | Progress |
 | `codex.unknown` | ??? | Not found yet |
 | `codex.sizes` | Sizes reached | Header above the seven tier badges |
+| `codex.page_reward` | Fill the page: {Pearls} Pearls | Reward for reaching all seven tiers with one creature |
 | `codex.banked` | Banked {Count} times | How many times this creature was brought home |
 | `codex.best_mass` | Best mass {Mass} | Highest mass reached with this creature |
 | `codex.from` | From {Prey} | Which prey gives this trait |
@@ -2174,6 +2246,7 @@ Chapter 03 lists the goals, chapter 02 picks them and chapter 05 sets what they 
 | `goals.swap_free` | {Count} free swap left today | Every player may change one goal a day for free |
 | `goals.swap_video` | Watch to swap | [L] Button: watch a video for one more swap (Goal Reroll) |
 | `goals.swap_buy` | Swap now | [L] Button beside a Robux price (Goal Reroll) |
+| `goals.milestone` | All 3 done on {Count} of {Total} days | [L] Progress toward a free decoration: days on which all three goals were finished |
 | `goal.eat` | Eat {Count} {Prey} | Goal template: "Eat 30 Sardine" |
 | `goal.eat_any` | Eat {Count} things | Goal template |
 | `goal.tier` | Reach {Tier} | Goal template: "Reach Hunter" |
@@ -2211,6 +2284,7 @@ Prices are never part of a string; they come from Roblox at run time (price from
 | `shop.tab_pearls` | Pearls | Tab |
 | `shop.tab_boosts` | Boosts | [L] Tab: things that are used up |
 | `shop.tab_patterns` | Patterns | [L] Tab |
+| `shop.tab_decorations` | Decorations | [L] Tab: cove decorations sold for Robux |
 | `shop.thanks` | Thank you! | After a purchase |
 | `shop.tomorrow` | Back tomorrow | [L] The daily limit for this item is reached |
 | `shop.unavailable` | Not for sale now | The price could not be loaded |
@@ -2303,6 +2377,7 @@ At most 28 characters in English; keep translations under 40.
 | `settings.vibration` | Vibration | Phone or gamepad vibration |
 | `settings.hold_tap` | Tap instead of hold | Replace press-and-hold actions with two taps |
 | `settings.text_size` | Bigger text | [L] |
+| `settings.hide_emotes` | Hide emotes | [L] Toggle: stop showing other players' emote bubbles |
 | `settings.language` | Language | [L] |
 | `settings.lang_auto` | Same as Roblox | [L] Use the language of the player's Roblox account |
 | `settings.private` | Private reef | [L] |
@@ -2330,6 +2405,10 @@ At most 28 characters in English; keep translations under 40.
 | `reconnect.lost_title` | Lost the reef | Connection lost |
 | `reconnect.saved` | Your cove is safe. | Shown only when the save was confirmed |
 | `reconnect.weak` | Weak connection | The connection is slow but still working |
+| `resume.title` | Your run is waiting | Card title: the player left during a run and came back in time |
+| `resume.continue` | Continue your run | Button: go back into the saved run |
+| `resume.fresh` | Start fresh | Button: give up the saved run and begin a new one. A Pearl amount follows. |
+| `resume.fresh_note` | Starting fresh ends this run. | Warning beside the two buttons |
 | `emote.hi` | Hi! | [L] Emote label for hints, focus and screen readers (labels from chapter 03) |
 | `emote.this_way` | This way! | [L] |
 | `emote.look_out` | Look out! | [L] |
@@ -2347,13 +2426,14 @@ Chapter 03 owns these content lists and supplies the English. The interface has 
 | Key pattern | What | Owner |
 |---|---|---|
 | `title.<id>` | Reef Rank titles | Chapter 03 |
-| `decoitem.<id>` | Decoration names | Chapter 03 |
+| `decoitem.<id>` | [L] Decoration names (all 50, the four `deco_buy_*` purchase decorations included) | Chapter 03 |
+| `decoitem.<id>.how` | [L] One line on how an earned decoration is obtained (the Codex, daily-goal milestone and tide event decorations), from chapter 03's "How obtained" column | Chapter 03 |
 | `pattern.<id>` | Pattern names | Chapter 03 |
 | `place.<id>`, `place.<id>.line` | [L] Landmark names and one line each, for the Codex Places tab | Chapter 03 |
 | `danger.<id>.line` | [L] One line per predator and hazard, for the Codex Dangers tab | Chapter 03 |
 | Language names | Each language in its own name; not translated | Set when languages are chosen |
 
-**String count:** 412 strings in sections 14.1 to 14.12: 269 [MVP], 142 [L], 0 [P1], 1 [P2]. 34 strings (8%) are longer than four words.
+**String count:** 423 strings in sections 14.1 to 14.12: 275 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
 
 ## 15. Build order
 
@@ -2363,8 +2443,8 @@ Every stage uses the final asset names, sizes and text keys from the start. Art 
 |---|---|---|---|
 | 1. First playable | The bite loop works on a phone | Layers, scaling, safe frame and keep-out (section 1); localisation table and key lookup; `HUD.DragRing`, `HUD.Dash`, `HUD.MassBar`, `HUD.MassPops`, `HUD.Outlines`, `HUD.Home`; S11 with Swim again only; S12 with the Pearls table only; button states and the 100 ms rule | Placeholder shapes |
 | 2. First-two-minutes build | Chapter 04's script runs end to end | S01 Loading; S33 Guide kit (all nine parts); `HUD.Traits` and S04; `HUD.Ability`; `HUD.Threats`; `HUD.BankChip`; `HUD.SafeBadge`; `HUD.Status` (stun, shield); S07; S08; S10 toasts (species affordable, Codex); S14 with Pearls, slots, Claim all and the Creatures dock button; S22 with S19 and S35; specimen card on S12; desktop keys, cursor rules and key hints | Final art for everything in this stage |
-| 3. Soft launch | Everything tagged [MVP] | `HUD.TideClock`, S05, S09; `HUD.Biggest`; `HUD.TraitMarkers`; `HUD.Lag`; S13; S15; S16; S17; S18; S23; S24; S25; S27 (Passes, Pearls) and S28; offers O1, O4, O5, O10; S31 with every [MVP] setting; S02; sound and haptic hooks; an analytics event on every screen open and close, and on every offer shown, tapped, bought or closed | Final |
-| 4. Launch | Everything tagged [L] | S06; S20; S21; S26; S29; S30; S32; S34; icons and portraits for Sea Turtle, Squid, Shark Pup, Spark, Camo, Ember, Bonefed, Grouper, Whale Fall; gamepad focus order, hint bar and glyphs (Xbox and PlayStation sets) on PC and handheld PCs; the two-thumb scheme and the left-handed layout with their settings rows; Interface size and Swap sticks; Codex tabs Dangers, Places and Tides; the tide board, the tide marker and the Call the Tide held-token state; the wild creature name tag; rewarded video buttons (O2, O12, O13); Boosts and Patterns tabs; O3, O6, O7, O8, O9, O11, O14; Bigger text; Language | Final |
+| 3. Soft launch | Everything tagged [MVP] | `HUD.TideClock`, S05, S09; `HUD.Biggest`; `HUD.TraitMarkers`; `HUD.Lag`; S13; S15; S16; S17; S18; S23; S24; S25; S27 (Passes, Pearls) and S28; offers O1, O4, O5, O10; S31 with every [MVP] setting; S02; S36; the Species Wall and the cove tide clock; sound and haptic hooks; an analytics event on every screen open and close, and on every offer shown, tapped, bought or closed | Final |
+| 4. Launch | Everything tagged [L] | S06; S20; S21; S26; S29; S30; S32; S34; icons and portraits for Sea Turtle, Squid, Shark Pup, Spark, Camo, Ember, Bonefed, Grouper, Whale Fall; gamepad focus order, hint bar and glyphs (Xbox and PlayStation sets) on PC and handheld PCs; the two-thumb scheme and the left-handed layout with their settings rows; Interface size and Swap sticks; Codex tabs Dangers, Places and Tides; the tide board, the tide marker and the Call the Tide held-token state; the wild creature name tag; rewarded video buttons (O2, O12, O13); Boosts, Patterns and Decorations tabs; O3, O6, O7, O8, O9, O11, O14, O15; the decoration tray states and the daily-goal milestone row; Bigger text; Hide emotes; Language | Final |
 | 5. After launch | [P1] and later | [P1]: the TV layout for Xbox and PlayStation (5% margins, TV scale; no new images), once the consoles pass chapter 15's hardware checks. [P2]: the Trench zone icon. Each new species needs three images (head icon, portrait, ability icon) and five strings; each new trait needs two images (trait, trait prey) and three strings; each new event needs two images (icon, start art) and two strings. | Final |
 
 ## 16. Acceptance checklist
@@ -2398,36 +2478,37 @@ A tester ticks the box when every check in the row passes on a small phone (4.7 
 | [ ] | S04 Trait popover | Opens on a tap; shedding needs a 600 ms hold (or tap and Yes); early release cancels; steering and dash still work while it is open |
 | [ ] | S03 Dash and ability | Cooldown wedge matches the real cooldown within 50 ms; a press in the last 250 ms is queued; passive species show a badge, not a button; disabled state plays the locked sound |
 | [ ] | S03 Threat indicators | An arrow shows for every off-screen creature that can eat the player, never for one that cannot; size and pulse follow distance; at most three; Old Scar uses its own arrow; arrows never cover dash or ability |
-| [ ] | S03 Outlines | Edible and danger outlines are right after every tier change on either side within 100 ms; none in safe water; plankton and hook bait never have one; the danger outline pulses in every mode; colour-blind mode shows yellow and hot pink and adds marks |
+| [ ] | S03 Outlines | Edible and danger outlines are right after every tier change on either side within 100 ms; none in safe water; plankton and hook bait never have one; a Barracuda, or a Grouper [L], turns green for a player at least one tier above it, and the Gull, the Moray and Old Scar never do; the danger outline pulses in every mode; colour-blind mode shows yellow and hot pink and adds marks |
 | [ ] | S03 Home marker | Points home from anywhere; distance is right within 5 m; sits above the cove mouth when on screen; gold rim on a best run |
 | [ ] | S03 Tide clock, S05, S09 | Clock matches the real quarter-hour schedule within 1 s on two devices side by side; warning at 60 s, the 10 s timer, start and end banners all show once; the popover shows the next tide in local time. [L]: with Tide Watcher the tide board lists the next three tides and the marker points to the tide's site; without it the board is absent; a bought Call the Tide shows the held-token state until it starts and never interrupts a scheduled tide; no tide notification exists |
 | [ ] | S03 Biggest strip | Shows the true biggest creature within 1 s; the player's own row is highlighted; no avatar pictures; desktop shows five rows |
 | [ ] | S03 Status, safe badge, lag icon | Each status icon shows for the full length of its effect and no longer; the safe badge shows in the Nursery and in coves only; the lag icon appears on a throttled connection |
-| [ ] | S06 Emote wheel [L] | Opens by tap and by hold-and-slide; all six emotes show above the creature to a second player; the 3 s limit holds |
+| [ ] | S06 Emote wheel [L] | Opens by tap and by hold-and-slide; all six emotes show above the creature to a second player; the 3 s limit holds; with "Hide emotes" on, the second player sees no bubble and hears no emote sound, and can still send their own |
 | [ ] | S07 Tier-up | Plays at every tier change; shows the right new food; never blocks input; tier 7 sends the server toast |
 | [ ] | S08 Trait gained | Shows the right name, rarity frame and effect line; Epic and Mythic hold for 3 s |
 | [ ] | S10 Toasts | At most two visible; same kinds merge; "species affordable" waits for safe water; toasts cannot be tapped in open water |
 | [ ] | S11 Gulped panel | Buttons ignore input for the first 700 ms; Swim again reaches the cove in under 3 s; there is no timer anywhere on the panel; the revive buttons are absent on the account's first death, when the lost creature had under 30 mass, and after a revive was used; [L] Keep traits shows only after losing an Uncommon or better trait, still shows after a revive was used, and the next run starts with those traits; nothing is offered in the first two minutes of a first session; a cancelled purchase returns to the panel |
 | [ ] | S12 Bank summary | The total equals the Pearls added to the balance; a tap skips to the end; Continue works from the first frame; a tier 1 run shows the "too small" note; the whole sequence is under 3.5 s |
-| [ ] | S13 Cove-full choice | Appears only when no slot is free; refunds shown equal refunds paid; release needs a hold; More slots returns with the new specimen kept |
-| [ ] | S14 Cove HUD | Balance, income and slots are right; Claim all appears only when Pearls are in the pile; nothing is claimed without a tap; badges appear only for free things and never on Shop; swimming out starts a run |
-| [ ] | S15 Offline claim | Amount matches time away and the cap; not shown under the threshold, and then nothing is claimed until the player taps the pile; never shown in a new player's first two minutes; [L] the Cove Boost button shows the exact Pearls, offers the video first, and works at most once a day |
+| [ ] | S13 Cove-full choice | Appears only when no slot is free; refunds shown equal refunds paid; release needs a hold; More slots returns with the new specimen kept; after a disconnect on the choice nothing is released or refunded, and the choice shows again on the next join before anything else |
+| [ ] | S14 Cove HUD | Balance, income and slots are right; there is one Pearl pile; Claim all appears only when Pearls are in the pile; nothing is claimed without a tap; the Species Wall shows the next species with the right progress and opens its card; the cove tide clock matches `HUD.TideClock`; both stay hidden before the first bank; badges appear only for free things and never on Shop; swimming out starts a run |
+| [ ] | S15 Offline claim | One total is shown, and it matches time away and the cap; not shown under the threshold, and then nothing is claimed until the player taps the pile; never shown in a new player's first two minutes; [L] the Cove Boost button shows the exact Pearls, offers the video first, and works at most once a day |
 | [ ] | S16, S17 Specimens | Every card shows the right creature, tier, traits and income; sort cycles three ways; at most 12 live renders; Release needs a hold and a confirm; read-only on a visit |
 | [ ] | S18 Slot upgrade | Price matches chapter 05; cannot-afford and all-open states show; the new slot appears at once |
 | [ ] | S19 Confirm dialog | Shows the item, the price and the balance after; Cancel is the default for release and reset |
-| [ ] | S20 Decoration mode [L] | Items place only on valid cells; every drop is saved; move, turn and put away work; locked items show what is needed |
+| [ ] | S20 Decoration mode [L] | Items place only on valid cells; every drop is saved; move, turn and put away work; locked items show what is needed for each of the seven groups in 5.6; a Robux decoration shows the live price, and only the price button on its card opens the Roblox prompt; the Golden Chest appears only through the Starter Pack |
 | [ ] | S21 Visit HUD [L] | Only a tier 1 Fry can enter; the run is not banked; nothing can be taken; one Bubble per cove per day; the owner sees the toast; Swim out works |
 | [ ] | S22 Species select, S35 | Locked creatures are silhouettes with name, price and progress; affordable ones pulse; unlock asks for confirmation; Pick changes the creature at once; Shark Pup shows both ways to get it [L] |
-| [ ] | S23, S24 Codex | Counts are right per tab; unknown entries show a silhouette and a where-to-look hint; new entries carry the tag until opened; arrows step through entries; [L] the Dangers, Places and Tides tabs show chapter 03's entries |
-| [ ] | S25 Goals | Three goals tagged Easy, Medium and Hard, in that order (Easy, Easy, Medium on an account's first day); progress and rewards are right; the timer matches the real daily reset; one free swap a day keeps the goal's difficulty; Claim pays once |
+| [ ] | S23, S24 Codex | The tabs match chapter 03's categories (Creatures, Tiers, Traits, Prey; [L] Dangers, Places, Tides); counts are right per tab; a Tiers page shows the seven tiers, what each pays and the page reward; unknown entries show a silhouette and a where-to-look hint; new entries carry the tag until opened; arrows step through entries; [L] the Dangers, Places and Tides tabs show chapter 03's entries |
+| [ ] | S25 Goals | Three goals tagged Easy, Medium and Hard, in that order (Easy, Easy, Medium on an account's first day); progress and rewards are right; the timer matches the real daily reset; one free swap a day keeps the goal's difficulty; Claim pays once; [L] the milestone row counts days with all three goals done and gives each decoration once |
 | [ ] | S26 Gifts [L] | Today's cell can be claimed once; opens by itself once a day and not in the first session; after a missed day the next box still opens next and nothing goes back to day 1; every reward is Pearls |
-| [ ] | S27 Shop, S28 | Every price shown equals the price in the Roblox prompt; owned passes show Owned and cannot be bought again; cancel leaves no message; a failure shows the failure toast |
+| [ ] | S27 Shop, S28 | Every price shown equals the price in the Roblox prompt; owned passes, patterns and decorations show Owned and cannot be bought again; [L] the Decorations tab holds the three Robux decorations and no Golden Chest; cancel leaves no message; a failure shows the failure toast |
 | [ ] | S29 Ranks [L] | Three tabs load; the player's own row is pinned; Show the way points to the right cove for 60 s |
 | [ ] | S30 Reef Rank [L] | Rank, progress and rewards are right; the track opens on the current rank |
 | [ ] | S31 Settings | Opens in open water without covering the creature; every setting applies at once and survives a rejoin; steering still works beside the panel |
 | [ ] | S32 Private reef [L] | Shows the right content in private and public servers; Invite opens the Roblox prompt |
 | [ ] | S33 Guide kit | Each of the nine parts can be shown on a HUD element and on a world position; a prompt clears within 100 ms of the action; never more than one bubble and one pointer |
-| [ ] | Section 9 offers | Every rule O-R1 to O-R13 holds for every offer O1 to O14; no offer appears in open water; every offer has its way out; no timers; nothing paid carries a badge |
+| [ ] | S36 Continue your run | Shows on rejoining within 5 minutes of leaving mid-run (15 minutes after a server shutdown) and never for an account that has not banked; shows the right creature, mass and traits; Continue returns to the run with 3 s of protection; Start fresh needs a hold and pays exactly the Pearls on its button; no close, no timer, no offer; a card left open for longer than 5 minutes still offers Continue (time on the card is not counted); leaving with the card open keeps the run suspended |
+| [ ] | Section 9 offers | Every rule O-R1 to O-R13 holds for every offer O1 to O15; no offer appears in open water; every offer has its way out; no timers; nothing paid carries a badge |
 | [ ] | Section 12 accessibility | Contrast measured on screenshots passes 4.5 to 1 for text and 3 to 1 for icons; the game can be played start to bank with sound off; every hold has its tap alternative |
 
 ## 17. Engine facts and what was checked
@@ -2481,6 +2562,12 @@ Checked against create.roblox.com/docs on 13 October 2026 unless marked.
 | D24 | Codex Places entries use their zone's icon, so no picture is needed per landmark; Dangers adds four hazard icons | 6.2, 13.3 |
 | D25 | The wild creature name tag shows within 60 studs | 3.16 |
 | D26 | Cove Boost and Goal Reroll also have cards in the shop's Boosts tab, beside the places chapter 05 names; the Cove Boost button opens one dialog with the video first; the cove's one Pearl pile is claimed by tapping it or the Claim all button | 6.4, 5.4, 5.1 |
+| D27 | The Robux decorations are sold in two places: the decoration tray, beside the Pearl items, and a Decorations tab in the shop. The Golden Chest shows in the tray as part of the Starter Pack and is never sold alone. | 5.6, 6.4, 9.2 |
+| D28 | The Continue your run card has no countdown, shows what Start fresh pays on the button, and asks for a hold before giving the run up | 8.3 |
+| D29 | The Codex has a Tiers tab, one page per species, so its tabs match chapter 03's categories one for one; the Prey tab replaces "Food" | 6.2 |
+| D30 | The Species Wall is drawn by the interface (a SurfaceGui that reuses the species portrait and the shared ring); the cove tide clock gets only a countdown from the interface | 5.1 |
+| D31 | A milestone row on the Goals tab shows progress toward the four daily-goal decorations | 6.3 |
+| D32 | "Hide emotes" hides other players' emote bubbles and sounds only; the player's own wheel stays. Its row reuses `UI_Emote_Hi` as its icon | 6.7, 3.17 |
 
 ## 19. Open questions for other chapters
 
@@ -2488,14 +2575,14 @@ Checked against create.roblox.com/docs on 13 October 2026 unless marked.
 |---|---|
 | 02 | Confirm the threat warning distances |
 | 02 | When progress exists on more trait prey kinds than there are free slots, is all progress kept? (The interface assumes yes.) |
-| 02 | What happens to a new specimen if the player disconnects on the cove-full choice? (Assumed: released and refunded.) |
 | 02 | Which point the Tide Watcher marker leads to for each tide. (Assumed: the whale skeleton in a Whale Fall, the nearest Lunar Fry shoal in a Moon Tide, nothing in a Feeding Frenzy.) |
 | 05 | Every price, refund, goal reward, gift reward and Pearl pack size. This chapter only reserves the space. |
-| 03 | Lists and names of Reef Rank titles, decorations, patterns, landmarks and the one-line texts for the Codex Dangers and Places tabs (14.13) |
+| 03 | Lists and names of Reef Rank titles, decorations, patterns, landmarks, the one-line texts for the Codex Dangers and Places tabs, and one "how to get it" line for each earned decoration (14.13) |
 | 06 | Rarity frame shapes that differ without colour; colours that meet the contrast floors in section 12 |
 | 07 | Add every `SFX_UI_` name in 11.5 and every image in section 13 to the asset list |
 | 06 | Chapter 06 allows one interface atlas in the MVP; the plan in 13.13 needs six sheets. Chapter 06 owns the budget. |
 | 09 | One `UIScale` per ScreenGui; the 12-render limit for live 3D cards |
+| 09 | A second saved touch speed for the two-thumb scheme [L]: the save has one `lookSpeed` per input type, and touch has two sliders with different ranges (6.7) |
 
 ## 20. Proposed canon changes
 

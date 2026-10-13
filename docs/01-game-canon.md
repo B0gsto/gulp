@@ -163,6 +163,8 @@ Six at launch. Each is one rig with a juvenile mesh (tiers 1 to 3) and an adult 
 | `squid` | **Squid** | 45,000 | Bursty, poor turning | **Jet:** fast backwards jet that leaves a small ink puff. 6 s cooldown |
 | `shark` | **Shark Pup** | 250,000, or a game pass | Aggressive | **Rampage:** eating 3 prey within 4 s gives +25% speed for 5 s; starts each run at tier 2 |
 
+The Shark Pup's tier 2 start is also its drawback: it never has the tier 1 protection from other players.
+
 Dart, Slip and Rampage are passive: nothing to press. Those species show a passive badge where the ability button would be. Puff, Shell and Jet are pressed. The Shark Pup's ability is called Rampage (ID `rampage`) so it is never confused with the Feeding Frenzy event (ID `frenzy`).
 
 Unlock pacing targets: Pufferfish by the end of the first session, Eel on day 2, Sea Turtle on day 4 or 5, Squid around day 10, Shark Pup around day 30 for a non-paying daily player.
@@ -199,7 +201,7 @@ Eat five of the same trait prey in one run to gain that trait.
 | `inklet` | Inklet | 3 | Ink | Drop-off |
 | `spark_eel` | Spark Eel | 4 | Spark | Drop-off wreck |
 | `leaf_drifter` | Leaf Drifter | 3 | Camo | Kelp |
-| `crystal_jelly` | Crystal Jelly | 3 | Crystal | Roams all zones as a drift of five, about one drift per server every 5 minutes |
+| `crystal_jelly` | Crystal Jelly | 3 | Crystal | Roams the Reef, Kelp and Drop-off as a drift of five, about one drift per server every 5 minutes |
 | `vent_snail` | Vent Snail | 4 | Ember | Drop-off vents |
 | `lunar_fry` | Lunar Fry | 2 | Moonlit | Moon Tide event only |
 | `marrow` | Marrow chunk | 3 | Bonefed | Whale Fall event only |
@@ -269,7 +271,7 @@ Post-launch events: Storm, Red Tide, Great Migration [P1]; The Trench Opens [P2]
 
 There is no premium currency. Robux purchases are made directly.
 
-**Cove income (tune):** income is claimed by tapping the pile in the cove (or the welcome-back card), never automatically. A specimen earns 6 / 10 / 18 / 30 / 50 / 80 Pearls per hour at tiers 2 to 7, multiplied by its trait bonus. Income collects in one pile that stops growing after 8 hours unclaimed, online or offline.
+**Cove income (tune):** income is claimed by tapping the pile in the cove (or the welcome-back card), never automatically. The one exception is a new player's first specimen, which pays one hour of income by itself as a first-bank reward (chapter 04). A specimen earns 6 / 10 / 18 / 30 / 50 / 80 Pearls per hour at tiers 2 to 7, multiplied by its trait bonus. Income collects in one pile that stops growing after 8 hours unclaimed, online or offline.
 
 **Cove slots:** 6 at the start, up to 30 with Pearls, 40 with the Bigger Cove pass.
 
@@ -324,7 +326,7 @@ Every feature, asset and screen in the other documents carries one of these tags
 
 | Tag | Meaning |
 |---|---|
-| **[MVP]** | In the soft-launch build |
+| **[MVP]** | The core game. The soft launch starts with the smaller slice defined in chapter 13, section 3; the rest of [MVP] is added during soft launch and on the way to public launch, in the order chapter 13 sets. |
 | **[L]** | Added for public launch |
 | **[P1]** | First quarter after launch (weeks 1 to 12) |
 | **[P2]** | Later |
@@ -342,7 +344,7 @@ Every feature, asset and screen in the other documents carries one of these tags
 - Categories: `Species`, `Prey`, `Pred`, `Hazard`, `Env`, `Cove`, `Prop`, `Trait`.
 - Further prefixes: rigs `RIG_`, lighting presets `LGT_`, skies `SKY_`, store-art scenes `SCN_`. Mesh suffixes: `_Juv`, `_Adult`, `_LOD1`, `_LOD2`, `_Shell` (eat outline), `_ShellThick` (danger outline; made for juvenile and adult forms). Chapter 07 owns the full asset naming rules and chapter 08 owns the interface image groups.
 - Zone IDs: `nursery`, `reef`, `kelp`, `dropoff`, `trench`, `cove`.
-- Purchase IDs are owned by chapter 05: game passes `pass_<name>`, developer products `prod_<name>`, rewarded video placements `ad_<name>`. Chapters 08, 09 and 10 use those IDs unchanged.
+- Purchase IDs are owned by chapter 05: game passes `pass_<name>`, developer products `prod_<name>`, rewarded video placements `ad_<name>`. Chapters 08, 09 and 10 use those IDs unchanged. Patterns (`pat_*`) and Robux decorations (`deco_buy_*`) are sold under their own content IDs, without the `prod_` prefix.
 - Post-launch species IDs: `anglerfish`, `manta`, `seahorse`, `axolotl`, `orca`, `narwhal`.
 
 ## 17. Success measures
