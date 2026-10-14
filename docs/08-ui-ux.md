@@ -1083,13 +1083,22 @@ Chapter 04 scripts the first two minutes and uses only these parts. All sit on t
 |---|---|---|---|---|
 | G1 | Arrow | `UI_Guide_Arrow` | 96 | Points at a HUD element (by ID) or a world position; bobs 12 rpx at 1.5 Hz along its own direction |
 | G2 | Curved arrow | `UI_Guide_ArrowCurved` | 128 | Joins a text bubble to its target when they are apart |
-| G3 | Hand | `UI_Guide_Hand` (up and down sprites) | 112 | Three loops. Tap: down 120 ms, up 380 ms, pause 500 ms. Hold: down for the hold length with a ring filling. Drag: down, moves along a path for 800 ms leaving a fading trail, up. |
-| G4 | Trail marker | `UI_Guide_TrailDot`, `UI_Guide_TrailChevron` | 48, 64 | A glowing line of dots in the world from the creature to a target, one every 12 studs, at most 12. Chevrons flow along it at two dots a second. Dots fade as the creature passes. If the target is off screen an edge arrow (G1) leads to it. |
+| G3 | Hand | `UI_Guide_Hand` (up and down sprites) | 112 | Three loops. Tap: down 120 ms, up 380 ms, pause 500 ms. Hold: down for the hold length while a ring fills round the target (a 12 rpx sun-yellow band on a navy track, 20 rpx outside the target, drawn over the hand), the hand at 60%. Drag: down, moves along a path for 800 ms leaving a fading trail, up. Tap presses 28 rpx and hold 44 rpx right of and below the target's centre (held inside it), so the target stays in sight. |
+| G4 | Trail marker | `UI_Guide_TrailDot`, `UI_Guide_TrailChevron` | 48, 64 | A glowing line of dots in the world from the creature to a target, one every 12 studs, at most 12. Chevrons flow along it at two dots a second. Dots fade as the creature passes. If the target is off screen an edge arrow (G1) leads to it. Each dot has a dark halo and a navy rim, each chevron a navy outline and a hard shadow, so they read on bright sand and sky. |
 | G5 | Highlight ring | `UI_Guide_Ring` | 160, nine-sliced | Sits around a HUD element or a world target; pulses 1.0 to 1.15 at 1 Hz |
 | G6 | Cut-out scrim | `UI_Guide_Cutout` | Nine-sliced | Dims the screen by 50% except a rounded hole around the target. Taps reach only the target. Never used in open water. |
-| G7 | Text bubble | `UI_Guide_Bubble`, `UI_Common_BubbleTail` | Up to 420 wide | At most two lines and 28 English characters, Body 24. Sits above its target; when the target is the creature it uses the moment slot instead. |
+| G7 | Text bubble | `UI_Guide_Bubble`, `UI_Common_BubbleTail` | Up to 420 wide | At most two lines and 28 English characters, Body 24 at every scale (only a translation past two lines drops to Small 22, 1.5). A 4.5 rpx navy outline, outside it a 6 rpx white band with a 2 rpx navy edge (the tail is white like the band), and a hard shadow 7 rpx down at 50%, so it reads on bright sand and dark water. Sits above its target; when the target is the creature it uses the moment slot instead. |
 | G8 | Input hint | Hand, key cap or gamepad glyph | 64 | Shows the right picture for the input in use and swaps within 200 ms when the player changes input |
-| G9 | Step tick | `UI_Common_Check` | 64 | Pops on the bubble for 400 ms when the step is done, with `SFX_UI_GuideStep` |
+| G9 | Step tick | `UI_Common_Check` | 64 | Pops on the bubble's top right corner, outside it but for a quarter of its size, never over the text (top left when the curved arrow, the HUD, the keep-clear box or the screen edge is in the way, then a bottom corner, then the middle of either end), for 400 ms when the step is done, with `SFX_UI_GuideStep` |
+
+**Chapter 04's prompts built from the kit** (04 §3.2; also on the `GulpGuide` layer)
+
+| Prompt | Image | Size (rpx) | Behaviour |
+|---|---|---|---|
+| Ghost thumb | `UI_Guide_GhostThumb` | 144 | Touch: a bright white thumbprint at 90% opacity presses at lower centre (halfway between the keep-clear box and the bottom of the safe frame) and drags 84 rpx toward the target (the drag ring's reach, 3.16; 128 for the longer replay) (tune), looping every 1.6 s. A 5 rpx navy rim and a soft shadow (90% while the thumb shows) and a drag cue at 90% (a white arrow with a navy edge, a 16 rpx shaft and a head 28 deep, from the press point to 24 rpx past the thumb's far edge at the drag's end) keep it readable on sky and sand. Its drag and its cue are the one prompt that may cross into the keep-clear box: they move or show for under a second of each loop. Keys: a row 64 rpx tall of `UI_Hint_MouseMove`, a W key cap (`UI_Hint_Key`, pressing in the same loop) and `UI_Hint_KeyArrows` (the four arrow keys as full 56 rpx caps in a row) at the same place, slid sideways the shortest way until it keeps 16 rpx from the dock, its labels and the trait slots. Pad [L]: `UI_Hint_PadLStick`. |
+| Home marker | Ring `UI_Guide_Ring` on `UI_HUD_HomeMarker` | Ring 104 | The highlight ring (G5) around `HUD.Home`'s marker, and `guide.home_tag` (Small 22, on a chip) under its distance chip, or above the marker when there is no room under it |
+| Dash pulse | Ring `UI_Common_RingPulse` on `UI_HUD_DashButton` | Dash + 16 | `HUD.Dash` itself (the button, or the tile on Desktop) and a white ring (a 10 rpx band) over it swell to 1.3× and back twice a second; `guide.dash_now` (Body 24, on a chip) sits above the button. Keys: a Space key cap (`UI_Hint_Key` stretched to 120, the dash button's yellow chevron mark and the space-bar sign on a cream face over a navy lip) in the chip; Pad [L]: `UI_Hint_PadA`. The HOME and DASH! chips have a 3.3 rpx navy outline and a hard shadow |
+| Danger edge | `UI_HUD_DangerEdge` | 96 deep (tune) | A red glow (canon red, 35% at the edge, fading inward) along the full screen edge on the predator's side, with a gap where `HUD.Home`'s marker, its ring and HOME sit (16 rpx clear; the cut ends fade over 48 rpx); fades over 0.5 s when the danger ends |
 
 **Calls chapter 04 can make**
 
@@ -1098,8 +1107,14 @@ Guide.point(target, { pointer = "arrow" | "tap" | "hold" | "drag", textKey = "gu
 Guide.trail(worldPosition)
 Guide.done()        -- plays the step tick, then clears
 Guide.clear()
+Guide.ghost(target, { long = false })   -- the ghost thumb; nil target hides it
+Guide.home(true | false)                -- ring and HOME tag on HUD.Home
+Guide.dashPulse(true | false)
+Guide.danger(worldPosition | nil)
 HUD.setVisible(elementId, visible)
 ```
+
+A target is a HUD element by ID, a world position, a point on the screen, or the creature itself. `client/UI/Kit/Guide.luau` holds the full API in its header.
 
 **Rules**
 
@@ -1109,6 +1124,7 @@ HUD.setVisible(elementId, visible)
 - Prompts never block steering, never cover the keep-clear box, and never show while an unrelated menu is open.
 - Text comes only from `guide.*` keys (section 14.11). Chapter 04 may ask for more keys; it does not write its own text.
 - With "Less motion" on, bobbing and pulsing become a slow fade (0.5 Hz).
+- On Desktop the arrow (G1), the rings (G5, the home ring, the dash pulse), the HOME and DASH! chips, the ghost key row, and the bubble (G7) with its G8 picture and the step tick (G9) draw at 1.4× (tune): the desktop deviceFactor (0.60, section 1.2) leaves them small in a window. At 1080p (scale 0.90) a 64 rpx hint draws 81 px. The bubble's text is Body 24 inside the bubble's own size, so it grows with it.
 
 ## 8. Loading and reconnect
 
@@ -1625,6 +1641,7 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_HUD_ThreatArrow` | [MVP] | Edge arrow toward a threat | 88x88 | No | 1 | Parts |
 | `UI_HUD_ThreatArrowBoss` | [MVP] | Edge arrow for Old Scar | 96x96 | No | 1 | Parts |
 | `UI_HUD_ThreatVignette` | [MVP] | Edge vignette, stretched over the screen | 320x180 | No | 1 | No |
+| `UI_HUD_DangerEdge` | [MVP] | Red glow along one screen edge, toward a predator (04 §3.2), stretched along it | 96x360 | No | 1 | No |
 | `UI_HUD_TraitMarker` | [MVP] | Edge marker for trait prey (Glow) | 44x44 | No | 1 | Glyphs |
 | `UI_HUD_HomeMarker` | [MVP] | Home marker | 72x72 | No | normal, best | Glyphs |
 | `UI_HUD_HomePointer` | [MVP] | Pointer that orbits the home marker | 24x24 | No | 1 | Glyphs |
@@ -1818,6 +1835,7 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_Guide_Ring` | [MVP] | Highlight ring around a target | 96x96 | Yes | 1 | No |
 | `UI_Guide_Cutout` | [MVP] | Soft-edged hole for the cut-out scrim | 96x96 | Yes | 1 | No |
 | `UI_Guide_Bubble` | [MVP] | Text bubble | 64x64 | Yes | 1 | No |
+| `UI_Guide_GhostThumb` | [MVP] | White thumbprint for the first steering prompt (04 §3.2) | 144x144 | No | 1 | Parts |
 | `UI_Load_Background` | [MVP] | Painted sea, soft enough to stretch | 1280x720 | No | 1 | No |
 | `UI_Load_Logo` | [MVP] | GULP wordmark (not translated) | 560x240 | No | 1 | No |
 | `UI_Load_Mascot` | [MVP] | Minnow that swims along the loading bar | 128x128 | No | 1 | No |
@@ -1835,7 +1853,7 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 | `UI_Hint_MouseMove` | [MVP] | Mouse with move arrows | 48x48 | No | 1 | Glyphs |
 | `UI_Hint_MouseLeft` | [MVP] | Mouse, left button lit (dash) | 48x48 | No | 1 | Glyphs |
 | `UI_Hint_MouseRight` | [MVP] | Mouse, right button lit (ability) | 48x48 | No | 1 | Glyphs |
-| `UI_Hint_KeyArrows` | [MVP] | The four arrow keys (steering) | 72x48 | No | 1 | Glyphs |
+| `UI_Hint_KeyArrows` | [MVP] | The four arrow keys (steering), four caps in a row | 236x64 | No | 1 | Glyphs |
 | `UI_Hint_Cursor` | [MVP] | Desktop cursor | 32x32 | No | normal, pressed | No |
 | `UI_Hint_PadA` | [L] | Gamepad: A | 48x48 | No | 1 | Hints |
 | `UI_Hint_PadB` | [L] | Gamepad: B | 48x48 | No | 1 | Hints |
@@ -2350,6 +2368,8 @@ At most 28 characters in English; keep translations under 40.
 | `guide.claim` | Tap to claim | Touch; collect the Pearls |
 | `guide.pick` | Pick a new creature | Points at the Creatures button |
 | `guide.out` | Swim out for more | Leave the cove to start a new run |
+| `guide.home_tag` | HOME | Under the home marker in the first run; one short word |
+| `guide.dash_now` | DASH! | On the dash button during the scripted chase; one short shout |
 
 ### 14.12 Settings, private reef, loading, reconnect, emotes and gamepad hints
 
@@ -2435,7 +2455,7 @@ Chapter 03 owns these content lists and supplies the English. The interface has 
 | `danger.<id>.line` | [L] One line per predator and hazard, for the Codex Dangers tab | Chapter 03 |
 | Language names | Each language in its own name; not translated | Set when languages are chosen |
 
-**String count:** 423 strings in sections 14.1 to 14.12: 275 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
+**String count:** 425 strings in sections 14.1 to 14.12: 277 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
 
 ## 15. Build order
 
