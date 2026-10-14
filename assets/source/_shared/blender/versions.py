@@ -207,9 +207,20 @@ def snap_to_offset(mesh, tree, distance):
             v = mesh.vertices[vi]
             near = tree.find_nearest(v.co)[0]
             out = v.co - near
-            width = min(out.length + amount, 2.0 * distance)     # never more than twice the thickness
+            width = min(out.length + amount, SHELL_WIDTH[3] * distance)     # never past the width ceiling
             v.co = near + out.normalized() * width
         mesh.update()
+
+
+# Outline width, measured at shell corners and face centres, in multiples of the thickness
+# (06 13.2): nearest at least, mean between, farthest at most, and the spread (coefficient of
+# variation) at most. (tune)
+SHELL_WIDTH = (0.5, 0.8, 1.3, 1.6, 0.25)
+
+
+def width_ok(m, d):
+    lo, mean_lo, mean_hi, hi, cv = SHELL_WIDTH
+    return m["min"] >= lo * d and mean_lo * d <= m["mean"] <= mean_hi * d and m["max"] <= hi * d and m["cv"] <= cv
 
 
 def transfer_weights(obj, source):
@@ -492,20 +503,28 @@ def run_shell(spec):
                 name = "%s_%s" % (src.name, kind)
                 target = budgets.tri_budget(budget, "shell", lod=lod, body_tris=spec.get("body_tris") or triangles(body.data))
                 target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))   # 06 13.2: about 40% of the level
-                # Each level is decimated from the level above (smoother than one big step). A coarse
-                # decimation can fold a face through another or cut into a thin fin: retry a little lower.
-                for attempt, share in enumerate((1.0, 0.97, 0.94, 0.91, 0.88, 0.85, 0.8, 0.75, 0.7)):
+                # Each level is decimated from the level above (smoother than one big step). It must
+                # have no folds, no point inside the body and an even width (SHELL_WIDTH). If the 06 6.3
+                # budget cannot hold that, the triangles are raised in 25% steps up to the body's own
+                # count, and the raise is recorded for validate and the owner (never silent).
+                tries = [int(target * f) for f in (1.0, 0.94, 0.88)]
+                tries += [int(target * 1.25 ** k) for k in range(1, 12) if target * 1.25 ** k <= triangles(body.data)]
+                chosen = None
+                for want in tries:
                     obj = copy_object(prev, name, "SHELL")
-                    decimate(obj, int(target * share))
+                    decimate(obj, want)
                     snap_to_offset(obj.data, body_tree, d)
                     bm = bmesh.new()
                     bm.from_mesh(obj.data)
                     folds = self_intersections(bm)
                     bm.free()
-                    inside = shell_metrics(obj, body, src)["inside_points"] if folds == 0 else 1
-                    if (folds == 0 and inside == 0) or share == 0.7:
+                    m = shell_metrics(obj, body, src) if folds == 0 else None
+                    if m and m["inside_points"] == 0 and width_ok(m, d):
+                        chosen = want
                         break
-                    bpy.data.meshes.remove(obj.data)
+                    if want != tries[-1]:
+                        bpy.data.meshes.remove(obj.data)
+                raised = triangles(obj.data) > target
                 prev = copy_object(obj, "%s_next" % name, "SHELL")
                 spare.append(prev)
                 mesh = obj.data
@@ -531,6 +550,10 @@ def run_shell(spec):
                 bm.free()
                 new = {"object": obj, "role": "shell", "lod": lod, "of": src.name, "thickness": round(d, 4),
                        "self_intersections": crossings, "body": body, "level_body": src}
+                if raised:
+                    new["shell_budget_raised"] = {"bible": target, "used": triangles(mesh)}
+                    print("[shell] %s: 06 6.3 budget %d cannot hold an even hull; raised to %d (logged deviation)"
+                          % (name, target, triangles(mesh)))
                 if "budget" in entry:
                     new["budget"] = entry["budget"]
                 _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") else []))

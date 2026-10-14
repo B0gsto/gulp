@@ -37,3 +37,22 @@ Measured 2026-10-14 with Blender 5.2.2 LTS, headless. Rebuild with
 | Blender peak memory | 385 MB (cube), 390 MB (fish), including EEVEE previews |
 | Exporter problems | None blocking. Every 06 §6.7 setting is accepted. `UnitScaleFactor` is 0.9999999776, not exactly 1. Geometry nodes are named `<mesh>.001` (the exporter's triangulated copy); the Model nodes, which Studio uses for names, are correct |
 | Bible inconsistency, for the owner | The Minnow's dark `#C2491D` (06 §4.3) is L* 47.4, but 06 §4.1 asks for 35 or less. Validation fails on it. The stand-in passes only through a logged waiver in `families/fish/build.py`; the bible colour is unchanged. Measured dark block on the body, pupils and navy mouth included: L* 38.4 |
+
+## S1-A1 Shell triangle budgets: deviation for the owner
+
+The bible gives prey a shell at every level (06 §6.4: prey of tier 3 and up ship LOD0 and LOD2, smaller prey
+one mesh; "shells follow the same levels"; 07 §1.2: prey have `_Shell`), 10% of body height thick (06 §13.2),
+within the 06 §6.3 shell budgets ("about 40%" of the body, all **(tune)**). The shell tool (`versions.py`)
+holds every shell to an even width: corners and face centres 0.5× to 1.6× the thickness from the body,
+mean 0.8× to 1.3×, spread (cv) at most 0.25, and nothing inside the body (`SHELL_WIDTH`). Where the budget
+cannot hold that, it raises the shell in 25% steps (never past the body's own count) and validate logs a
+waiver. Measured on the stand-ins, 2026-10-14:
+
+| Mesh | Thickness | 06 §6.3 budget | Triangles needed |
+|---|---|---|---|
+| `M_Prey_Krill_Shell` (tier 1) | 0.034 | 40 | 62 |
+| `M_Prey_Darter_LOD2_Shell` (tier 3) | 0.108 | 20 (120 × ¼, capped at 40% of the LOD2 body) | 76 |
+
+Player-size shells (fish and Minnow stand-ins, all levels) hold even width inside their budgets.
+Proposal for the owner: tier 1 prey shells about 64 triangles; prey `_LOD2_Shell` either about 80
+triangles or no LOD2 shell (the glint takes over under 8 points anyway). The bible numbers are unchanged.
