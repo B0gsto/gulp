@@ -3,10 +3,11 @@
 -- docs/02, section 0.1 `canEat`; docs/06, section 13.2; docs/09, section 8.8). Pure, so it runs
 -- in Lune. Render/Outlines turns a Kind into a coloured shell.
 --
--- `BiteRules` (09 §3) does not exist yet. Until it does, the tier test of 02 §0.1 lives here for
--- outlines only; when BiteRules lands, `canEatPlayer` should call `BiteRules.canEat` instead.
--- Not modelled yet (no replicated state): Puff (+1 defence tier), Spiny (gap 2), the eel's tuck,
--- Camo hiding and the Nursery safe volume. Each one only removes or shifts a colour.
+-- Who eats whom is BiteRules' (09 §8.8: outlines are decided from BiteRules and the local tier);
+-- this module only maps its answer to a colour. Not modelled yet (no replicated state): Puff
+-- (+1 defence tier), Spiny (gap 2), the eel's tuck, Camo hiding and the Nursery safe volume.
+-- Each one only removes or shifts a colour.
+local BiteRules = require("./BiteRules")
 
 export type Kind = "none" | "edible" | "dangerous"
 
@@ -40,10 +41,8 @@ function OutlineRules.canEatPlayer(
 	targetTier: number,
 	targetShielded: boolean
 ): boolean
-	if targetShielded or targetTier <= 1 then
-		return false
-	end
-	return eaterTier >= targetTier + 1
+	return not targetShielded
+		and BiteRules.tierAllows(eaterTier, true, targetTier, true, false, false)
 end
 
 --- The outline another player's creature gets on the viewer's screen (canon 5.2: green = you can
@@ -74,7 +73,7 @@ function OutlineRules.prey(viewerTier: number, preyTier: number, isBait: boolean
 	if isBait or preyTier < 1 then
 		return "none"
 	end
-	return if preyTier <= viewerTier then "edible" else "none"
+	return if BiteRules.canEatPrey(viewerTier, preyTier) then "edible" else "none"
 end
 
 --- Shell thickness in studs for a body `height` studs tall (06 §13.2): 6% of the height and at
