@@ -134,7 +134,7 @@ def on_flank(y, z, inset):
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
 EYE_Y, EYE_Z = -1.05, 0.15
-EYE_R = 0.36 * (top(EYE_Y) + bot(EYE_Y)) / 2.0           # eye diameter 36% of the head height (06 3.3: about 34%)
+EYE_R = 0.44 * (top(EYE_Y) + bot(EYE_Y)) / 2.0           # 44% of the head height, a third as seen once set into the head (03, 06 3.3)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
 PUPIL_COS = math.cos(math.asin(0.56))                       # pupil 60% of the eye diameter as seen (the eyeball sits 0.02 into the head)

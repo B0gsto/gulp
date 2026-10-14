@@ -29,7 +29,7 @@ class FishFit:
         k = self.k
         self.bounds = (-0.85 * k, 0.0, 0.6 * k, 1.0 * k)   # where one spine bone hands over to the next
         self.blend = 0.12 * k
-        self.blends = (0.12 * k, 0.32 * k, 0.12 * k, 0.12 * k)   # the mid-body hand-over is wide: no crease when the halves bend apart
+        self.blends = (0.28 * k, 0.32 * k, 0.12 * k, 0.12 * k)   # the mid-body hand-over is wide: no crease when the halves bend apart
         self.girth_y, self.girth_reach = -0.3 * k, 0.55 * k
         self.jaw_y = -0.95 * k
 
@@ -95,7 +95,7 @@ class FishFit:
         x, y, z = p
         w = self.spine_weights(y)
         hh, hw = max(self.half_h(y), 1e-6), max(self.half_w(y), 1e-6)
-        girth = 0.5 * max(0.0, 1.0 - ((y - self.girth_y) / self.girth_reach) ** 2)
+        girth = 0.5 * max(0.0, 1.0 - ((y - self.girth_y) / self.girth_reach) ** 2) ** 2   # zero slope at its ends: no crease ring
         jaw = smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((-0.03 - z) / 0.04)   # a sharp lip line, so the mouth opens
         if jaw > 0.0:
             w = {n: v * (1.0 - jaw) for n, v in w.items()}
@@ -243,7 +243,8 @@ def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
     g = 1.0 / math.sqrt(stretch) - 1.0
     gz, gx = FISH_HALF_H * k * g, FISH_HALF_W * k * g
     return {
-        "Spine1": {"loc": (0.0, -0.35 * k * d, 0.0)},
+        "Spine2": {"loc": (0.0, -0.12 * k * d, 0.0)},    # the front's share spread over two bones
+        "Spine1": {"loc": (0.0, -0.23 * k * d, 0.0)},
         "Spine3": {"loc": (0.0, 0.14 * k * d, 0.0)},     # the stretch spread evenly down the back half,
         "Spine4": {"loc": (0.0, 0.14 * k * d, 0.0)},     # so the tail root does not thin to a step
         "TailFin": {"loc": (0.0, 0.06 * k * d, 0.0)},
