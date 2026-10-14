@@ -113,6 +113,26 @@ def shot(view, objs, path, frame=None):
         bpy.context.view_layer.update()
 
 
+def perspective_shot(objs, path, camera):
+    """A perspective view from a fixed point, for places the ortho views cannot show (the inside
+    of a cove from its BankCam point, 03 6.10). camera: {"location", "look_at", "lens" (mm)}."""
+    show_only(objs)
+    show_helpers(False)
+    bpy.context.view_layer.update()
+    RENDERED[os.path.basename(path)] = sorted(o.name for o in bpy.context.scene.objects
+                                             if not o.hide_render and o.type not in ('LIGHT', 'CAMERA'))
+    cam = bpy.data.objects.get("CAM_Persp")
+    if cam is None:
+        data = bpy.data.cameras.new("CAM_Persp")
+        cam = template.link(bpy.data.objects.new("CAM_Persp", data), "PREVIEW")
+    cam.data.type, cam.data.clip_start, cam.data.clip_end = 'PERSP', 0.1, 2000.0
+    cam.data.lens = camera.get("lens", 16.0)
+    loc = Vector(camera["location"])
+    cam.matrix_world = template.look_matrix(Vector(camera["look_at"]) - loc, (0.0, 0.0, 1.0), loc)
+    bpy.context.scene.camera = cam
+    return render(path)
+
+
 def stack(groups, gap):
     """Moves each group of objects into a column, first group on top. Returns what to restore."""
     bpy.context.view_layer.update()
@@ -186,7 +206,10 @@ def run(spec, report, validation_ok):
                 posed = extent(world_points(main[:1]))
                 rest_len, posed_len = rest[1].y - rest[0].y, posed[1].y - posed[0].y
                 caption.insert(0, "length %.2f of %.2f studs: %.0f%% of rest" % (posed_len, rest_len, 100.0 * posed_len / rest_len))
-            image = shot(extra.get("view", "ThreeQuarter"), extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i))
+            if extra.get("camera"):
+                image = perspective_shot(extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i), extra["camera"])
+            else:
+                image = shot(extra.get("view", "ThreeQuarter"), extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i))
             if arm:
                 meshgen.apply_pose(arm, None)
             cells.append({"title": extra["title"], "kind": "view", "image": image, "caption": caption})
