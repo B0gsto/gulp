@@ -140,7 +140,7 @@ Remotes.list = {
 		"CreatureEvent",
 		"Reliable",
 		"scalars",
-		"gulped, revived, status, tier change, bite absorbed, emote [L]"
+		"gulped, revived, status, tier change, banked, traitGained, traitShed, bite absorbed, emote [L]"
 	),
 	sized(s2c("PredatorEvent", "Reliable", "buffer", "14 bytes"), 14, 14),
 	s2c("TideEvent", "Reliable", "scalars", "override start and end only"),

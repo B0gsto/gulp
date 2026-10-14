@@ -8,6 +8,7 @@ local Codex = require("./Generated/Codex")
 local CoveMouths = require("./Generated/CoveMouths")
 local Goals = require("./Generated/Goals")
 local Hazards = require("./Generated/Hazards")
+local NurseryPath = require("./Generated/NurseryPath")
 local Predators = require("./Generated/Predators")
 local Prey = require("./Generated/Prey")
 local PreyMotion = require("./Generated/PreyMotion")
@@ -122,6 +123,13 @@ local Index = {
 		"CoveMouths",
 		CoveMouths,
 		function(def: Types.CoveMouthDef): (string, number)
+			return def.id, def.wire
+		end
+	),
+	NurseryPath = lookup(
+		"NurseryPath",
+		NurseryPath,
+		function(def: Types.NurseryPointDef): (string, number)
 			return def.id, def.wire
 		end
 	),

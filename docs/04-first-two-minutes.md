@@ -123,7 +123,7 @@ Times are J (seconds since `PlayerAdded`).
 
 ### 3.1 Stages
 
-The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location).
+The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location: `shared/Config`, section 3). The saved stage is a number: `S0_LOADING` is 0, each stage after it the number in its name, and `DONE` is 11.
 
 | Stage | Enters when | Leaves when |
 |---|---|---|
@@ -369,6 +369,16 @@ See section 6.
 | No input during the chase | Section 5.4 |
 | App goes to the background | Same as the 20 s hold, at once |
 | Disconnect before the first bank | Section 9 |
+
+How the timers are read (set by task S6-C2 where this chapter was silent; chapter 14, section 5.1):
+
+- The 8 s and 20 s rules, and the hold on going to the background, apply in `S2` to `S5`, `S7`, `S9` and `S10`. Not in `S1` (the hatch ends by itself), `S6` (section 5.4) or `S8` (control is suspended).
+- "Beat timers" are every fail-safe timer, including those set on T (T = 30, 40, 50, 70). They run on a beat clock that stops during a hold; T itself, and every analytics value, keeps running.
+- B6's 8, 20 and 40 s count from the moment the curtain opens and restart whenever the player moves toward the Gap. The curtain opens 2.5 s after `S5` starts also when `S5` started at T = 70 without the trait.
+- B12's 20 and 40 s count from the tide clock (6.1, 10.3 s after the bank).
+- Turning back into the Nursery during the chase returns the stage to `S5`; the next crossing re-enters `S6`.
+- A run resumed in `S6` cannot replay the crossing, so the chase counts as `skipped` and the script carries on in `S7`.
+- The fast form's halved idle timers are this section's 4, 8 and 20 s, and B6's 8, 20 and 40 s.
 
 ### 3.8 When each HUD element first appears
 

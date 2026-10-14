@@ -797,7 +797,16 @@ local function stepToy(dt: number, now: number)
 			if not d.alive then
 				local size = (10 + 16 * math.random()) * rpx
 				d.alive = true
-				d.x, d.y = width * (0.05 + 0.9 * math.random()), height + size
+				-- Rise beside the progress row, never through it, so a drift never reads as a sixth
+				-- bubble: pick a point in the band left or right of the row (plus a size of margin).
+				local half = row.Size.X.Offset * 0.5 + size
+				local left, right = width * 0.05, width * 0.95
+				local band = math.max(0, width * 0.5 - half - left)
+				local x = left + band * math.random()
+				if math.random() < 0.5 then
+					x = right - (x - left)
+				end
+				d.x, d.y = x, height + size
 				d.speed = CONFIG.ambientSpeed * (0.7 + 0.6 * math.random()) * rpx
 				d.phase = math.random() * 6.28
 				d.disc.Size = UDim2.fromOffset(size, size)
