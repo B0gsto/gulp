@@ -270,6 +270,7 @@ BLOCK_RULES = {  # 06 section 4.1: share of surface, lightness
     "dark": ((10, 15), (0, 35)),
     "accent": ((0, 5), (0, 100)),
 }
+ID_MARK_MAX = 10     # 06 4.1: a chapter 03 ID mark may cover up to 10% of the surface
 
 
 # Barycentric sample points per triangle when a painted texture is measured: the centre,
@@ -337,7 +338,13 @@ def check_values(spec, report):
     spec["value_blocks"] = blocks
     if spec.get("texture_sampler"):
         report.add(body.name, "value: measured on", True, "the painted texture (%s)" % spec.get("texture_name", "albedo"))
+    mark = spec.get("id_mark")
     for b in blocks:
+        if mark and b["block"] == mark["block"]:
+            # 06 4.1: a species' ID mark named in chapter 03 may take up to 10% of the surface; the
+            # 5% accent cap holds for other accents. The asset names its mark (spec "id_mark").
+            b["share_ok"] = 0.0 <= b["share"] <= ID_MARK_MAX
+            b["rule"] = "ID mark (%s) 0-%d%%, L* %s" % (mark["what"], ID_MARK_MAX, b["rule"].split("L* ")[1])
         check = "value: %s share" % b["block"]
         report.add(body.name, check, b["share_ok"], "%.1f%% of the surface, rule %s" % (b["share"], b["rule"]),
                    waiver=waivers.get(check))

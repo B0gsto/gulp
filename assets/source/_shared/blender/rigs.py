@@ -115,27 +115,45 @@ class FishFit:
 # A pose is {bone: {"loc": (x, y, z), "rot": (rx, ry, rz) in degrees}}. Deform bones rest
 # world-aligned, so both are in the creature's axes: -Y forward, +Z up, +X its left.
 
+def _flutter(s):
+    """One fin beat at angle s: a quick power stroke and a slower recovery (skewed sine)."""
+    return math.sin(s + 0.35 * math.sin(s))
+
+
 def fish_swim_pose(phase, k=1.0, amp=1.0, fold=False):
     """Reference swim cycle (06 section 7.3): a wave from head to tail, about 5% of body
-    height at the head and close to 100% at the tail tip; pectorals flutter twice a loop
-    (the bible's 6-frame flutter does not divide a 16-frame loop). `amp` scales the wave
-    (1.3 at dash) and `fold` folds the pectorals back instead of fluttering (fast swim)."""
+    height at the head and close to 100% at the tail tip (peak to peak). Each bone back from
+    the middle lags the one before it by about 2.3 frames of the 16-frame loop, the tail fin
+    cups (rolls) a further 2 frames late and the back fin sways 2 frames behind the body
+    (06 7.1 arcs and drag). The head nods twice a loop, very little. The pectorals beat three
+    times a loop (5.3 frames, the nearest whole count to the bible's 6-frame flutter): a fast
+    power stroke, a slower recovery and a feathering turn a quarter beat out, so the fin tip
+    draws a figure eight. `amp` scales the wave (1.3 at dash); `fold` pins the pectorals
+    back with a small shiver and lays the back fin down (fast swim)."""
     a = 2.0 * math.pi * phase
-    wave = lambda size, lag: amp * size * math.sin(a - lag)
-    flutter = 12.0 * math.sin(2.0 * a)
+    pose = _swim_body(lambda size, lag: amp * size * math.sin(a - lag))
+    pose["Spine1"]["rot"] = (0.8 * math.sin(2.0 * a + 0.4), 0.0, pose["Spine1"]["rot"][2])
     if fold:
-        return dict(_swim_body(wave), Pec_L={"rot": (0.0, 0.0, 22.0)}, Pec_R={"rot": (0.0, 0.0, -22.0)})
-    return dict(_swim_body(wave), Pec_L={"rot": (0.0, flutter, 0.0)}, Pec_R={"rot": (0.0, -flutter, 0.0)})
+        shiver = 3.0 * math.sin(2.0 * a - 2.0)
+        pose["Pec_L"] = {"rot": (0.0, shiver, 26.0)}
+        pose["Pec_R"] = {"rot": (0.0, -shiver, -26.0)}
+        pose["Dorsal"] = {"rot": (-12.0, pose["Dorsal"]["rot"][1], 0.0)}
+        return pose
+    s = 3.0 * a
+    flap, feather = 14.0 * _flutter(s), 8.0 * math.cos(s)
+    pose["Pec_L"] = {"rot": (feather, flap, 0.0)}
+    pose["Pec_R"] = {"rot": (feather, -flap, 0.0)}
+    return pose
 
 
 def _swim_body(wave):
     return {
-        "Spine2": {"rot": (0.0, 0.0, wave(1.1, -0.6))},
-        "Spine1": {"rot": (0.0, 0.0, wave(-0.6, -0.6))},
-        "Spine3": {"rot": (0.0, 0.0, wave(8.0, 0.9))},
-        "Spine4": {"rot": (0.0, 0.0, wave(13.0, 1.8))},
-        "TailFin": {"rot": (0.0, 0.0, wave(19.0, 2.7))},
-        "Dorsal": {"rot": (0.0, wave(5.0, 1.5), 0.0)},
+        "Spine2": {"rot": (0.0, 0.0, wave(1.3, -0.6))},
+        "Spine1": {"rot": (0.0, 0.0, wave(-0.7, -0.6))},
+        "Spine3": {"rot": (0.0, 0.0, wave(10.0, 0.9))},
+        "Spine4": {"rot": (0.0, 0.0, wave(17.0, 1.8))},
+        "TailFin": {"rot": (0.0, wave(7.0, 3.5), wave(25.0, 2.7))},
+        "Dorsal": {"rot": (0.0, wave(6.0, 1.7), 0.0)},
     }
 
 
@@ -189,21 +207,31 @@ def fish_poses(k=1.0):
 
 
 # ---------------------------------------------------------------- the first family clips (07 section 2.1, task S2-A3)
-# Procedural stand-ins of the right length: the clip tools (clips.py) read each length from
-# chapter 07 and bake it. Loops take a phase 0..1; actions take the frame number, so their
-# timing follows the frame counts of 06 section 7.2. All (tune).
+# Final clips at the lengths chapter 07 gives (clips.py reads them). Loops take a phase 0..1 and
+# are periodic functions, so their seams are seamless; actions take the frame number, are timed
+# by keys (06 section 7.2) and end on the rest pose, so code sway takes over without a pop.
+# Every value is (tune).
 
 FISH_HALF_H, FISH_HALF_W = 0.55, 0.35     # body half height and width at the Girth bones (fishshape.py)
 
+_EASE = {
+    "out": lambda u: 1.0 - (1.0 - u) ** 2,          # fast out, slow in (06 7.1): the default
+    "in": lambda u: u * u,                          # slow out, fast in: winding up an anticipation
+    "io": lambda u: u * u * (3.0 - 2.0 * u),        # both ends soft: holds, settles and rebounds
+    "snap": lambda u: 1.0 - (1.0 - u) ** 3,         # the hardest fast out: snaps and strikes
+}
+
 
 def ease_keys(frame, keys):
-    """Value at `frame` between (frame, value) keys: fast out, slow in (06 section 7.1)."""
+    """Value at `frame` between keys (frame, value[, ease]); the ease names the curve into that key
+    (default "out": fast out, slow in, 06 section 7.1). Before the first key and after the last
+    the value holds, so a key list can be sampled a few frames early or late (overlap)."""
     if frame <= keys[0][0]:
         return keys[0][1]
-    for (f0, v0), (f1, v1) in zip(keys, keys[1:]):
-        if frame <= f1:
-            u = (frame - f0) / float(f1 - f0)
-            return v0 + (v1 - v0) * (1.0 - (1.0 - u) ** 2)
+    for k0, k1 in zip(keys, keys[1:]):
+        if frame <= k1[0]:
+            u = (frame - k0[0]) / float(k1[0] - k0[0])
+            return k0[1] + (k1[1] - k0[1]) * _EASE[k1[2] if len(k1) > 2 else "out"](u)
     return keys[-1][1]
 
 
@@ -225,52 +253,107 @@ def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
     }
 
 
+def _put(pose, bone, loc=None, rot=None):
+    """Adds a location and/or rotation to a bone of `pose` (pose values add, they do not replace)."""
+    entry = pose.setdefault(bone, {})
+    if loc is not None:
+        entry["loc"] = tuple(a + b for a, b in zip(entry.get("loc", (0.0, 0.0, 0.0)), loc))
+    if rot is not None:
+        entry["rot"] = tuple(a + b for a, b in zip(entry.get("rot", (0.0, 0.0, 0.0)), rot))
+
+
 def fish_swimfast_pose(phase, k=1.0):
-    """A_Fish_SwimFast: the swim wave at 130% on the shorter dash loop, fins folded (06 7.3)."""
+    """A_Fish_SwimFast: the swim wave at 130% on the 8-frame dash loop, pectorals pinned back with
+    a shiver, back fin laid down (06 7.3)."""
     return fish_swim_pose(phase, k, amp=1.3, fold=True)
 
 
 def fish_idle_pose(phase, k=1.0):
-    """A_Fish_Idle: hover. The body bobs once a loop on the Spine bones (Root stays put), the
-    tail drifts twice and the pectorals scull on the bible's 6-frame flutter (60 = 10 x 6)."""
+    """A_Fish_Idle, 60-frame hover. The whole body bobs once a loop (Spine and Girth bones; Root
+    stays put), eased by the sine. Head and tail drag behind the bob (they pitch against its
+    speed, the tail about 3 frames late), the tail drifts side to side twice, the mouth breathes
+    twice, and the pectorals scull ten times on the bible's 6-frame beat in a figure eight
+    (flap, then feather a quarter beat later), so the fish looks held up by its fins."""
     a = 2.0 * math.pi * phase
-    bob = 0.04 * k * math.sin(a)
-    scull = 18.0 * math.sin(10.0 * a)
-    drift = 4.0 * math.sin(2.0 * a - 1.0)
-    return {
-        "Spine2": {"loc": (0.0, 0.0, bob), "rot": (0.0, 0.0, 0.5 * math.sin(2.0 * a))},
-        "Spine3": {"loc": (0.0, 0.0, bob)},
-        "Spine4": {"rot": (0.0, 0.0, 0.6 * drift)},
-        "TailFin": {"rot": (0.0, 0.0, drift)},
-        "Dorsal": {"rot": (0.0, 2.0 * math.sin(2.0 * a), 0.0)},
-        "Pec_L": {"rot": (0.0, scull, 0.0)},
-        "Pec_R": {"rot": (0.0, -scull, 0.0)},
-    }
+    bob = 0.05 * k * math.sin(a)
+    rise = math.cos(a)                              # the bob's speed, -1..1
+    drag = math.cos(a - 0.6)                        # the same, 3 frames late
+    s = 10.0 * a
+    flap, feather = 20.0 * _flutter(s), 10.0 * math.cos(s)
+    breathe = 0.5 - 0.5 * math.cos(2.0 * a)
+    pose = {}
+    for bone in ("Spine2", "Spine3"):
+        _put(pose, bone, loc=(0.0, 0.0, bob))
+    for bone in ("Girth_Top", "Girth_Bot", "Girth_L", "Girth_R"):
+        _put(pose, bone, loc=(0.0, 0.0, bob))
+    _put(pose, "Girth_L", loc=(0.012 * k * breathe, 0.0, 0.0))
+    _put(pose, "Girth_R", loc=(-0.012 * k * breathe, 0.0, 0.0))
+    _put(pose, "Spine2", rot=(0.0, 0.0, 0.6 * math.sin(2.0 * a)))
+    _put(pose, "Spine1", rot=(1.4 * rise, 0.0, -0.4 * math.sin(2.0 * a)))
+    _put(pose, "Spine4", rot=(-2.2 * drag, 0.0, 2.6 * math.sin(2.0 * a - 1.0)))
+    _put(pose, "TailFin", rot=(-3.2 * math.cos(a - 1.0), 2.0 * math.sin(2.0 * a - 2.2), 4.5 * math.sin(2.0 * a - 1.8)))
+    _put(pose, "Dorsal", rot=(-3.0 + 3.0 * math.sin(a - 0.8), 2.5 * math.sin(2.0 * a - 1.4), 0.0))
+    _put(pose, "Jaw", rot=(3.0 * breathe, 0.0, 0.0))
+    _put(pose, "Pec_L", rot=(feather, flap, 0.0))
+    _put(pose, "Pec_R", rot=(feather, -flap, 0.0))
+    return pose
 
 
-DASH_KEYS = [(0, 1.0), (2, 0.85), (8, 1.25), (10, 0.95), (12, 1.02), (14, 1.0)]
+# A_Fish_Dash, 14 frames (06 7.2): the squash winds up slowly into 85% (anticipation, 2 frames,
+# overlapping the move), the body snaps to 125% in 2 and holds it, moving, for 4 more; it
+# overshoots to 95% on frame 10, rebounds 3% and settles on frame 14.
+DASH_STRETCH = [(0, 1.0), (2, 0.85, "in"), (4, 1.25, "snap"), (8, 1.23, "io"), (10, 0.95, "io"), (12, 1.03, "io"), (14, 1.0, "io")]
+# The bend of a C-start: the body curls into a C during the squash, whips through to the other
+# side on the power stroke and swings out in shrinking beats. +1 curls head and tail to the left.
+DASH_BEND = [(0, 0.0), (2, 1.0, "in"), (4, -0.75, "snap"), (6, 0.32, "io"), (8, -0.12, "io"), (10, 0.0, "io")]
+# Fins pinned back from the snap (fast out), flaring past rest on the overshoot (follow-through).
+DASH_FINS = [(0, 0.0), (2, 0.25, "in"), (4, 1.0, "snap"), (8, 1.0), (11, -0.3, "io"), (13, 0.0, "io")]
 
 
 def fish_dash_pose(frame, k=1.0):
-    """A_Fish_Dash, 14 frames (06 7.2): squash to 85% in 2, stretch to 125% with fins pinned back
-    in 6, overshoot to 95% in 2, settle in 4 with a small rebound."""
-    s = ease_keys(frame, DASH_KEYS)
-    return fish_stretch_pose(s, k, fins_back=max(0.0, min(1.0, (s - 1.0) / 0.25)))
+    """A_Fish_Dash: squash and C-bend, snap to a 125% stretch with fins pinned back, overshoot to
+    95%, settle. The wave of the bend travels down the body: each bone back from the middle takes
+    it about a frame later and the tail fin 2 frames late; the fins follow the body 1 frame late."""
+    pose = fish_stretch_pose(ease_keys(frame, DASH_STRETCH), k)
+    bend = lambda lag: ease_keys(frame - lag, DASH_BEND)
+    fins = ease_keys(frame - 1.0, DASH_FINS)
+    _put(pose, "Spine2", rot=(0.0, 0.0, 9.0 * bend(0.0)))
+    _put(pose, "Spine1", rot=(0.0, 0.0, 7.0 * bend(0.0)))
+    _put(pose, "Spine3", rot=(0.0, 0.0, -10.0 * bend(0.5)))
+    _put(pose, "Spine4", rot=(0.0, 0.0, -16.0 * bend(1.2)))
+    _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), -24.0 * bend(2.0)))
+    pose["Pec_L"] = {"rot": (0.0, -6.0 * min(fins, 0.0), 26.0 * fins)}
+    pose["Pec_R"] = {"rot": (0.0, 6.0 * min(fins, 0.0), -26.0 * fins)}
+    pose["Dorsal"] = {"rot": (-16.0 * fins, 5.0 * bend(1.8), 0.0)}
+    return pose
+
+
+BITE_FLICK = [(0, 0.0), (1, 1.0, "snap"), (2.5, -0.45, "io"), (4, 0.12, "io"), (5, 0.0, "io")]
 
 
 def fish_bite_pose(frame, k=1.0):
-    """A_Fish_Bite, 8 frames (07: 7 to 9; 06 7.2): jaw already opening, wide on frame 1; frame 2
-    snaps it shut with the head lunging 12% of body length and the cheeks bulging; stretch to 115%
-    over 2 frames; settle in 4 with a 3% rebound."""
-    jaw = ease_keys(frame, [(0, 30.0), (1, 52.0), (2, 0.0)])
-    stretch = ease_keys(frame, [(0, 1.0), (2, 1.0), (4, 1.15), (6, 0.97), (8, 1.0)])
-    lunge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.36 * k), (4, 0.2 * k), (8, 0.0)])
-    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.05), (4, 0.03), (8, 0.0)])
+    """A_Fish_Bite, 8 frames (07: 7 to 9; 06 7.2). Frame 0: the jaw is already opening as the prey
+    nears; frame 1 (anticipation): jaw wide, head drawn back and up, body squashed a little;
+    frame 2: the jaw snaps shut, the head lunges 12% of body length and chomps down, the cheeks
+    bulge; frames 3 and 4: the body stretches to 115%; then 4 frames of settle with a 3% rebound.
+    The pectorals flare forward to brake and the tail flicks, 1 and 2 frames behind the head."""
+    jaw = ease_keys(frame, [(0, 28.0), (1, 55.0), (2, 0.0, "snap")])
+    stretch = ease_keys(frame, [(0, 1.0), (1, 0.96, "in"), (2, 1.08, "snap"), (4, 1.15), (6, 0.97, "io"), (8, 1.0, "io")])
+    lunge = ease_keys(frame, [(0, 0.0), (1, -0.05 * k, "in"), (2, 0.36 * k, "snap"), (4, 0.22 * k, "io"), (6, -0.02 * k, "io"), (8, 0.0, "io")])
+    nod = ease_keys(frame, [(0, -2.0), (1, -7.0, "in"), (2, 6.0, "snap"), (4, 0.0, "io"), (6, -1.5, "io"), (8, 0.0, "io")])
+    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.06, "snap"), (4, 0.035, "io"), (7, 0.0, "io")])
+    brake = ease_keys(frame - 1.0, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.35, "io"), (7, 0.0, "io")])
+    flick = lambda lag: ease_keys(frame - lag, BITE_FLICK)
     pose = fish_stretch_pose(stretch, k)
-    pose["Spine1"] = {"loc": (0.0, pose["Spine1"]["loc"][1] - lunge, 0.0)}
-    pose["Jaw"] = {"rot": (jaw, 0.0, 0.0)}
-    pose["Girth_L"] = {"loc": (pose["Girth_L"]["loc"][0] + bulge, 0.0, 0.0)}
-    pose["Girth_R"] = {"loc": (pose["Girth_R"]["loc"][0] - bulge, 0.0, 0.0)}
+    _put(pose, "Spine1", loc=(0.0, -lunge, 0.0), rot=(nod, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(jaw, 0.0, 0.0))
+    _put(pose, "Girth_L", loc=(bulge, 0.0, 0.0))
+    _put(pose, "Girth_R", loc=(-bulge, 0.0, 0.0))
+    _put(pose, "Pec_L", rot=(0.0, 12.0 * brake, -24.0 * brake))
+    _put(pose, "Pec_R", rot=(0.0, -12.0 * brake, 24.0 * brake))
+    _put(pose, "Dorsal", rot=(8.0 * brake, 0.0, 0.0))
+    _put(pose, "Spine4", rot=(0.0, 0.0, 5.0 * flick(2.0)))
+    _put(pose, "TailFin", rot=(0.0, 0.0, 11.0 * flick(2.6)))
     return pose
 
 
@@ -280,6 +363,8 @@ FISH_CLIPS = {
     "A_Fish_Swim": (fish_swim_pose, [(0, "phase 0"), (4, "1/4"), (8, "1/2"), (12, "3/4")]),
     "A_Fish_SwimFast": (fish_swimfast_pose, [(0, "phase 0"), (2, "1/4"), (4, "1/2"), (6, "3/4")]),
     "A_Fish_Idle": (fish_idle_pose, [(0, "phase 0"), (15, "bob top"), (30, "1/2"), (45, "bob low")]),
-    "A_Fish_Dash": (fish_dash_pose, [(0, "start"), (2, "squash 85%"), (8, "stretch 125%"), (10, "overshoot 95%"), (14, "settled")]),
-    "A_Fish_Bite": (fish_bite_pose, [(0, "jaw opening"), (1, "jaw open"), (2, "snap, lunge 12%"), (4, "stretch 115%"), (8, "settled")]),
+    "A_Fish_Dash": (fish_dash_pose, [(0, "start"), (2, "squash 85%, C"), (4, "snap 125%"), (8, "hold"),
+                                     (10, "overshoot 95%"), (14, "settled")]),
+    "A_Fish_Bite": (fish_bite_pose, [(0, "jaw opening"), (1, "wind-up"), (2, "snap, lunge 12%"), (4, "stretch 115%"),
+                                     (6, "rebound"), (8, "settled")]),
 }

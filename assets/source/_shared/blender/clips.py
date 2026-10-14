@@ -9,6 +9,10 @@ Used from an asset's build.py and from run.py:
   copy_to(clip, armature, name)    copy a clip to another species on the same family skeleton
   strip(clip, bones)               drop bones from a clip (the sway bones, 06 7.6, if code and
                                    clips cannot be layered); the checks then expect them unkeyed
+  dump_json(clip)                  per bone its parent and rest matrix, per frame its local transform
+  to_rbxm(spec, report, ok)        the `clips-rbxm` step: every clip as a click-free Roblox
+                                   KeyframeSequence, binary .rbxm in assets/export/animations/
+                                   (animrbx.py, then Lune luau/xml2rbxm.luau), read back and checked
   preview(spec, report, ok)        the `clips` step: per clip a strip of key poses (side and top)
                                    and a 2-second, 384-pixel clip (GIF, 30 fps) in
                                    assets/review/<A_name>/
@@ -265,4 +269,94 @@ def preview(spec, report, validation_ok):
         shutil.rmtree(tmp, ignore_errors=True)
         scene.render.resolution_x, scene.render.resolution_y = saved[0], saved[1]
         scene.frame_set(saved[2])
+    return results
+
+
+# ---------------------------------------------------------------- Roblox animation files (step clips-rbxm)
+
+LUAU_DIR = os.path.join(common.LIB_DIR, "..", "luau")
+
+
+def dump_json(clip):
+    """The clip as data (port of the Sprint 0 spike's fish_anim_json.py): per bone its parent,
+    deform flag and armature-space rest matrix; per frame its local transform (matrix_basis,
+    location and quaternion w, x, y, z) and its armature-space head."""
+    import mathutils
+    arm, action = clip["armature"], clip["action"]
+    arm.data.pose_position = 'POSE'
+    arm.animation_data.action = action
+    bones = {b.name: {"parent": b.parent.name if b.parent else None, "deform": b.use_deform,
+                      "rest": [list(r) for r in b.matrix_local], "frames": []} for b in arm.data.bones}
+    for f in range(clip["start"], clip["end"] + 1):
+        bpy.context.scene.frame_set(f)
+        for pb in arm.pose.bones:
+            mb = pb.matrix_basis
+            q = mb.to_quaternion()
+            bones[pb.name]["frames"].append({"loc": list(mb.to_translation()), "q": [q.w, q.x, q.y, q.z],
+                                             "head": list(mathutils.Vector(pb.head))})
+    bpy.context.scene.frame_set(clip["start"])
+    return {"clip": clip["name"], "fps": common.FPS, "start": clip["start"], "end": clip["end"],
+            "loop": bool(clip.get("loop")), "rig": arm.name, "bones": bones}
+
+
+def _lune():
+    for path in (shutil.which("lune"), os.path.expanduser("~/.rokit/bin/lune")):
+        if path and os.path.exists(path):
+            return path
+    raise RuntimeError("lune not found (export PATH=\"$HOME/.rokit/bin:$PATH\")")
+
+
+def to_rbxm(spec, report, validation_ok):
+    """Writes assets/export/animations/<A_name>.rbxm for every clip and checks it read back: one
+    KeyframeSequence, a keyframe per frame over the clip's length, the 07 loop flag, and pose names
+    exactly the deform bones of the rig, of the family (budgets.FAMILIES) and of the exported FBX."""
+    import animrbx
+    import export
+    results = {}
+    if not validation_ok:
+        print("[clips-rbxm] validation failed: no animation files written")
+        return results
+    family = set(budgets.FAMILIES[spec["rig"]]["deform"])
+    fbx_bones = None
+    mesh_fbx = next((e["file"] for e in spec.get("exports", []) if not e.get("clip") and
+                     any(o.type == 'ARMATURE' for o in e["objects"])), None)
+    if mesh_fbx and os.path.exists(os.path.join(common.EXPORT_DIR, mesh_fbx)):
+        fbx_bones = {b for b in export.inspect_fbx(os.path.join(common.EXPORT_DIR, mesh_fbx))["bones"] if not b.startswith("Sock_")}
+    tmp = tempfile.mkdtemp(prefix="gulp_rbxm_")
+    try:
+        for clip in spec.get("actions", []):
+            name = clip["name"]
+            add = lambda check_, ok, detail="": report.add(name + ".rbxm", check_, ok, detail)
+            data = dump_json(clip)
+            xml, posed, prio = animrbx.kfs_xml(data)
+            src = os.path.join(tmp, name + ".rbxmx")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(xml)
+            out = os.path.join(common.EXPORT_DIR, "animations", name + ".rbxm")
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            summary_path = os.path.join(tmp, name + ".json")
+            done = subprocess.run([_lune(), "run", os.path.join(LUAU_DIR, "xml2rbxm.luau"), src, out, summary_path],
+                                  capture_output=True, text=True)
+            if done.returncode != 0 or not os.path.exists(summary_path):
+                add("rbxm written", False, (done.stderr or done.stdout)[-400:])
+                continue
+            got = json.load(open(summary_path))
+            frames = clip["end"] - clip["start"]
+            rig_deform = {b.name for b in clip["armature"].data.bones if b.use_deform}
+            bones = set(got["bones"])
+            add("rbxm written", got["class"] == "KeyframeSequence" and got["name"] == name,
+                "%s, %d bytes, priority %s" % (os.path.relpath(out, common.REPO_DIR), got["bytes"], got["priority"]))
+            add("rbxm keyframes", got["keyframes"] == frames + 1 and abs(got["length"] - frames / float(common.FPS)) < 1e-4
+                and set(got["posesPerKeyframe"]) == {len(posed) + 1},
+                "%d keyframes over %.3f s, %d poses each" % (got["keyframes"], got["length"], max(got["posesPerKeyframe"] or [0])))
+            add("rbxm loop", bool(got["loop"]) == bool(clip.get("loop")), "Loop %s" % got["loop"])
+            want = [("rig", rig_deform), ("RIG_%s family" % spec["rig"], family)] + ([("FBX", fbx_bones)] if fbx_bones else [])
+            bad = ["%s: missing %s, extra %s" % (label, sorted(ref - bones), sorted(bones - ref)) for label, ref in want if ref != bones]
+            add("rbxm bone names", not bad and got["rootPoses"] == ["RootPart"],
+                "; ".join(bad) or "%d poses under RootPart match the deform bones of the rig, the family%s"
+                % (len(bones), " and the exported FBX" if fbx_bones else ""))
+            print("[clips-rbxm] %s" % done.stdout.strip())
+            results[name] = os.path.relpath(out, common.REPO_DIR)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
     return results
