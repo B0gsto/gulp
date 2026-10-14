@@ -1,0 +1,244 @@
+{
+	"v": 1,
+	"createdAt": 1791936000,
+	"lastSeenAt": 1792022400,
+	"sessions": 7,
+	"playSeconds": 15420,
+	"pearls": 2380,
+	"rank": {
+		"points": 940,
+		"claimed": 0
+	},
+	"species": {
+		"owned": {
+			"minnow": true,
+			"puffer": true
+		},
+		"selected": "puffer",
+		"patterns": {
+			"minnow": [
+				"pat_minnow_stripe"
+			]
+		},
+		"equipped": {
+			"minnow": "pat_minnow_stripe"
+		}
+	},
+	"cove": {
+		"slots": 7,
+		"specimens": [
+			{
+				"id": "a1B2c3D4",
+				"sp": "minnow",
+				"tier": 3,
+				"mass": 64.5,
+				"traits": [
+					"spots"
+				],
+				"at": 1791940000
+			},
+			{
+				"id": "Zx9Yw8Vu",
+				"sp": "puffer",
+				"tier": 5,
+				"mass": 402.7,
+				"traits": [
+					"spots",
+					"glow"
+				],
+				"at": 1792000000,
+				"pat": "pat_minnow_stripe"
+			}
+		],
+		"pending": 37,
+		"accruedAt": 1792020000,
+		"lastClaim": {
+			"amount": 120,
+			"at": 1792010000
+		},
+		"boostDay": 0,
+		"bubbles": 0,
+		"decorOwned": {},
+		"decor": {}
+	},
+	"codex": {
+		"species": {
+			"minnow": 4,
+			"puffer": 5
+		},
+		"traits": {
+			"spots": true
+		},
+		"prey": {
+			"krill": 212,
+			"plankton": 40
+		},
+		"dangers": {},
+		"places": {},
+		"tides": {},
+		"rewards": {
+			"cdx_tiers:minnow": true
+		}
+	},
+	"goals": {
+		"day": 20741,
+		"list": [
+			{
+				"id": "dg_eat_50",
+				"progress": 50,
+				"target": 50,
+				"claimed": true
+			},
+			{
+				"id": "dg_tier3",
+				"progress": 0,
+				"target": 1,
+				"claimed": false
+			},
+			{
+				"id": "dg_bank_snapper",
+				"progress": 0,
+				"target": 1,
+				"claimed": false
+			}
+		],
+		"rerolls": 1,
+		"paidRerolls": 0,
+		"bonusClaimed": false,
+		"fullDays": 2
+	},
+	"streak": {
+		"day": 0,
+		"count": 0
+	},
+	"stats": {
+		"runs": 31,
+		"banks": 12,
+		"deaths": 18,
+		"bites": 2210,
+		"playersEaten": 3,
+		"bestMass": 402.7,
+		"bestTier": 5,
+		"gullDodges": 4,
+		"breaches": 61,
+		"bubblesGiven": 0,
+		"events": {
+			"frenzy_prey": 140
+		}
+	},
+	"newcomer": {
+		"firstDeath": true,
+		"biteAbsorbed": true,
+		"runsCompleted": 30,
+		"shieldUsed": 90
+	},
+	"passes": {
+		"pass_deep_pockets": false
+	},
+	"tokens": {
+		"revive": 1,
+		"trait_lock": 0,
+		"call_tide": 0,
+		"goal_reroll": 2
+	},
+	"purchases": {
+		"receipts": [
+			"4f9c2a1e-receipt-1"
+		],
+		"starterPack": true,
+		"robuxSpent": 99,
+		"packDay": 20740,
+		"packsToday": 0
+	},
+	"ads": {
+		"day": 0,
+		"counts": {}
+	},
+	"offers": {
+		"offer_starter": 20739
+	},
+	"social": {
+		"bubbleDay": 0,
+		"bubbledUserIds": []
+	},
+	"board": {
+		"week": 2962,
+		"weekBest": 402
+	},
+	"ftue": {
+		"stage": 9,
+		"completed": true,
+		"version": 1,
+		"attempts": 1
+	},
+	"ab": {
+		"exp_first_goal": "b"
+	},
+	"settings": {
+		"sfx": 8,
+		"music": 3,
+		"colourBlind": false,
+		"reduceMotion": true,
+		"vibration": true,
+		"tapNotHold": false,
+		"leftHanded": false,
+		"biggerText": false,
+		"language": "",
+		"interfaceSize": 1.0,
+		"swapSticks": false,
+		"hideEmotes": false,
+		"input": {
+			"touch": {
+				"scheme": "drag",
+				"lookSpeed": 1.0,
+				"twoThumbLookSpeed": 1.0,
+				"flipY": false,
+				"graphics": "auto"
+			},
+			"keys": {
+				"scheme": "keys",
+				"lookSpeed": 1.4,
+				"twoThumbLookSpeed": 1.0,
+				"flipY": false,
+				"graphics": "auto"
+			},
+			"pad": {
+				"scheme": "pad",
+				"lookSpeed": 1.0,
+				"twoThumbLookSpeed": 1.0,
+				"flipY": false,
+				"graphics": "auto"
+			}
+		},
+		"lastGoodTier": {}
+	},
+	"moderation": {
+		"kicks": 0,
+		"flags": 1
+	},
+	"run": {
+		"sp": "puffer",
+		"mass": 88.2,
+		"tier": 3,
+		"traits": [
+			"spots"
+		],
+		"progress": {
+			"glow": 2
+		},
+		"startedAt": 1792022000,
+		"runSeconds": 380,
+		"platedUsed": false,
+		"reviveUsed": false,
+		"untrusted": false,
+		"x": 120.5,
+		"y": -42.25,
+		"z": -310.0,
+		"feedGuard": {
+			"1234567": 1
+		},
+		"suspendedAt": 1792022400,
+		"expiresAt": 1792022700,
+		"onExpiry": "scraps"
+	}
+}
