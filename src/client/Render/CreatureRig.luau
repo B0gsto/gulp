@@ -19,7 +19,11 @@
 --      creature, so skinned pieces are in the template before spawning (spike F19).
 --   2. Otherwise a code-built placeholder with the RIG_Fish bone names (rigs.py FishFit): rigid
 --      ellipsoid pieces held to their bones by RigidConstraint (06 §8.4, spike F14), and
---      inverted-hull shells made with a negative SpecialMesh scale.
+--      placeholder shells: a slightly larger copy of each body ellipsoid pushed away from the
+--      camera (`SpecialMesh.Offset`), so the body hides its middle and only a rim shows. A
+--      negative mesh scale does not flip faces in the engine: measured in Studio for S3-C6, it
+--      drew a solid neon ellipsoid over the body. The imported `_Shell` meshes have real flipped
+--      faces (spike S0-A2) and need none of this.
 --
 -- Animation: the five fish clips play through the Animator when the manifest has their asset
 -- IDs; otherwise `sway` writes the reference swim wave onto the bones. Bones are written on the
@@ -325,8 +329,8 @@ local function buildPlaceholderForm(
 		p.Parent = folder
 		table.insert(parts.body, p)
 		if row[6] then
-			-- Inverted hull: the same ellipsoid, a little larger, with its faces turned inside out
-			-- by a negative mesh scale, so only the back faces draw around the silhouette.
+			-- Placeholder shell: the same ellipsoid, a little larger, drawn behind the body from the
+			-- camera's side (`faceCamera`), so only its rim shows around the silhouette.
 			local s = Instance.new("Part")
 			s.Name = name .. "_Shell"
 			s.Size = size
@@ -335,7 +339,6 @@ local function buildPlaceholderForm(
 			s.CFrame = p.CFrame
 			local hull = Instance.new("SpecialMesh")
 			hull.MeshType = Enum.MeshType.Sphere
-			hull.Scale = -Vector3.one
 			hull.Parent = s
 			setVisualPart(s)
 			attach(s, bones[boneName], centre)
@@ -582,13 +585,34 @@ function CreatureRig.applyScale(rig: Rig, scale: number)
 	end
 end
 
--- Placeholder shells: mesh scale −(1 + 2t / size) on each axis gives a line `t` studs thick.
+-- Placeholder shells: mesh scale 1 + 2t / size on each axis gives a rim `t` studs wide.
 local function fitHulls(rig: Rig, kind: Kind)
 	local scale = rig.scaleEase.value
 	local t = OutlineRules.thickness(rig.bodyHeight * scale, kind, false) / scale
 	for _, h in formParts(rig, rig.form).hulls do
 		local s = h.size
-		h.mesh.Scale = -Vector3.new(1 + 2 * t / s.X, 1 + 2 * t / s.Y, 1 + 2 * t / s.Z)
+		h.mesh.Scale = Vector3.new(1 + 2 * t / s.X, 1 + 2 * t / s.Y, 1 + 2 * t / s.Z)
+	end
+end
+
+local PUSH = 2.5 -- placeholder shell pushed back by this many line widths (tune)
+
+--- Placeholder only, every frame while an outline shows: pushes each shell directly away from
+--- the camera at `eye`, so the body covers its middle. The imported flipped-face shells skip this.
+function CreatureRig.faceCamera(rig: Rig, eye: Vector3)
+	if not rig.placeholder or rig.outline == "none" then
+		return
+	end
+	local scale = rig.scaleEase.value
+	local push = PUSH * OutlineRules.thickness(rig.bodyHeight * scale, rig.outline, false)
+	for _, h in formParts(rig, rig.form).hulls do
+		local cf = h.part.CFrame
+		local away = cf.Position - eye
+		local d = away.Magnitude
+		if d > 1e-3 then
+			-- Offset is in the part's object space, in studs.
+			h.mesh.Offset = cf:VectorToObjectSpace(away) * (push / d)
+		end
 	end
 end
 

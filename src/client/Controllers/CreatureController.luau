@@ -317,6 +317,8 @@ local function update(dt: number)
 	end
 	debug.profilebegin(TAG)
 	local now = os.clock()
+	local camera = workspace.CurrentCamera
+	local eye = if camera then camera.CFrame.Position else nil
 	table.clear(moveParts)
 	table.clear(moveCFrames)
 	local n = 0
@@ -352,8 +354,13 @@ local function update(dt: number)
 			if rig.loop == "SwimFast" and before ~= "SwimFast" then
 				CreatureRig.playAction(rig, "Dash")
 			end
-			if e.shown and e.kind == "dangerous" then
-				CreatureRig.setOutline(rig, "dangerous", Outlines.colourAt("dangerous", now))
+			if e.shown then
+				if e.kind == "dangerous" then
+					CreatureRig.setOutline(rig, "dangerous", Outlines.colourAt("dangerous", now))
+				end
+				if eye then
+					CreatureRig.faceCamera(rig, eye)
+				end
 			end
 
 			n += 1
