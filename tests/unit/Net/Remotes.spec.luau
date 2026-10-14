@@ -89,13 +89,17 @@ describe("Net/Remotes", function()
 	)
 
 	it(
-		"every payload is a buffer except State and the *Action remotes; ClientReady has none",
+		"every payload is a buffer except State, WorldInfo and the *Action remotes; ClientReady has none",
 		function()
 			for _, def in Remotes.list do
 				local expected = "buffer"
 				if def.name == "ClientReady" then
 					expected = "none"
-				elseif def.name == "State" or string.match(def.name, "Action$") then
+				elseif
+					def.name == "State"
+					or def.name == "WorldInfo"
+					or string.match(def.name, "Action$")
+				then
 					expected = "scalars"
 				end
 				expect(def.encoding).toBe(expected)
