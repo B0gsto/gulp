@@ -53,7 +53,7 @@ CROWN = "#FFF4E2"       # ... to its top (L* 97: 5 points); also the spots' glin
 SPOT = "#5E4058"        # plum spots: the cove kit's dark (coveart.DARK, L* 31; measured over the spots with their
                         # one-pixel edges, L* 34)
 ACCENT = "#FFB38A"      # apricot freckles: 06 4.3's warm accent (shark row), hue 21, saturation 46%: not reserved
-INSIDE = "#523A57"      # inside of the shell, in shadow (dark, L* 28)
+INSIDE = "#62476A"      # inside of the shell, in shadow (dark, L* 34: the top of 06 4.1's dark block, no black)
 LIGHT_SHARE = 0.28      # share of the egg's area above the crown's edge (06 4.1 light: 20 to 30%; the spots take some)
 DARK_SHARE = 0.125      # share the spots take (06 4.1 dark: 10 to 15%)
 ACCENT_R = 0.13         # apricot freckle radius, studs (3 per sector: about 2.5% of the surface, 06 4.1 cap 5%)
@@ -326,38 +326,134 @@ def build_parts(ca, cells):
 # 04 B1 "it wobbles twice, cracks": in the game this is code (task S6-C2); these keys are the
 # stand-in the review renders use, timed to A_Fish_Hatch (rigs.py owns the rock, the squash and
 # the crack and pop frames, since the Fry rides them), and the starting values for that code (tune).
-CAP_LIFT = [(0, 0.0), (8, 0.0), (9, 0.05, "snap"), (11, 0.03, "io"), (12, 0.07, "snap"), (14, 0.06, "io"), (15, 0.1, "in")]
-CAP_TILT = [(0, 0.0), (8, 0.0), (9, 3.0, "snap"), (11, 2.0, "io"), (12, 6.0, "snap"), (14, 5.0, "io"), (15, 9.0, "in")]
-CAP_FLIP = [(15, 0.0), (19, 0.75, "out"), (24, 1.0, "io")]
-CAP_FLIP_DEG = -115.0                             # the cap tips off backwards (+Y) about its back edge...
-CAP_DROP = (0.0, 0.6, -1.3)                       # ...and falls to the bed behind the egg (studs)
+CAP_LIFT = [(0, 0.0), (8, 0.0), (9, 0.05, "snap"), (11, 0.03, "io"), (12, 0.08, "snap"), (14, 0.06, "io"), (15, 0.1, "in")]
+CAP_TILT = [(0, 0.0), (8, 0.0), (9, 3.0, "snap"), (11, 2.0, "io"), (12, 7.0, "snap"), (14, 5.0, "io"), (15, 9.0, "in")]
+# On the pop the Fry's head flips the cap open backwards about its back edge like a lid (to frame
+# CAP_RELEASE), then it flies free on one gravity arc, tumbling on (about X, top to +Y) and turning
+# on its own axis (CAP_SPIN), to the bed behind the egg and to the Fry's left (CAP_LAND_AT: x and y
+# of its tip's centre of curvature). It lands open side up on frame CAP_LAND and rolls on its
+# round tip (no slide), rocking out the tumble to rest on frame 40. CAP_TUMBLE: (frame, degrees
+# about X), one smooth curve; from CAP_LAND, -180 is upside down at rest.
+CAP_RELEASE = 18
+CAP_LAND = 26
+CAP_LAND_AT = (0.9, 2.9)                         # studs, egg frame: back (+Y) and to the Fry's left (+X)
+CAP_SPIN = 50.0                                   # degrees it turns on its own axis in the air
+CAP_TUMBLE = [(15, -9.0), (16, -68.0), (17, -98.0), (18, -118.0), (22, -146.0), (26, -167.0), (29, -193.0), (32, -173.0),
+              (35, -184.0), (38, -178.5), (40, -180.0)]
 CUP_ROCK = [(15, 0.0), (17, 1.0, "snap"), (20, -0.5, "io"), (23, 0.2, "io"), (26, 0.0, "io")]
 CUP_ROCK_DEG = 5.0                                # the cup rocks back once (top to +Y) as the Fry shoots up out of it
+
+
+def tip_radius():
+    """Radius of curvature of the round top at the top pole (the landed cap rolls on it)."""
+    r, z = profile(179.0)
+    return r * r / (2.0 * (H - z))
+
+
+def cap_points():
+    """Points over the cap's outside (top pole to the crack), egg frame at rest, for its contact."""
+    pts = []
+    for j in range(SEGS):
+        for d in np.linspace(crack_deg(j), 180.0, 24):
+            r, z = profile(d)
+            pts.append((r * math.cos(phi(j)) + lean_dx(z), r * math.sin(phi(j)), z))
+    return np.array(pts)
 
 
 def egg_matrix(frame):
     """The whole egg's (and the closed halves') rock and squash at `frame`, in the egg's frame."""
     import rigs
     from mathutils import Matrix
-    a = rigs.HATCH_EGG_SQUASH_AMOUNT * rigs.ease_keys(frame, rigs.HATCH_EGG_SQUASH)
-    squash = Matrix.Diagonal((1.0 + 0.5 * a, 1.0 + 0.5 * a, 1.0 - a, 1.0))
     rock = rigs.hatch_egg_rock(frame) if frame <= rigs.HATCH_POP else Matrix.Identity(4)
-    return rock @ squash
+    return rock @ rigs.hatch_egg_squash(frame)
+
+
+def _hinge():
+    from mathutils import Vector
+    zc = profile(CRACK)[1]
+    return Vector((lean_dx(zc), profile(CRACK)[0], zc))
+
+
+def _cap_centre():
+    from mathutils import Vector
+    rc = tip_radius()
+    return Vector((lean_dx(H - rc), 0.0, H - rc))
+
+
+def _lid(frame, theta):
+    """The cap turned `theta` degrees about its back edge (the hinge), lifted by CAP_LIFT."""
+    import rigs
+    from mathutils import Matrix
+    h = _hinge()
+    return (Matrix.Translation((0.0, 0.0, rigs.ease_keys(min(frame, rigs.HATCH_POP), CAP_LIFT))) @ Matrix.Translation(h)
+            @ Matrix.Rotation(math.radians(theta), 4, 'X') @ Matrix.Translation(-h))
+
+
+def _turn(theta, psi, at):
+    """The cap tumbled `theta` about X after `psi` about its own axis, its tip's centre moved to `at`."""
+    from mathutils import Matrix
+    c = _cap_centre()
+    return (Matrix.Translation(at) @ Matrix.Rotation(math.radians(theta), 4, 'X') @ Matrix.Rotation(math.radians(psi), 4, 'Z')
+            @ Matrix.Translation(-c))
+
+
+_FLIGHT = []
+
+
+def _flight():
+    """The free flight, worked out once from the lid's speed at release: the gravity that brings the
+    tip's centre down onto the bed on CAP_LAND (where the turned cap's lowest point touches it)."""
+    import rigs
+    from mathutils import Vector
+    if _FLIGHT:
+        return _FLIGHT[0]
+    tumble = lambda f: rigs.smooth_keys(f, CAP_TUMBLE, 1)
+    c = _cap_centre()
+    p0, p1 = (_lid(f, tumble(f)) @ c for f in (CAP_RELEASE - 1, CAP_RELEASE))
+    pts = [Vector(p) for p in cap_points()]
+    m = _turn(tumble(CAP_LAND), CAP_SPIN, Vector((0.0, 0.0, 0.0)))
+    z_land = -min((m @ p).z for p in pts)
+    t = float(CAP_LAND - CAP_RELEASE)
+    vz = p1.z - p0.z
+    g = 2.0 * (p1.z + vz * t - z_land) / (t * t)
+    _FLIGHT.append({"p": p1, "v": p1 - p0, "g": g, "t": t, "pts": pts, "rc": tip_radius()})
+    return _FLIGHT[0]
+
+
+def cap_matrix(frame):
+    """The cap's egg-frame matrix at `frame`, from the pop on: the lid flip, the flight, the rest."""
+    import rigs
+    from mathutils import Vector
+    theta = rigs.smooth_keys(frame, CAP_TUMBLE, 1)
+    if frame <= CAP_RELEASE:
+        return _lid(frame, theta)
+    fl = _flight()
+    land = Vector((CAP_LAND_AT[0], CAP_LAND_AT[1], 0.0))
+    if frame < CAP_LAND:
+        t = frame - CAP_RELEASE
+        u = t / fl["t"]
+        s = u * u * (3.0 - 2.0 * u)                    # across the bed: leaving at the lid's speed, slowing by drag
+        y = fl["p"].y + (land.y - fl["p"].y) * (1.0 - (1.0 - u) ** 2)
+        x = fl["p"].x + (land.x - fl["p"].x) * s
+        at = Vector((x, y, fl["p"].z + fl["v"].z * t - 0.5 * fl["g"] * t * t))
+        return _turn(theta, CAP_SPIN * s, at)
+    # on the bed: rolling on its tip, a turn of -d theta about X carries it +Y by rc d theta (no slide)
+    roll = math.radians(theta - rigs.smooth_keys(CAP_LAND, CAP_TUMBLE, 1))
+    m = _turn(theta, CAP_SPIN, Vector((land.x, land.y - fl["rc"] * roll, 0.0)))
+    low = min((m @ p).z for p in fl["pts"])
+    return _turn(theta, CAP_SPIN, Vector((land.x, land.y - fl["rc"] * roll, -low)))
 
 
 def throw_matrices(frame):
     """Egg-frame matrices of the whole egg, the cap and the cup at `frame` of the hatch, and whether
     the whole egg (True) or the halves show."""
     import rigs
-    from mathutils import Matrix, Vector
+    from mathutils import Matrix
     egg = egg_matrix(frame)
-    zc = profile(CRACK)[1]
-    hinge = Vector((lean_dx(zc), profile(CRACK)[0], zc))
-    flip = rigs.ease_keys(frame, CAP_FLIP)
-    tilt = -rigs.ease_keys(frame, CAP_TILT) * (1.0 - flip)
-    lift = rigs.ease_keys(frame, CAP_LIFT) * (1.0 - flip)
-    top = (egg @ Matrix.Translation(Vector(CAP_DROP) * flip + Vector((0.0, 0.0, lift))) @ Matrix.Translation(hinge)
-           @ Matrix.Rotation(math.radians(CAP_FLIP_DEG * flip + tilt), 4, 'X') @ Matrix.Translation(-hinge))
+    if frame <= rigs.HATCH_POP:
+        top = egg @ _lid(frame, -rigs.ease_keys(frame, CAP_TILT))
+    else:
+        top = cap_matrix(frame)
     bottom = egg @ Matrix.Rotation(math.radians(CUP_ROCK_DEG * rigs.ease_keys(frame, CUP_ROCK)), 4, 'X')
     return {"whole": egg, "top": top, "bottom": bottom, "show_whole": frame < rigs.HATCH_CRACK}
 
@@ -388,7 +484,7 @@ def clip_props(ca):
 def fit_check(body, clip_name="A_Fish_Hatch"):
     """extra_checks entry for a creature build, on the posed body (the skinned mesh as the clip
     deforms it), in the egg's own frame (its rock, squash and lean taken out): until the pop it
-    stays inside the closed egg's shell; from the pop on it never goes through the cup's wall (no
+    stays inside the closed egg's shell; from the pop on it never goes through the cup's wall or the thrown cap (no
     frame has body points below the rim both inside the cup and outside it) or under the bed."""
     import bpy
     import rigs
@@ -407,13 +503,14 @@ def fit_check(body, clip_name="A_Fish_Hatch"):
         arm.data.pose_position = 'POSE'                 # the lod and shell steps leave the rig at rest
         arm.animation_data.action = clip["action"]
         egg_at = Vector(rigs.HATCH_EGG_AT)
-        worst, at, where, through = -1e9, 0, (0.0, 0.0, 0.0), []
+        worst, at, where, through, capped = -1e9, 0, (0.0, 0.0, 0.0), [], []
         for f in range(clip["start"], clip["end"] + 1):
             frame = f - clip["start"]
             bpy.context.scene.frame_set(f)
             ev = body.evaluated_get(bpy.context.evaluated_depsgraph_get())
             m = throw_matrices(frame)["whole" if frame <= rigs.HATCH_POP else "bottom"].inverted()
-            pts = np.array([(m @ (body.matrix_world @ v.co - egg_at))[:] for v in ev.to_mesh().vertices])
+            pts_world = [body.matrix_world @ v.co - egg_at for v in ev.to_mesh().vertices]
+            pts = np.array([(m @ p)[:] for p in pts_world])
             ev.to_mesh_clear()
             z = pts[:, 2]
             x = pts[:, 0] - np.array([lean_dx(max(0.0, min(H, zz))) for zz in z])
@@ -430,6 +527,17 @@ def fit_check(body, clip_name="A_Fish_Hatch"):
                 o = np.where(low & ~inside)[0]
                 i = o[int(np.argmin(r[o] - np.interp(z[o], zs, radius)))] if len(o) else int(np.argmin(z))
                 through.append("%d (%.2f %.2f %.2f)" % (frame, pts[i, 0], pts[i, 1], pts[i, 2]))
+            # the free cap, in its own rest frame: no body points both under its dome and outside it above its rim
+            cm = throw_matrices(frame)["top"].inverted()
+            cp = np.array([(cm @ Vector(p))[:] for p in pts_world])
+            cz = cp[:, 2]
+            cx = cp[:, 0] - np.array([lean_dx(max(0.0, min(H, zz))) for zz in cz])
+            cr = np.hypot(cx, cp[:, 1])
+            high = cz > np.array([rim_height(math.atan2(yy, xx)) for xx, yy in zip(cx, cp[:, 1])])
+            under = high & (cr < np.interp(cz, zs, radius) - SHELL) & (cz < H - SHELL)
+            over = high & ~under & (cr < np.interp(cz, zs, radius) + 0.3) & (cz < H + 0.3)
+            if under.any() and over.any():
+                capped.append(str(frame))
         bpy.context.scene.frame_set(clip["start"])
         arm.data.pose_position = saved
         report.add(clip_name, "inside the egg", worst <= 0.0,
@@ -441,6 +549,10 @@ def fit_check(body, clip_name="A_Fish_Hatch"):
                    ("frames %s go through the cup's wall or under the bed (the outside point nearest the wall)" % ", ".join(through[:8]))
                    if through else
                    "frames %d-%d: the body is inside the cup or clear of it, never through its wall, rising out over the rim"
+                   % (rigs.HATCH_POP + 1, clip["end"] - clip["start"]))
+        report.add(clip_name, "clear of the cap", not capped,
+                   ("frames %s: the body goes through the thrown cap's shell" % ", ".join(capped[:8])) if capped else
+                   "frames %d-%d: the body never goes through the thrown cap (eggart.cap_matrix)"
                    % (rigs.HATCH_POP + 1, clip["end"] - clip["start"]))
     return check
 

@@ -22,11 +22,13 @@ free corner of T_Cove_Alb (coveart.CELLS egg_*), so it reaches the cove kit's 24
 
 The hatch in the game (04 B1; code task S6-C2), timed to A_Fish_Hatch (45 frames, rigs.py; the
 numbers are chapter 14 section 5.1's): the whole egg rocks twice on its round base, each rock
-after a squash (+8 degrees on frame 5, -8 on frame 11); from frame 8 the code shows the two halves
-closed, the crack showing and the cap lifting; on frame 15 the cap flips off backwards and falls
-away, and the cup springs and rocks once and stays. The Fry's model sits at its swim spot ahead of
+after a squash to 86% (+15 degrees on frame 5, -18 on frame 12); from frame 8 the code shows the
+two halves closed, the crack showing and the cap lifting; on frame 15 the cap is thrown up and
+back, tumbles on one gravity arc, lands upside down on the bed behind the egg to the Fry's left on
+frame 26 and rocks to rest by 40 (eggart.cap_matrix); the cup springs and rocks once and stays. The Fry's model sits at its swim spot ahead of
 the egg (rigs.HATCH_EGG_AT) for the whole clip; the clip carries the body out of the egg to it.
 """
+import math
 import os
 import sys
 
@@ -37,7 +39,7 @@ import coveart as ca  # noqa: E402  (puts _shared/blender on the path)
 import eggart  # noqa: E402
 
 import bpy  # noqa: E402
-from mathutils import Matrix  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 
 import common  # noqa: E402
 import template  # noqa: E402
@@ -90,8 +92,9 @@ def egg_checks(whole, top, bottom, sample):
         blocks = ca.visible_values([top, bottom], sample)
         report.add(NAME + " halves", "value (for the record)", True,
                    "; ".join("%s %.0f%% L* %.0f" % (b["block"], b["share"], b["lstar"]) for b in blocks) +
-                   ": outside and inside together; the inside of a broken shell is the dark block, seen for under a second "
-                   "as the halves fall away. The whole egg carries the 06 4.1 shares (rows above)")
+                   ": outside and inside together; the inside of a broken shell is the dark block at its top (L* 34, no "
+                   "black), seen once the egg breaks, in the cup and the landed cap. The whole egg carries the 06 4.1 shares "
+                   "(rows above)")
         fry = bpy.data.objects["REF_Minnow_T1"]
         pts = [fry.matrix_world.to_3x3() @ v.co for v in fry.data.vertices]      # about its own origin
         y_back = max(p.y for p in pts) + FRY_AT[1]
@@ -104,6 +107,30 @@ def egg_checks(whole, top, bottom, sample):
         report.add(NAME, "rolls on its base", abs(eggart.base_radius() - __import__("rigs").HATCH_EGG_ROLL) < 0.03,
                    "base radius %.3f, the rock's roll radius %.3f (rigs.HATCH_EGG_ROLL)" % (eggart.base_radius(),
                                                                                        __import__("rigs").HATCH_EGG_ROLL))
+        rigs = __import__("rigs")
+        lows = {f: min((eggart.throw_matrices(float(f))["top"] @ Vector(p)).z for p in eggart.cap_points())
+                for f in range(rigs.HATCH_POP + 1, 46)}
+        hits = []                                   # cap points inside the cup's outer wall, below its rim
+        for f in lows:
+            m = eggart.throw_matrices(float(f))
+            to_cup = m["bottom"].inverted() @ m["top"]
+            for p in eggart.cap_points():
+                q = to_cup @ Vector(p)
+                if 0.0 <= q.z < eggart.rim_height(math.atan2(q.y, q.x)):
+                    deg = min(range(0, 181), key=lambda d: abs(eggart.profile(d)[1] - q.z))
+                    if math.hypot(q.x - eggart.lean_dx(q.z), q.y) < eggart.profile(deg)[0] + 0.02:
+                        hits.append(f)
+                        break
+        air = [f for f, z in lows.items() if f < eggart.CAP_LAND and z < 0.0]
+        rest = [f for f, z in lows.items() if f >= eggart.CAP_LAND and abs(z) > 0.01]
+        report.add(NAME, "cap clears the cup", not hits, "frames %s: the cap goes into the cup's wall" % hits if hits else
+                   "frames %d-45: the thrown cap never touches the cup" % (rigs.HATCH_POP + 1))
+        report.add(NAME, "cap lands", not air and not rest,
+                   "the thrown cap stays above the bed in the air (lowest %.2f) and sits on it from frame %d (lowest point "
+                   "within %.3f of the bed), %.2f studs from the cup's axis" % (min(lows[f] for f in lows if f < eggart.CAP_LAND),
+                                                                               eggart.CAP_LAND, max(abs(lows[f]) for f in lows if f >= eggart.CAP_LAND),
+                                                                               math.hypot(*eggart.CAP_LAND_AT))
+                   if not air and not rest else "frames %s go under the bed, %s float off it" % (air, rest))
     return check
 
 
@@ -114,10 +141,10 @@ def build():
     whole, top, bottom = objs["whole"], objs["top"], objs["bottom"]
     sample = ca.sampler(img, block)
 
-    # Preview set: the halves closed on the crack (frame 11, mid-rock), and the cap thrown off with
+    # Preview set: the halves closed on the crack (frame 12, the second rock), and the cap thrown off with
     # the Fry at its swim spot once it has swum out (frame 45).
-    closed = {k: _copy(o, "PV_%s_Closed" % k, eggart.throw_matrices(11.0)[k]) for k, o in (("top", top), ("bottom", bottom))}
-    cap_off = _copy(top, "PV_Top_Off", eggart.throw_matrices(24.0)["top"])
+    closed = {k: _copy(o, "PV_%s_Closed" % k, eggart.throw_matrices(12.0)[k]) for k, o in (("top", top), ("bottom", bottom))}
+    cap_off = _copy(top, "PV_Top_Off", eggart.throw_matrices(45.0)["top"])
     fry = _copy(bpy.data.objects["REF_Minnow_T1"], "PV_Fry", Matrix.Translation(FRY_AT))
     fry.hide_render = False
     apart = _copy(top, "PV_Top_Apart", Matrix.Translation((0.0, 0.0, 0.9)))
@@ -151,10 +178,10 @@ def build():
             ],
             "lineup_caption": ["the only egg; pebbles (06 9.2) are grey and flat"],
             "extras": [
-                {"title": "Cracked (f11)", "view": "ThreeQuarter", "objects": list(closed.values()),
+                {"title": "Cracked (f12)", "view": "ThreeQuarter", "objects": list(closed.values()),
                  "caption": ["halves closed, cap lifting", "uneven zigzag crack"]},
                 {"title": "Fry out (f45)", "view": "Side", "objects": [bottom, cap_off, fry],
-                 "caption": ["cap thrown off (code, S6-C2)", "Fry %.1f ahead, %.2f up (ink stand-in)" % (-FRY_AT[1], FRY_AT[2])]},
+                 "caption": ["cap landed, open side up (code, S6-C2)", "Fry %.1f ahead, %.2f up (ink stand-in)" % (-FRY_AT[1], FRY_AT[2])]},
                 {"title": "B1 shot", "objects": [whole], "camera": cam8,
                  "caption": ["8 studs from the egg, low"]},
             ],

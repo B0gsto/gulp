@@ -204,7 +204,7 @@ Shared by every species in the family. Lengths are frames at 30 a second (docume
 | `A_Fish_Gulped` | [MVP] | Stretch 140% toward the mouth, the body pulled in behind the head. Bones only: the shrink to nothing is code, `Model:ScaleTo` over frames 4 to 8 (06 §7.2) | 8 frames | RIG_Fish | 0.6 | not started |
 | `A_Fish_Bank` | [MVP] | Happy spin with eyes closed on entering the cove | 18 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Breach` | [MVP] | Arc through the air and flop back in | 30 frames | RIG_Fish | 0.8 | not started |
-| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s. The bones carry the body from inside the egg out to its swim spot (no root motion): the Fry's model stays 3.0 studs ahead of the egg's base and 2.6 up **(tune)** for the whole clip; the egg rocks on frames 5 and 11, cracks (swaps for its closed halves) on frame 8, and the top flies off on frame 15 (chapter 14, section 5.1) | 45 frames | RIG_Fish | 1 | not started |
+| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s. The bones carry the body from inside the egg out to its swim spot (no root motion): the Fry's model stays 3.0 studs ahead of the egg's base and 2.6 up **(tune)** for the whole clip; the egg rocks on frames 5 and 12, cracks (swaps for its closed halves) on frame 8, and the top is flipped off on frame 15 and lands open side up behind the egg on frame 26 (chapter 14, section 5.1) | 45 frames | RIG_Fish | 1 | not started |
 | `A_Fish_CoveNotice` | [L] | A specimen turns to face a visitor with a small happy squash, then turns back | 30 frames | RIG_Fish | 0.6 | not started |
 | `A_Eel_Swim` | [MVP] | Reference swim cycle that the sway code is matched to; the fallback if code cannot layer over clips | loop 20 frames | RIG_Eel | 1.8 | not started |
 | `A_Eel_SwimFast` | [MVP] | Dash-speed version | loop 10 frames | RIG_Eel | 1 | not started |
@@ -1730,7 +1730,6 @@ Section 1.2 is the final naming rule. Effect and sound names that other document
 | `SFX_PearlCount` | 04 | `SFX_UI_PearlTick`, ending in `SFX_UI_PearlBurst` |
 | `SFX_GoalDone` | 04 | `SFX_UI_GoalDone` |
 | `SFX_TideHorn` | 04 | `SFX_TideBell` (warning) and `SFX_TideHorn_<Event>` (start) |
-| `A_Minnow_Hatch` | 04 | `A_Fish_Hatch` (the family clip) |
 | `Juvenile`, `Adult` mesh parts | 09 | No change needed: these are instance names inside the rig Model, not asset names. The files they hold are `M_Species_<Species>_Juv` and `_Adult` |
 | `M_Prop_Trait<Trait>_<Piece>`, `T_Trait<Trait>_<Family>_<Map>`, `T_TraitPieces_Alb` | 13 | `M_Trait_<Trait>_<Piece>`, `T_Trait_<Trait>_<Family>_<Map>`, `T_Trait_Pieces_Alb` (canon section 16) |
 | The Shark Pup ability clip under the old ability name | 13 | `A_Shark_RampageStart` |
