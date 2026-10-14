@@ -151,4 +151,23 @@ Defaults.swim = table.freeze({
 	reentryMult = 0.8, -- 02 §1.7: velocity × 0.8 on re-entry
 })
 
+-- The control schemes' numbers (Logic/InputMath, client InputController). Chapter 02 section 2
+-- and chapter 15 sections 3.1, 3.3 and 5.1. Pixels are Roblox offset pixels (02 §2).
+Defaults.input = table.freeze({
+	dragDeadZone = 14, -- 02 §2.1: px radius; inside it throttle 0 and no turn
+	dragFull = 80, -- 02 §2.1: px from the origin for full deflection, at sensitivity 1
+	dragClamp = 100, -- 02 §2.1: px; past it the origin trails the finger
+	dragSensitivity = 1.0, -- 02 §2.1, 08 §6.7: default; divides dragFull
+	dragSensitivityMin = 0.5,
+	dragSensitivityMax = 1.5,
+	curveExponent = 1.4, -- 02 §2.1: curve(v) = sign(v) × |v|^1.4
+	autoLevelBand = 0.15, -- 02 §2.1: a drag with |y| < 0.15 levels the creature
+	autoLevelRate = 90, -- 02 §2.1: °/s back to level with no touch
+	autoLevelDelay = 0.4, -- 02 §2.1: s after the touch lifts
+	mouseDegPerPx = 0.20, -- 02 §2.3, 15 §3.3: look, ° per px × look speed
+	mouseLookSpeed = 1.0, -- 15 §3.3: default; range 0.2 to 3.0
+	mouseLookSpeedMin = 0.2,
+	mouseLookSpeedMax = 3.0,
+})
+
 return Defaults

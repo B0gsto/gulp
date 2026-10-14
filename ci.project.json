@@ -13,7 +13,11 @@
     },
     "ServerScriptService": { "Server": { "$path": "src/server" } },
     "StarterPlayer": {
-      "StarterPlayerScripts": { "Client": { "$path": "src/client" } }
+      // Stub PlayerModule (docs/09, section 6.10; spike S9): no default controls or camera scripts
+      "StarterPlayerScripts": {
+        "Client": { "$path": "src/client" },
+        "PlayerModule": { "$className": "ModuleScript", "$properties": { "Source": "--!strict\n-- Stub (docs/09, section 6.10): its presence stops Roblox inserting the default PlayerModule,\n-- so there are no default controls, touch thumbstick, jump button or camera scripts.\nreturn {}\n" } }
+      }
     },
     "Players": { "$properties": { "CharacterAutoLoads": false } },
     "Workspace": {
