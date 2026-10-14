@@ -159,8 +159,8 @@ def paint_krill(img, block):
             c = np.where((g1 | g2)[..., None], rgb("#FFFFFF"), mix(dark, VIOLET, 0.1))
             b = np.where(g1 | g2, 1, 2)
         elif part == "legs":      # dark fringe, a little lighter toward the feathery tips (within 12 L*)
-            c = np.where((lv > 0.55)[..., None], mix(mid, VIOLET, 0.14), mix(dark, mid, 0.08 * lv / 0.55))
-            b = np.where(lv > 0.55, 0, 2)    # the comb's root, next to the belly, is body colour
+            c = np.where((lv > 0.48)[..., None], mix(mid, VIOLET, 0.14), mix(dark, mid, 0.08 * lv / 0.48))
+            b = np.where(lv > 0.48, 0, 2)    # the comb's root, next to the belly, is body colour
         else:                     # tail fan: mid, cooler at the root
             c = mix(mix(mid, VIOLET, 0.15), mid, lv)
             b = np.zeros(fu.shape, dtype=int)
