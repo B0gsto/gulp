@@ -61,7 +61,7 @@ Columns: 8
 217 255 232	creatures.plankton.mid
 255 217 204	creatures.krill.light
 255 140 122	creatures.krill.mid
-194  74  74	creatures.krill.dark
+149  32  40	creatures.krill.dark
 255 230 209	creatures.shrimp.light
 255 180 138	creatures.shrimp.mid
 194 105  61	creatures.shrimp.dark

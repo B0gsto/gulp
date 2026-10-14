@@ -156,9 +156,20 @@ def check_mesh(spec, entry, report):
     bm.from_mesh(mesh)
     open_edges = sum(1 for e in bm.edges if not (e.is_manifold and e.is_contiguous))
     loose = sum(1 for v in bm.verts if not v.link_faces)
-    add("watertight", open_edges == 0 and loose == 0, "%d bad edges, %d loose verts" % (open_edges, loose))
     volume = bm.calc_volume(signed=True)
-    if role == "shell":
+    if spec.get("billboard"):
+        # 06 6.3: a 2-triangle camera-facing billboard (plankton). Not a volume: it must be one
+        # flat open quad whose drawn side faces -Y, the side the client turns to the camera.
+        normals = [f.normal for f in bm.faces]
+        flat = all(n.dot(normals[0]) > 0.9999 for n in normals)
+        add("billboard quad", tris == 2 and len(bm.verts) == 4 and open_edges == 4 and loose == 0 and flat,
+            "%d triangles, %d corners, %d open edges, %s" % (tris, len(bm.verts), open_edges, "flat" if flat else "not flat"))
+        add("billboard faces -Y", bool(normals) and normals[0].y < -0.9999, "normal (%.3f, %.3f, %.3f)" % tuple(normals[0]) if normals else "no faces")
+    else:
+        add("watertight", open_edges == 0 and loose == 0, "%d bad edges, %d loose verts" % (open_edges, loose))
+    if spec.get("billboard"):
+        pass
+    elif role == "shell":
         add("faces flipped", volume < 0.0, "signed volume %.4f (a shell shows its back faces)" % volume)
         if entry.get("body") is not None:
             import versions
@@ -250,6 +261,8 @@ def check_placement(spec, obj, add):
         bones = spec["armature"].data.bones
         front, back = bones[facing["front"]].head_local.y, bones[facing["back"]].head_local.y
         add("facing", front < 0.0 < back, "%s at y %.2f, %s at y %.2f; nose on -Y" % (facing["front"], front, facing["back"], back))
+    elif facing.get("kind") == "billboard":
+        add("facing", spec.get("billboard", False), "camera-facing billboard: the client turns its -Y side to the camera")
     elif facing.get("kind") == "tag":
         attr = mesh.attributes.get(common.TAG_ATTR)
         tagged = [v.co for v, t in zip(mesh.vertices, attr.data) if t.value == common.TAG_FRONT] if attr else []
@@ -481,5 +494,7 @@ def run(spec):
     for clip in spec.get("actions", []):
         check_action(spec, clip, report)
         clips.check(spec, clip, report)
+    for extra in spec.get("extra_checks", []):     # asset-specific rows, e.g. a palette with no dark block
+        extra(spec, report)
     report.print()
     return report

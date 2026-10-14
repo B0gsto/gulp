@@ -79,14 +79,36 @@ def show_helpers(visible):
             obj.hide_render = not visible
 
 
+def face_camera(objs, view):
+    """Turns camera-facing billboards (object property gulp_billboard: their drawn side is -Y)
+    to the view, as the client does every frame. Returns what to restore."""
+    saved = {}
+    look, up = template.VIEWS[view]
+    y = Vector(look).normalized()
+    z = (Vector(up) - Vector(up).dot(y) * y).normalized()
+    x = y.cross(z)
+    rot = Matrix((x, y, z)).transposed().to_4x4()
+    for o in objs:
+        if o.get("gulp_billboard"):
+            saved[o] = o.matrix_world.copy()
+            o.matrix_world = Matrix.Translation(o.matrix_world.translation) @ rot
+    return saved
+
+
 def shot(view, objs, path, frame=None):
     show_only(objs)
     show_helpers(False)
+    saved = face_camera(objs, view)
     bpy.context.view_layer.update()
     RENDERED[os.path.basename(path)] = sorted(o.name for o in bpy.context.scene.objects
                                              if not o.hide_render and o.type not in ('LIGHT', 'CAMERA'))
     fit_camera(view, frame or objs)
-    return render(path)
+    try:
+        return render(path)
+    finally:
+        for o, m in saved.items():
+            o.matrix_world = m
+        bpy.context.view_layer.update()
 
 
 def stack(groups, gap):
