@@ -500,6 +500,23 @@ function PreyService.steerScripted(
 	return PreySpawner.steerOwned(spawner, slot, scriptedId, target.X, target.Y, target.Z, speed)
 end
 
+--- Members alive in scripted group `scriptedId` of `slot`, and its centre (where its leash is,
+--- steered or not); 0 and nil when the slot has no such group or it is gone. Addition to 5.1's
+--- API, for TutorialService (04 §3.6 B3: krill kept near the player; homing on the nearest).
+function PreyService.scriptedAlive(slot: Slot, scriptedId: number): (number, Vector3?)
+	local run = spawner.owned[scriptedId]
+	if run == nil or run.owner ~= slot then
+		return 0, nil
+	end
+	local alive = 0
+	for _, part in run.parts do
+		if part.g >= 0 then
+			alive += PreySim.aliveCount(sim, part.g)
+		end
+	end
+	return alive, Vector3.new(PreySpawner.ownedCentre(spawner, scriptedId))
+end
+
 --- The PreyDef of member `member` of group `groupId` when the group is live at `gen` and the
 --- member is alive (8.9, check 3), and the group's speed in studs/s; nil and 0 when it is gone,
 --- and for `slot` when the group is scripted prey of another slot (04 §3.5: to that slot it does

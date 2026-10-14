@@ -29,6 +29,7 @@ local loaded: { Service } = {
 	require(script.Parent.Services.BiteService),
 	require(script.Parent.Services.RunLoopService),
 	require(script.Parent.Services.CoveService),
+	require(script.Parent.Services.TutorialService),
 	require(script.Parent.Services.PlayerLifecycle), -- always last
 }
 
@@ -101,4 +102,15 @@ if environment.devCheats or environment.name == "ci" then
 		return true
 	end
 	liveSet.Parent = script.Parent
+	-- Developer commands (Dev/Cheats; 04 §9 `/ftue reset`), dev cheats only, never CI:
+	-- `DevCommand:Invoke(userId, "/ftue reset")`.
+	if environment.devCheats then
+		local Cheats = require(script.Parent.Dev.Cheats)
+		local command = Instance.new("BindableFunction")
+		command.Name = "DevCommand"
+		command.OnInvoke = function(userId: number, text: string): string
+			return Cheats.invoke(userId, text)
+		end
+		command.Parent = script.Parent
+	end
 end
