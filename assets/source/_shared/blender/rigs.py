@@ -526,6 +526,218 @@ def fish_bite_pose(frame, k=1.0):
     return pose
 
 
+# ---------------------------------------------------------------- the next five family clips (07 section 2.1, task S4-A3)
+# Authored like the first five: actions take the frame number and are timed by keys (06 7.2),
+# the loop takes a phase and is periodic. Eyes and lids stay at rest (code owns them, 06 7.6 and
+# 7.7: the dizzy spiral, the gulped X cards); flashes and cracks are code and effects. Every
+# value is (tune).
+
+
+def girth_out(pose, amount, k=1.0, tilt=0.0, pivot=GIRTH_T):
+    """Swells the section at the girth centre by `amount` (0.1 = 10% wider and deeper) with the
+    four Girth bones moved out, and leans the swell toward the head (`tilt` > 0, degrees) or the
+    tail (< 0) by turning them about `pivot` (a body fraction), as the cheeks do: the swallow
+    bulge (06 7.2 and 7.5) is this swell carried from front to back."""
+    top, bot, half = (r * k * amount / GIRTH_PEAK for r in GIRTH_REF)
+    _put(pose, "Girth_Top", loc=(0.0, 0.0, top))
+    _put(pose, "Girth_Bot", loc=(0.0, 0.0, -bot))
+    _put(pose, "Girth_L", loc=(half, 0.0, 0.0))
+    _put(pose, "Girth_R", loc=(-half, 0.0, 0.0))
+    if tilt:
+        rotate_about(pose, "Girth_L", (0.0, 0.0, tilt), pivot, k)
+        rotate_about(pose, "Girth_R", (0.0, 0.0, -tilt), pivot, k)
+        rotate_about(pose, "Girth_Bot", (tilt, 0.0, 0.0), pivot, k)
+        rotate_about(pose, "Girth_Top", (-tilt, 0.0, 0.0), pivot, k)
+    return pose
+
+
+def fish_squash_pose(stretch, k=1.0, height=0.5, width=1.3):
+    """fish_stretch_pose for the deep squashes (hit 80%, tier-up 75%): the same spine slide, but
+    the back and belly take only `height` of the bible's girth offset (06 7.5, radius x (1 / sqrt
+    stretch - 1)) and the flanks `width` of it, so the section still swells by about the length
+    lost (97% of the area at 75%). Past about 6%, the back's and belly's swell, pressed into a
+    shorter body, folds the skin at Spine2's node (weightcheck.py: a 16.8-degree pinch at 75%
+    with the plain girth), and past about 1.4 the flanks fold there too; from the game camera,
+    above and behind, the swell reads on the width."""
+    pose = fish_stretch_pose(stretch, k)
+    g = 1.0 / math.sqrt(stretch) - 1.0
+    top, bot, half = (r * k * g / GIRTH_PEAK for r in GIRTH_REF)
+    pose["Girth_Top"]["loc"] = (0.0, pose["Girth_Top"]["loc"][1], height * top)
+    pose["Girth_Bot"]["loc"] = (0.0, pose["Girth_Bot"]["loc"][1], -height * bot)
+    pose["Girth_L"]["loc"] = (width * half, pose["Girth_L"]["loc"][1], 0.0)
+    pose["Girth_R"]["loc"] = (-width * half, pose["Girth_R"]["loc"][1], 0.0)
+    return pose
+
+
+def roll_body(pose, angle, k=1.0):
+    """Rolls the whole body `angle` degrees about its long axis (+ rolls the back to the left):
+    Spine2 and Spine3 turn about their heads on the centre line, and the Girth bones, whose heads
+    sit on the skin, turn about the same axis so the section keeps its shape."""
+    a = math.radians(angle)
+    c, s = math.cos(a), math.sin(a)
+    for bone in ("Spine2", "Spine3"):
+        _put(pose, bone, rot=(0.0, angle, 0.0))
+    top, bot, half = (r * k for r in GIRTH_REF)
+    for bone, (x, z) in (("Girth_Top", (0.0, top)), ("Girth_Bot", (0.0, -bot)),
+                         ("Girth_L", (half, 0.0)), ("Girth_R", (-half, 0.0))):
+        _put(pose, bone, loc=(x * c + z * s - x, 0.0, -x * s + z * c - z), rot=(0.0, angle, 0.0))
+    return pose
+
+
+# A_Fish_Gulp, 12 frames (06 7.2, eater): 2 frames of anticipation as the mouth opens to the full
+# gape (wider than the bite's), the head drawn back and the body gathered; the snap on frame 3,
+# the head lunging and the body stretching; 3 frames with the head stuffed full (the cheeks and
+# throat swollen past the bite's: the head 110%); then 6 frames of settle while the swallow bulge
+# runs from behind the head to the tail on the Girth bones and the head nods it down.
+GULP_JAW = [(0, 0.0), (2, 68.0, "out"), (3, 0.0, "snap")]
+GULP_STRETCH = [(0, 1.0), (2, 0.92, "in"), (3, 1.10, "snap"), (6, 1.08, "io"), (8, 0.97, "io"), (10, 1.01, "io"), (12, 1.0, "io")]
+GULP_LUNGE = [(0, 0.0), (2, -0.10, "in"), (3, 0.30, "snap"), (6, 0.24, "io"), (9, -0.02, "io"), (12, 0.0, "io")]
+GULP_NOD = [(0, 0.0), (2, -9.0, "out"), (3, 5.0, "snap"), (6, 3.0, "io"), (8, 7.0, "io"), (10, -1.5, "io"), (12, 0.0, "io")]
+GULP_CHEEKS = [(0, 0.0), (2, 0.25, "out"), (3, 1.15, "snap"), (5, 1.0, "io"), (8, 0.0, "io")]
+# The bulge: how much the girth swells, and its lean (+ toward the head, - toward the tail).
+GULP_BULGE = [(0, 0.0), (5, 0.0), (7, 0.16, "out"), (9, 0.13, "io"), (11, 0.05, "io"), (12, 0.0, "io")]
+GULP_LEAN = [(0, 10.0), (6, 10.0), (11, -22.0, "io"), (12, -22.0)]
+GULP_FINS = [(0, 0.0), (2, 1.0, "out"), (3, -0.6, "snap"), (6, -0.4, "io"), (9, 0.1, "io"), (12, 0.0, "io")]
+GULP_TAIL = [(0, 0.0), (2, -0.5, "in"), (3, 1.0, "snap"), (5, -0.55, "io"), (7, 0.3, "io"), (9, -0.1, "io"), (11, 0.0, "io")]
+
+
+def fish_gulp_pose(frame, k=1.0):
+    """A_Fish_Gulp: full gape, snap, head 110%, swallow bulge down the body (06 7.2). The fins
+    flare forward to brake on the gape and sweep back on the snap a frame late; the tail drives the
+    lunge 2 frames behind the head."""
+    pose = fish_stretch_pose(ease_keys(frame, GULP_STRETCH), k)
+    lunge_slide(pose, ease_keys(frame, GULP_LUNGE) * k, k)
+    _put(pose, "Spine1", rot=(ease_keys(frame, GULP_NOD), 0.0, 0.0))
+    _put(pose, "Jaw", rot=(ease_keys(frame, GULP_JAW), 0.0, 0.0))
+    cheeks(pose, ease_keys(frame, GULP_CHEEKS), k)
+    girth_out(pose, ease_keys(frame, GULP_BULGE), k, tilt=ease_keys(frame, GULP_LEAN))
+    fins = ease_keys(frame - 1.0, GULP_FINS)
+    brake, back = max(fins, 0.0), max(-fins, 0.0)
+    _put(pose, "Pec_L", rot=(0.0, 14.0 * brake, -26.0 * brake + 24.0 * back))
+    _put(pose, "Pec_R", rot=(0.0, -14.0 * brake, 26.0 * brake - 24.0 * back))
+    _put(pose, "Dorsal", rot=(10.0 * brake - 12.0 * back, 0.0, 0.0))
+    _put(pose, "Spine4", rot=(0.0, 0.0, 6.0 * ease_keys(frame - 2.0, GULP_TAIL)))
+    _put(pose, "TailFin", rot=(0.0, 0.0, 13.0 * ease_keys(frame - 2.6, GULP_TAIL)))
+    return pose
+
+
+# A_Fish_Hit, 11 frames (06 7.2, "hit and survived"): the knock squashes the body to 80% in 2
+# frames (the white flash and the Plated cracks are code and effects on frame 2), it rebounds
+# past rest to 107% over 3, and settles in 6 with a 3% dip. The head is knocked back and up, the
+# body shudders side to side in shrinking beats running to the tail, and the fins splay in shock.
+HIT_STRETCH = [(0, 1.0), (1, 0.84, "snap"), (2, 0.80, "io"), (5, 1.07, "out"), (8, 0.97, "io"), (11, 1.0, "io")]
+HIT_SHUDDER = [(0, 0.0), (1, 1.0, "snap"), (3, -0.7, "io"), (5, 0.4, "io"), (7, -0.18, "io"), (9, 0.06, "io"), (11, 0.0, "io")]
+HIT_RECOIL = [(0, 0.0), (1, 1.0, "snap"), (3, 0.8, "io"), (6, -0.25, "io"), (9, 0.05, "io"), (11, 0.0, "io")]
+HIT_SPLAY = [(0, 0.0), (1, 1.0, "snap"), (4, 0.7, "io"), (7, -0.15, "io"), (10, 0.0, "io")]
+HIT_KNOCK, HIT_NOD, HIT_NOD_PIVOT = 0.03, 6.0, 0.40
+# The shudder's C at full bend: the dash's C (DASH_C) at 45%, about the same pivots, so it skins as well.
+HIT_C = tuple((bone, 0.45 * angle, pivot, lag) for bone, angle, pivot, lag in DASH_C)
+
+
+def fish_hit_pose(frame, k=1.0):
+    """A_Fish_Hit: squash 80%, overshoot, settle (06 7.2). The recoil pushes the head back (the
+    body squashes from the front) and tips it up; the shudder is a C-bend that runs down the body,
+    each bone back from the middle a little later; pectorals and back fin splay a frame behind the hit."""
+    pose = fish_squash_pose(ease_keys(frame, HIT_STRETCH), k)
+    recoil = ease_keys(frame, HIT_RECOIL)
+    lunge_slide(pose, -HIT_KNOCK * k * recoil, k)
+    rotate_about(pose, "Spine1", (-HIT_NOD * recoil, 0.0, 0.0), HIT_NOD_PIVOT, k)
+    rotate_about(pose, "Spine4", (-3.0 * ease_keys(frame - 1.5, HIT_RECOIL), 0.0, 0.0), 0.79, k)
+    shudder = lambda lag: ease_keys(max(frame - lag, min(frame, 1.0)), HIT_SHUDDER)   # together into the knock, then down the body
+    for bone, angle, pivot, lag in HIT_C:
+        rotate_about(pose, bone, (0.0, 0.0, angle * shudder(lag)), pivot, k)
+    splay = ease_keys(frame - 1.0, HIT_SPLAY)
+    _put(pose, "Pec_L", rot=(-10.0 * splay, 30.0 * splay, -12.0 * splay))
+    _put(pose, "Pec_R", rot=(-10.0 * splay, -30.0 * splay, 12.0 * splay))
+    _put(pose, "Dorsal", rot=(12.0 * splay, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(16.0 * ease_keys(frame - 0.5, HIT_SPLAY), 0.0, 0.0))
+    _put(pose, "TailFin", rot=(0.0, 5.0 * shudder(2.6), 0.0))
+    return pose
+
+
+def fish_stunned_pose(phase, k=1.0):
+    """A_Fish_Stunned, 20-frame loop (06 7.2; the eyes spiral in code, 7.7 dizzy): a drunken
+    wobble. The body rolls from side to side once a loop while it sways in a lazy S a quarter
+    loop out of step, so the head draws a circle; the head lolls 2 frames behind the body, the
+    tail drags 3 behind, the jaw hangs open and the fins flop limply out of step."""
+    a = 2.0 * math.pi * phase
+    lag = lambda frames: a - 2.0 * math.pi * frames / 20.0
+    pose = {}
+    roll_body(pose, 13.0 * math.sin(a) + 2.0 * math.sin(2.0 * a + 0.7), k)
+    sway = lambda f: math.cos(lag(f))
+    rotate_about(pose, "Spine1", (5.0 * math.sin(2.0 * lag(2.0) + 0.5), 4.0 * math.sin(lag(2.0)), 8.0 * sway(2.0)), 0.55, k)
+    rotate_about(pose, "Spine2", (0.0, 0.0, 2.0 * sway(1.0)), 0.54, k)
+    rotate_about(pose, "Spine3", (0.0, 0.0, -6.0 * sway(1.0)), 0.79, k)
+    rotate_about(pose, "Spine4", (-3.0 * math.sin(2.0 * lag(3.0)), 0.0, -9.0 * sway(3.0)), 0.94, k)
+    _put(pose, "TailFin", rot=(0.0, 8.0 * math.sin(lag(4.0)), -14.0 * sway(4.0)))
+    _put(pose, "Jaw", rot=(14.0 + 5.0 * math.sin(2.0 * a - 1.2), 0.0, 0.0))
+    flop = lambda off: math.sin(a + off)
+    _put(pose, "Pec_L", rot=(6.0 * flop(-1.0), 10.0 + 14.0 * flop(-1.6), 6.0))
+    _put(pose, "Pec_R", rot=(6.0 * flop(1.4), -10.0 - 14.0 * flop(0.8), -6.0))
+    _put(pose, "Dorsal", rot=(-6.0 + 3.0 * math.sin(2.0 * a - 1.5), -6.0 * math.sin(lag(3.0)), 0.0))
+    return pose
+
+
+# A_Fish_TierUp, 18 frames (06 7.2; a showpiece, so the squash and stretch may reach 60 to 150%):
+# 3 frames of wind-up into a 75% squash, the body curled into a crouch with the fins hugged in; a
+# 3-frame pop to 130% (the code's Model:ScaleTo to the new size lands on this frame, and the tier-4
+# mesh swap with it, hidden by FX_TierUp_T4), arched proud with every fin flared and the mouth open;
+# 110%, then 96%, over 4; then 8 frames of settle with a happy wag running down the body.
+TIERUP_STRETCH = [(0, 1.0), (3, 0.75, "in"), (6, 1.30, "snap"), (8, 1.10, "io"), (10, 0.96, "io"), (14, 1.02, "io"), (18, 1.0, "io")]
+TIERUP_CURL = [(0, 0.0), (3, 1.0, "in"), (6, -1.0, "snap"), (8, -0.6, "io"), (11, 0.12, "io"), (15, 0.0, "io")]
+TIERUP_FLARE = [(0, 0.0), (3, -1.0, "in"), (6, 1.0, "snap"), (9, 0.8, "io"), (14, 0.0, "io")]
+TIERUP_WAG = [(0, 0.0), (8, 0.0), (10, 1.0, "io"), (12, -0.8, "io"), (14, 0.45, "io"), (16, -0.15, "io"), (18, 0.0, "io")]
+TIERUP_NOD, TIERUP_NOD_PIVOT = 5.0, 0.45
+TIERUP_WAG_BONES = (("Spine1", 5.0, 0.55, 0.0), ("Spine3", -5.0, 0.79, 0.6), ("Spine4", -6.0, 0.94, 1.2), ("TailFin", -10.0, 1.03, 2.0))
+
+
+def fish_tierup_pose(frame, k=1.0):
+    """A_Fish_TierUp: squash 75%, pop 130%, 110% then 96%, settle (06 7.2). Curl and arch seen
+    from the side (head and tail down into the crouch, up on the pop); the fins follow a frame late."""
+    pose = fish_squash_pose(ease_keys(frame, TIERUP_STRETCH), k)
+    curl = ease_keys(frame, TIERUP_CURL)
+    rotate_about(pose, "Spine1", (TIERUP_NOD * curl, 0.0, 0.0), TIERUP_NOD_PIVOT, k)
+    rotate_about(pose, "Spine4", (-6.0 * ease_keys(frame - 0.6, TIERUP_CURL), 0.0, 0.0), 0.79, k)
+    _put(pose, "TailFin", rot=(-8.0 * ease_keys(frame - 1.4, TIERUP_CURL), 0.0, 0.0))
+    for bone, angle, pivot, lag in TIERUP_WAG_BONES:
+        rotate_about(pose, bone, (0.0, 0.0, angle * ease_keys(frame - lag, TIERUP_WAG)), pivot, k)
+    flare = ease_keys(frame - 1.0, TIERUP_FLARE)
+    hug, spread = max(-flare, 0.0), max(flare, 0.0)
+    _put(pose, "Pec_L", rot=(-12.0 * spread, 34.0 * spread, 24.0 * hug))
+    _put(pose, "Pec_R", rot=(-12.0 * spread, -34.0 * spread, -24.0 * hug))
+    _put(pose, "Dorsal", rot=(14.0 * spread - 14.0 * hug, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(24.0 * max(ease_keys(frame - 0.5, TIERUP_FLARE), 0.0), 0.0, 0.0))
+    return pose
+
+
+# A_Fish_Gulped, 8 frames (06 7.2, the victim; FX_GulpPop takes the next 12): 4 frames of being
+# sucked into the eater's mouth, the body stretched to 140% nose first with the fins dragged flat
+# and the tail thrashing; then 4 frames of shrinking, the body drawn in behind the head. Bones
+# carry no scale (06 7.5), so "to nothing" is the code's Model:ScaleTo over those 4 frames, under
+# the eyes' X cards (06 7.7); the clip draws the body in and folds every fin so the shrink reads
+# whole, and is still on its last frame when the pop hides it.
+GULPED_STRETCH = [(0, 1.0), (4, 1.40, "out"), (5, 1.36, "io"), (8, 0.80, "in")]
+GULPED_PULL = [(0, 0.0), (4, 0.55, "out"), (8, 1.05, "in")]
+GULPED_THIN = [(0, 0.0), (4, 0.0), (8, 0.22, "in")]
+GULPED_THRASH = [(0, 0.0), (1, 1.0, "snap"), (2.5, -1.0, "io"), (4, 0.8, "io"), (5.5, -0.5, "io"), (7, 0.2, "io"), (8, 0.0, "io")]
+GULPED_FOLD = [(0, 0.0), (2, 1.0, "out"), (8, 1.25, "io")]
+
+
+def fish_gulped_pose(frame, k=1.0):
+    """A_Fish_Gulped: stretch 140% toward the mouth, then shrink (06 7.2). The head leads: the
+    body slides forward as it stretches, so the tail trails; the mouth gapes in shock."""
+    pose = fish_stretch_pose(ease_keys(frame, GULPED_STRETCH), k, fins_back=ease_keys(frame, GULPED_FOLD))
+    lunge_slide(pose, ease_keys(frame, GULPED_PULL) * k, k)
+    girth_out(pose, -ease_keys(frame, GULPED_THIN), k)
+    thrash = lambda lag: ease_keys(frame - lag, GULPED_THRASH)
+    rotate_about(pose, "Spine3", (0.0, 0.0, -4.0 * thrash(0.5)), 0.79, k)
+    rotate_about(pose, "Spine4", (0.0, 0.0, -7.0 * thrash(1.2)), 0.94, k)
+    _put(pose, "TailFin", rot=(0.0, 10.0 * thrash(2.0), -16.0 * thrash(2.0)))
+    _put(pose, "Spine1", rot=(-5.0 * min(frame / 4.0, 1.0), 0.0, 0.0))
+    _put(pose, "Jaw", rot=(ease_keys(frame, [(0, 0.0), (2, 30.0, "snap"), (5, 24.0, "io"), (8, 6.0, "in")]), 0.0, 0.0))
+    return pose
+
+
 # name -> (pose function, key frames for the review strip as (frame, label)). Loop or not, and
 # the length, come from chapter 07 (clips.py).
 FISH_CLIPS = {
@@ -536,4 +748,13 @@ FISH_CLIPS = {
                                      (10, "overshoot 95%"), (14, "settled")]),
     "A_Fish_Bite": (fish_bite_pose, [(0, "jaw opening"), (1, "wind-up"), (2, "snap, lunge, cheeks"), (3, "cheeks"),
                                      (4, "stretch 115%"), (6, "rebound"), (8, "settled")]),
+    "A_Fish_Gulp": (fish_gulp_pose, [(0, "start"), (2, "full gape"), (3, "snap"), (5, "head 110%"), (7, "bulge"),
+                                     (9, "bulge back"), (12, "settled")]),
+    "A_Fish_Hit": (fish_hit_pose, [(0, "start"), (2, "squash 80%"), (3, "shudder"), (5, "overshoot 107%"),
+                                   (8, "rebound 97%"), (11, "settled")]),
+    "A_Fish_Stunned": (fish_stunned_pose, [(0, "phase 0"), (5, "1/4"), (10, "1/2"), (15, "3/4")]),
+    "A_Fish_TierUp": (fish_tierup_pose, [(0, "start"), (3, "squash 75%"), (6, "pop 130%"), (8, "110%"),
+                                         (10, "96%"), (12, "wag"), (18, "settled")]),
+    "A_Fish_Gulped": (fish_gulped_pose, [(0, "start"), (2, "pulled"), (4, "stretch 140%"), (6, "shrinking"),
+                                         (8, "drawn in")]),
 }

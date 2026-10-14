@@ -1,8 +1,8 @@
-"""M_Species_Minnow_Juv on RIG_Fish with T_Minnow_Juv_Alb, and the first five family clips on it:
-tasks S2-A1 and S2-A3 (docs/13-sprint-plan.md Sprint 2; first made as the agent art trial S0-A7;
+"""M_Species_Minnow_Juv on RIG_Fish with T_Minnow_Juv_Alb, and the first ten family clips on it:
+tasks S2-A1, S2-A3 and S4-A3 (docs/13-sprint-plan.md Sprints 2 and 4; first made as the agent art trial S0-A7;
 docs/06-art-bible.md sections 3 to 8 and 15; 07 rows M_Species_Minnow_Juv, T_Minnow_Juv_Alb,
 T_Shared_Rgh*, M_Prop_EyeX with T_Shared_EyeX_Alb, T_Shared_EyeRing_Emi, A_Fish_Swim, _SwimFast,
-_Idle, _Dash and _Bite).
+_Idle, _Dash and _Bite (S2-A3), A_Fish_Gulp, _Hit, _Stunned, _TierUp and _Gulped (S4-A3)).
 
     Blender --background --python assets/source/species/minnow/build.py
 
@@ -12,7 +12,7 @@ shallow fork (the fork grows into the adult's signature; 06 3.2, 03 "Minnow"). I
 body (fishbody.FishBody, the M_Species_Base_Fish topology) with the Minnow's numbers, on the
 family skeleton fitted by rigs.FishFit (18 deform bones and 10 weightless sockets; every weight
 is the family's, task S1-A3; the export writes the socket table beside the FBX), and carries the
-five family clips of rigs.FISH_CLIPS, exported as A_Fish_*.fbx and, by the clips-rbxm step, as
+ten family clips of rigs.FISH_CLIPS, exported as A_Fish_*.fbx and, by the clips-rbxm step, as
 click-free Roblox .rbxm files. LODs and outline shells come from the run.py steps lod and shell
 (versions.py). Body depth: the deepest section (back to belly, fins left out) over the body
 length (nose to tail root) is printed by the build: 47% (06 6.2, the 45 to 55% range).
@@ -707,7 +707,7 @@ def build():
         rr, cc = min(TEX - 1, r // 2), min(TEX - 1, c // 2)
         return (BLOCKS[k] if k >= 0 else None), tuple(float(c) for c in albedo[rr, cc])
 
-    actions = clips.bake_family(arm, rigs.FISH_CLIPS)     # S2-A3: the five family clips on the Minnow
+    actions = clips.bake_family(arm, rigs.FISH_CLIPS)     # S2-A3 and S4-A3: the ten family clips on the Minnow
     eye_x = eye_x_card()
     ys = np.linspace(Y_NOSE, Y_BODY_END, 200)
     depth = max(top(y) + bot(y) for y in ys)
