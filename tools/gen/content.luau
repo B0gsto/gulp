@@ -316,6 +316,8 @@ local function buildSpecies(catalog: Tables, economy: Tables, slice: boolean): M
 			{
 				field("speedMult", firstNumber(t, row, "Swim speed") / 100),
 				field("turnMult", firstNumber(t, row, "Turn rate") / 100),
+				field("accelMult", firstNumber(t, row, "Acceleration") / 100),
+				field("dashMult", firstNumber(t, row, "Dash speed")),
 				field("radiusMult", firstNumber(t, row, "Collision radius") / 100),
 				field("dashCooldown", firstNumber(t, row, "Dash cooldown")),
 				field(

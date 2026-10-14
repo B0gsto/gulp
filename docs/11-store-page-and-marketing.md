@@ -520,7 +520,7 @@ All values are from document 06 (sections 4.2, 4.3, 4.5 and 4.6). Marketing adds
 | Surface Aqua | `#6FDDEE` | Sunlit Reef surface band | Light rays, rim light, gradients |
 | Deep Blue | `#0B2A66` | The Drop-off, deep | Predator mouths, night scenes |
 | Ink Navy | `#14213D` | Interface ink | Outlines, the logo outline, text on light |
-| Minnow Tangerine | `#FF9A3D`, with light `#FFE2A8` and dark `#C2491D` | `minnow` mid, light and dark | The hero creature |
+| Minnow Tangerine | `#FF9A3D`, with light `#FFE2A8` and dark `#922700` | `minnow` mid, light and dark | The hero creature |
 | Sun Yellow | `#FFC93D` | Primary button; the `minnow` accent is `#FFD23D` | Highlights, the logo highlight, calls to action |
 | Cream | `#FFF8E7` | Interface panel | Text on dark, logo letters, teeth, bubbles |
 | Home Amber | `#FFC46B` | The "home" signal | Only the glow of a cove mouth (T3, T5) |

@@ -2,7 +2,9 @@
 -- Runs the engine specs on the GULP CI place through Open Cloud Luau execution
 -- (docs/09, sections 16.3 and 16.6).
 --   lune run tools/cloud/run_engine_tests
--- One task runs Tests/RunAll, which returns TestKit's report: a first line starting with PASS
+-- One task calls the RunTests hook that Main creates in the CI environment (section 16.3), or
+-- requires Tests/RunAll itself if the hook is not there yet. Either returns TestKit's report: a
+-- first line starting with PASS
 -- or FAIL. Needs ROBLOX_API_KEY with universe.place.luau-execution-session:write. Runs on the
 -- version publish_ci just wrote when there is one, else on the place's latest version.
 local fs = require("@lune/fs")
@@ -12,7 +14,12 @@ local task = require("@lune/task")
 local Files = require("../lib/files")
 local OpenCloud = require("./open_cloud")
 
-local SCRIPT = "return require(game.ServerScriptService.Server.Tests.RunAll)()"
+local SCRIPT = table.concat({
+	"local server = game.ServerScriptService.Server",
+	"local hook = server:FindFirstChild('RunTests')",
+	"if hook then return hook:Invoke() end",
+	"return require(server.Tests.RunAll)()",
+}, "\n")
 local TASK_TIMEOUT = "300s" -- a task may run for up to 5 minutes
 local POLL_SECONDS = 3
 local GIVE_UP_SECONDS = 420

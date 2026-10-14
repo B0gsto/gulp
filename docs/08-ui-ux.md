@@ -41,6 +41,8 @@ widthScale  = safeFrameWidth / 1280
 scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 ```
 
+`safeFrameWidth` is the width of the device safe area after the TV margins (5% of the screen on each side, TV only) and the ultrawide cap (chapter 15), and before the 16 and 28 rpx margins of 1.3, which are in rpx and so come after the scale.
+
 `interfaceSize` is the Interface size setting [L] (6.7): 0.8 to 1.3, default 1.0. The width term guarantees that 1280 rpx always fit, even in a narrow desktop window.
 
 Chapter 15, section 2.2 owns the screen classes, the order of the detection tests and the device factors. The summary below is for reading this chapter; if it differs from chapter 15, chapter 15 wins.
@@ -66,7 +68,7 @@ Chapter 15, section 2.2 owns the screen classes, the order of the detection test
 | Scrims and full-screen backgrounds | A separate ScreenGui with `ScreenInsets = None` so they reach the physical edges |
 | Safe frame margins inside the device safe area | 16 rpx top, 16 rpx left and right, 28 rpx bottom |
 | Bottom edge | Tappable elements keep at least 40 rpx from the bottom of the device safe area (the iOS home bar is not covered by the device inset, per a Roblox bug report) |
-| **Roblox keep-out (top left)** | The Roblox menu button cannot be removed. Roblox text chat is switched off in the MVP (canon 14), so there is no chat button; if chat ships at [L] its button appears beside the menu button and the same rule covers it. Read `GuiService.TopbarInset` at run time and keep every element out of the occupied part of the top bar. Fallback when the value is not ready: a box 200 px wide × 58 px tall at the top left of the device safe area (about 385 × 112 rpx on a phone) (tune). |
+| **Roblox keep-out (top left)** | The Roblox menu button cannot be removed. Roblox text chat is switched off in the MVP (canon 14), so there is no chat button; if chat ships at [L] its button appears beside the menu button and the same rule covers it. The Hud is laid out outside `GuiService.TopbarInset`, read at run time: no element enters the area it reserves, whether or not anything is drawn there. In the Sprint 0 spike (F11) it reserved x 0 to 120 px, y 0 to 58 px with every core GUI element turned off, even where Mac Studio drew no menu button. Fallback when the value is not ready: a box 200 px wide × 58 px tall at the top left of the device safe area (about 385 × 112 rpx on a phone) (tune). |
 | Roblox chat window [L] | Off in the MVP: nothing is reserved for it. If chat ships at [L], the window opens below the top bar on the left, and only display-only elements may sit in the left column from 12% to 45% of the height. It is never shown on a TV (chapter 15). |
 | If the mass bar would overlap the keep-out | Shrink the mass bar from 440 to 360 rpx wide, then shift it right until it clears by 16 rpx |
 
@@ -115,7 +117,7 @@ All ScreenGuis: `ResetOnSpawn = false`, `ZIndexBehavior = Sibling`.
 
 | ScreenGui | DisplayOrder | Holds |
 |---|---|---|
-| `GulpWorld` | 5 | Screen-space markers that track world positions (threats, home, trait prey, mass pops) |
+| `GulpWorld` | 5 | Screen-space markers that track world positions (threats, home, trait prey, mass pops). `ScreenInsets = None`, so a marker sits exactly over its world position; edge arrows are clamped into the safe frame by code |
 | `GulpHUD` | 10 | Run HUD, cove HUD, visit HUD, decoration HUD |
 | `GulpMoments` | 20 | Moment slot, gulped panel, bank summary, cove-full choice |
 | `GulpMenus` | 30 | Dock menus, settings, popovers, confirm dialog |
@@ -512,7 +514,7 @@ A centred row of 48 rpx icons, each with a ring that drains over the effect's le
 
 | Element | Tag | Behaviour |
 |---|---|---|
-| `HUD.DragRing` | [MVP] | A touch that starts anywhere except on a button shows `UI_HUD_DragRing` at 35% opacity at the touch point (fade in 80 ms) and `UI_HUD_DragKnob` under the thumb, held within 84 rpx of the centre. Dead zone 12 rpx. A touch near an edge nudges the ring fully on screen. A second finger can press dash or ability at the same time. |
+| `HUD.DragRing` | [MVP] | A touch that starts anywhere except on a button shows `UI_HUD_DragRing` at 35% opacity at the touch point (fade in 80 ms) and `UI_HUD_DragKnob` under the thumb, held within 84 rpx of the centre. Dead zone 14 rpx (chapter 02, section 2.1). A touch near an edge nudges the ring fully on screen. A second finger can press dash or ability at the same time. |
 | `HUD.SafeBadge` | [MVP] | `UI_HUD_SafeBadge` fades in (200 ms) in the Nursery and inside any cove; on first show per session a chip with `hud.safe` appears for 2 s |
 | `HUD.MassPops` | [MVP] | "+4" rises 48 rpx from the mouth and fades over 500 ms. At most 4 at once; fast bites merge into one number. |
 | `HUD.Settings` | [MVP] | Opens S31. In open water the panel is the 360 rpx side panel only. |
@@ -2520,9 +2522,9 @@ Checked against create.roblox.com/docs on 13 October 2026 unless marked.
 | E1 | `StarterGui:SetCoreGuiEnabled(type, false)` turns off default interface. `Enum.CoreGuiType` has PlayerList, Health, Backpack, Chat, EmotesMenu, SelfView, Captures, AvatarSwitcher, ExperienceShop and All. | Verified (CoreGuiType enum page; "disable default UI" page) | Follow chapter 09 (section 6.10): `SetCoreGuiEnabled(Enum.CoreGuiType.All, false)`. This also turns the Roblox chat window off, which is what the canon asks for in the MVP. |
 | E2 | Default touch controls (thumbstick, jump button) are hidden with `GuiService.TouchControlsEnabled = false` | Verified (same page) | Hidden; GULP draws its own steering ring and buttons |
 | E3 | `ScreenGui.ScreenInsets` has None, DeviceSafeInsets, CoreUISafeInsets, TopbarSafeInsets. The default, CoreUISafeInsets, keeps content clear of the top bar buttons and screen cut-outs; DeviceSafeInsets uses more of the screen. | Verified (ScreenInsets enum page; "on-screen UI containers" page, via search summary) | Section 1.3 |
-| E4 | `GuiService.TopbarInset` and `GuiService:GetInsetArea()` report the free area of the top bar | Verified that they exist (GuiService reference) | Keep-out box in 1.3 |
-| E5 | The Roblox menu button and top bar cannot be removed | Not found in the docs this session; long-standing platform behaviour | Keep-out box in 1.3 |
-| E6 | The top bar is 58 px tall | Developer forum only; not official | Fallback value only; read the inset at run time |
+| E4 | `GuiService.TopbarInset` and `GuiService:GetInsetArea()` report the free area of the top bar | Verified that they exist (GuiService reference). Measured in the Sprint 0 spike (F11): with all core GUI off, `TopbarInset` still reserves x 0 to 120 px, y 0 to 58 px | Keep-out box in 1.3: the Hud is laid out outside `TopbarInset` |
+| E5 | The Roblox menu button and top bar cannot be removed | Not found in the docs this session; long-standing platform behaviour. Mac Studio drew no menu button in the spike, but the inset was still reserved; a real client is still to be checked | Keep-out box in 1.3 |
+| E6 | The top bar is 58 px tall | Developer forum; matched by the spike's `TopbarInset` height (58 px, Mac Studio) | Fallback value only; read the inset at run time |
 | E7 | `DeviceSafeInsets` does not cover the iOS home bar | Developer forum bug report only | 40 rpx bottom rule in 1.3 |
 | E8 | Text chat runs through `TextChatService`; `ChatWindowConfiguration.Enabled` can hide the default window | Verified (text chat overview page) | Text chat is off in the MVP (canon 14) and nothing depends on it. If the launch review turns it on, it is chapter 09's chat panel in the left column (1.3), never on a TV (chapter 15). |
 | E9 | Roblox offers automatic translation, a translation table per game, and `AutoLocalize` can be turned off per object | Verified (localisation page) | Section 14.0 |

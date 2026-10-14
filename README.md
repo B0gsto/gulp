@@ -40,13 +40,13 @@ Background research that led to this concept is in [`docs/research/`](docs/resea
 
 ## Status
 
-Pre-production. The repository scaffold, the headless gate and CI are in place (sprint tasks S1-C1 to S1-C3); there is no game code yet.
+Sprint 0 is done with a **provisional change decision** (14 October 2026, [spike report](docs/spike-report.md) §8): the no-avatar character and the Blender-to-Roblox pipeline work on the Mac, trait overlays become a second shell per creature, and agents keep making creatures. Sprints 1 and 2 are in progress: the scaffold, headless gate, CI, content generator, swim model, world index and creature service are in.
 
-- **Next step:** Sprint 0, a one-week spike starting 19 October 2026 that proves the no-avatar character and the Blender-to-Roblox pipeline in Roblox Studio, ending in a go, change or stop decision.
-- **Decisions needed first:** weekly hours available, cash budget, acceptance of the reduced soft-launch build, who owns the game on Roblox (a personal account or a group, which is hard to change later), and how the publishing requirement is met. See [chapter 14](docs/14-risks-and-open-questions.md).
-- **Schedule:** depends on those hours. [Chapter 13](docs/13-sprint-plan.md) gives dates for 15, 30 and 45 hours a week.
+- **Decided (14 October 2026):** the low-case budget plus a used test phone, the soft-launch slice as defined, the GULP community as owner, and the refundable publishing fee. Weekly hours (D1) are still open; the plan assumes 30. See [chapter 14](docs/14-risks-and-open-questions.md).
+- **Still to do by the owner:** create the GULP community (100 Robux) and the experiences GULP Dev, GULP CI and GULP Staging under it; run the phone halves of the spikes on device rows 1 and 3 (and S13 and S17 once the experiences exist), any fail re-opens the decision; the account checks (ID age check, 2-step verification, verified email).
+- **Schedule:** [chapter 13](docs/13-sprint-plan.md) gives dates for 15, 30 and 45 hours a week.
 
-Nothing here has been tested in Roblox Studio yet. Platform facts are marked verified or unverified in each chapter, and chapter 14 collects the unverified ones.
+Platform facts are marked verified or unverified in each chapter, and chapter 14 collects the unverified ones.
 
 ## Development
 
