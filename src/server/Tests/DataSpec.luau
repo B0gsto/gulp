@@ -150,6 +150,37 @@ return function()
 			expect(data.tokens).toEqual(before)
 		end)
 
+		it("refuses a scheme its input mode does not have, and any config path", function()
+			local data = assert(DataService.get(player), "no profile")
+			local touch = data.settings.input.touch.scheme
+			local sent: { string } = {}
+			DataService._test.onSend(function(_to: Player, path: string)
+				table.insert(sent, path)
+			end)
+			local ok1 = DataService.patch(player, "settings.input.touch.scheme", "two_thumb")
+			local bad = DataService.patch(player, "settings.input.keys.scheme", "drag")
+			local badTable = DataService.patch(player, "settings.input.pad", {
+				scheme = "gamepad",
+				lookSpeed = 1,
+				twoThumbLookSpeed = 1,
+				flipY = false,
+				graphics = "auto",
+			})
+			local config = DataService.patch(player, "config.flag.tideEvents", true)
+			local ok2 = DataService.patch(player, "settings.input.touch.scheme", touch)
+			DataService._test.onSend(nil)
+			expect(ok1).toBe(true)
+			expect(bad).toBe(false)
+			expect(badTable).toBe(false)
+			expect(config).toBe(false)
+			expect(ok2).toBe(true)
+			expect(data.settings.input.keys.scheme).toBe("keys")
+			expect(data.settings.input.pad.scheme).toBe("pad")
+			expect(data.settings.input.touch.scheme).toBe(touch)
+			expect((data :: any).config).toBe(nil)
+			expect(#sent).toBe(if touch == "two_thumb" then 0 else 2)
+		end)
+
 		it("saves now on request, and queues a second request inside 30 s", function()
 			expect(DataService.saveNow(player)).toBe(true)
 			expect(DataService.saveNow(player)).toBe(true)

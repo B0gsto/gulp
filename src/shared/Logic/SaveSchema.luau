@@ -25,6 +25,32 @@ function SaveSchema.keyFor(userId: number): string
 	return `u_{userId}`
 end
 
+--- The control scheme IDs each input mode may save (section 12.2 `InputSettings.scheme`;
+--- chapter 15, section 2.2). The left-handed layout is a setting of a scheme, not a scheme.
+local SCHEMES: { [string]: { [string]: boolean } } = {
+	touch = table.freeze({ drag = true, two_thumb = true }), -- drag to swim [MVP]; two-thumb [L]
+	keys = table.freeze({ keys = true }), -- mouse and keyboard, or keys only [MVP]
+	pad = table.freeze({ pad = true }), -- [L]
+}
+SaveSchema.SCHEMES = table.freeze(SCHEMES)
+
+--- Whether every input mode in `input` (a profile's `settings.input`) saves one of its own scheme
+--- IDs, with the first offending path when not.
+function SaveSchema.checkSchemes(input: unknown): (boolean, string?)
+	if type(input) ~= "table" then
+		return false, "settings.input: not a table"
+	end
+	local modes = input :: { [string]: any }
+	for mode, ids in SCHEMES do
+		local entry = modes[mode]
+		local scheme = if type(entry) == "table" then entry.scheme else nil
+		if type(scheme) ~= "string" or not ids[scheme] then
+			return false, `settings.input.{mode}.scheme: {tostring(scheme)} is not a {mode} scheme`
+		end
+	end
+	return true, nil
+end
+
 local function inputSettings(scheme: string): InputSettings
 	return {
 		scheme = scheme,
@@ -44,7 +70,7 @@ function SaveSchema.template(): ProfileData
 		lastSeenAt = 0,
 		sessions = 0,
 		playSeconds = 0,
-		pearls = 0, -- the bible states no starting balance
+		pearls = 0, -- 05 §3: a new profile starts with 0 Pearls; there is no starting grant
 		rank = { points = 0, claimed = 0 },
 		species = {
 			owned = { [S.starterSpecies] = true },
@@ -95,7 +121,7 @@ function SaveSchema.template(): ProfileData
 		},
 		newcomer = { firstDeath = false, biteAbsorbed = false, runsCompleted = 0, shieldUsed = 0 },
 		passes = {},
-		tokens = { revive = 0, trait_lock = 0, call_tide = 0, goal_reroll = 0 },
+		tokens = { revive = 0, trait_lock = 0, call_tide = 0, goal_reroll = 0 }, -- 05 §3: 0 of each
 		purchases = {
 			receipts = {},
 			starterPack = false,
@@ -121,7 +147,7 @@ function SaveSchema.template(): ProfileData
 			interfaceSize = S.interfaceSize,
 			swapSticks = false,
 			hideEmotes = false,
-			-- 15 §3.1: touch starts on "drag". The keys and pad schemes have no name in the bible.
+			-- 15 §2.2 scheme IDs (SCHEMES above): touch starts on "drag", keys on "keys", pad on "pad".
 			input = {
 				touch = inputSettings("drag"),
 				keys = inputSettings("keys"),

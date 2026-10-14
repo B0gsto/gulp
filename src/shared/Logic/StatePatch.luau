@@ -1,7 +1,9 @@
 --!strict
 -- StatePatch: the paths of the `State` remote (docs/09, sections 5.1 to 5.3; task S4-C6, module
 -- B20). A path is dot-separated keys into a table, such as `cove.slots` or `goals.list.2.progress`;
--- a segment of digits indexes an array. The server uses `set` to patch a profile and `diff` to
+-- a segment of digits indexes an array. The first segment is a top-level profile key (`pearls`,
+-- `cove`, `tokens` ...) or `config`, the live-config root (section 5.3); there are no other roots.
+-- The server uses `set` to patch a profile and `diff` to
 -- send only what changed; the client's StateStore uses `apply` to keep its mirror and `touches`
 -- to pick the observers to call. Pure, so it runs in Lune.
 local SaveSchema = require("./SaveSchema")
@@ -12,6 +14,9 @@ export type Patch = { path: string, value: any }
 local StatePatch = {}
 
 StatePatch.MAX_PATH = 128 -- characters; ours: the longest real path is under 60
+--- The first segment of every live-config path (section 5.3, 17.4: `config.flag.tideEvents`).
+--- Profile keys sit at the top level next to it; no profile key may be named `config`.
+StatePatch.CONFIG_ROOT = "config"
 StatePatch.MAX_DEPTH = 8
 
 --- The keys of `path`, or nil when it is malformed (empty, an empty segment, too long or deep).
@@ -90,6 +95,7 @@ function StatePatch.apply(root: { [any]: any }, path: string, value: any): boole
 end
 
 --- Sets `path` in a saved profile, checked against `template` (SaveSchema.template()):
+---   * the path is not under `config` (live config is never saved);
 ---   * every step but the last must already be a table in `data`;
 ---   * an array takes indexes 1 to #array + 1 (append), and nil only at its last index (no
 ---     holes); a digit segment in a dictionary is its string key;
@@ -106,6 +112,9 @@ function StatePatch.set(
 	local keys = StatePatch.split(path)
 	if not keys then
 		return false, "malformed path"
+	end
+	if keys[1] == StatePatch.CONFIG_ROOT then
+		return false, `{path}: "config" is the live-config root, not a profile key`
 	end
 	local node: any, model: any = data, template
 	for i = 1, #keys - 1 do

@@ -260,8 +260,9 @@ function DataService.get(player: Player): ProfileData?
 	return if entry then entry.live :: any else nil
 end
 
---- Writes `value` at `path` (StatePatch path rules, checked against the template) and sends what
---- changed to the owner as `State`. Tables are copied. False, with a log line, when refused.
+--- Writes `value` at `path` (StatePatch path rules, checked against the template; a control
+--- scheme must be one of its input mode's IDs) and sends what changed to the owner as `State`.
+--- Tables are copied. False, with a log line, when refused.
 function DataService.patch(player: Player, path: string, value: any): boolean
 	local entry = byPlayer[player]
 	if not entry then
@@ -269,8 +270,18 @@ function DataService.patch(player: Player, path: string, value: any): boolean
 		return false
 	end
 	local data = entry.live
-	local old = StatePatch.copy(StatePatch.get(data, path))
 	local new = StatePatch.copy(value)
+	if StatePatch.touches(path, "settings.input") then
+		-- Scheme IDs (section 12.2, chapter 15 section 2.2): tried on a copy before the real write.
+		local probe = { settings = { input = StatePatch.copy(data.settings.input) } }
+		local fits = StatePatch.set(probe, TEMPLATE :: any, path, StatePatch.copy(value))
+		local ok, why = SaveSchema.checkSchemes(probe.settings.input)
+		if fits and not ok then
+			Log.warn(TAG, `patch refused: {why}`)
+			return false
+		end
+	end
+	local old = StatePatch.copy(StatePatch.get(data, path))
 	local ok, why = StatePatch.set(data, TEMPLATE :: any, path, new)
 	if not ok then
 		Log.warn(TAG, `patch refused: {why}`)
@@ -282,8 +293,9 @@ function DataService.patch(player: Player, path: string, value: any): boolean
 	return true
 end
 
---- Sends the whole profile to its owner, one State per top-level key: the first state push of
---- the join (PlayerLifecycle, after ClientReady).
+--- Sends the whole profile to its owner, one State per top-level key (`pearls`, `cove` ...: the
+--- profile keys are the State roots, next to `config`, section 5.3): the first state push of the
+--- join (PlayerLifecycle, after ClientReady).
 function DataService.pushAll(player: Player)
 	local entry = byPlayer[player]
 	if not entry then

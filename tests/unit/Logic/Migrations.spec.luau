@@ -41,7 +41,32 @@ describe("SaveSchema", function()
 		expect(a.species.owned.minnow).toBe(true)
 		expect(a.cove.slots).toBe(6)
 		expect(a.settings.input.touch.scheme).toBe("drag")
+		expect(a.settings.input.keys.scheme).toBe("keys")
+		expect(a.settings.input.pad.scheme).toBe("pad")
 		expect(a.run).toBe(nil)
+		-- 05 §3: 0 Pearls and 0 of every token, no starting grant.
+		expect(a.pearls).toBe(0)
+		expect(a.tokens).toEqual({ revive = 0, trait_lock = 0, call_tide = 0, goal_reroll = 0 })
+		-- 09 §5.3: profile keys are the State roots next to `config`, so none may be named so.
+		expect((a :: any).config).toBe(nil)
+	end)
+
+	it("knows the scheme IDs of each input mode (15 §2.2)", function()
+		expect(SaveSchema.SCHEMES.touch).toEqual({ drag = true, two_thumb = true })
+		expect(SaveSchema.SCHEMES.keys).toEqual({ keys = true })
+		expect(SaveSchema.SCHEMES.pad).toEqual({ pad = true })
+		local input = SaveSchema.template().settings.input
+		expect(SaveSchema.checkSchemes(input)).toBe(true)
+		input.touch.scheme = "two_thumb"
+		expect(SaveSchema.checkSchemes(input)).toBe(true)
+		input.keys.scheme = "drag"
+		local ok, why = SaveSchema.checkSchemes(input)
+		expect(ok).toBe(false)
+		expect(why).toBe("settings.input.keys.scheme: drag is not a keys scheme")
+		input.keys.scheme = "keys"
+		input.pad.scheme = "gamepad"
+		expect(SaveSchema.checkSchemes(input)).toBe(false)
+		expect(SaveSchema.checkSchemes(nil)).toBe(false)
 	end)
 
 	it("refuses NaN, infinity, holes, mixed tables, non-string keys and engine values", function()
@@ -111,6 +136,7 @@ describe("Migrations", function()
 				)
 				expect(data.v).toBe(Migrations.SCHEMA_VERSION)
 				expect(SaveSchema.check(data)).toBe(true)
+				expect(SaveSchema.checkSchemes(data.settings.input)).toBe(true)
 				-- Every template field is present, and no saved value of the current version changed.
 				local have: { [string]: any } = {}
 				leaves(data, "", have)

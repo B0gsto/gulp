@@ -57,6 +57,12 @@ describe("StatePatch", function()
 		expect(set("run", nil)).toBe(nil)
 		expect(set("nope.deeper", 1)).toBe("nope.deeper: no table at step 1")
 		expect(set("a..b", 1)).toBe("malformed path")
+		expect(set("config.flag.tideEvents", true)).toBe(
+			'config.flag.tideEvents: "config" is the live-config root, not a profile key'
+		)
+		expect(set("config", {})).toBe(
+			'config: "config" is the live-config root, not a profile key'
+		)
 		-- Arrays: append at #+1, change in place, remove only the last; never a hole.
 		local spec = { id = "a1B2c3D4", sp = "minnow", tier = 2, mass = 12.5, traits = {}, at = 1 }
 		expect(set("cove.specimens.1", spec)).toBe(nil)
