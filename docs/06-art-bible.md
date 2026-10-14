@@ -81,7 +81,7 @@ Inspiration only. We copy no character, design or name. Each reference lends exa
 | SurfaceAppearance maps: colour, normal (OpenGL tangent space only), roughness, metalness, emissive mask. | [V] | [PBR textures](https://create.roblox.com/docs/art/modeling/surface-appearance) |
 | SurfaceAppearance maps cannot be changed by script while the game runs; `SurfaceAppearance.Color` can, and tinting costs nothing. `AlphaMode = TintMask` tints only where the alpha is visible. | [V] | Same page |
 | Importer accepts .fbx, .gltf and .obj; default scale unit is studs; it has an "Ignore Vertex Colors" switch, so vertex colours are imported by default. | [V] | [3D Importer](https://create.roblox.com/docs/art/modeling/3d-importer) |
-| Vertex colour multiplies the part colour. Whether it still multiplies under a SurfaceAppearance. | [F], then [U] | [Forum tutorial](https://devforum.roblox.com/t/3050119) |
+| Vertex colour multiplies the part colour. Whether it still multiplies under a SurfaceAppearance. | [F]; under a SurfaceAppearance it does **not** show, measured in Mac Studio (Sprint 0, `docs/spike-report.md`) | [Forum tutorial](https://devforum.roblox.com/t/3050119) |
 | `Bone.Transform` is a CFrame that scripts may write. It carries position and rotation, not scale. | [V] | [Bone reference](https://create.roblox.com/docs/reference/engine/classes/Bone.md) |
 | Lighting: `LightingStyle` (Realistic or Soft) and `PrioritizeLightingQuality`. Shadows are switched off below graphics quality level 4. | [V] | [Lighting guide](https://create.roblox.com/docs/environment/lighting), [performance guide](https://create.roblox.com/docs/performance-optimization/improve) |
 | `Lighting.Technology` is being retired for `LightingStyle` plus `PrioritizeLightingQuality`. Staff mapping of the old names: Future = Realistic + prioritise on; ShadowMap = Soft + prioritise on; Voxel = Soft + prioritise off. So the pair in section 10.1 is the old Future, the most expensive of the three. How each renders and what it costs on phones is not documented. | [V] staff post, January 2025; cost [U] | [Unified lighting](https://devforum.roblox.com/t/let-there-be-unified-light-unified-lighting-is-fully-live/3401512); chapter 15, fact PF26 |
@@ -340,7 +340,7 @@ Navy on cream measures 15.1 : 1, navy on sun yellow 10.4 : 1, navy on aqua 8.9 :
 | Roughness | The shared flat texture only | Two more shared values exist: `T_Shared_RghWet` at 35% for eyes and pearls, `T_Shared_RghChalk` at 100% for sand |
 | Normal | **No** at MVP | Reconsider only for `old_scar` and the Whale Fall skeleton at [L], and only if a review shows flat lighting on them. If used: OpenGL tangent space. [V] |
 | Metalness | **Never** | Metal needs sky reflections and reads as stock Roblox |
-| Emissive mask | For glowing parts only | 8-bit greyscale. Documented for avatar items [V]; behaviour on ordinary meshes in a game is [U]. Fallback: a small glow cap in the `Neon` material (rule below). |
+| Emissive mask | For glowing parts only | 8-bit greyscale. Documented for avatar items [V]; works on an ordinary skinned mesh in Mac Studio (Sprint 0, `docs/spike-report.md`); on phones [U]. Fallback: a small glow cap in the `Neon` material (rule below). |
 
 **The Neon rule (canon section 13).** No asset uses a built-in Roblox material, with one exception: the built-in `Neon` material is allowed on **outline shells** (section 13.2) and on **small glow caps**, and nowhere else. A glow cap is a separate mesh piece of 120 triangles or fewer that sits over a part meant to glow (a coral tip, a kelp leaf edge, a trait's glowing line, an eye ring); together the caps on one asset cover at most 15% of its visible surface, the same cap as emissive overlays (section 8.3). A glow cap is the fallback where an emissive mask does not work, not a first choice. No creature body, prop, kit piece, floor, wall, beam or interface element is ever `Neon`.
 
@@ -365,7 +365,7 @@ Navy on cream measures 15.1 : 1, navy on sun yellow 10.4 : 1, navy on aqua 8.9 :
 | Vertex colour | Large gradients on terrain and rock (depth darkening, moss, sand to rock blends), occlusion on kit pieces, variation between copies | Free, and it lets one tiling texture cover a 128-stud chunk without visible repeats |
 | `SurfaceAppearance.Color` tint with `AlphaMode = TintMask` | Coral, kelp, anemone and prey colour variants; cheap pattern recolours | One texture, many colours, changeable at runtime [V] |
 
-With no custom shaders, vertex colour cannot act as a mask. It is simply a colour multiplied over the texture. Keep it between `#808080` and `#FFFFFF` so it only darkens gently. Whether vertex colour multiplies under a `SurfaceAppearance` is [U]. **Fallback:** environment meshes keep their `SurfaceAppearance`; depth darkening becomes a `SurfaceAppearance.Color` tint per chunk and the other gradients are painted into the tiling textures. A bare `MeshPart.TextureID` with no `SurfaceAppearance` is not an option, because it would show a built-in material's shine, which canon section 13 rules out.
+With no custom shaders, vertex colour cannot act as a mask. It is simply a colour multiplied over the texture. Keep it between `#808080` and `#FFFFFF` so it only darkens gently. Under a `SurfaceAppearance` vertex colour does not show: measured in Mac Studio (Sprint 0, `docs/spike-report.md`); the owner decides the change. **Fallback:** environment meshes keep their `SurfaceAppearance`; depth darkening becomes a `SurfaceAppearance.Color` tint per chunk and the other gradients are painted into the tiling textures. A bare `MeshPart.TextureID` with no `SurfaceAppearance` is not an option, because it would show a built-in material's shine, which canon section 13 rules out.
 
 Creatures do not use vertex colour. Their texture is the whole look.
 
@@ -436,7 +436,7 @@ Nothing exceeds 1024. All **(tune)**.
 | Prop origin | Centre of the base, where it meets the floor |
 | Kit-piece origin | The snapping corner or the centre of the base; stated in the asset's `build.py` |
 | Transforms | Location, rotation and scale applied before export. Bones at scale 1, rotation 0. [V] |
-| Calibration asset | `M_Prop_ScaleCube`: a 4-stud cube with an arrow on its front. Imported once per Blender or Studio version to confirm scale and facing. The FBX scale factor that makes it 4 studs (expected 0.01, [U]) is stored in the export script. |
+| Calibration asset | `M_Prop_ScaleCube`: a 4-stud cube with an arrow on its front. Imported once per Blender or Studio version to confirm scale and facing. The FBX scale factor that makes it 4 studs (0.01, measured in Sprint 0: 4 studs, facing Front) is stored in the export script. |
 
 ### 6.2 Authored sizes at body scale 1.0
 
@@ -562,7 +562,7 @@ Rigs use `RIG_`, lighting presets `LGT_`, skies `SKY_` and store-art scenes `SCN
 | Scale | The factor stored by the calibration asset; Apply Scalings "FBX All" |
 | Axes | Forward −Z, Up Y |
 | Geometry | Apply modifiers; triangulate; smoothing "Normals Only"; no tangents |
-| Vertex colours | sRGB [U]: confirm with a swatch mesh which colour space Roblox expects |
+| Vertex colours | sRGB (measured in Sprint 0: a 128 grey reads 0.502 in Studio) |
 | Armature | Only deform bones **off** (sockets must export); Add Leaf Bones **off** |
 | Animation | One action per file [V]; 30 frames a second; key all bones; no simplification |
 | Textures | Not embedded. Uploaded separately as .png. |
@@ -648,7 +648,7 @@ Specimens in a cove are the trophy shelf, so they act.
 | Stretch and squash along the body | **Move the bones.** Spread the Spine bones apart to stretch, bring them together to squash. The skin follows. |
 | Keep the volume | Move the four **Girth** bones outward when squashing and inward when stretching. They are weighted softly over the middle 60% of the body. Girth offset = body radius × (1 ÷ √stretch − 1). |
 | Swallow bulge | Slide the Girth bones' influence by offsetting them in sequence with a neighbour Spine bone |
-| Growing on tier-up | `Model:ScaleTo` on the whole creature, once per tier. Uniform scale only. [U] for cost; tier-ups are rare. |
+| Growing on tier-up | `Model:ScaleTo` on the whole creature, once per tier. Uniform scale only. Cost measured in Sprint 0: 0.15–0.47 ms for 6.5× on a playing rig (Mac); tier-ups are rare. |
 | Extreme shapes: `puffer` Puff, `turtle` Shell, the tier-4 form change | **Mesh swap** hidden by a 3-frame effect. `M_Species_Puffer_Juv_Puffed` and `_Adult_Puffed`, and `M_Species_Turtle_Juv_Tucked` and `_Adult_Tucked`, share their species' skeleton (budgets in section 6.3). |
 | Rigid prey | Whole-part CFrame: a small yaw wobble, and non-uniform `Size` is avoided. A bite victim simply shrinks. |
 
@@ -662,7 +662,7 @@ Specimens in a cove are the trophy shelf, so they act.
 | Actions | All bones | Keyframed clips: bite, dash pose, abilities, tier-up, gulped, bank, cove fidgets. While a clip plays, sway amplitude drops to 30%. |
 | Fins | Pec, flippers, arms | Keyframed loops |
 
-Bones are not replicated [V], so each client computes sway locally; nothing is sent over the network. Whether a script write to `Bone.Transform` survives when an animation track also drives that bone, and in which update step to write, is [U]. The rig spike (section 18.2) settles it. If code cannot layer over clips, sway bones are simply left out of every keyframed clip.
+Bones are not replicated [V], so each client computes sway locally; nothing is sent over the network. The rig spike (section 18.2) measured it in Mac Studio (Sprint 0, `docs/spike-report.md`): the Animator resets every bone each frame, so a write survives only on `PreRender`, after the Animator; a `PreAnimation` write is lost. If code cannot layer over clips, sway bones are simply left out of every keyframed clip.
 
 Prey of tiers 3 to 6 use the same sway code on 3 or 4 bones. Smaller prey are rigid; the school's shared motion sells them.
 
@@ -737,9 +737,9 @@ The combination sheet (section 15.5) renders every species with the 12 hardest t
 
 | Option | How | Risk |
 |---|---|---|
-| A. Decal layers | Each active overlay is a `Decal` on the body mesh, using the mesh UVs | Whether decals follow mesh UVs on a skinned mesh under a `SurfaceAppearance` is [U] |
+| A. Decal layers | Each active overlay is a `Decal` on the body mesh, using the mesh UVs | Measured in Sprint 0: a decal is projected per face, not along the mesh UVs (Sprint 0, `docs/spike-report.md`) |
 | B. Overlay shell | A second skinned mesh 0.5% outside the body with the overlay as its `SurfaceAppearance`, `AlphaMode = Transparency` | Doubles the creature's triangles while any pattern trait is active |
-| C. Composite | Build one texture per creature on the client from base and overlays | Depends on runtime image editing, which the research did not cover [U] |
+| C. Composite | Build one texture per creature on the client from base and overlays | Measured in Sprint 0: an `EditableImage` cannot be set as a `SurfaceAppearance` map by game scripts, only as `MeshPart.TextureContent` (no PBR) (Sprint 0, `docs/spike-report.md`) |
 
 ---
 
@@ -1118,7 +1118,7 @@ Outlines are **our own meshes**, not Roblox `Highlight`: a `Highlight`'s thickne
 | Far away | Under 8 points the shell is replaced by a glint in the outline colour |
 | The player's own creature | No outline. It is found by position: always at the centre. |
 
-Whether flipped back faces draw as expected on a skinned `MeshPart` is [U] and is the first thing the rig spike checks. If it fails, the fallback is a billboard ring behind each creature in the outline colour.
+Flipped back faces draw as an outline on a skinned `MeshPart`: measured in Mac Studio by the rig spike (Sprint 0, `docs/spike-report.md`). If it fails, the fallback is a billboard ring behind each creature in the outline colour.
 
 ### 13.3 Contrast against water
 

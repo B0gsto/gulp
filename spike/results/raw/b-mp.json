@@ -1,0 +1,421 @@
+{
+ "memBefore": {
+  "11479": {
+   "rssMb": 714,
+   "footprint": "3.1G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 1306,
+   "footprint": "4.2G",
+   "footprintPeak": "4.2G"
+  }
+ },
+ "editLagBefore": "0",
+ "roles": {
+  "Player2": "bc2241bc-e2d1-45d5-a4a6-46f03dbc4c36",
+  "server": "c0d8c494-6d91-4149-8375-617ffe272f9d",
+  "Player1": "c28365ad-7044-4812-8857-f4954acd4b82"
+ },
+ "startS": 14.5,
+ "newPids": [
+  "55524",
+  "55546",
+  "55640"
+ ],
+ "windows": {
+  "55524": "Server - Roblox Studio",
+  "55546": "Place1 - Roblox Studio",
+  "55640": "Place1 - Roblox Studio"
+ },
+ "memMp": {
+  "11479": {
+   "rssMb": 469,
+   "footprint": "3.1G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 1005,
+   "footprint": "4.1G",
+   "footprintPeak": "4.2G"
+  },
+  "55524": {
+   "rssMb": 451,
+   "footprint": "2.1G",
+   "footprintPeak": "2.2G"
+  },
+  "55546": {
+   "rssMb": 718,
+   "footprint": "2.1G",
+   "footprintPeak": "2.1G"
+  },
+  "55640": {
+   "rssMb": 848,
+   "footprint": "2.0G",
+   "footprintPeak": "2.1G"
+  }
+ },
+ "lag_0_0": {
+  "set": {
+   "server": "true nil now=0",
+   "p1": "true nil now=0",
+   "p2": "true nil now=0"
+  },
+  "rttP1": {
+   "p50": 0.033,
+   "max": 0.048,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.033,
+   "max": 0.049,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.005,
+    "rigLagMax": 0.246,
+    "maxRawSpeed": 5.075,
+    "rawPopMax": 0.078,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.005,
+    "frames": 22,
+    "rawPopP99": 0.078
+   },
+   "frameMsP50": 16.67,
+   "tau": 0.08,
+   "framesWithTarget": 1199,
+   "frameMsMax": 33.993,
+   "dash": {
+    "rigPopMax": 0,
+    "rigLagMax": 0,
+    "maxRawSpeed": 0,
+    "rawPopMax": 0,
+    "rawStallFrames": 0,
+    "rigPopP99": 0,
+    "frames": 0,
+    "rawPopP99": 0
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.041
+   },
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.045,
+    "msgDelay": 0.027
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.026
+   },
+   {
+    "minDistWithin1_5s": 0.633,
+    "delay": 0.028,
+    "msgDelay": 0.027
+   },
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.045,
+    "msgDelay": 0.029
+   },
+   {
+    "minDistWithin1_5s": 1.9,
+    "delay": 0.063,
+    "msgDelay": 0.028
+   }
+  ],
+  "drive": null
+ },
+ "lag_1_01": {
+  "set": {
+   "server": "true nil now=0.1",
+   "p1": "true nil now=0.1",
+   "p2": "true nil now=0.1"
+  },
+  "rttP1": {
+   "p50": 0.233,
+   "max": 0.25,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.233,
+   "max": 0.251,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.033,
+    "rigLagMax": 6.216,
+    "maxRawSpeed": 51.584,
+    "rawPopMax": 0.68,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.027,
+    "frames": 264,
+    "rawPopP99": 0.63
+   },
+   "frameMsP50": 16.655,
+   "tau": 0.08,
+   "framesWithTarget": 1198,
+   "frameMsMax": 34.018,
+   "dash": {
+    "rigPopMax": 0.194,
+    "rigLagMax": 12.597,
+    "maxRawSpeed": 847.023,
+    "rawPopMax": 10.441,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.064,
+    "frames": 912,
+    "rawPopP99": 4.468
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.156,
+    "msgDelay": 0.139
+   },
+   {
+    "minDistWithin1_5s": 2.692,
+    "delay": "not seen",
+    "msgDelay": 0.125
+   },
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.126,
+    "msgDelay": 0.108
+   },
+   {
+    "minDistWithin1_5s": 2.058,
+    "delay": 0.143,
+    "msgDelay": 0.108
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.112
+   },
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.128,
+    "msgDelay": 0.111
+   }
+  ],
+  "drive": {
+   "pathStuds": 824.344,
+   "seconds": 14,
+   "frames": 211,
+   "meanSpeed": 58.882
+  }
+ },
+ "lag_2_02": {
+  "set": {
+   "server": "true nil now=0.2",
+   "p1": "true nil now=0.2",
+   "p2": "true nil now=0.2"
+  },
+  "rttP1": {
+   "p50": 0.433,
+   "max": 0.449,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.433,
+   "max": 0.449,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.056,
+    "rigLagMax": 6.362,
+    "maxRawSpeed": 52.604,
+    "rawPopMax": 0.836,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.042,
+    "frames": 510,
+    "rawPopP99": 0.488
+   },
+   "frameMsP50": 16.678,
+   "tau": 0.08,
+   "framesWithTarget": 1199,
+   "frameMsMax": 33.845,
+   "dash": {
+    "rigPopMax": 0.132,
+    "rigLagMax": 12.505,
+    "maxRawSpeed": 593.999,
+    "rawPopMax": 7.264,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.063,
+    "frames": 661,
+    "rawPopP99": 3.573
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "minDistWithin1_5s": 1.9,
+    "delay": 0.258,
+    "msgDelay": 0.223
+   },
+   {
+    "minDistWithin1_5s": 0.633,
+    "delay": 0.212,
+    "msgDelay": 0.211
+   },
+   {
+    "minDistWithin1_5s": 0.633,
+    "delay": 0.226,
+    "msgDelay": 0.225
+   },
+   {
+    "minDistWithin1_5s": 1.9,
+    "delay": 0.244,
+    "msgDelay": 0.21
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.21
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.227
+   }
+  ],
+  "drive": {
+   "pathStuds": 877.155,
+   "seconds": 14,
+   "frames": 211,
+   "meanSpeed": 62.654
+  }
+ },
+ "lag_3_0": {
+  "set": {
+   "server": "true nil now=0",
+   "p1": "true nil now=0",
+   "p2": "true nil now=0"
+  },
+  "rttP1": {
+   "p50": 0.032,
+   "max": 0.049,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.033,
+   "max": 0.05,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.023,
+    "rigLagMax": 6.087,
+    "maxRawSpeed": 45.976,
+    "rawPopMax": 0.758,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.019,
+    "frames": 563,
+    "rawPopP99": 0.565
+   },
+   "frameMsP50": 16.666,
+   "tau": 0.08,
+   "framesWithTarget": 1199,
+   "frameMsMax": 33.809,
+   "dash": {
+    "rigPopMax": 0.096,
+    "rigLagMax": 12.744,
+    "maxRawSpeed": 795.66,
+    "rawPopMax": 10.214,
+    "rawStallFrames": 6,
+    "rigPopP99": 0.064,
+    "frames": 624,
+    "rawPopP99": 4.286
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "minDistWithin1_5s": 1.267,
+    "delay": 0.06,
+    "msgDelay": 0.042
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.027
+   },
+   {
+    "minDistWithin1_5s": 0.633,
+    "delay": 0.031,
+    "msgDelay": 0.03
+   },
+   {
+    "minDistWithin1_5s": 1.108,
+    "delay": 0.047,
+    "msgDelay": 0.031
+   },
+   {
+    "minDistWithin1_5s": 2.533,
+    "delay": "not seen",
+    "msgDelay": 0.03
+   },
+   {
+    "minDistWithin1_5s": 1.583,
+    "delay": 0.042,
+    "msgDelay": 0.024
+   }
+  ],
+  "drive": {
+   "pathStuds": 875.494,
+   "seconds": 14,
+   "frames": 211,
+   "meanSpeed": 62.535
+  }
+ },
+ "lagReset": {
+  "server": "true nil now=0",
+  "p1": "true nil now=0",
+  "p2": "true nil now=0"
+ },
+ "end": "ended",
+ "pidsAfterEndTest": [
+  "11479",
+  "52405"
+ ],
+ "leftover": [],
+ "editLagAfter": "0",
+ "memAfter": {
+  "11479": {
+   "rssMb": 557,
+   "footprint": "3.1G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 1279,
+   "footprint": "4.1G",
+   "footprintPeak": "4.2G"
+  }
+ }
+}

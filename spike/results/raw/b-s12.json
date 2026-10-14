@@ -1,0 +1,77 @@
+{
+ "studio": "TestBench-gulp-spike-s12.rbxl",
+ "attr60_s12Edit": "attr60 ok=true nil",
+ "attr60_normalEdit": "attr60 ok=true nil",
+ "ready": true,
+ "authorityServer": "unreadable: The current thread cannot read 'AuthorityMode' (lacking capability RobloxScript)",
+ "lagSet_0": [
+  "true nil now=0",
+  "true nil now=0"
+ ],
+ "server_0": {
+  "physicsStepTimeMs": {
+   "p50": 1.02,
+   "max": 1.144
+  },
+  "heartbeatTimeMs": {
+   "p50": 0.055,
+   "max": 0.063
+  },
+  "callbacks": 366,
+  "bindErr": "nil",
+  "callbackMs": {
+   "p50": 0.127,
+   "p99": 0.448
+  },
+  "bindOk": true
+ },
+ "err_0": null,
+ "client_0": {
+  "simCallbacks": 527,
+  "ownerPopMax": 66.049,
+  "ownerPopP99": 3.802,
+  "bindErr": "nil",
+  "authorityMode": "unreadable: The current thread cannot read 'AuthorityMode' (lacking capability RobloxScript)",
+  "frames": 718,
+  "bindOk": true
+ },
+ "lagSet_0.1": [
+  "true nil now=0.1",
+  "true nil now=0.1"
+ ],
+ "server_0.1": {
+  "physicsStepTimeMs": {
+   "p50": 0.905,
+   "max": 1.245
+  },
+  "heartbeatTimeMs": {
+   "p50": 0.05,
+   "max": 0.064
+  },
+  "callbacks": 362,
+  "bindErr": "nil",
+  "callbackMs": {
+   "p50": 0.136,
+   "p99": 0.325
+  },
+  "bindOk": true
+ },
+ "err_0.1": null,
+ "client_0.1": {
+  "simCallbacks": 2232,
+  "ownerPopMax": 68.179,
+  "ownerPopP99": 8.364,
+  "bindErr": "nil",
+  "authorityMode": "unreadable: The current thread cannot read 'AuthorityMode' (lacking capability RobloxScript)",
+  "frames": 718,
+  "bindOk": true
+ },
+ "lagReset": [
+  "true nil now=0",
+  "true nil now=0"
+ ],
+ "consoleSuspect": [
+  "Stack Begin"
+ ],
+ "backToEdit": true
+}
