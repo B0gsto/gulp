@@ -76,6 +76,7 @@ def paint():
                "validation": bad or "pass", "date": common.today(), "commit": common.git_commit()}
         if name in tilegen.TILES:
             rep["seam"] = tilegen.seam(back)
+            rep["banding"] = tilegen.banding(back)
             rep["tints"] = {z: {"floor": t[0], "SurfaceAppearance.Color": t[1], "rgb": t[2]}
                             for z, t in tilegen.tints(name).items()}
             rep["studs_per_tile"] = tilegen.STUDS_PER_TILE
@@ -303,6 +304,8 @@ def sheet():
             lines.append("seam (8-bit levels, wrap edge vs interior neighbours): x %.2f (mean %.2f, max %.2f)   "
                          "y %.2f (mean %.2f, max %.2f)" % (sm["x"]["wrap"], sm["x"]["inner_mean"], sm["x"]["inner_max"],
                                                           sm["y"]["wrap"], sm["y"]["inner_mean"], sm["y"]["inner_max"]))
+            lines.append("banding (variance share, max %.2f): rows %.3f  cols %.3f  strongest wave %.3f" % (
+                tilegen.BAND_MAX, rep["banding"]["rows"], rep["banding"]["cols"], rep["banding"]["top_wave"]))
             lines.append("repeats every %d studs (16 px per stud). SurfaceAppearance.Color per zone:" % rep["studs_per_tile"])
         else:
             lines.append("atlas cells (px, top-left origin): pebbles, shells, sea grass blades, eel-hole barnacle ring")

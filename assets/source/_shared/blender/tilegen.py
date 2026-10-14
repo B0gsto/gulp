@@ -29,6 +29,13 @@ FLOOR = {
     "kelp_silt": "#8FA07A", "kelp_rock": "#5F7F6F", "dropoff_upper_slate": "#4F6FA0",
     "dropoff_deep_slate": "#2F4A80", "cove_stone": "#D9B48F",
 }
+# Coral rock: reef rock one value step down, so its median L* sits at least 15 below minnow mid
+# (#FF9A3D, L* 72.7) and a tier-1 minnow reads on the reef blocks (S5-A1 review ruling).
+FLOOR["reef_coralrock"] = "#9D8470"            # reef rock x 0.78
+MINNOW_MID = "#FF9A3D"
+# Extra tint scale per (tile, zone): Nursery sand is pulled down so the lit sand does not clip
+# under the Nursery preset (06 10.2, Brightness 2.2) (S5-A1 review ruling).
+TINT_SCALE = {("T_Tile_Sand_Alb", "nursery"): 0.94}
 CORAL_PINK = "#FF7F9F"        # 06 9.3 coral colours (coralline crust on coral rock, shell accents)
 CORAL_ORANGE = "#FFA35C"
 
@@ -36,7 +43,7 @@ CORAL_ORANGE = "#FFA35C"
 SERVES = {
     "T_Tile_Sand_Alb": {"nursery": "nursery_sand", "reef": "reef_sand", "kelp": "kelp_silt"},
     "T_Tile_Rock_Alb": {"reef": "reef_rock", "kelp": "kelp_rock", "cove": "cove_stone"},
-    "T_Tile_CoralRock_Alb": {"reef": "reef_rock"},
+    "T_Tile_CoralRock_Alb": {"reef": "reef_coralrock"},
     "T_Tile_Slate_Alb": {"dropoff_upper": "dropoff_upper_slate", "dropoff_deep": "dropoff_deep_slate"},
 }
 SIGNAL = ("#A6FF3D", "#FFF23D", "#FF3B4E", "#FF3DC8", "#FFFFFF", "#FFC46B", "#FFF1DC", "#FFE9F2", "#FFB8D9")
@@ -79,7 +86,7 @@ def tints(tile):
     base = base_of(tile)
     out = {}
     for zone, key in SERVES[tile].items():
-        t = rgb(FLOOR[key]) / base
+        t = rgb(FLOOR[key]) / base * TINT_SCALE.get((tile, zone), 1.0)
         out[zone] = (FLOOR[key], hexof(t), [round(float(x), 4) for x in t])
     return out
 
@@ -101,6 +108,29 @@ def waves(rng, u, v, fmin, fmax, count=10, power=1.0):
                 break
         f += r ** -power * np.cos(2 * math.pi * (kx * u + ky * v) + rng.uniform(0, 2 * math.pi))
     return f / (np.abs(f).max() + 1e-9)
+
+
+def blobs(rng, u, v, count, rmin, rmax):
+    """Soft round patches of random sign (wrap-around), normalised to -1..1. Unlike low waves they
+    form no bands, so the patches do not line up across the repeat."""
+    f = np.zeros_like(u)
+    for px, py in relaxed_points(rng, count, iters=2):
+        r = rng.uniform(rmin, rmax) / N
+        d2 = (wrap(u - px) ** 2 + wrap(v - py) ** 2) / (r * r)
+        f += rng.choice([-1.0, 1.0]) * rng.uniform(0.6, 1.0) * np.exp(-d2)
+    return f / (np.abs(f).max() + 1e-9)
+
+
+def deband(f, kmax=3):
+    """Removes the tile-sized straight bands from a value field: the waves of 1 to kmax cycles per
+    tile that run along a tile axis, and the four (1, 1) diagonals. Those are what line up into
+    stripes across the 32-stud repeat; everything else (patches, ripples, dabs) stays."""
+    F = np.fft.fft2(f)
+    k = np.fft.fftfreq(f.shape[0], 1.0 / f.shape[0])
+    kx, ky = np.meshgrid(k, k)
+    cut = (((kx == 0) | (ky == 0)) & (np.hypot(kx, ky) <= kmax)) | ((np.abs(kx) == 1) & (np.abs(ky) == 1))
+    F[cut] = 0
+    return np.real(np.fft.ifft2(F))
 
 
 def wrap(d):
@@ -174,17 +204,33 @@ LIGHT_DIR = np.array([-0.62, -0.78])     # painted light from the upper left of 
 
 
 # ---------------------------------------------------------------- the four tiles
+def ripple_sets(rng, u, v, cells=6):
+    """Sand ripples in patches: a few large wrap-around regions, each with its own integer wave
+    vector, so no band runs straight across the tile and the 32-stud repeat does not line up."""
+    dirs = [(1, 6), (5, -3), (-2, 5), (6, 2), (3, 5), (-5, -4), (4, -5), (0, 6)]
+    wu = u + 0.08 * waves(rng, u, v, 1, 2, 6)
+    wv = v + 0.08 * waves(rng, u, v, 1, 2, 6)
+    pts = relaxed_points(rng, cells)
+    f1, f2, _, _, idx = voronoi(pts, wu, wv)
+    soft = smooth(0.0, 0.12, f2 - f1)                                # ripples die out where patches meet
+    warp = 0.5 * waves(rng, u, v, 1, 2, 6) + 0.2 * waves(rng, u, v, 2, 3, 6)
+    out = np.zeros_like(u)
+    order = rng.permutation(len(dirs))
+    for i in range(cells):
+        kx, ky = dirs[order[i % len(dirs)]]
+        ph = 2 * math.pi * (kx * u + ky * v + warp + rng.uniform(0, 1))
+        rip = (np.sin(ph) + 0.38 * np.sin(2 * ph + 0.6)) / 1.3       # asymmetric: steep lee side
+        out += np.where(idx == i, rip * rng.uniform(0.6, 1.0), 0.0)
+    return out * soft
+
+
 def paint_sand(seed=11):
     rng = np.random.default_rng(seed)
     u, v = grid()
     base = base_of("T_Tile_Sand_Alb")
-    s = 0.26 * waves(rng, u, v, 1, 2.3, 8)                       # big soft patches (rest areas)
-    # wind ripples: integer wave vector (1, 6) bent by a slow periodic warp, faded in and out
-    warp = 0.55 * waves(rng, u, v, 1, 2, 6) + 0.25 * waves(rng, u, v, 2, 3, 6)
-    ph = 2 * math.pi * (1 * u + 6 * v + warp)
-    rip = np.sin(ph) + 0.38 * np.sin(2 * ph + 0.6)              # asymmetric: steep lee side
-    fade = smooth(-0.35, 0.55, waves(rng, u, v, 1, 2, 6))
-    s += 0.45 * rip / 1.3 * fade
+    s = 0.26 * blobs(rng, u, v, 14, 50, 110)                         # big soft patches (rest areas)
+    fade = smooth(-0.5, 0.4, blobs(rng, u, v, 10, 60, 120))
+    s += 0.45 * ripple_sets(rng, u, v) * fade
     # scattered shell bits (light) and grit pebbles (dark), each a soft painted dab with its own shade
     for dx, dy, r in dots(rng, u, v, 16, 6, 10):
         d = np.hypot(dx, dy) / r
@@ -196,7 +242,7 @@ def paint_sand(seed=11):
         d = np.hypot(dx, dy) / r
         lit = -(dx * LIGHT_DIR[0] + dy * LIGHT_DIR[1]) / r
         s += smooth(1.0, 0.65, d) * (-0.55 + 0.2 * lit)
-    col = tone(base, s)
+    col = tone(base, deband(s))
     return finish(col, base)
 
 
@@ -213,13 +259,12 @@ def paint_rock(seed=23):
     lit = np.clip(-(ox * LIGHT_DIR[0] + oy * LIGHT_DIR[1]) / (size + 1e-6), -1, 1)
     cellv = rng.uniform(-0.16, 0.16, len(pts))[idx]                  # each stone its own value
     s = cellv + 0.28 * lit                                            # domed, lit upper left
-    s -= 0.30 * (1 - smooth(0.0, 0.06, edge))                         # painted occlusion near joints
-    s -= 0.75 * (1 - smooth(0.006, 0.014, edge))                      # the joint itself (about 10 px)
+    s -= 0.22 * (1 - smooth(0.0, 0.06, edge))                         # painted occlusion near joints
+    s -= 0.42 * (1 - smooth(0.006, 0.014, edge))                      # the joint, kept soft so prey read on it
     lip = smooth(0.012, 0.02, edge) * (1 - smooth(0.028, 0.045, edge)) * np.clip(lit, 0, 1)
-    s += 0.55 * lip                                                   # sunlit edge highlight
+    s += 0.5 * lip                                                    # sunlit edge highlight
     s += 0.10 * waves(rng, wu, wv, 4, 7, 10)                          # broad brush marks on the faces
-    # a few chips: small flat facets, lighter
-    for dx, dy, r in dots(rng, u, v, 7, 7, 12):
+    for dx, dy, r in dots(rng, u, v, 7, 7, 12):                       # a few chips: flat lighter facets
         d = np.hypot(dx * 1.4, dy) / r
         s += 0.22 * smooth(1.0, 0.6, d) * smooth(0.02, 0.05, edge)
     col = tone(base, s)
@@ -227,61 +272,66 @@ def paint_rock(seed=23):
 
 
 def paint_coralrock(seed=37):
+    """Big lumpy reef-limestone masses, one value step below reef rock (median L* at least 15
+    below minnow mid, so a tier-1 minnow reads on it), with coralline crust on some tops and a few
+    large pits. No small dabs: every shape is at least 1.5 studs across."""
     rng = np.random.default_rng(seed)
     u, v = grid()
     base = base_of("T_Tile_CoralRock_Alb")
-    wu = u + 0.03 * waves(rng, u, v, 1, 3, 8)
-    wv = v + 0.03 * waves(rng, u, v, 1, 3, 8)
-    pts = relaxed_points(rng, 34)
+    wu = u + 0.07 * waves(rng, u, v, 1, 3, 8)
+    wv = v + 0.07 * waves(rng, u, v, 1, 3, 8)
+    pts = relaxed_points(rng, 10, iters=3)
     f1, f2, ox, oy, idx = voronoi(pts, wu, wv)
     edge = f2 - f1
     size = 0.5 * (f1 + f2)
     lit = np.clip(-(ox * LIGHT_DIR[0] + oy * LIGHT_DIR[1]) / (size + 1e-6), -1, 1)
-    # rounded nodules with soft valleys, no hard cracks: the lumpy reef limestone
-    s = 0.30 * lit * smooth(0.0, 0.05, edge) - 0.38 * (1 - smooth(0.0, 0.045, edge))
-    s += rng.uniform(-0.1, 0.1, len(pts))[idx]
-    # pink coralline crust in big soft patches (06 9.3 coral pink, held at low strength)
-    crust = smooth(0.25, 0.55, waves(rng, u, v, 1, 3, 9))
-    # pits: round holes, dark violet inside, lit on the inner lower-right wall, highlight on the outer upper-left rim
+    s = 0.34 * lit * smooth(0.0, 0.08, edge)                          # each mass domed, lit upper left
+    s -= 0.45 * (1 - smooth(0.0, 0.07, edge))                         # soft valleys between masses
+    s += rng.uniform(-0.08, 0.08, len(pts))[idx]
+    s += 0.12 * waves(rng, wu, wv, 2, 4, 10)                          # sub-lumps, broad brush marks
+    # coralline crust: about a third of the masses, on their lit tops, edge varied by a slow field
+    pick = (rng.uniform(0, 1, len(pts)) < 0.4)[idx]
+    crust = pick * smooth(-0.1, 0.35, lit + 0.3 * waves(rng, u, v, 1, 3, 8)) * smooth(0.02, 0.08, edge)
+    # a few large pits, spread out (relaxed points), dark violet inside, lit inner lower-right wall
     pit = np.zeros_like(u)
-    for dx, dy, r in dots(rng, u, v, 26, 6, 13):
+    for px, py in relaxed_points(rng, 6, iters=3):
+        dx, dy = wrap(u - px), wrap(v - py)
+        r = rng.uniform(14, 22) / N
         d = np.hypot(dx, dy) / r
         side = (dx * LIGHT_DIR[0] + dy * LIGHT_DIR[1]) / (r * np.maximum(d, 1e-3))
         inside = smooth(1.0, 0.8, d)
         pit = np.maximum(pit, inside)
-        s += inside * (-0.95 + 0.35 * smooth(0.3, 1.0, side) * smooth(0.3, 0.85, d))
-        s += 0.4 * smooth(1.0, 1.15, d) * smooth(1.55, 1.15, d) * np.clip(-side, 0, 1)
-    # pale encrusting dabs
-    for dx, dy, r in dots(rng, u, v, 12, 5, 8):
-        d = np.hypot(dx, dy) / r
-        s += 0.45 * smooth(1.0, 0.6, d) * (1 - pit)
+        s += inside * (-0.85 + 0.35 * smooth(0.3, 1.0, side) * smooth(0.3, 0.85, d))
+        s += 0.35 * smooth(1.0, 1.15, d) * smooth(1.6, 1.15, d) * np.clip(-side, 0, 1)
     col = tone(base, s)
-    pink = mix(base, rgb(CORAL_PINK), 0.32)
-    col = mix(col, tone(pink, s), 0.85 * crust * (1 - pit))
+    pink = mix(base, rgb(CORAL_PINK), 0.35)
+    col = mix(col, tone(pink, s), 0.8 * crust * (1 - pit))
     return finish(col, base)
 
 
 def paint_slate(seed=51):
+    """Faulted slate: strata bands that step at every plate crack (each plate has its own band
+    offset and a small whole-number tilt), so no layer line runs straight across the tile."""
     rng = np.random.default_rng(seed)
     u, v = grid()
     base = base_of("T_Tile_Slate_Alb")
-    # strata: five bands down the tile (integer count, so it wraps), gently bent
-    b = 5 * v + 0.45 * waves(rng, u, v, 1, 2, 6) + 0.12 * waves(rng, u, v, 2, 3, 6)
+    wu = u + 0.02 * waves(rng, u, v, 1, 3, 6)
+    pts = relaxed_points(rng, 14)
+    f1, f2, ox, oy, idx = voronoi(pts, wu, v, sx=0.5, sy=1.0)
+    edge = f2 - f1
+    off = rng.uniform(0, 5, len(pts))[idx]
+    tilt = rng.uniform(-0.35, 0.35, len(pts))[idx]                    # a gentle periodic bend per plate
+    b = 5 * v + tilt * np.sin(2 * math.pi * (u + off / 5)) + off + 0.35 * waves(rng, u, v, 1, 2, 6) + 0.1 * waves(rng, u, v, 2, 3, 6)
     band = np.floor(b).astype(int) % 5
     fb = b - np.floor(b)
-    bandv = np.array([0.08, -0.12, 0.16, -0.04, -0.18])[band]
-    s = bandv + 0.22 * (0.5 - fb)                                    # each layer lit at its upper lip
-    s += 0.5 * smooth(0.0, 0.05, fb) * (1 - smooth(0.06, 0.12, fb))   # bright lip
-    s -= 0.65 * smooth(0.90, 0.975, fb)                               # dark groove under the next lip
-    # flat plates: wide wrap-around Voronoi, cracks thinner than the rock's
-    wu = u + 0.02 * waves(rng, u, v, 1, 3, 6)
-    pts = relaxed_points(rng, 16)
-    f1, f2, ox, oy, idx = voronoi(pts, wu, v, sx=0.45, sy=1.0)
-    edge = f2 - f1
+    s = np.array([0.08, -0.12, 0.16, -0.04, -0.18])[band]
+    s += 0.22 * (0.5 - fb)                                            # each layer lit at its upper lip
+    s += 0.5 * smooth(0.0, 0.05, fb) * (1 - smooth(0.06, 0.12, fb))  # bright lip
+    s -= 0.6 * smooth(0.90, 0.975, fb)                                # dark groove under the next lip
     s += rng.uniform(-0.09, 0.09, len(pts))[idx]
-    s -= 0.55 * (1 - smooth(0.004, 0.011, edge)) * smooth(0.08, 0.2, fb)
+    s -= 0.55 * (1 - smooth(0.004, 0.011, edge))                      # plate cracks (the fault lines)
     s += 0.25 * smooth(0.011, 0.016, edge) * (1 - smooth(0.02, 0.03, edge)) * (ox < 0)
-    s += 0.08 * waves(rng, u * 1, v, 3, 6, 8)                         # long horizontal brush marks
+    s += 0.08 * waves(rng, u, v, 3, 6, 8)                             # long brush marks
     col = tone(base, s, light=np.minimum(1, mix(base * 1.15, rgb("#BFE3FF"), 0.35)))
     return finish(col, base)
 
@@ -425,6 +475,22 @@ def seam(img8):
     return out
 
 
+def banding(img8):
+    """How much the tile is organised into straight full-width bands, which line up across the
+    32-stud repeat: the share of L* variance in row means and in column means, and in the single
+    strongest wave of the tile's spectrum. Measured on one tile; a 3 x 3 repeat has the same values."""
+    L = lstar(img8[..., :3].astype(float) / 255.0)
+    var = L.var() + 1e-9
+    spec = np.abs(np.fft.fft2(L - L.mean())) ** 2
+    top = float(spec.max() * 2 / spec.sum())                     # a real wave fills two mirrored bins
+    return {"rows": round(float(L.mean(1).var() / var), 3), "cols": round(float(L.mean(0).var() / var), 3),
+            "top_wave": round(top, 3)}
+
+
+BAND_MAX = 0.12
+SIGNAL_EXEMPT = ("T_Tile_Sand_Alb",)    # 06 4.5: floor sand #F6E3B4 is exempt from the distance rule
+
+
 def box_blur(a, r):
     """Wrap-around box blur of radius r (pixels) on a 2D array."""
     out = a.copy()
@@ -467,7 +533,7 @@ def validate(name, img8):
     st = stats(img8, base_of(name) if name in TILES else None)
     if st["neon_px"]:
         bad.append("%d px break the saturated-not-neon rule (06 4.1)" % st["neon_px"])
-    if st["min_dist_to_signal"] < 0.06:
+    if st["min_dist_to_signal"] < 0.06 and name not in SIGNAL_EXEMPT:
         bad.append("a texel sits on a reserved signal colour (06 4.5)")
     if st["fine_noise_L"] > 1.5:
         bad.append("fine noise %.2f L* (> 1.5): finer than a brush mark (06 5.2)" % st["fine_noise_L"])
@@ -476,6 +542,11 @@ def validate(name, img8):
         for ax in "xy":
             if sm[ax]["wrap"] > sm[ax]["inner_max"] or sm[ax]["ratio"] > 1.5:
                 bad.append("seam %s: wrap %.2f vs inner mean %.2f" % (ax, sm[ax]["wrap"], sm[ax]["inner_mean"]))
+        bd = banding(img8)
+        if max(bd.values()) > BAND_MAX:
+            bad.append("banding %s > %.2f: bands line up across the repeat" % (bd, BAND_MAX))
+        if name == "T_Tile_CoralRock_Alb" and st["L_p50"] > lstar(rgb(MINNOW_MID)) - 15:
+            bad.append("median L* %.1f not 15 below minnow mid" % st["L_p50"])
         if st["mean_err_8bit"] > 1.5:
             bad.append("mean %s off target %s" % (st["mean"], st["target"]))
     return bad, st
