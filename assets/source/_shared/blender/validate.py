@@ -12,6 +12,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 import budgets
+import uvlayout
 import common
 
 WORD = r"[A-Z][A-Za-z0-9]*"
@@ -152,6 +153,9 @@ def check_mesh(spec, entry, report):
     volume = bm.calc_volume(signed=True)
     if role == "shell":
         add("faces flipped", volume < 0.0, "signed volume %.4f (a shell shows its back faces)" % volume)
+        if "self_intersections" in entry:
+            add("no self-intersection", entry["self_intersections"] == 0,
+                "%d crossing face pairs inside a part; grown %.3f studs" % (entry["self_intersections"], entry["thickness"]))
     else:
         add("faces outward", volume > 0.0, "signed volume %.4f" % volume)
     min_area = min((f.calc_area() for f in bm.faces), default=0.0)
@@ -375,6 +379,8 @@ def run(spec):
         check_mesh(spec, entry, report)
     if spec.get("preview", {}).get("blocks"):
         check_values(spec, report)
+    if spec.get("uv"):
+        uvlayout.check(spec, report)
     if spec.get("armature"):
         check_rig(spec, report)
     for clip in spec.get("actions", []):
