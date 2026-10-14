@@ -232,34 +232,33 @@ describe("Prey spawn tables (02 §9.6, 03 §2.3)", function()
 		expect(Index.PreySpawns.byZone.cove).toBe(nil)
 	end)
 
-	it(
-		"fills the whole map to 09 §8.1's load, and its Frenzy count stays inside the sizing",
-		function()
-			-- 09 §8.1, normal prey only (its trait prey row is 40 groups, 80 members): 214 groups,
-			-- 1,230 members; a Frenzy doubles them (09: about 2,540 members with trait prey) and the
-			-- pipeline is sized for 508 groups. Nursery empty and with 5 players inside (at its caps).
-			local zones = { "nursery", "reef", "kelp", "dropoff" }
-			for _, inside in { 0, 5 } do
-				for _, frenzy in { false, true } do
-					local groups, members = 0, 0
-					for _, zone in zones do
-						local situation = { players = 24, playersInside = inside, frenzy = frenzy }
-						for _, target in PreySpawnMath.zoneTargets(zone, situation) do
-							groups += target.groups
-							members += target.groups * PreySpawnMath.meanMembers(target.prey)
-						end
+	it("fills the whole map to 09 §8.1's load, and its Frenzy count fits MAX_GROUPS", function()
+		-- 09 §8.1 sizes the code to 02's targets: about 1,330 members of normal prey with the
+		-- Nursery at its caps, a Frenzy twice that, and MAX_GROUPS = 640 for normal prey plus the
+		-- 52 trait prey groups (02 §9.6 [MVP] rows and one Crystal Jelly drift). Checked with the
+		-- Nursery empty and with 5 players inside (at its caps).
+		local MAX_GROUPS, TRAIT_GROUPS = 640, 52
+		local zones = { "nursery", "reef", "kelp", "dropoff" }
+		for _, inside in { 0, 5 } do
+			for _, frenzy in { false, true } do
+				local groups, members = 0, 0
+				for _, zone in zones do
+					local situation = { players = 24, playersInside = inside, frenzy = frenzy }
+					for _, target in PreySpawnMath.zoneTargets(zone, situation) do
+						groups += target.groups
+						members += target.groups * PreySpawnMath.meanMembers(target.prey)
 					end
-					if frenzy then
-						expect(groups <= 508).toBe(true)
-						expect(math.abs(members / 2540 - 1) <= 0.1).toBe(true)
-					else
-						expect(math.abs(groups / 214 - 1) <= 0.25).toBe(true)
-						expect(math.abs(members / 1230 - 1) <= 0.1).toBe(true)
-					end
+				end
+				if frenzy then
+					expect(groups + TRAIT_GROUPS <= MAX_GROUPS).toBe(true)
+					expect(math.abs(members / 2654 - 1) <= 0.1).toBe(true)
+				else
+					expect(math.abs(groups / 247 - 1) <= 0.1).toBe(true)
+					expect(math.abs(members / 1331 - 1) <= 0.1).toBe(true)
 				end
 			end
 		end
-	)
+	end)
 end)
 
 describe("Data/Index", function()

@@ -8,7 +8,7 @@ This chapter turns section 14 of `01-game-canon.md` into a buildable design. It 
 |---|---|---|
 | G1 | Phones first. Low-end phone holds 30 fps, mid phone 60 fps. | Client draws prey from pools, strict instance and draw-call budgets (section 15), no per-prey Instances on the server. |
 | G2 | 24 players per server. | Per-player work on the server is staggered across frames. Every per-player cost in this chapter is multiplied by 24. |
-| G3 | About 1,300 live prey in 250 groups, about 2,540 members in 468 groups at the strict Frenzy target, with buffers and budgets sized for about 2,620 in 508 groups (`MAX_GROUPS = 512`, 8.1) during a Feeding Frenzy (twice normal, chapter 02, section 14.4) **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
+| G3 | About 1,390 live prey in 300 groups, and about 2,710 members in 545 groups during a Feeding Frenzy (normal prey twice normal, chapter 02, section 14.4), with buffers and budgets sized for `MAX_GROUPS = 640` (8.1) **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
 | G4 | No Humanoid, no avatar, no default interface. | We own spawning, movement, camera, input, health, death, nameplates and chat (section 6.10). |
 | G5 | Bites and Pearls cannot be forged. | The client never reports mass, tier or Pearls. It only claims "I bit X"; the server decides (sections 8.9, 10, 14). |
 | G6 | Movement feels instant on a phone. | The client owns its root part; the server validates after the fact (section 7). |
@@ -818,26 +818,26 @@ heading      = atan2 of the group velocity (kept from the last non-zero velocity
 
 `Formation.offset` is a hash of `(kind, seed, i)` in `shared/Sim/Formation.luau`, so server and client compute identical offsets. The client adds a cosmetic wobble of at most `wobble[kind]` studs (≤ 1.5), which the bite tolerance covers.
 
-Starting population **(tune)**. Chapter 03 owns the group sizes (section 2.1) and the live cap per zone (section 2.3); the group counts here are the load the pipeline is sized for and stay under those caps:
+Population. Chapter 02 owns the live targets (section 9.6, data:PreyTargets) and chapter 03 the group sizes (section 2.1) and the live cap per zone (section 2.3); this chapter only sizes the code to them. The load below is 02's targets on the whole map with 24 players and the Nursery at its caps (generated `PreySpawns`, `Logic/PreySpawnMath`), members at the mean group size:
 
 | Prey | Groups | Members per group | Members |
 |---|---|---|---|
-| `plankton` | 80 | 6 to 10 | 640 |
-| `krill` | 15 | 12 to 20 | 240 |
-| `shrimp` | 50 | 1 to 3 | 100 |
-| `sardine` | 14 | 8 to 14 | 150 |
+| `plankton` | 94 | 6 to 10 | 752 |
+| `krill` | 13 | 12 to 20 | 208 |
+| `shrimp` | 65 | 1 to 3 | 130 |
+| `sardine` | 11 | 8 to 14 | 121 |
 | `darter` | 30 | 1 to 2 | 45 |
-| `mackerel` | 16 | 1 to 3 | 32 |
-| `bonito` | 6 | 3 to 5 | 24 |
+| `mackerel` | 26 | 1 to 3 | 52 |
+| `bonito` | 5 | 3 to 5 | 20 |
 | `tuna` | 3 | 1 | 3 |
-| Trait prey (all kinds; a `crystal_jelly` drift is one group of 5) | 40 | 1 to 5 | 80 |
-| **Total** | **254** | | **≈ 1,310** |
+| Trait prey ([MVP] rows of 02 §9.6; a roaming `crystal_jelly` drift adds one group of 5) | 52 | 1 to 5 | 56 |
+| **Total** | **299** | | **≈ 1,390** |
 
-Limits: `MAX_GROUPS = 512` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. That is about 2,540 members in 468 groups. The pipeline is sized for twice the whole table, about 2,620 members in 508 groups, inside the limit; every budget in this section holds at that count (16.2).
+Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
 
 ### 8.2 Server data layout
 
-Struct of arrays, one `buffer` per field, indexed by group ID (0 to 511). Total about 69 kB (135 bytes per group × 512).
+Struct of arrays, one `buffer` per field, indexed by group ID (0 to 639). Total about 86 kB (135 bytes per group × 640).
 
 ```lua
 --!strict
@@ -864,7 +864,7 @@ export type PreyBuffers = {
 }
 ```
 
-Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 18 bytes × 512 groups × 24 players = 221 kB.
+Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 18 bytes × 640 groups × 24 players = 276 kB.
 
 ### 8.3 Spatial grid
 
@@ -890,7 +890,7 @@ Per tick:
 4. **Leash.** Outside the home volume, add a pull back; beyond 1.5 times its radius, clamp. Prey therefore never need collision with the world: volumes are authored in open water. `hop` kinds take `y = WorldIndex.floorY(x, z) + hopArc(phase)`.
 5. **History.** Write the quantised position and scatter into the 8-sample ring (0.8 s) used by bite validation.
 
-Cost: about 250 group updates per tick (468 in a Frenzy, 508 at the sized count), no allocation, no Instance access. **Budget: the simulation, steps 1 to 5 above, takes at most 2.0 ms per tick (0.35 ms averaged per frame) at the Frenzy count.** Interest and send (8.5) are not part of that 2.0 ms: they have their own budget, 0.25 ms per player per tick, 4 players per frame (15.2). The spike measured the two apart at 254 groups (S6): simulation p50 0.33 ms, p99 0.41 ms; interest and send about 0.13 ms per player p50 and 0.19 ms p99.
+Cost: about 300 group updates per tick (545 at the Frenzy count), no allocation, no Instance access. **Budget: the simulation, steps 1 to 5 above, takes at most 2.0 ms per tick (0.35 ms averaged per frame) at the Frenzy count.** Interest and send (8.5) are not part of that 2.0 ms: they have their own budget, 0.25 ms per player per tick, 4 players per frame (15.2). The spike measured the two apart at 254 groups (S6): simulation p50 0.33 ms, p99 0.41 ms; interest and send about 0.13 ms per player p50 and 0.19 ms p99.
 
 Schooling is therefore free: members hold formation by construction, "flee as a group" is one velocity, and "scatter when approached" is one number.
 
@@ -1750,7 +1750,7 @@ Never cut on any device: edible and danger outline shells on the nearest 6 objec
 | Test | What it runs | Fails when |
 |---|---|---|
 | `tests/sim/economy.sim.luau` | 2,000 scripted players through 30 days using the data tables: bites per minute by tier, bank and death rates, cove income | Time to each tier is more than 25% off canon 5.1; any species unlock day is more than 30% off canon section 7; Pearls per hour grows without bound |
-| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the sized Frenzy count (8.1: about 2,620 members in 508 groups; the strict target is about 2,540 in 468), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
+| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the Frenzy count of 8.1 (about 2,710 members in 545 groups, trait prey included), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
 | `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Either of: any honest trace reaches suspicion 10, or a trace at 1.3 × speed is not flagged within 5 s (it passes when no honest trace reaches 10 and the 1.3 × trace is flagged within 5 s, 13 Sprint 8) |
 
 Command: `lune run tools/test/runner -- sim`.
