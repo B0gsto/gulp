@@ -15,7 +15,9 @@
 --   8 S8_BANK ─fryHatched─▶ 9 S9_COVE ─leftCoveMouth─▶ 10 S10_RUN2 ─runEnded─▶ 11 DONE
 --   `retreated` in S6 goes back to S5 (04 §5.4). `enteredCoveMouth` banks from S5, S6 or S7
 --   (04 §9: after S5 a bank by any route completes the FTUE). `completeFtue` is returned at the
---   end of S8 (04 §3.1).
+--   end of S8 (04 §3.1). `chaseSkipped` ends S6 at once into S7, as a chase that never ran.
+--   An account that has banked joins as DONE, except at S9 or S10, which it keeps (04 §4: the
+--   run 2 assists read `ftue.stage`; 04 §9: nothing already done is replayed).
 --
 -- Events (`Event.kind`, with the fields each carries):
 --   loadingDone                the minimum set is ready and the loading screen exits
@@ -24,7 +26,8 @@
 --   controlGained              the first frame where input moves the creature (T = 0)
 --   preyEaten { group }        a bite landed; `group` is the scripted group the prey came from
 --                              (the `id` of a spawn action, e.g. "swarmA", "glowfry"), nil if wild
---   massChanged { mass }       tierReached { tier }       traitGained { trait }
+--   massChanged { mass }       tierReached { tier }
+--   traitGained { trait }      a trait was gained; only `arms.firstTrait` counts (04 §3.6 B5)
 --   moved { towardGap, inCurrent, coveDistance }   the director's sensor report, any rate:
 --                              moved closer to the Gap since the last report, inside the Home
 --                              Current, studs from the own cove mouth. Missing fields keep the
@@ -35,6 +38,8 @@
 --   chaseEnded { assisted }    the chase is over (the Barracuda gave up, or the Home Current was
 --                              reached; in the `escort` arm, the end of the channel); assisted =
 --                              any 04 §5.4 help besides the auto-dash (shove, fling)
+--   chaseSkipped               S6 ends with no chase (`chaseResult` "skipped"): the director's
+--                              stand-in while it has no chase to run
 --   enteredCoveMouth           the server confirmed the first bank at the own cove
 --   fryHatched                 the new Fry has control in the cove
 --   leftCoveMouth              the new Fry left the cove mouth (run 2 starts)
@@ -49,6 +54,8 @@
 --     completeFtue             save `ftue.completed = true` (end of S8)
 --     restart { value }        save `ftue.attempts = value` and `ftue.stage = 0` (04 §9)
 --     hold { on }              04 §3.7 hold: freeze, scripted prey idles nearby, music low-pass
+--     reset                    never returned here: the director sends it first after a developer
+--                              reset (04 §9), so the client drops what it was presenting
 --   Scripted prey (the director maps these to PreyService.spawnScripted / clearScripted)
 --     spawnSwarmA { id, count, distance, radius = drift radius, speed = drift speed,
 --                   limit = follow limit, width }
@@ -115,6 +122,7 @@ export type EventKind =
 	| "dashed"
 	| "retreated"
 	| "chaseEnded"
+	| "chaseSkipped"
 	| "enteredCoveMouth"
 	| "fryHatched"
 	| "leftCoveMouth"
@@ -140,6 +148,7 @@ export type Event = {
 
 export type ActionKind =
 	"hatch"
+	| "reset"
 	| "giveControl"
 	| "completeFtue"
 	| "restart"
@@ -938,6 +947,10 @@ local function onEvent(cfg: Config, s: State, out: { Action }, e: Event)
 			step(s, out, 18)
 		end
 	elseif k == "traitGained" then
+		-- 04 §3.6 B5: the FTUE's trait is the first trait; any other (a wild trait prey) does not end S4.
+		if e.trait ~= cfg.arms.firstTrait then
+			return
+		end
 		if stage == S.S4_TRAIT or stage == S.S5_CALL_HOME then
 			milestone(s, out, "trait")
 			step(s, out, 9)
@@ -985,6 +998,12 @@ local function onEvent(cfg: Config, s: State, out: { Action }, e: Event)
 		if stage == S.S6_CHASE then
 			s.fired.chaseLogged = true
 			chaseResult(s, out, if e.assisted or s.autoDashed then "assisted" else "clean")
+			startS7(cfg, s, out)
+		end
+	elseif k == "chaseSkipped" then
+		if stage == S.S6_CHASE then
+			s.fired.chaseLogged = true
+			chaseResult(s, out, "skipped")
 			startS7(cfg, s, out)
 		end
 	elseif k == "enteredCoveMouth" then
@@ -1085,6 +1104,31 @@ local function resume(cfg: Config, s: State, out: { Action }, stage: number, run
 	s.stageTime = 0
 end
 
+-- 04 §9, a rejoin after the first bank: the FTUE is complete and the welcome-back flow runs, but
+-- S9 and S10 are kept, because the run 2 assists are driven by `ftue.stage` and survive a
+-- reconnect (04 §4). Nothing done is replayed: the cove items not yet shown are already in the
+-- cove, the bank's onboarding steps are logged, and S10's dense krill and exit trail are not
+-- spawned again. B12's nudges count from the join; S10's goals chip is back at once.
+local function rejoinAfterBank(cfg: Config, s: State, out: { Action }, stage: number)
+	s.stage, s.completed = stage, true
+	s.dragged = true
+	s.coveItem = #COVE_ITEMS
+	s.bankTime = cfg.bank.tideAt
+	s.leftCove = stage == S.S10_RUN2
+	local done = s.fired
+	done.giveControl, done.chaseLogged = true, true
+	for _, n in { 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16 } do
+		done["step" .. n] = true
+	end
+	for _, id in { "bite", "tier2", "trait", "bank" } do
+		done["milestone_" .. id] = true
+	end
+	if stage == S.S10_RUN2 then
+		done.step17, done.goalsChip = true, true
+		emit(out, { kind = "hud", id = "goalsChip" })
+	end
+end
+
 --- The state at join, and the actions to start with (04 §9; 09 §12.2, §12.5).
 function FtueRules.new(cfg: Config, join: Join): (State, { Action })
 	local out: { Action } = {}
@@ -1093,6 +1137,9 @@ function FtueRules.new(cfg: Config, join: Join): (State, { Action })
 		s.stage, s.completed = S.DONE, true
 		if not join.completed then
 			emit(out, { kind = "completeFtue" }) -- 04 §9: the FTUE is complete after the first bank
+		end
+		if join.stage == S.S9_COVE or join.stage == S.S10_RUN2 then
+			rejoinAfterBank(cfg, s, out, join.stage)
 		end
 		return s, out
 	end

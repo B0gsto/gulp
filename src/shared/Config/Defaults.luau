@@ -67,9 +67,13 @@ Defaults.environments = table.freeze({
 	production = environment("production", true, false, true, false), -- GULP: public
 })
 
--- The development table with all purchases disabled: what an unknown GameId gets (a place file
--- opened in Studio has GameId 0, so Studio runs as development).
-Defaults.unknown = environment("development", false, true, false, true)
+-- The development table with all purchases disabled and no dev cheats: what an unknown GameId
+-- gets on a live server, so an experience missing from GAME_IDS (production before its row is
+-- added) never exposes server/Dev.
+Defaults.unknown = environment("development", false, true, false, false)
+-- The same in Studio, with dev cheats on: a place file opened in Studio has GameId 0, and server/Dev
+-- (the RunTests hook, `/ftue reset`) is what Studio runs on.
+Defaults.studio = environment("development", false, true, false, true)
 
 -- `game.GameId` of each experience → its environment. An experience that is not listed yet runs
 -- on `Defaults.unknown`. GULP CI is tools/cloud/target.json's universe.
@@ -81,14 +85,15 @@ local GAME_IDS: { [number]: EnvironmentName } = {
 }
 Defaults.GAME_IDS = table.freeze(GAME_IDS)
 
---- The environment table for `gameId` (pass `game.GameId`). An unknown ID selects the
---- development table with all purchases disabled.
-function Defaults.forGame(gameId: number): Environment
+--- The environment table for `gameId` (pass `game.GameId`, and `RunService:IsStudio()` as
+--- `studio`). An unknown ID selects the development table with all purchases disabled, with dev
+--- cheats only in Studio.
+function Defaults.forGame(gameId: number, studio: boolean?): Environment
 	local name = Defaults.GAME_IDS[gameId]
 	if name then
 		return Defaults.environments[name]
 	end
-	return Defaults.unknown
+	return if studio then Defaults.studio else Defaults.unknown
 end
 
 -- Section 17.4: the default of every live-config key, under its final name. A key that is not

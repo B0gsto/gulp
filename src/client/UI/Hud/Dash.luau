@@ -22,6 +22,7 @@ export type Dash = {
 }
 
 local READY_PULSE = 0.25 -- 08 §3.7 ring pulse
+local SWELL = "GuideSwell" -- set by Kit/Guide's dash pulse (04 §3.2): the button's swell
 local GROUP_PAD = 16
 
 -- The dash symbol: two navy chevrons pointing forward (up-right), drawn from bars.
@@ -74,6 +75,20 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		"Frame",
 		{ Name = "HUD.Dash", Size = UDim2.fromOffset(136, 136), Parent = parent }
 	) :: Frame
+	-- The guide's dash pulse (04 §3.2, Kit/Guide) swells the button through the `GuideSwell`
+	-- attribute on the root: a scale of its own, outside the press scale and the clipping group.
+	local swell = Draw.new("Frame", {
+		Name = "Swell",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		Parent = root,
+	}) :: Frame
+	local swellScale = Draw.new("UIScale", { Parent = swell }) :: UIScale
+	root:GetAttributeChangedSignal(SWELL):Connect(function()
+		local k = root:GetAttribute(SWELL)
+		swellScale.Scale = if type(k) == "number" then k else 1
+	end)
 	-- The CanvasGroup (for the 40% disabled fade) clips to its bounds, so it is padded on every
 	-- side to hold the stroke, the lip and the hard shadow around the 136 rpx face.
 	local group = Draw.new("CanvasGroup", {
@@ -81,7 +96,7 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, 2 * GROUP_PAD, 1, 2 * GROUP_PAD),
-		Parent = root,
+		Parent = swell,
 	}) :: CanvasGroup
 	local scale = Draw.new("UIScale", { Parent = group }) :: UIScale
 
