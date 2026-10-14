@@ -272,15 +272,36 @@ BLOCK_RULES = {  # 06 section 4.1: share of surface, lightness
 }
 
 
-def value_blocks(obj, declared):
-    """Share of surface and L* of each declared colour block, from the vertex colours."""
+# Barycentric sample points per triangle when a painted texture is measured: the centre,
+# three points towards the corners and three towards the edge middles.
+_SAMPLES = [(1 / 3, 1 / 3, 1 / 3)] + [tuple(0.6 if i == k else 0.2 for i in range(3)) for k in range(3)] \
+    + [tuple(0.1 if i == k else 0.45 for i in range(3)) for k in range(3)]
+
+
+def value_blocks(obj, declared, sampler=None):
+    """Share of surface and L* of each declared colour block, from the vertex colours, or, for a
+    textured asset, from its painted texture: `sampler(u, v)` returns (block name, sRGB colour)
+    of the texel at that UV, so the shares are the painted blocks and the L* the painted colours
+    (gradients, occlusion and highlights included)."""
     mesh = obj.data
     mesh.calc_loop_triangles()
     col = mesh.color_attributes[common.COLOR_ATTR]
+    uvs = mesh.uv_layers.get(common.UV_NAME) if sampler else None
     targets = {name: common.hex_to_srgb(h) for name, h in declared.items()}
     area = {name: 0.0 for name in targets}
     light = {name: 0.0 for name in targets}
     for tri in mesh.loop_triangles:
+        if uvs is not None:
+            corners = [uvs.data[li].uv for li in tri.loops]
+            for w in _SAMPLES:
+                u = sum(c[0] * k for c, k in zip(corners, w))
+                v = sum(c[1] * k for c, k in zip(corners, w))
+                name, rgb = sampler(u, v)
+                if name not in area:
+                    continue
+                area[name] += tri.area / len(_SAMPLES)
+                light[name] += common.lstar_from_srgb(rgb) * tri.area / len(_SAMPLES)
+            continue
         for li in tri.loops:
             rgb = tuple(col.data[li].color_srgb[:3])
             name = min(targets, key=lambda n: sum((a - b) ** 2 for a, b in zip(rgb, targets[n])))
@@ -312,8 +333,10 @@ def check_values(spec, report):
         check = "palette: %s L*" % block
         report.add(body.name, check, l0 <= lstar <= l1, "%s is L* %.1f, rule %d-%d" % (hexcode, lstar, l0, l1),
                    waiver=waivers.get(check))
-    blocks = value_blocks(body, declared)
+    blocks = value_blocks(body, declared, spec.get("texture_sampler"))
     spec["value_blocks"] = blocks
+    if spec.get("texture_sampler"):
+        report.add(body.name, "value: measured on", True, "the painted texture (%s)" % spec.get("texture_name", "albedo"))
     for b in blocks:
         check = "value: %s share" % b["block"]
         report.add(body.name, check, b["share_ok"], "%.1f%% of the surface, rule %s" % (b["share"], b["rule"]),
