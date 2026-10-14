@@ -457,13 +457,12 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 				)
 			end)
 
-			it(`{name}, {card}: the rays never reach the chip row or below the card`, function()
+			it(`{name}, {card}: the rays never reach the mass bar or below the card`, function()
 				local clip = offset(c.raysClip, placed.x, placed.y)
-				expect(HudLayout.overlaps(clip, chip)).toBe(false)
 				expect(HudLayout.overlaps(clip, rects.massBar)).toBe(false)
-				expect(clip.y + clip.height <= placed.y + placed.height + 1e-6).toBe(true)
-				-- They do reach past the card's edge (08 §4.2, §4.3), up to the gap above it.
-				expect(c.rays.x < 0 or c.rays.y < 0).toBe(true)
+				expect(clip.y + clip.height).toBeCloseTo(placed.y + placed.height, 1e-6)
+				-- They do reach past the card's side and top (08 §4.1 to §4.3).
+				expect(c.rays.x < 0 and c.rays.y < 0).toBe(true)
 				expect(clip.y < placed.y).toBe(true)
 			end)
 
@@ -476,9 +475,10 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 						expect(c.rays.x + c.rays.width / 2).toBeCloseTo(ax, 1e-6)
 						expect(c.rays.y + c.rays.height / 2).toBeCloseTo(ay, 1e-6)
 						expect(c.raysClip.x + c.raysClip.width / 2).toBeCloseTo(ax, 1e-6)
-						expect(c.raysClip.width).toBeCloseTo(c.rays.width, 1e-6)
-						-- Past the card's side by as much as they reach right of the art.
-						expect(c.raysClip.x < 0).toBe(true)
+						-- Round: the clip holds the whole burst above the card's bottom.
+						local pad = HudLayout.RAYS_PAD
+						expect(c.raysClip.width).toBeCloseTo(c.rays.width + 2 * pad, 1e-6)
+						expect(c.raysClip.y).toBeCloseTo(c.rays.y - pad, 1e-6)
 						-- The spokes show beyond the art (not a thin corona), and stay off the text.
 						expect(c.rays.width / 2 - c.art.width / 2 >= 32).toBe(true)
 						for _, t in { c.header, c.name, c.line } do

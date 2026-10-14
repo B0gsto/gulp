@@ -81,7 +81,24 @@ function TierUp.build(
 		local shown = if left
 			then rects.band.x - t.x
 			else t.x + t.width - (rects.band.x + rects.band.width)
-		MomentArt.tail(root, t, left, spec.notch, shown, tailColour, Theme.STROKE_PANEL, 1)
+		local holder: Instance, r, z = root, t, 1
+		if left and top then
+			-- The rays turn over the band, so this tail goes above them, cut where the band's
+			-- outline starts so the band still seems to cover its end.
+			local m = 2 * Theme.STROKE_PANEL
+			local cut = rects.band.x - Theme.STROKE_PANEL
+			holder = Draw.new("Frame", {
+				Name = "TailLeftClip",
+				Position = UDim2.fromOffset(t.x - m, t.y - m),
+				Size = UDim2.fromOffset(cut - (t.x - m), t.height + 2 * m),
+				ClipsDescendants = true,
+				ZIndex = 5,
+				Parent = root,
+			})
+			r = { x = m, y = m, width = t.width, height = t.height }
+			z = 5
+		end
+		MomentArt.tail(holder, r, left, spec.notch, shown, tailColour, Theme.STROKE_PANEL, z)
 	end
 	local bp, bs = toRect(rects.band)
 	local panel = Draw.panel({
@@ -107,15 +124,15 @@ function TierUp.build(
 	local centre = UDim2.fromOffset(art.x + art.width / 2, art.y + art.height / 2)
 	local rays: Frame? = nil
 	if top then
-		-- 08 §4.2: the climax. Crisp gold spokes, light and dark in turn, turn over the band
-		-- behind the badge, centred on it, past the card's side and up into the gap under the
-		-- chip row, never below the card (HudLayout.tierUpCard).
+		-- 08 §4.2: the climax. Crisp gold spokes, near-white and deep gold in turn, a round burst
+		-- over the band and under the left tail, centred on the badge, past the card's side and
+		-- top, never below the card (HudLayout.tierUpCard).
 		rays = MomentArt.rays(
 			root,
 			rects.rays,
 			rects.raysClip,
-			Theme.PRIMARY:Lerp(Theme.WHITE, 0.45),
-			Theme.PRIMARY_SHADE,
+			Theme.PRIMARY:Lerp(Theme.WHITE, 0.7),
+			Theme.PRIMARY_SHADE:Lerp(Theme.INK, 0.12),
 			4
 		)
 	end

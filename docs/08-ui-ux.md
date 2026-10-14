@@ -556,7 +556,7 @@ All in-run moments share `HUD.MomentSlot` (top centre, above the keep-clear box)
 
 A higher priority moment replaces a lower one at once. Up to three wait in a queue; a waiting moment older than 6 s is dropped, except tier-up and trait gained, which always play. Each enters in 180 ms and leaves in 160 ms.
 
-Each card sits 8 rpx down in the slot and is 104 rpx tall, so it keeps the 16 rpx gap of 1.5 under `HUD.BankChip` (which ends at 122) and ends with the slot. Its `UI_Common_Rays` may reach past the card's sides and up into that gap, never below the card.
+Each card sits 8 rpx down in the slot and is 104 rpx tall, so it keeps the 16 rpx gap of 1.5 under `HUD.BankChip` (which ends at 122) and ends with the slot. Its `UI_Common_Rays` is a round burst centred on the badge or icon, drawn over the card: it may reach past the card's sides and top (through that gap and up beside `HUD.BankChip`), never below the card. Chapter 14, section 4, row 35 (e) has where it meets the chip.
 
 Chapter 04's first-run banners (NIBBLER and GLOW, 1.5 s, 04 §3.3) pass their own hold in place of the times above. Chapter 14, section 4, row 35 lists what is still open between this section, chapter 04 and the keep-clear box.
 

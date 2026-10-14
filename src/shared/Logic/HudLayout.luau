@@ -324,6 +324,9 @@ HudLayout.BANK_CHIP = table.freeze({ top = 82, width = 240, height = 40 })
 -- under `HUD.BankChip` (122) and ends with the slot (242), 104 rpx tall.
 HudLayout.CARD_TOP = 8
 HudLayout.CARD_HEIGHT = 104
+-- `UI_Common_Rays` stand-in: the light spokes' outer corners reach r / cos(π/16), 2 % past the
+-- burst's radius, so its clip leaves this much round it.
+HudLayout.RAYS_PAD = 4
 -- 08 §1.5 type sizes (Kit/Theme.TEXT), here so the specs can prove the 22 rpx floor.
 HudLayout.TEXT_FLOOR = 22
 
@@ -393,8 +396,8 @@ export type MomentCardRects = {
 	tails: { Rect }, -- S07's two ribbon tails behind the band ends, left first; empty for S08
 	art: Rect, -- badge or icon
 	rays: Rect, -- the ray burst, centred on the art
-	raysClip: Rect, -- where the rays may show: as wide as the burst, centred on the art, from the
-	-- bank chip's bottom to the card's (08 §4.1: past the sides and up, never below the card)
+	raysClip: Rect, -- where the rays may show: the whole burst and its spoke tips, cut only at the
+	-- card's bottom (08 §4.1: a round burst past the sides and the top, never below the card)
 	header: Rect,
 	name: Rect,
 	line: Rect?, -- the new food row or the effect line; nil when there is none
@@ -436,8 +439,7 @@ local function momentCard(
 	local width = band.x + band.width - spec.gap - x
 	local stack = spec.headerHeight + spec.nameHeight + (if line then spec.lineHeight else 0)
 	local y = (spec.height - stack) / 2
-	local slotTop = HudLayout.MOMENT_SLOT.top + HudLayout.CARD_TOP
-	local above = slotTop - (HudLayout.BANK_CHIP.top + HudLayout.BANK_CHIP.height)
+	local pad = HudLayout.RAYS_PAD
 	return {
 		card = {
 			x = (slot.width - spec.width) / 2,
@@ -449,7 +451,12 @@ local function momentCard(
 		tails = {},
 		art = art,
 		rays = { x = cx - r, y = cy - r, width = 2 * r, height = 2 * r },
-		raysClip = { x = cx - r, y = -above, width = 2 * r, height = spec.height + above },
+		raysClip = {
+			x = cx - r - pad,
+			y = cy - r - pad,
+			width = 2 * (r + pad),
+			height = spec.height - (cy - r - pad),
+		},
 		header = { x = x, y = y, width = width, height = spec.headerHeight },
 		name = { x = x, y = y + spec.headerHeight, width = width, height = spec.nameHeight },
 		line = if line

@@ -74,9 +74,9 @@ function TraitGained.build(
 	local centre = UDim2.fromOffset(art.x + art.width / 2, art.y + art.height / 2)
 	local rays: Frame? = nil
 	if burst then
-		-- 08 §4.3: crisp spokes of the rarity colour, light and dark in turn, over the card
-		-- behind the icon, centred on it, past the card's side and up into the gap under the chip
-		-- row, never below the card (HudLayout.traitCard).
+		-- 08 §4.3: crisp spokes of the rarity colour, light and dark in turn, a round burst over
+		-- the card behind the icon, centred on it, past the card's side and top, never below the
+		-- card (HudLayout.traitCard).
 		rays = MomentArt.rays(
 			root,
 			rects.rays,
