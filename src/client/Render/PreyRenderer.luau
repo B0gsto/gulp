@@ -53,6 +53,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Flags = require(ReplicatedStorage.Shared.Config.Flags)
 local Formation = require(ReplicatedStorage.Shared.Sim.Formation)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
@@ -73,6 +74,7 @@ local InputController = require(script.Parent.Parent.Controllers.InputController
 local OutlineBudget = require(script.Parent.OutlineBudget)
 local Outlines = require(script.Parent.Outlines)
 local Pools = require(script.Parent.Pools)
+local Theme = require(script.Parent.Parent.UI.Kit.Theme)
 
 export type GraphicsTier = PreyMirror.GraphicsTier
 
@@ -81,6 +83,7 @@ type Item = {
 	shell: BasePart?, -- nil for prey that never get an outline (plankton), and until first used
 	outlined: boolean,
 	fading: boolean, -- drawn part-transparent while fading back in after a rejected claim
+	mark: { ring: BillboardGui, light: PointLight }?, -- trait prey only (see `makeMark`)
 }
 
 -- One far glint emitter (8.8): an anchored, invisible host part moved with the meshes, holding
@@ -119,7 +122,7 @@ local TWO_PI = 2 * math.pi
 
 -- 06 §6.3 lengths (studs) and 06 §6.2 Mid colours. Width and height of the placeholder ellipsoid
 -- are shares of the length (tune); plankton is a round mote.
-local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
+local PLACEHOLDER: { [string]: { length: number, colour: string, light: string? } } = {
 	plankton = { length = 0.4, colour = "#D9FFE8" },
 	krill = { length = 0.8, colour = "#FF8C7A" },
 	shrimp = { length = 1.0, colour = "#FFB48A" },
@@ -129,7 +132,7 @@ local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
 	bonito = { length = 5.5, colour = "#6F8FD9" },
 	tuna = { length = 8.5, colour = "#4F6FD0" },
 	-- Trait prey with a 06 §4.3 row: 03 §3.2 length, 06 §4.3 Mid (M_Prey_Glowfry, task S6-A1).
-	glowfry = { length = 0.9, colour = "#C29424" },
+	glowfry = { length = 0.9, colour = "#C29424", light = "#FFE98A" }, -- 06 §4.3 Light
 }
 local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey without a 06 §4.3 row yet (tune)
 local WIDTH, HEIGHT = 0.4, 0.45 -- shares of the length (tune)
@@ -325,6 +328,56 @@ local function makeShell(look: Look): BasePart?
 	return s
 end
 
+-- 04 §3.6 B5 (and 07's placeholder prey): every trait prey carries a soft light and a small ring
+-- facing the camera in its trait's rarity colour (08 §3.6's marker colours), on while it is drawn.
+local function makeMark(look: Look, body: BasePart): { ring: BillboardGui, light: PointLight }?
+	local traitId = look.def.givesTrait
+	if traitId == nil then
+		return nil
+	end
+	local tr = Defaults.traits
+	local trait = Index.Traits.byId[traitId]
+	local colour = (if trait then (Theme.RARITY :: any)[trait.rarity] else nil)
+		or Theme.RARITY.Common
+	local place = PLACEHOLDER[look.def.id]
+	local length = math.max(look.size.X, look.size.Y, look.size.Z)
+	local ring = Instance.new("BillboardGui")
+	ring.Name = "TraitRing"
+	ring.Size = UDim2.fromScale(length * tr.preyRing, length * tr.preyRing)
+	ring.LightInfluence = 0
+	ring.Enabled = false
+	ring.MaxDistance = meshDistance
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.fromScale(1, 1)
+	circle.BackgroundTransparency = 1
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = circle
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = colour
+	stroke.Thickness = tr.preyRingStroke
+	stroke.Parent = circle
+	circle.Parent = ring
+	ring.Parent = body
+	local light = Instance.new("PointLight")
+	light.Name = "TraitLight"
+	light.Color = if place and place.light then Color3.fromHex(place.light) else colour
+	light.Range = tr.preyLightRange
+	light.Brightness = tr.preyLightBrightness
+	light.Shadows = false
+	light.Enabled = false
+	light.Parent = body
+	return { ring = ring, light = light }
+end
+
+local function setMark(item: Item, on: boolean)
+	local mark = item.mark
+	if mark and mark.light.Enabled ~= on then
+		mark.ring.Enabled = on
+		mark.light.Enabled = on
+	end
+end
+
 local function makeItem(look: Look): Item
 	local body: BasePart
 	if look.template then
@@ -337,7 +390,13 @@ local function makeItem(look: Look): Item
 	setVisualPart(body)
 	body.Transparency = 1
 	body.Parent = folder
-	return { body = body, shell = makeShell(look), outlined = false, fading = false }
+	return {
+		body = body,
+		shell = makeShell(look),
+		outlined = false,
+		fading = false,
+		mark = makeMark(look, body),
+	}
 end
 
 local function destroyItem(item: Item)
@@ -777,6 +836,7 @@ function PreyRenderer.render(dt: number)
 						item.fading = false
 						body.Transparency = 0
 					end
+					setMark(item, true)
 					local cf = CFrame.new(x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
 					push(body, cf)
 					local shell = item.shell
@@ -810,6 +870,7 @@ function PreyRenderer.render(dt: number)
 			local item = Pools.at(pool, n)
 			item.body.Transparency = 1
 			item.fading = false
+			setMark(item, false)
 			local shell = item.shell
 			if shell and item.outlined then
 				item.outlined = false

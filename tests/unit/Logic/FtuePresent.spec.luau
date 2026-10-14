@@ -58,6 +58,44 @@ describe("FtuePresent", function()
 		expect(FtuePresent.release(cfg, s, 31)).toBe(nil) -- no press was down
 	end)
 
+	it("counts the left stick past its dead zone as steering (02 §2.4)", function()
+		local dz = cfg.director.stickDeadZone
+		expect(FtuePresent.stickSteers(cfg, 0, 0)).toBe(false)
+		expect(FtuePresent.stickSteers(cfg, dz * 0.9, 0)).toBe(false)
+		expect(FtuePresent.stickSteers(cfg, dz * 0.8, dz * 0.8)).toBe(true) -- radial: 1.13 dz
+		expect(FtuePresent.stickSteers(cfg, 0, -1)).toBe(true)
+	end)
+
+	it("keeps 101 and 104 until the rate limit lets them go, in order", function()
+		local o = FtuePresent.newOutbox()
+		local sent: { number } = {}
+		local open = false
+		local function send(code: number): boolean
+			if open then
+				table.insert(sent, code)
+			end
+			return open
+		end
+		FtuePresent.post(o, C.LOADED)
+		FtuePresent.post(o, C.BACKGROUND)
+		expect(FtuePresent.flush(o, send)).toBe(0) -- held back: both wait
+		expect(#o.codes).toBe(2)
+		open = true
+		expect(FtuePresent.flush(o, send)).toBe(2) -- the next frame
+		expect(sent[1]).toBe(C.LOADED)
+		expect(sent[2]).toBe(C.BACKGROUND)
+		expect(FtuePresent.flush(o, send)).toBe(0) -- nothing left
+		-- refused part-way: the rest stays queued behind the refused one
+		local budget = 1
+		FtuePresent.post(o, C.BACKGROUND)
+		FtuePresent.post(o, C.LOADED)
+		expect(FtuePresent.flush(o, function(_code: number): boolean
+			budget -= 1
+			return budget >= 0
+		end)).toBe(1)
+		expect(o.codes[1]).toBe(C.LOADED)
+	end)
+
 	it("shows one new HUD element at a time, newElementGap apart (04 §1.4, §3.8)", function()
 		local r = FtuePresent.newReveals()
 		local gap = cfg.prompts.newElementGap
@@ -79,6 +117,18 @@ describe("FtuePresent", function()
 			end
 			expect(type(id)).toBe("string")
 		end
+	end)
+
+	it("shows a waiting element at once when the beat needs it (B5)", function()
+		local r = FtuePresent.newReveals()
+		FtuePresent.reveal(r, "dashButton", nil)
+		FtuePresent.reveal(r, "traitSlot", nil)
+		expect(FtuePresent.due(cfg, r, 100)).toBe("dashButton")
+		expect(FtuePresent.revealNow(r, "traitSlot", 101)).toBe(true) -- inside the gap
+		expect(r.shown.traitSlot).toBe(true)
+		expect(FtuePresent.due(cfg, r, 200)).toBe(nil) -- not shown twice
+		expect(FtuePresent.revealNow(r, "traitSlot", 202)).toBe(false)
+		expect(FtuePresent.revealNow(r, "homeMarker", 203)).toBe(false) -- never asked for
 	end)
 
 	it("stages the egg on the clip's frames (14 §5.1)", function()
@@ -127,5 +177,16 @@ describe("FtuePresent", function()
 		expect(FtuePresent.dimAt(cfg, tr.dimSeconds + 0.1)).toBe(0)
 		expect(near(FtuePresent.pushAt(cfg, tr.pushInSeconds / 2), tr.pushIn)).toBe(true)
 		expect(near(FtuePresent.pushAt(cfg, tr.pushInSeconds), 0)).toBe(true)
+	end)
+
+	it("dips from the tide's current ambient, not a stale snapshot", function()
+		local function same(x: number, y: number): boolean
+			return x == y
+		end
+		expect(FtuePresent.dipBase(nil, nil, 0.6, same)).toBe(0.6) -- the first frame
+		-- the light still holds what the dip wrote: keep darkening the base
+		expect(FtuePresent.dipBase(0.6, 0.54, 0.54, same)).toBe(0.6)
+		-- TideController wrote a new preset since: the dip goes on from it
+		expect(FtuePresent.dipBase(0.6, 0.54, 0.3, same)).toBe(0.3)
 	end)
 end)

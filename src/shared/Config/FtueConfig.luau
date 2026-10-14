@@ -94,6 +94,9 @@ local FtueConfig = freeze({
 			split = 2.1, -- studs up from the base where the two halves part (tune)
 			fryAhead = 3.0, -- 07 §2.1: the Fry's model 3.0 ahead of the egg's base ...
 			fryUp = 2.6, -- ... and 2.6 up (tune)
+			-- studs: a Fry that moved this far during the hatch was teleported (the Hatch Bed's
+			-- teleport can land after the hatch cue): the director stages the egg again (14 §5.1)
+			restage = 1.0,
 			fps = 30, -- 07 §2.1: the clip's 45 frames at 30 fps
 			frames = 45,
 			rollRadius = 1.42, -- the round base it rocks on
@@ -372,6 +375,7 @@ local FtueConfig = freeze({
 		tick = 0.1, -- s: the stage machine's tick (its timers are 0.4 s and longer)
 		every = 1.0, -- s: the `keepKrill` top-up and the `moved` report toward the Gap (B3, B6)
 		steerEvery = 1.0, -- s: the client's steering report while it lasts (FtuePlan.Code.STEER)
+		stickDeadZone = 0.15, -- 02 §2.4: the left stick's radial dead zone; past it, steering
 	},
 	-- 04 §11: the control arm of each A/B test. The director passes a copy with the player's arm.
 	arms = {

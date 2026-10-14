@@ -24,6 +24,7 @@ export type Traits = {
 	root: Frame,
 	layout: (rects: HudLayout.TraitRects) -> (),
 	set: (views: { TraitRules.SlotView }) -> (),
+	setCount: (count: number) -> (),
 	gained: (index: number) -> (),
 }
 
@@ -202,6 +203,12 @@ function Traits.new(parent: Instance): Traits
 			for i, slot in slots do
 				local r = rects.slots[i]
 				slot.frame.Position = UDim2.fromOffset(r.x, r.y)
+			end
+		end,
+		-- 04 §3.8 (TutorialDirector): slots after the first `count` stay hidden.
+		setCount = function(count: number)
+			for i, slot in slots do
+				slot.frame.Visible = i <= count
 			end
 		end,
 		set = function(views: { TraitRules.SlotView })

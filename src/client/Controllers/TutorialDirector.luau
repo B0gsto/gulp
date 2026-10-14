@@ -7,9 +7,12 @@
 --        the fields). A batch plays only when its seq is above the last played; actions play in
 --        order; `reset` drops everything being presented. `ftue.stage` and `ftue.completed` say
 --        whether the first-run presentation applies (FtuePresent.inFtue).
--- Out    `TutorialStep` (FtuePlan.Code): 2 when the director starts under the loading screen,
---        101 on the loading screen's `LoadDone`, 102 for a tap, 103 for steering (at most once a
---        `director.steerEvery` while it lasts), 104 when the app goes to the background.
+-- Out    `TutorialStep` (FtuePlan.Code; `Main` sends 2 on `LoadShown`, 09 §5.3): 101 on the
+--        loading screen's `LoadDone`, and while the first-run presentation applies 102 for a tap
+--        (a touch, a click, a key or a pad button), 103 for steering (a drag, a movement key or
+--        the left stick past `director.stickDeadZone`; at most once a `director.steerEvery`),
+--        104 when the window loses focus. 101 and 104 wait for the next frame while the rate limit
+--        holds them back (FtuePresent's outbox).
 -- B1     `hatch { seconds }`: control is held (the `Transit` status) until `giveControl`. The egg
 --        (`M_Prop_HatchEgg`) stands `hatch.egg.fryAhead` behind the Fry's model and `fryUp` below
 --        it and plays chapter 14 §5.1's staging on the clip's frames; the Fry plays `A_Fish_Hatch`
@@ -23,14 +26,17 @@
 --        `prompts.newElementGap` apart (04 §1.4; chapter 14 §4 row 40), a rejoin's first batch at
 --        once; the trait slot's five empty pips (`pips`); the dash button's two pulses; a ring on
 --        the target for `pulse` until the next input; B5's ambient dip and camera push-in on the
---        first trait.
+--        first trait, darkening whatever TideController last set; slot 1 alone of the trait bar
+--        until run 2's first trait prey (04 §3.8, `Hud.setTraitSlots`).
 -- Hold   04 §3.7 (`hold`): the music is low-pass filtered until input (`idle.holdHighGain`,
 --        `holdMidGain`); the server freezes the beat clock and the prey.
 -- Later  TODO(AudioController): `music` layers and SFX_Hatch. TODO(S7-C1, S7-C2, S7-C3, S7-C6):
 --        the chase, the Home Current, the bank and the curtain cues are logged and not drawn.
 --        The settings gear of 04 §3.8 is not built yet (08 stage 2).
 -- Studio the `TutorialProbe` BindableFunction (tools/studio/ftue_play.py): "log" returns the beat
---        log as JSON; "pilot", "on" | "off" steers at the nearest food (InputController.setPilot).
+--        log as JSON (kept in Studio only); "pilot", "on" | "off" steers at the nearest food
+--        (InputController.setPilot); "rig" returns the player's creature model and "egg" the
+--        prop folder, for the play check's state log.
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -48,6 +54,7 @@ local FtuePresent = require(ReplicatedStorage.Shared.Logic.FtuePresent)
 local FtueRules = require(ReplicatedStorage.Shared.Logic.FtueRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Manifest = require(ReplicatedStorage.Shared.Data.Manifest)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local CameraController = require("./CameraController")
@@ -88,6 +95,10 @@ local reveals = FtuePresent.newReveals()
 local stage = S.S0_LOADING -- the local step pointer (the server holds the saved one)
 local completed: boolean? = nil
 local present = true -- FtuePresent.inFtue for the current stage
+local focused = true -- the window has focus (keys held while it had none do not count)
+local outbox = FtuePresent.newOutbox() -- 101 and 104, retried while the rate limit holds them
+local stick = Vector2.zero -- the left stick's last position (a pad)
+local runTraitPrey = false -- run 2's first trait prey is eaten: all three trait slots (04 §3.8)
 
 -- Prompts.
 local ghostOn, ghostLong, ghostShown = false, false, false
@@ -99,7 +110,8 @@ local holdEffects: { EqualizerSoundEffect } = {}
 
 -- B5.
 local traitAt: number? = nil
-local ambient: { Color3 }? = nil
+local dipBase: { Color3 }? = nil -- the Lighting ambients the dip darkens (TideController's)
+local dipWritten: { Color3 }? = nil -- what the dip last wrote, read back
 
 -- Kinds for the beat's target.
 local foodKinds: { [number]: boolean } = {}
@@ -117,16 +129,33 @@ local function now(): number
 	return os.clock()
 end
 
+local IS_STUDIO = RunService:IsStudio()
+
 local function mark(what: string)
 	local at = now()
 	local t = if controlAt then at - controlAt else nil
-	table.insert(marks, { what = what, j = at - startedAt, t = t })
+	if IS_STUDIO then -- the probe's log; nothing reads it outside Studio
+		table.insert(marks, { what = what, j = at - startedAt, t = t })
+	end
 	local tt = if t then string.format(" T %.2f", t) else ""
 	Log.info(TAG, string.format("%s at J %.2f%s", what, at - startedAt, tt))
 end
 
-local function send(code: number)
-	Client.send("TutorialStep", code)
+-- 102 and 103: input reports, only while the first-run presentation applies (a dropped one is
+-- followed by the next input). 101 and 104 go through the outbox.
+local function report(code: number)
+	if present then
+		Client.send("TutorialStep", code)
+	end
+end
+
+local function sendStep(code: number): boolean
+	return Client.send("TutorialStep", code)
+end
+
+local function post(code: number)
+	FtuePresent.post(outbox, code)
+	FtuePresent.flush(outbox, sendStep)
 end
 
 local function ownRig(): Rig?
@@ -166,6 +195,11 @@ local function showElement(id: string)
 		Guide.home(true)
 	end
 	mark("shown " .. id)
+end
+
+-- 04 §3.8: trait slot 1 alone in run 1; slots 2 and 3 from run 2's first trait prey eaten.
+local function setTraitSlots()
+	Hud.setTraitSlots(if present and not runTraitPrey then 1 else TraitRules.SLOTS)
 end
 
 local function hideAll()
@@ -219,6 +253,7 @@ type Hatch = {
 	seconds: number,
 	speed: number, -- clip frames per second of hatch time ÷ 30
 	base: CFrame?, -- the egg's base: LookVector toward the Fry, UpVector up
+	fryAt: Vector3?, -- where the Fry was when the egg was staged
 	whole: BasePart?,
 	top: BasePart?,
 	bottom: BasePart?,
@@ -268,7 +303,8 @@ end
 local function clearEgg()
 	local f = folder
 	if f then
-		f:ClearAllChildren()
+		f:Destroy()
+		folder = nil
 	end
 end
 
@@ -336,9 +372,9 @@ end
 -- Where the follow camera will be once primed (CameraController's prime and update at rest).
 local function followPose(rig: Rig): (Vector3, Vector3)
 	local look = flat(rig.cframe.LookVector, Vector3.new(0, 0, -1))
-	local d = cfg.hatch.cameraFollow
 	local scale = CreatureRig.scale(rig)
-	local pos = rig.pos - look * d + Vector3.yAxis * (CameraMath.HEIGHT_RATIO * d)
+	local d = CameraMath.distance(scale)
+	local pos = rig.pos - look * d + Vector3.yAxis * CameraMath.height(d, false)
 	return pos, rig.pos + look * CameraMath.lookAhead(scale)
 end
 
@@ -355,6 +391,24 @@ local function endHatch(h: Hatch)
 	end
 	showFry(h)
 	finishCamera(h)
+end
+
+-- The egg's base behind the Fry where it is now, and the camera's start: `cameraStart` from the
+-- egg's centre, behind it and to the Fry's right, low (14 §5.1).
+local function stageEgg(h: Hatch, rig: Rig)
+	local look = flat(rig.cframe.LookVector, Vector3.new(0, 0, -1))
+	local basePos = rig.pos - look * egg.fryAhead - Vector3.yAxis * egg.fryUp
+	local base = CFrame.lookAlong(basePos, look)
+	h.base = base
+	h.fryAt = rig.pos
+	local centre = (base * CFrame.new(0, egg.height / 2, 0)).Position
+	local back = CFrame.fromAxisAngle(Vector3.yAxis, -math.rad(cfg.hatch.cameraYaw))
+		:VectorToWorldSpace(-look)
+	h.camFrom = CFrame.lookAt(
+		centre + back * cfg.hatch.cameraStart + Vector3.yAxis * cfg.hatch.cameraHeight,
+		centre
+	)
+	h.camLook = centre
 end
 
 local function startHatch(seconds: number)
@@ -384,14 +438,11 @@ local function startHatch(seconds: number)
 		return
 	end
 	h.rig = rig
-	local look = flat(rig.cframe.LookVector, Vector3.new(0, 0, -1))
-	local basePos = rig.pos - look * egg.fryAhead - Vector3.yAxis * egg.fryUp
-	local base = CFrame.lookAlong(basePos, look)
-	h.base = base
 	h.whole = ellipsoid("M_Prop_HatchEgg", Vector3.new(egg.width, egg.height, egg.width))
 	h.bottom = ellipsoid("M_Prop_HatchEgg_Bottom", Vector3.new(egg.width, egg.split, egg.width))
 	h.top =
 		ellipsoid("M_Prop_HatchEgg_Top", Vector3.new(egg.width, egg.height - egg.split, egg.width))
+	stageEgg(h, rig)
 	placeEgg(h, FtuePresent.eggPose(cfg, 0))
 	local id = hatchClipId
 	if id then
@@ -400,15 +451,6 @@ local function startHatch(seconds: number)
 	if h.track == nil then
 		h.hidden = hideFry(rig) -- the stand-in: the Fry pops out when the top flips
 	end
-	-- The camera: `cameraStart` from the egg's centre, behind it and to the Fry's right, low.
-	local centre = (base * CFrame.new(0, egg.height / 2, 0)).Position
-	local back = CFrame.fromAxisAngle(Vector3.yAxis, -math.rad(cfg.hatch.cameraYaw))
-		:VectorToWorldSpace(-look)
-	h.camFrom = CFrame.lookAt(
-		centre + back * cfg.hatch.cameraStart + Vector3.yAxis * cfg.hatch.cameraHeight,
-		centre
-	)
-	h.camLook = centre
 	h.camDone = false
 	CameraController.setMode("hold")
 	mark(if h.track then "hatch (clip)" else "hatch (stand-in)")
@@ -430,6 +472,14 @@ end
 
 local function stepHatch(h: Hatch, t: number)
 	local f = (t - h.started) * h.speed * egg.fps
+	-- The clip never moves the Fry's model, so a Fry that moved was put somewhere else (the
+	-- server's teleport to the Hatch Bed can land after the hatch cue, as on `/ftue reset`): the
+	-- egg and the camera stage again where it is.
+	local rig, at = h.rig, h.fryAt
+	if rig and at and not h.controlled and (rig.pos - at).Magnitude > egg.restage then
+		stageEgg(h, rig)
+		mark("hatch restaged")
+	end
 	if h.base and f <= egg.restFrame + 1 then
 		placeEgg(h, FtuePresent.eggPose(cfg, f))
 	end
@@ -438,7 +488,7 @@ local function stepHatch(h: Hatch, t: number)
 	end
 	if not h.camDone then
 		local cam = workspace.CurrentCamera
-		local rig, from, look = h.rig, h.camFrom, h.camLook
+		local from, look = h.camFrom, h.camLook
 		local u = (t - h.started) / h.seconds
 		if cam and rig and from and look then
 			local e = FtuePresent.ease(u)
@@ -455,6 +505,49 @@ local function stepHatch(h: Hatch, t: number)
 end
 
 ---------------------------------------------------------------------------------------------------
+-- B5: the ambient dip and the camera push-in on the first trait
+
+local function ambients(): { Color3 }
+	return { Lighting.Ambient, Lighting.OutdoorAmbient }
+end
+
+local function sameColours(a: { Color3 }, b: { Color3 }): boolean
+	if #a ~= #b then
+		return false
+	end
+	for i, c in a do
+		local d = b[i]
+		if math.abs(c.R - d.R) + math.abs(c.G - d.G) + math.abs(c.B - d.B) > 1e-4 then
+			return false
+		end
+	end
+	return true
+end
+
+-- Darkens the ambients by `dim` (0 to 1) from TideController's values: when the light no longer
+-- holds what the dip wrote, the tide changed it, and the dip goes on from the new value.
+local function stepDip(dim: number)
+	local base = FtuePresent.dipBase(dipBase, dipWritten, ambients(), sameColours)
+	dipBase = base
+	Lighting.Ambient = base[1]:Lerp(Color3.new(), dim)
+	Lighting.OutdoorAmbient = base[2]:Lerp(Color3.new(), dim)
+	dipWritten = ambients()
+end
+
+-- Ends the dip and the push-in: the ambients go back to the base unless the tide has set them.
+local function endTrait()
+	local base, written = dipBase, dipWritten
+	if base and written and sameColours(ambients(), written) then
+		Lighting.Ambient, Lighting.OutdoorAmbient = base[1], base[2]
+	end
+	dipBase, dipWritten = nil, nil
+	if traitAt then
+		traitAt = nil
+		CameraController.setPush(nil)
+	end
+end
+
+---------------------------------------------------------------------------------------------------
 -- Cues
 
 local function resetAll()
@@ -464,11 +557,14 @@ local function resetAll()
 		hatch = nil
 	end
 	clearEgg()
+	endTrait()
 	MovementController.setStatus("Transit", 0)
 	Guide.reset()
 	ghostOn, ghostShown, ringKind, dashRingUntil = false, false, nil, nil
 	Hud.setTraitHint(nil)
 	reveals = FtuePresent.newReveals()
+	input = FtuePresent.newInput()
+	runTraitPrey = false
 	setHold(false)
 	hideAll()
 	controlAt = nil
@@ -567,6 +663,35 @@ local function onFtue(value: unknown)
 	if completed then
 		showAll() -- a banked account: its HUD is all there (TutorialService replays nothing)
 	end
+	if stage >= S.S6_CHASE or not present then
+		clearEgg() -- the Hatch Bed is behind the player for good
+	end
+	if not present then
+		endTrait()
+	end
+	setTraitSlots()
+end
+
+local lastPips = 0
+
+local function onProgress(value: unknown)
+	local progress = if type(value) == "table" then value :: { [any]: any } else nil
+	local pips = if progress then progress[cfg.arms.firstTrait] else nil
+	if type(pips) == "number" and pips ~= lastPips then
+		lastPips = pips
+		mark(`pips {pips}`) -- the play check's beat log
+	end
+	if runTraitPrey or progress == nil or (stage < S.S9_COVE and not completed) then
+		return
+	end
+	for _, count in progress do
+		if type(count) == "number" and count > 0 then
+			runTraitPrey = true -- run 2's first trait prey (04 §3.8)
+			setTraitSlots()
+			mark("trait slots 2 and 3")
+			return
+		end
+	end
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -583,7 +708,14 @@ local MOVE_KEYS: { Enum.KeyCode } = {
 	Enum.KeyCode.Right,
 }
 
+-- A movement key down or the left stick out of its dead zone, while the window has focus.
 local function keysHeld(): boolean
+	if not focused then
+		return false
+	end
+	if FtuePresent.stickSteers(cfg, stick.X, stick.Y) then
+		return true
+	end
 	for _, key in MOVE_KEYS do
 		if UserInputService:IsKeyDown(key) then
 			return true
@@ -613,19 +745,35 @@ local function isPress(io: InputObject): boolean
 	return t == Enum.UserInputType.Touch or t == Enum.UserInputType.MouseButton1
 end
 
+local function isPad(io: InputObject): boolean
+	return io.UserInputType.Value >= Enum.UserInputType.Gamepad1.Value
+		and io.UserInputType.Value <= Enum.UserInputType.Gamepad8.Value
+end
+
+local function isStick(io: InputObject): boolean
+	return io.KeyCode == Enum.KeyCode.Thumbstick1 or io.KeyCode == Enum.KeyCode.Thumbstick2
+end
+
 local function onInputBegan(io: InputObject, processed: boolean)
 	if isPress(io) then
 		if processed then
-			send(C.TAP) -- a HUD button: input, never a drag
+			report(C.TAP) -- a HUD button: input, never a drag
 			onAnyInput()
 		else
 			FtuePresent.press(input, now())
 		end
 	elseif
-		io.UserInputType == Enum.UserInputType.Keyboard and not table.find(MOVE_KEYS, io.KeyCode)
+		(io.UserInputType == Enum.UserInputType.Keyboard and not table.find(MOVE_KEYS, io.KeyCode))
+		or (isPad(io) and not isStick(io))
 	then
-		send(C.TAP)
+		report(C.TAP) -- a key or a pad button
 		onAnyInput()
+	end
+end
+
+local function onInputChanged(io: InputObject, _processed: boolean)
+	if isPad(io) and io.KeyCode == Enum.KeyCode.Thumbstick1 then
+		stick = Vector2.new(io.Position.X, io.Position.Y)
 	end
 end
 
@@ -633,10 +781,24 @@ local function onInputEnded(io: InputObject, _processed: boolean)
 	if isPress(io) then
 		local code = FtuePresent.release(cfg, input, now())
 		if code then
-			send(code)
+			report(code)
 			onAnyInput()
 		end
+	elseif isPad(io) and io.KeyCode == Enum.KeyCode.Thumbstick1 then
+		stick = Vector2.zero
 	end
+end
+
+-- 04 §3.7: the app went to the background. A press held as the focus went never comes up here,
+-- so the input starts over; keys and the stick count again once the window has focus.
+local function onFocusLost()
+	focused = false
+	input = FtuePresent.newInput()
+	stick = Vector2.zero
+	if present then
+		post(C.BACKGROUND)
+	end
+	mark("backgrounded")
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -658,9 +820,12 @@ local function frame()
 		stepHatch(h, t)
 	end
 
-	local code = FtuePresent.sense(cfg, input, t, keysHeld() or pilotSteering)
+	FtuePresent.flush(outbox, sendStep) -- what the rate limit held back
+	local code = if present
+		then FtuePresent.sense(cfg, input, t, keysHeld() or pilotSteering)
+		else nil
 	if code then
-		send(code)
+		report(code)
 		onSteer()
 	end
 
@@ -698,15 +863,10 @@ local function frame()
 	-- B5: the ambient dip on the first trait.
 	local at = traitAt
 	if at then
-		local saved: { Color3 } = ambient or { Lighting.Ambient, Lighting.OutdoorAmbient }
-		ambient = saved
-		local dim = FtuePresent.dimAt(cfg, t - at)
-		Lighting.Ambient = saved[1]:Lerp(Color3.new(), dim)
-		Lighting.OutdoorAmbient = saved[2]:Lerp(Color3.new(), dim)
 		if t - at > math.max(cfg.trait.dimSeconds, cfg.trait.pushInSeconds) then
-			Lighting.Ambient, Lighting.OutdoorAmbient = saved[1], saved[2]
-			traitAt, ambient = nil, nil
-			CameraController.setPush(nil)
+			endTrait()
+		else
+			stepDip(FtuePresent.dimAt(cfg, t - at))
 		end
 	end
 end
@@ -714,6 +874,10 @@ end
 local function onTraitGained(traitId: string)
 	if not present or traitId ~= cfg.arms.firstTrait or stage > S.S5_CALL_HOME then
 		return
+	end
+	endTrait()
+	if FtuePresent.revealNow(reveals, "traitSlot", now()) then
+		showElement("traitSlot") -- the slot fills now: it cannot wait its turn (04 §3.6 B5)
 	end
 	local at = now()
 	traitAt = at
@@ -726,6 +890,8 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Studio: the play check's probe and autopilot
 
+local PILOT_SLOW_WITHIN, PILOT_ON_NOSE, PILOT_SLOW = 8, 0.8, 0.2 -- studs, cos, throttle
+
 local function pilot(swim: Types.SwimInput)
 	local rig = ownRig()
 	local target = if rig and controlAt then beatTarget() else nil
@@ -733,9 +899,20 @@ local function pilot(swim: Types.SwimInput)
 	if rig == nil or target == nil then
 		return
 	end
+	if stage == S.S4_TRAIT and not reveals.shown.traitSlot then
+		-- From the tier-up until trait slot 1 shows it hangs back, watching the Glowfry come (it
+		-- steers, so no hold), instead of eating at three times the script's pace.
+		swim.throttle, swim.strafe, swim.brake = 0, 0, true
+		swim.yawTarget, swim.yawRate, swim.pitchTarget = nil, 0, 0
+		pilotSteering = true
+		return
+	end
 	local d = target - rig.pos
 	local horizontal = Vector3.new(d.X, 0, d.Z).Magnitude
-	swim.throttle = 1
+	-- Close and off the nose, it eases off so the turn catches the food instead of circling it
+	-- (the Studio check only, not a game number).
+	local off = d.Magnitude > 1e-3 and rig.cframe.LookVector:Dot(d.Unit) < PILOT_ON_NOSE
+	swim.throttle = if off and d.Magnitude < PILOT_SLOW_WITHIN then PILOT_SLOW else 1
 	swim.strafe = 0
 	swim.brake = false
 	swim.yawTarget = math.deg(math.atan2(-d.X, -d.Z))
@@ -747,7 +924,7 @@ end
 local function bindProbe()
 	local probe = Instance.new("BindableFunction")
 	probe.Name = "TutorialProbe"
-	probe.OnInvoke = function(command: string, arg: string?): string
+	probe.OnInvoke = function(command: string, arg: string?): any
 		if command == "pilot" then
 			pilotOn = arg ~= "off"
 			InputController.setPilot(if pilotOn then pilot else nil)
@@ -757,6 +934,11 @@ local function bindProbe()
 			return `pilot {pilotOn}`
 		elseif command == "log" then
 			return HttpService:JSONEncode({ stage = stage, marks = marks })
+		elseif command == "rig" then
+			local rig = ownRig()
+			return if rig then rig.model else nil
+		elseif command == "egg" then
+			return folder
 		end
 		return "unknown command"
 	end
@@ -807,11 +989,13 @@ function TutorialDirector.start()
 			onTraitGained(a)
 		end
 	end)
+	StateStore.observe("run.progress", onProgress)
 	UserInputService.InputBegan:Connect(onInputBegan)
+	UserInputService.InputChanged:Connect(onInputChanged)
 	UserInputService.InputEnded:Connect(onInputEnded)
-	UserInputService.WindowFocusReleased:Connect(function()
-		send(C.BACKGROUND)
-		mark("backgrounded")
+	UserInputService.WindowFocusReleased:Connect(onFocusLost)
+	UserInputService.WindowFocused:Connect(function()
+		focused = true
 	end)
 	RunService:BindToRenderStep(RENDER_NAME, Enum.RenderPriority.Camera.Value + 1, frame)
 	local shown = Hud.moments()
@@ -821,11 +1005,10 @@ function TutorialDirector.start()
 		end)
 	end
 
-	-- Loading (10 §3.1 step 02, 04 §3.1): the screen is up now; its exit ends S0.
+	-- Loading (04 §3.1): its exit ends S0. (Step 02, `TutorialStep` 2, is Main's: 09 §5.3.)
 	local loading = loadingScript()
-	send(C.LOADING_SHOWN)
 	local function loaded()
-		send(C.LOADED)
+		post(C.LOADED)
 		mark("load done")
 	end
 	if loading == nil or loading:GetAttribute("LoadDone") == true then

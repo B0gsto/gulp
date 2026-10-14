@@ -11,11 +11,16 @@
 --   newInput, press,       the `TutorialStep` input reports: a tap, or a steering input (a drag
 --   release, sense         of 0.2 s or more, a movement key, a stick), again at most once a
 --                          `director.steerEvery` while it lasts (FtuePlan.Code)
+--   stickSteers            the left stick out of its dead zone (02 §2.4) is steering
+--   newOutbox, post, flush the reports that must arrive (101, 104): kept while the rate limit
+--                          holds them back and sent again next frame, in order
 --   newReveals, reveal,    04 §3.8's first appearances, at most one new element every
---   due, HUD_OF            `prompts.newElementGap` seconds (04 §1.4), and the HUD IDs of each
+--   due, revealNow, HUD_OF `prompts.newElementGap` seconds (04 §1.4), the one needed at once (B5:
+--                          the trait arrives before slot 1's turn), and the HUD IDs of each
 --   eggPose                the egg at a frame of the hatch clip (14 §5.1), in the egg's frame:
 --                          r to the Fry's right, u up, f toward the Fry, from the egg's base
 --   ease, dimAt, pushAt    the hatch camera's blend; B5's ambient dip and camera push-in
+--   dipBase                the light the dip darkens: its own base, or the tide's new value
 -- Numbers and tables only, so it runs in Lune.
 
 local FtueConfig = require("../Config/FtueConfig")
@@ -105,6 +110,36 @@ function FtuePresent.sense(cfg: Config, s: Input, now: number, held: boolean): n
 	return nil
 end
 
+--- The left stick at (x, y), each -1 to 1, steers once it is past `director.stickDeadZone`.
+function FtuePresent.stickSteers(cfg: Config, x: number, y: number): boolean
+	return math.sqrt(x * x + y * y) > cfg.director.stickDeadZone
+end
+
+export type Outbox = { codes: { number } }
+
+function FtuePresent.newOutbox(): Outbox
+	return { codes = {} }
+end
+
+--- Queues report `code` to be sent (after any still waiting).
+function FtuePresent.post(o: Outbox, code: number)
+	table.insert(o.codes, code)
+end
+
+--- Sends the waiting reports in order through `send` until it refuses one (it returns false: the
+--- rate limit); that one and the rest wait for the next call. Returns how many went.
+function FtuePresent.flush(o: Outbox, send: (number) -> boolean): number
+	local sent = 0
+	while o.codes[1] ~= nil do
+		if not send(o.codes[1]) then
+			break
+		end
+		table.remove(o.codes, 1)
+		sent += 1
+	end
+	return sent
+end
+
 -- First appearances (04 §3.8, §1.4) -------------------------------------------------------------
 
 --- The HUD IDs (08 §3.3) each `hud` cue reveals. The mass pops belong to the mass bar.
@@ -150,6 +185,19 @@ function FtuePresent.due(cfg: Config, r: Reveals, now: number): string?
 	r.shown[id] = true
 	r.lastAt = now
 	return id
+end
+
+--- Element `id`, still waiting its turn, is needed now (B5: the trait fills slot 1 before the
+--- slot's turn came): it leaves the queue and counts as shown. True when it was waiting.
+function FtuePresent.revealNow(r: Reveals, id: string, now: number): boolean
+	local at = table.find(r.queue, id)
+	if at == nil then
+		return false
+	end
+	table.remove(r.queue, at)
+	r.shown[id] = true
+	r.lastAt = now
+	return true
 end
 
 -- The hatch (14 §5.1) ---------------------------------------------------------------------------
@@ -266,6 +314,16 @@ function FtuePresent.dimAt(cfg: Config, t: number): number
 		return 0
 	end
 	return tr.dimPercent * math.sin(math.pi * t / tr.dimSeconds)
+end
+
+--- The value B5's dip darkens this frame: `base` while the light still holds what the dip last
+--- wrote (`same(current, written)`), else `current`: TideController set a new value, and the
+--- dip goes on from it rather than from a stale snapshot. With no base yet, `current`.
+function FtuePresent.dipBase<T>(base: T?, written: T?, current: T, same: (T, T) -> boolean): T
+	if base ~= nil and written ~= nil and same(current, written) then
+		return base
+	end
+	return current
 end
 
 --- 04 §3.6 B5: studs the camera has pushed in, `t` seconds after the fifth pip, in and back.

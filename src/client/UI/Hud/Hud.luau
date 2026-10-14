@@ -90,6 +90,7 @@ local heldRead = false
 local lastPips: { [string]: number } = {}
 local lastKeen = false
 local traitHint: string? = nil -- Hud.setTraitHint
+local traitSlots = TraitRules.SLOTS -- Hud.setTraitSlots
 local pipRecency: { [string]: number } = {}
 local pipClock = 0
 local traitRects: HudLayout.TraitRects? = nil
@@ -152,6 +153,7 @@ function Hud.build(press: (action: "Dash" | "Ability", down: boolean) -> ())
 	}
 	relayout(Screen.layout())
 	Screen.changed:connect(relayout)
+	Hud.setTraitSlots(traitSlots)
 	apply()
 end
 
@@ -286,6 +288,15 @@ function Hud.setTraits(traits: { string }, progress: { [string]: number }, keenN
 			views[1] = { state = "progress", traitId = traitHint, pips = 0, needed = first.needed }
 		end
 		b.traits.set(views)
+	end
+end
+
+--- 04 §3.8 (TutorialDirector): only the first `count` trait slots show (slot 1 alone in run 1).
+function Hud.setTraitSlots(count: number)
+	traitSlots = count
+	local b = built
+	if b then
+		b.traits.setCount(count)
 	end
 end
 
