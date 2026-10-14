@@ -24,6 +24,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.2,
 		wobble = 0.1,
+		respawn = 4,
 	},
 	{
 		id = "krill",
@@ -43,6 +44,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 1,
 		radius = 0.4,
 		wobble = 0.2,
+		respawn = 12,
 	},
 	{
 		id = "shrimp",
@@ -62,6 +64,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.5,
 		wobble = 0.25,
+		respawn = 10,
 	},
 	{
 		id = "sardine",
@@ -81,6 +84,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 1,
 		radius = 0.8,
 		wobble = 0.4,
+		respawn = 20,
 	},
 	{
 		id = "darter",
@@ -100,6 +104,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.2,
 		wobble = 0.6,
+		respawn = 25,
 	},
 	{
 		id = "mackerel",
@@ -119,6 +124,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.8,
 		wobble = 0.9,
+		respawn = 35,
 	},
 	{
 		id = "bonito",
@@ -138,6 +144,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 1,
 		radius = 2.75,
 		wobble = 1.38,
+		respawn = 50,
 	},
 	{
 		id = "tuna",
@@ -157,6 +164,7 @@ local Prey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 4.25,
 		wobble = 1.5,
+		respawn = 90,
 	},
 }
 

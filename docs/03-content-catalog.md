@@ -198,7 +198,7 @@ Notes (all tune):
 - **Flee distance** is how close a creature that can eat it must come before it flees.
 - **Cruise speed** when calm is 40% of flee speed.
 - After a flee burst, prey is **tired** for 2 s and moves at cruise speed. This is the catch window for prey that is as fast as the player.
-- **Respawn** is the delay between a group being eaten and a new group appearing at a spawn point at least 60 studs from every player. During a Feeding Frenzy it is divided by 3.
+- **Respawn** is the delay between a group being eaten and a new group appearing at a spawn point at least 60 studs from every player. During a Feeding Frenzy it is divided by 3 (the tide's prey spawn rate, canon data:Tides). The generated `PreyDef.respawn` carries this column.
 - Canon speed design holds: small prey is slow and turns well; large prey is fast and turns badly, so it is caught by cutting corners, by dashing, or from a current.
 
 ### 2.2 Appearance and behaviour
@@ -206,7 +206,7 @@ Notes (all tune):
 | ID | Length (studs) | Appearance brief | Behaviour |
 |---|---|---|---|
 | `plankton` | 0.4 | A soft pale-green mote that twinkles. No face. | Drifts in loose patches. Never reacts. |
-| `krill` | 0.8 | Pink-orange comma shape, two black dot eyes, feathery legs that flutter. Looks busy. | Swarm hangs in mid-water. Scatters outward when approached, then regroups after 3 s. |
+| `krill` | 0.8 | Pink-orange comma shape, two black dot eyes, feathery legs that flutter. Looks busy. | Swarm hangs in mid-water. Scatters outward when approached; after 2 s it regroups to the swarm centre over 3 s (chapter 02, section 9.2). |
 | `shrimp` | 1.0 | See-through peach body, long whiskers, curled tail. Looks startled. | Sits on the floor. Hops 4 to 6 studs at a time, each hop kicks up a sand puff. |
 | `sardine` | 1.6 | Silver-blue sliver with one round surprised eye. | Tight school that turns as one. Flees as a group away from the threat; splits in two if hit in the middle. |
 | `darter` | 2.4 | Bright orange body, teal fins, pointed nose. Looks smug. | Hovers near coral or kelp. Flees in short zig-zags and hides behind cover. |

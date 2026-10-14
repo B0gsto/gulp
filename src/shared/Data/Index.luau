@@ -8,6 +8,7 @@ local Goals = require("./Generated/Goals")
 local Hazards = require("./Generated/Hazards")
 local Predators = require("./Generated/Predators")
 local Prey = require("./Generated/Prey")
+local PreyMotion = require("./Generated/PreyMotion")
 local PreySpawns = require("./Generated/PreySpawns")
 local Products = require("./Generated/Products")
 local RevivePoints = require("./Generated/RevivePoints")
@@ -15,6 +16,7 @@ local Species = require("./Generated/Species")
 local Tides = require("./Generated/Tides")
 local Tiers = require("./Generated/Tiers")
 local TraitPrey = require("./Generated/TraitPrey")
+local TraitPreySpawns = require("./Generated/TraitPreySpawns")
 local Traits = require("./Generated/Traits")
 local Types = require("../Types")
 local Zones = require("./Generated/Zones")
@@ -66,7 +68,15 @@ for _, list in spawnsByZone do
 	table.freeze(list)
 end
 
+-- Prey motion rows by prey ID (06 §7.6).
+local motionById: { [string]: Types.PreyMotionDef } = {}
+for _, def in PreyMotion do
+	motionById[def.id] = def
+end
+
 local Index = {
+	PreyMotion = table.freeze({ list = PreyMotion, byId = table.freeze(motionById) }),
+	TraitPreySpawns = table.freeze({ list = TraitPreySpawns }),
 	PreySpawns = table.freeze({ list = PreySpawns, byZone = table.freeze(spawnsByZone) }),
 	Products = table.freeze({ list = Products, byId = table.freeze(productById) }),
 	Tiers = table.freeze({ list = Tiers, byTier = table.freeze(tierByNumber) }),
