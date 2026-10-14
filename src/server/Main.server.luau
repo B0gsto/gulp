@@ -45,4 +45,18 @@ if environment.devCheats or environment.name == "ci" then
 		return runAll()
 	end
 	hook.Parent = script.Parent
+	-- PreyService's measurements for Studio runs (section 15.2): `PreyStats:Invoke(true)` returns
+	-- them as JSON and, with true, starts a new measuring window.
+	local HttpService = game:GetService("HttpService")
+	local PreyService = require(script.Parent.Services.PreyService)
+	local stats = Instance.new("BindableFunction")
+	stats.Name = "PreyStats"
+	stats.OnInvoke = function(reset: boolean?): string
+		local text = HttpService:JSONEncode(PreyService.stats())
+		if reset then
+			PreyService.resetStats()
+		end
+		return text
+	end
+	stats.Parent = script.Parent
 end
