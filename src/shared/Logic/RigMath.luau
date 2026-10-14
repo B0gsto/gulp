@@ -10,6 +10,7 @@
 --   bank        = roll into the turn, from the heading's yaw rate (tune)
 --   scale       = eased to TierMath.bodyScale(Mass) over 0.15 s                09 §6.8
 --   sway        = RIG_Fish's reference swim wave (rigs.py `_swim_body`) when no clip is uploaded
+local BiteMath = require("./BiteMath")
 local CameraMath = require("./CameraMath")
 
 local RigMath = {}
@@ -25,9 +26,9 @@ RigMath.BANK_MAX = math.rad(35) -- (tune)
 RigMath.SNAP_DISTANCE = 64 -- a jump this far (respawn, teleport) re-primes the spring (tune)
 RigMath.SCALE_TIME = 0.15 -- 09 §6.8, 02 §5: the eased scale change, seconds
 
-RigMath.BODY_LENGTH = 3.0 -- 02 §0.2: body length = 3.0 × bodyScale
-RigMath.MOUTH_RADIUS = 1.2 -- 02 §4.1: mouthRadius = 1.2 × bodyScale × mouthMult (× 1.25 dashing)
-RigMath.DASH_MOUTH = 1.25
+RigMath.BODY_LENGTH = BiteMath.BODY_LENGTH -- 02 §0.2: body length = 3.0 × bodyScale
+RigMath.MOUTH_RADIUS = BiteMath.MOUTH_RADIUS -- 02 §4.1 (the formula lives in BiteMath)
+RigMath.DASH_MOUTH = BiteMath.DASH_MOUTH
 
 --------------------------------------------------------------------------------------------------
 -- Follow state (position, heading, bank)
@@ -313,14 +314,19 @@ end
 --------------------------------------------------------------------------------------------------
 -- Mouth (02 §4.1)
 
---- Mouth radius and how far ahead of the body centre the mouth centre sits, in studs.
+--- Mouth radius and how far ahead of the body centre the mouth centre sits, in studs: 02 §4.1
+--- as BiteMath computes it (one source for the client's bite test and the server's check).
 --- nose = centre + facing × half the body length; mouthCentre = nose + facing × 0.5 × radius.
-function RigMath.mouth(bodyScale: number, mouthMult: number, dashing: boolean): (number, number)
-	local radius = RigMath.MOUTH_RADIUS
-		* bodyScale
-		* mouthMult
-		* (if dashing then RigMath.DASH_MOUTH else 1)
-	return radius, 0.5 * RigMath.BODY_LENGTH * bodyScale + 0.5 * radius
+--- `lengthMult` and `firstRun` (04 §4) default to 1.
+function RigMath.mouth(
+	bodyScale: number,
+	mouthMult: number,
+	dashing: boolean,
+	lengthMult: number?,
+	firstRun: number?
+): (number, number)
+	local radius = BiteMath.mouthRadius(bodyScale, mouthMult, dashing, firstRun or 1)
+	return radius, BiteMath.mouthAhead(bodyScale, lengthMult or 1, radius)
 end
 
 return table.freeze(RigMath)

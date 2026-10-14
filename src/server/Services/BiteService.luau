@@ -12,8 +12,13 @@
 --   4 tier    canon 5.2: prey tier ≤ eater tier (BiteRules.canEatPrey)
 --   5 time    tc = clamp(claimTime, now − 0.4 s, now) (Logic/BiteMath); a group still fading in
 --             at tc is refused as "time"
---   6 range   |mouth − prey| ≤ reach at tc (Logic/BiteMath)
+--   6 range   |mouth − prey| ≤ reach at tc (Logic/BiteMath): 02 §4.1's mouth centre and radius
+--             with the dash factor always on, reach = 2.5 × r + prey radius + wobble + 3.0
+--             + 0.15 × (eater + prey speed)
 --   7 apply   PreyService.tryEat clears the member and sends PreyEvent; mass and tier follow
+-- Player bites (B25, S12-C2) will run 09 §10.2's ten rules in order through
+-- BiteRules.playerBite, the 90 s repeat guard (rule 7, reason 9 "repeat") included; prey has no
+-- repeat guard (02 §4.2 check 7 is about players).
 -- One `BiteResult` answers each claim: the accepted targets' bits, the first reject reason, the
 -- new mass and tier. Rejects are counted by reason (section 20, R5: target under 2%) and range
 -- misses are written to the server log with their distance and reach. Nothing is logged per bite
@@ -55,6 +60,7 @@ local REASON_NAME: { [number]: string } = {
 	[BiteResult.REASON_STATE] = "state",
 	[BiteResult.REASON_SAFE_ZONE] = "safeZone",
 	[BiteResult.REASON_PROTECTED] = "protected",
+	[BiteResult.REASON_REPEAT] = "repeat",
 }
 
 --- Prey bite claims since the server started (or the last `resetCounters`), section 20 R5.
@@ -145,7 +151,9 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 	local pos, look = root.Position, root.CFrame.LookVector
 	local eaterSpeed = root.AssemblyLinearVelocity.Magnitude
 	-- TODO(B20, S4-C6): the first-run mouth factor from the profile (BiteMath.firstRunMouth).
-	local assistMult = 1
+	local firstRun = 1
+	-- TODO(B19): species.mouthMult and species.lengthMult once the species data carries them.
+	local mouthMult, lengthMult = 1, 1
 	-- TODO(B19, S6-C3): TraitService.massMult(slot) (Spots, Bonefed).
 	local massMult = 1
 	local mask, firstReason = 0, BiteResult.REASON_NONE
@@ -164,17 +172,20 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 				reason = BiteResult.REASON_TIER
 			else
 				-- bodyScale is read per target: an accepted bite earlier in the claim grows the mouth.
-				local mx, my, mz =
-					BiteMath.mouth(pos.X, pos.Y, pos.Z, look.X, look.Y, look.Z, state.bodyScale)
-				local px, py, pz = PreyService.memberPosAt(g, i, tc)
-				local reach = BiteMath.reach(
+				local r = BiteMath.serverRadius(state.bodyScale, mouthMult, firstRun)
+				local mx, my, mz = BiteMath.mouth(
+					pos.X,
+					pos.Y,
+					pos.Z,
+					look.X,
+					look.Y,
+					look.Z,
 					state.bodyScale,
-					assistMult,
-					def.radius,
-					def.wobble,
-					eaterSpeed,
-					preySpeed
+					lengthMult,
+					r
 				)
+				local px, py, pz = PreyService.memberPosAt(g, i, tc)
+				local reach = BiteMath.reach(r, def.radius, def.wobble, eaterSpeed, preySpeed)
 				local ok, d = BiteMath.within(mx, my, mz, px, py, pz, reach)
 				if not ok then
 					reason = BiteResult.REASON_RANGE

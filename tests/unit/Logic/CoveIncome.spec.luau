@@ -41,51 +41,72 @@ describe("CoveIncome.rate (05 §3.3)", function()
 	end)
 end)
 
-describe("CoveIncome.accrue (02 §13.2, 09 §13.2, §13.3)", function()
+describe("CoveIncome.accrue (02 §13.2, 05 §3.4, 09 §13.2, §13.3)", function()
+	-- The last claim was at T0 in every case below unless said otherwise.
 	it("fills at the rate", function()
-		local pending, at = CoveIncome.accrue(0, T0, T0 + 2 * HOUR, 10, 8)
+		local pending, at = CoveIncome.accrue(0, T0, T0 + 2 * HOUR, 10, T0, 8)
 		expect(pending).toBeCloseTo(20, 1e-9)
 		expect(at).toBe(T0 + 2 * HOUR)
-		pending, at = CoveIncome.accrue(pending, at, at + 30 * 60, 10, 8)
+		pending, at = CoveIncome.accrue(pending, at, at + 30 * 60, 10, T0, 8)
 		expect(pending).toBeCloseTo(25, 1e-9)
 	end)
 
-	it("stops at the cap: 8 hours, or 24 with Tide Watcher", function()
+	it("stops cap hours after the last claim: 8, or 24 with Tide Watcher", function()
 		expect(CoveIncome.capHours(false)).toBe(8)
 		expect(CoveIncome.capHours(true)).toBe(24)
-		expect((CoveIncome.accrue(0, T0, T0 + 30 * HOUR, 10, 8))).toBe(80)
-		expect((CoveIncome.accrue(0, T0, T0 + 30 * HOUR, 10, 24))).toBe(240)
-		-- Accrued in steps, the pile still stops at 8 hours of income.
+		expect((CoveIncome.accrue(0, T0, T0 + 30 * HOUR, 10, T0, 8))).toBe(80)
+		expect((CoveIncome.accrue(0, T0, T0 + 30 * HOUR, 10, T0, 24))).toBe(240)
+		-- Accrued in steps, the pile still stops 8 hours after the claim.
 		local pending, at = 0, T0
 		for _ = 1, 20 do
-			pending, at = CoveIncome.accrue(pending, at, at + HOUR, 10, 8)
+			pending, at = CoveIncome.accrue(pending, at, at + HOUR, 10, T0, 8)
 		end
 		expect(pending).toBe(80)
-		-- A fast clock over-pays at most one cap.
-		expect((CoveIncome.accrue(0, T0, T0 + 1e9, 10, 8))).toBe(80)
+		expect(at).toBe(T0 + 20 * HOUR)
+		-- A fast clock over-pays at most one cap window.
+		expect((CoveIncome.accrue(0, T0, T0 + 1e9, 10, T0, 8))).toBe(80)
+		-- The window runs from the claim, not from the last accrual: accrued 6 h after a claim,
+		-- only 2 more hours count.
+		expect((CoveIncome.accrue(0, T0 + 6 * HOUR, T0 + 20 * HOUR, 10, T0, 8))).toBe(20)
+		-- Past the window nothing more is added, and accruedAt still moves to now.
+		local p2, at2 = CoveIncome.accrue(80, T0 + 9 * HOUR, T0 + 12 * HOUR, 10, T0, 8)
+		expect(p2).toBe(80)
+		expect(at2).toBe(T0 + 12 * HOUR)
+		-- A claim opens a new window.
+		expect((CoveIncome.accrue(0, T0 + 12 * HOUR, T0 + 14 * HOUR, 10, T0 + 12 * HOUR, 8))).toBe(
+			20
+		)
+	end)
+
+	it("treats a profile with no last claim as claimed at accruedAt (09 §13.2)", function()
+		expect((CoveIncome.accrue(0, T0, T0 + 30 * HOUR, 10, nil, 8))).toBe(80)
 	end)
 
 	it("adds nothing and never moves back on a backwards clock", function()
-		local pending, at = CoveIncome.accrue(12.5, T0, T0 - 5 * HOUR, 10, 8)
+		local pending, at = CoveIncome.accrue(12.5, T0, T0 - 5 * HOUR, 10, T0, 8)
 		expect(pending).toBe(12.5)
 		expect(at).toBe(T0)
 		-- Moving forward again pays only from the old accruedAt: no period is paid twice.
-		pending, at = CoveIncome.accrue(pending, at, T0 + HOUR, 10, 8)
+		pending, at = CoveIncome.accrue(pending, at, T0 + HOUR, 10, T0, 8)
 		expect(pending).toBeCloseTo(22.5, 1e-9)
 		expect(at).toBe(T0 + HOUR)
 	end)
 
 	it("applies the old rate to the old period and the new rate after a change", function()
 		local old, new = 10, 40
-		local pending, at = CoveIncome.accrue(0, T0, T0 + 2 * HOUR, old, 8) -- before the bank
-		pending, at = CoveIncome.accrue(pending, at, at + HOUR, new, 8)
+		local pending, at = CoveIncome.accrue(0, T0, T0 + 2 * HOUR, old, T0, 8) -- before the bank
+		pending, at = CoveIncome.accrue(pending, at, at + HOUR, new, T0, 8)
 		expect(pending).toBeCloseTo(60, 1e-9) -- 2 h × 10 + 1 h × 40
+		-- The window is time, not an amount: 2 h × 10 + 6 h × 40 = 260, more than 8 h of the old
+		-- rate (80) and less than 8 h of the new (320); nothing after 8 h.
+		pending = CoveIncome.accrue(pending, at, T0 + 30 * HOUR, new, T0, 8)
+		expect(pending).toBeCloseTo(260, 1e-9)
 	end)
 
-	it("never shrinks the pile when the rate falls under it", function()
-		local pending = CoveIncome.accrue(0, T0, T0 + 8 * HOUR, 50, 8) -- 400, full
-		local after = CoveIncome.accrue(pending, T0 + 8 * HOUR, T0 + 9 * HOUR, 10, 8) -- cap now 80
-		expect(after).toBe(400)
+	it("keeps what each period earned when the rate falls", function()
+		local pending, at = CoveIncome.accrue(0, T0, T0 + 4 * HOUR, 50, T0, 8) -- 200
+		pending = CoveIncome.accrue(pending, at, T0 + 9 * HOUR, 10, T0, 8) -- + 4 h × 10
+		expect(pending).toBeCloseTo(240, 1e-9) -- not cut to 8 h × 10 = 80
 	end)
 end)
 

@@ -189,6 +189,7 @@ describe("VolumeMath", function()
 
 	it("lists the thirteen kinds of section 9.1 and the three safe ones", function()
 		expect(#VolumeMath.KINDS).toBe(13)
+		expect(VolumeMath.kindOf("HatchBed")).toBe("HatchBed") -- 09 §9.1
 		expect(table.find(VolumeMath.KINDS, "HatchBed") ~= nil).toBe(true)
 		expect(VolumeMath.SAFE_KINDS).toEqual({ "SafeNursery", "CoveMouth", "CoveInterior" })
 	end)

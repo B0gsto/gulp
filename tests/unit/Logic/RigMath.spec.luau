@@ -1,4 +1,5 @@
 --!strict
+local BiteMath = require("../../../src/shared/Logic/BiteMath")
 local RigMath = require("../../../src/shared/Logic/RigMath")
 local TestKit = require("../../../src/shared/Util/TestKit")
 
@@ -212,5 +213,10 @@ describe("RigMath.mouth (02 §4.1)", function()
 		expect(ahead).toBeCloseTo(1.5 + 0.6, 1e-9)
 		local rd = RigMath.mouth(2, 1, true)
 		expect(rd).toBeCloseTo(1.2 * 2 * 1.25, 1e-9)
+		-- lengthMult moves the nose, firstRun (04 §4) widens the mouth: BiteMath's numbers.
+		local rf, aheadF = RigMath.mouth(2, 1.1, false, 1.2, 1.6)
+		expect(rf).toBeCloseTo(BiteMath.mouthRadius(2, 1.1, false, 1.6), 1e-9)
+		expect(aheadF).toBeCloseTo(BiteMath.mouthAhead(2, 1.2, rf), 1e-9)
+		expect(aheadF).toBeCloseTo(1.5 * 2 * 1.2 + 0.5 * rf, 1e-9)
 	end)
 end)

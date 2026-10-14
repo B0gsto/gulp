@@ -6,7 +6,7 @@
 --   0  u16  seq           the claim's `seq` (Codec/Bite)
 --   2  u8   acceptedMask  bit k set = target k of the claim accepted
 --   3  u8   reason        0 none, 1 gone, 2 range, 3 tier, 4 time, 5 rate, 6 state, 7 safe zone,
---                         8 protected
+--                         8 protected, 9 repeat (09 §10.2 rule 7)
 --   4  f32  newMass
 --   8  u8   newTier
 -- Pure: no engine calls.
@@ -25,7 +25,8 @@ BiteResult.REASON_RATE = 5
 BiteResult.REASON_STATE = 6
 BiteResult.REASON_SAFE_ZONE = 7
 BiteResult.REASON_PROTECTED = 8
-BiteResult.MAX_REASON = 8
+BiteResult.REASON_REPEAT = 9
+BiteResult.MAX_REASON = 9
 
 local MAX_TIER = #Index.Tiers.list
 
@@ -67,7 +68,7 @@ function BiteResult.valid(b: buffer): boolean
 		return false
 	end
 	local mass, tier = buffer.readf32(b, 4), buffer.readu8(b, 8)
-	return buffer.readu8(b, 3) <= 8
+	return buffer.readu8(b, 3) <= BiteResult.MAX_REASON
 		and mass >= 0
 		and mass < math.huge
 		and tier >= 1
