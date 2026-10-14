@@ -373,7 +373,8 @@ local function spend(p: Player, day: number)
 		p.pearls -= s.price
 		p.unlockDay[s.id] = day
 		if s.id == "puffer" then
-			p.pufferMinute = p.playedMinutes
+			-- Session clock: run time over the share of a session spent in runs (05 §5.1).
+			p.pufferMinute = p.playedMinutes / RUN_SHARE
 		end
 		p.nextSpecies += 1
 	end
@@ -836,7 +837,9 @@ for _, s in SPECIES_ORDER do
 	out(string.format("  %-8s %-10s %s", s.id, canon, table.concat(cells, " ")))
 end
 local regular = cohorts[GATED]
-out(`Pufferfish: median {fmt(regular.pufferMinute, 1)} minutes of play into day 1 (regular player)`)
+out(
+	`Pufferfish: median {fmt(regular.pufferMinute, 1)} minutes into the first session (regular player)`
+)
 out("Day 30 (means):  Earned    Pearls/day  Cove/h  Slots  Rank")
 for _, profile in PROFILES do
 	local d = cohorts[profile.name].day[REPORT_DAYS]
@@ -883,6 +886,83 @@ print(table.concat(lines, "\n"))
 -- ECONOMY_SIM_TABLES=1 prints 05 §5.4's day tables (means; slots and rank are medians; an
 -- unlock is listed on the median day it happens).
 if process.env.ECONOMY_SIM_TABLES == "1" then
+	-- 05 §5.3: what a run is worth on this growth model (scraps at the 10% rate), and each mix.
+	local RUN_ORDER = { "A0", "A", "B", "C", "D", "A+", "B+", "C+", "D+" }
+	local perMinute: { [string]: number } = {}
+	local value = {
+		"\n| Run type | Length (min) | Mass at bank | Pearls at bank | Bank chance | Gulped at (min) | Mass when gulped | Scraps | Expected Pearls per run | Expected minutes per run | **Pearls/min** | Specimen | Avg trait bonus |",
+		"|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+	}
+	for _, id in RUN_ORDER do
+		local rt = RUN_TYPES[id]
+		local gulpMass, scraps = 0, 0
+		for i = 1, OFFSETS do
+			local clock = (i - 1) * OFFSET_STEP
+			local m = massAt(clock, timeTo(clock, rt.mass) * GULPED_AT)
+			gulpMass += m / OFFSETS
+			scraps += BankMath.base(m) * Index.Scraps.list[#Index.Scraps.list].share / OFFSETS
+		end
+		local length = LENGTH_MINUTES[id]
+		local bank = BankMath.bank(rt.mass, false, false)
+		local expected = rt.bank * bank + (1 - rt.bank) * scraps
+		perMinute[id] = expected / EXPECTED_MINUTES[id]
+		table.insert(
+			value,
+			string.format(
+				"| %s | %.1f | %d | %s | %d%% | %.1f | %.0f | %.1f | %.1f | %.2f | **%.1f** | Tier %d | +%d%% |",
+				id,
+				length,
+				rt.mass,
+				fmt(bank),
+				math.round(rt.bank * 100),
+				length * GULPED_AT,
+				gulpMass,
+				scraps,
+				expected,
+				EXPECTED_MINUTES[id],
+				perMinute[id],
+				TierMath.tier(rt.mass),
+				math.round(rt.bonus * 100)
+			)
+		)
+	end
+	print(table.concat(value, "\n"))
+	local mixes = {
+		"\n| Player | Days | Run-time mix | Pearls per run-minute | Run minutes/day | Banking Pearls/day |",
+		"|---|---|---|---|---|---|",
+	}
+	for _, profile in PROFILES do
+		local minutes = 0
+		for _, session in profile.sessions do
+			minutes += RUN_SHARE * session[2]
+		end
+		for m, mix in profile.mixes do
+			local last = if m < #profile.mixes then profile.mixes[m + 1].from - 1 else REPORT_DAYS
+			local days = if last == mix.from then `{mix.from}` else `{mix.from} to {last}`
+			local parts: { string } = {}
+			local ppm = 0
+			for _, id in RUN_ORDER do
+				local share = mix.shares[id]
+				if share then
+					table.insert(parts, `{id} {math.round(share * 100)}%`)
+					ppm += share * perMinute[id]
+				end
+			end
+			table.insert(
+				mixes,
+				string.format(
+					"| %s | %s | %s | %.1f | %.2f | %s |",
+					profile.name,
+					days,
+					table.concat(parts, ", "),
+					ppm,
+					minutes,
+					fmt(ppm * minutes)
+				)
+			)
+		end
+	end
+	print(table.concat(mixes, "\n"))
 	-- Display names (canon section 7); SpeciesDef carries no name.
 	local SPECIES_NAME: { [string]: string } = {
 		puffer = "Pufferfish",

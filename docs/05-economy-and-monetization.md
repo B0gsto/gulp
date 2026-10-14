@@ -21,7 +21,7 @@ Pearls are the only persistent currency. They do three jobs:
 
 Pearls never buy power inside a run. There is no shop item that adds mass, speed, traits or protection for Pearls.
 
-The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,500 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. Over the first 30 days more than two thirds of a regular player's Pearls come from the cove (68%), and 78% on day 30 itself (section 5.6). This is intended.
+The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,500 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. Over the first 30 days more than two thirds of a regular player's Pearls come from the cove (70%), and 81% on day 30 itself (section 5.6). This is intended.
 
 ### 1.2 What can never be bought
 
@@ -438,7 +438,7 @@ Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
 |---|---|---|---|---|
 | `minnow` | Minnow | Free | [MVP] | No |
 | `puffer` | Pufferfish | 500 | [MVP] | No |
-| `eel` | Eel | 3,500 **(tune)** | [MVP] | Yes: 3,000 until task S5-C6 (chapter 14, section 4) |
+| `eel` | Eel | 3,500 **(tune)** | [MVP] | No (the canon was 3,000 until task S5-C6 and now says 3,500; chapter 14, section 4) |
 | `turtle` | Sea Turtle | 12,000 | [L] | No |
 | `squid` | Squid | 45,000 | [L] | No |
 | `shark` | Shark Pup | 250,000 (or the game pass) | [L] | No |
@@ -557,51 +557,51 @@ The canon's pacing targets are for "a non-paying daily player". This chapter rea
 All are assumptions to replace with data from the soft launch.
 
 1. The player logs in every day and buys nothing with Robux. No rewarded video, no passes, no Crystal multiplier.
-2. Time to each tier follows the canon targets (section 2.4).
+2. Mass grows as the foraging model of section 2.2 says, with the Frenzy uplift of section 2.3 (time to each tier lands within 10% of the canon targets; `economy.sim` prints the check).
 3. A run is one of four types. Each has a length, a chance to end in a bank, and a time of death if it does not. The run-value table in 5.3 gives the arithmetic.
 4. A specimen earns from the moment it is banked, as the game does it (`CoveIncome`, chapter 09, section 13.2): income during the day's own sessions is collected at the next claim. The first draft started a specimen's income the next day, which gave day-1 totals of 1,427, 2,998 and 6,251 Pearls; with the real rule `tests/sim/economy.sim.luau` (task S5-C6) gives about 1,590, 3,660 and 7,900 (casual, regular, heavy; section 5.4). The Eel's price moved to 3,500 so that the regular player still buys it on day 2 (section 4.1); `economy.sim` is now the check for every unlock day.
 5. The cove always keeps its best specimens. When it is full, the worst one is released for the refund in 3.10.
 6. Codex rewards arrive as `total × (1 − e^(−day ÷ 12))`: fast at first, then slowing.
 7. Spending rule: buy the next species the moment it is affordable. Spend up to 20% of all Pearls earned so far on slots, but only when the cove is full and after the Pufferfish is bought. Spend 5% on decorations from day 5. After the Shark Pup, spend 70% on slots and 30% on decorations.
 8. Fractions are carried over: "0.49 tier 6 specimens a day" becomes one tier 6 specimen every two days.
-9. The player claims the cove pile on entering the cove: on the welcome-back card at the start of a session, and at the pile after a bank. Income is never claimed for them (section 3.4). That is what gives the 8, 16 and 18 hours collected per day in section 5.1.
+9. The player claims the cove pile once a session, on the welcome-back card as the session starts. Income is never claimed for them (section 3.4), and income earned during a session waits in the pile for the next session's claim. That is what gives the 8, 16 and about 18 hours collected per day in section 5.1 (with the sessions of section 5.4 the heavy player's gaps between claims are 5.5, 5.5 and 13 hours: 19 hours). A player who also claims after each bank gains a few minutes of income a day; the model leaves that out.
 
 ### 5.3 What a run is worth
 
-Mass at a given minute comes from the canon targets, with straight lines between them. A gulped run is assumed to end 60% of the way through. The first-days hop (A0) is the one exception to the straight line: a new player turns for home just short of the Hunter line, at 79 mass, so its specimen is a tier 3 Snapper (80 mass would be tier 4, canon 5.1).
+Mass at a given minute comes from the foraging model of section 2.2 as `tests/sim/economy.sim.luau` runs it: the bites per minute of each tier in its home zone, the Feeding Frenzy uplift of section 2.3 while a Frenzy runs (the MVP tide clock), averaged over every start time in the hour. A run ends when it reaches its bank mass, so its length comes from the model, not from the canon targets (A0 takes 3.7 minutes, not 4; the canon targets are the check, section 2.4). A gulped run is assumed to end 60% of the way through, and scraps are counted at the 10% rate (the first three deaths on an account pay 50%, which lifts day-1 banking in section 5.4 above the mix table below). The first-days hop (A0) turns for home just short of the Hunter line, at 79 mass, so its specimen is a tier 3 Snapper (80 mass would be tier 4, canon 5.1). The sim prints both tables (`ECONOMY_SIM_TABLES=1`).
 
 | Run type | Length (min) | Mass at bank | Pearls at bank | Bank chance | Gulped at (min) | Mass when gulped | Scraps | Expected Pearls per run | Expected minutes per run | **Pearls/min** | Specimen | Avg trait bonus |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A0 Reef hop, first days | 4 | 79 | 237 | 65% | 2.4 | 40 | 12.0 | 158.3 | 3.44 | **46.0** | Tier 3 | +0% |
-| A Reef hop | 4 | 80 | 240 | 80% | 2.4 | 40 | 12.0 | 194.4 | 3.68 | **52.8** | Tier 4 | +10% |
-| B Kelp run | 7 | 200 | 600 | 65% | 4.2 | 88 | 26.4 | 399.2 | 6.02 | **66.3** | Tier 5 | +25% |
-| C Drop-off run | 12 | 500 | 1,500 | 45% | 7.2 | 212 | 63.6 | 710.0 | 9.36 | **75.9** | Tier 6 | +45% |
-| D Leviathan run | 20 | 1,200 | 3,600 | 25% | 12.0 | 500 | 150.0 | 1012.5 | 14.00 | **72.3** | Tier 7 | +65% |
-| A+ Reef hop, skilled | 4 | 80 | 240 | 90% | 2.4 | 40 | 12.0 | 217.2 | 3.84 | **56.6** | Tier 4 | +10% |
-| B+ Kelp run, skilled | 7 | 200 | 600 | 78% | 4.2 | 88 | 26.4 | 473.8 | 6.38 | **74.2** | Tier 5 | +30% |
-| C+ Drop-off run, skilled | 12 | 500 | 1,500 | 60% | 7.2 | 212 | 63.6 | 925.4 | 10.08 | **91.8** | Tier 6 | +55% |
-| D+ Leviathan run, skilled | 20 | 1,200 | 3,600 | 40% | 12.0 | 500 | 150.0 | 1530.0 | 15.20 | **100.7** | Tier 7 | +90% |
+| A0 Reef hop, first days | 3.7 | 79 | 237 | 65% | 2.2 | 41 | 12.3 | 158.4 | 3.21 | **49.3** | Tier 3 | +0% |
+| A Reef hop | 3.8 | 80 | 240 | 80% | 2.3 | 42 | 12.5 | 194.5 | 3.47 | **56.0** | Tier 4 | +10% |
+| B Kelp run | 6.8 | 200 | 600 | 65% | 4.1 | 92 | 27.5 | 399.6 | 5.84 | **68.5** | Tier 5 | +25% |
+| C Drop-off run | 11.8 | 500 | 1,500 | 45% | 7.1 | 218 | 65.5 | 711.0 | 9.20 | **77.3** | Tier 6 | +45% |
+| D Leviathan run | 19.5 | 1,200 | 3,600 | 25% | 11.7 | 498 | 149.4 | 1012.1 | 13.62 | **74.3** | Tier 7 | +65% |
+| A+ Reef hop, skilled | 3.8 | 80 | 240 | 90% | 2.3 | 42 | 12.5 | 217.2 | 3.62 | **59.9** | Tier 4 | +10% |
+| B+ Kelp run, skilled | 6.8 | 200 | 600 | 78% | 4.1 | 92 | 27.5 | 474.1 | 6.19 | **76.6** | Tier 5 | +30% |
+| C+ Drop-off run, skilled | 11.8 | 500 | 1,500 | 60% | 7.1 | 218 | 65.5 | 926.2 | 9.91 | **93.4** | Tier 6 | +55% |
+| D+ Leviathan run, skilled | 19.5 | 1,200 | 3,600 | 40% | 11.7 | 498 | 149.4 | 1529.7 | 14.79 | **103.4** | Tier 7 | +90% |
 
-How to read a row, using the Kelp run (B): a 7-minute run banks 200 mass for 600 Pearls 65% of the time. The other 35% of the time it ends at 4.2 minutes with 88 mass and pays 26.4 in scraps. Expected Pearls = 0.65 × 600 + 0.35 × 26.4 = 399.2. Expected minutes = 0.65 × 7 + 0.35 × 4.2 = 6.02. That is 66.3 Pearls a minute.
+How to read a row, using the Kelp run (B): a 6.8-minute run banks 200 mass for 600 Pearls 65% of the time. The other 35% of the time it ends at 4.1 minutes with about 92 mass and pays 27.5 in scraps. Expected Pearls = 0.65 × 600 + 0.35 × 27.5 = 399.6. Expected minutes = 0.65 × 6.8 + 0.35 × 4.1 = 5.84. That is 68.5 Pearls a minute.
 
-The four standard run types all return 53 to 76 Pearls a minute. A longer run pays more per bank and is lost more often, so the expected value stays in a narrow band. A better player is paid for surviving, not for a hidden multiplier: the skilled rows (+) differ only in the chance to bank and in the traits collected.
+The four standard run types all return 56 to 78 Pearls a minute. A longer run pays more per bank and is lost more often, so the expected value stays in a narrow band. A better player is paid for surviving, not for a hidden multiplier: the skilled rows (+) differ only in the chance to bank and in the traits collected.
 
 Each player's mix of runs, and the banking income that follows:
 
 | Player | Days | Run-time mix | Pearls per run-minute | Run minutes/day | Banking Pearls/day |
 |---|---|---|---|---|---|
-| Casual | 1 to 3 | A0 100% | 46.0 | 12.75 | 587 |
-| Casual | 4 to 10 | A 80%, B 20% | 55.5 | 12.75 | 708 |
-| Casual | 11 to 30 | A 60%, B 40% | 58.2 | 12.75 | 742 |
-| Regular | 1 | A0 100% | 46.0 | 34.00 | 1,564 |
-| Regular | 2 | A 100% | 52.8 | 34.00 | 1,796 |
-| Regular | 3 to 7 | A 50%, B 50% | 59.6 | 34.00 | 2,025 |
-| Regular | 8 to 14 | A 25%, B 50%, C 25% | 65.3 | 34.00 | 2,221 |
-| Regular | 15 to 30 | A 15%, B 40%, C 35%, D 10% | 68.2 | 34.00 | 2,320 |
-| Heavy | 1 | A0 50%, A 50% | 49.4 | 76.50 | 3,780 |
-| Heavy | 2 to 4 | A 30%, B 50%, C 20% | 64.2 | 76.50 | 4,910 |
-| Heavy | 5 to 10 | A+ 10%, B+ 35%, C+ 40%, D+ 15% | 83.5 | 76.50 | 6,384 |
-| Heavy | 11 to 30 | B+ 25%, C+ 40%, D+ 35% | 90.5 | 76.50 | 6,924 |
+| Casual | 1 to 3 | A0 100% | 49.3 | 12.75 | 628 |
+| Casual | 4 to 10 | A 80%, B 20% | 58.5 | 12.75 | 746 |
+| Casual | 11 to 30 | A 60%, B 40% | 61.0 | 12.75 | 777 |
+| Regular | 1 | A0 100% | 49.3 | 34.00 | 1,675 |
+| Regular | 2 | A 100% | 56.0 | 34.00 | 1,904 |
+| Regular | 3 to 7 | A 50%, B 50% | 62.2 | 34.00 | 2,116 |
+| Regular | 8 to 14 | A 25%, B 50%, C 25% | 67.5 | 34.00 | 2,296 |
+| Regular | 15 to 30 | A 15%, B 40%, C 35%, D 10% | 70.3 | 34.00 | 2,389 |
+| Heavy | 1 | A0 50%, A 50% | 52.6 | 76.50 | 4,027 |
+| Heavy | 2 to 4 | A 30%, B 50%, C 20% | 66.5 | 76.50 | 5,086 |
+| Heavy | 5 to 10 | A+ 10%, B+ 35%, C+ 40%, D+ 15% | 85.7 | 76.50 | 6,555 |
+| Heavy | 11 to 30 | B+ 25%, C+ 40%, D+ 35% | 92.7 | 76.50 | 7,094 |
 
 ### 5.4 Day-by-day tables
 
@@ -731,7 +731,7 @@ Columns: **Banking** includes scraps. **Cove** is the income claimed that day (t
 | Slot 25 | — | After day 39 | After day 39 | Day 25 |
 | Slot 30 | — | After day 39 | After day 39 | Day 38 |
 
-The regular player meets every canon target: Pufferfish in the first session (about 5.5 minutes of play), Eel on day 2, Sea Turtle on day 4, Squid on day 10, Shark Pup on day 28. The casual player takes more than twice as many days (the Shark Pup comes after day 39) and the heavy player about half as many. `economy.sim` fails the gate when the regular player's day for any species is more than 30% off the canon (chapter 09, section 16.2).
+The regular player meets every canon target: Pufferfish in the first session (a median of about 6.5 minutes into it, inside chapter 04's 6:00 to 9:00 window for the first purchase), Eel on day 2, Sea Turtle on day 4, Squid on day 10, Shark Pup on day 28. The casual player takes more than twice as many days (the Shark Pup comes after day 39) and the heavy player about half as many. `economy.sim` fails the gate when the regular player's day for any species is more than 30% off the canon (chapter 09, section 16.2).
 
 **The first session in detail.** An average new player, with all values (tune):
 
@@ -743,9 +743,9 @@ The regular player meets every canon target: Pufferfish in the first session (ab
 
 The masses, goals and times are chapter 04's (sections 6.2, 7.2 and 7.4); the amounts are this chapter's. Reef Rank rewards arrive at **[L]** and add 50 here (rank 2 at 100 lifetime banked Pearls).
 
-The Pufferfish (500) is affordable at the second bank, with 676 Pearls, six to eight minutes in. Run 1 cannot be lost, because nothing can eat a new player before the first bank (canon 5.2). If run 2 is gulped at 40 mass, the 50% scraps rule pays 60 where the bank would have paid 120, "bank a Snapper" waits for run 3, and the total passes 500 early in run 3 when "eat 50 prey" completes (591). That path ends run 3 with 996. The canon wants half of new players still playing at 10 minutes, so the Pufferfish arrives inside a typical first session.
+The Pufferfish (500) is affordable at the second bank, with 676 Pearls, six to eight minutes in (chapter 04's second bank; its purchase window is 6:00 to 9:00, and chapter 04 owns the first-session script). `economy.sim`, which does not script the first session, agrees: a median of 6.5 minutes into the session. Run 1 cannot be lost, because nothing can eat a new player before the first bank (canon 5.2). If run 2 is gulped at 40 mass, the 50% scraps rule pays 60 where the bank would have paid 120, "bank a Snapper" waits for run 3, and the total passes 500 early in run 3 when "eat 50 prey" completes (591). That path ends run 3 with 996. The canon wants half of new players still playing at 10 minutes, so the Pufferfish arrives inside a typical first session.
 
-The starter set pays 425 for a full day against the 450 the model assumes for a regular player's day 1 (90% of 500). The 25-Pearl gap moves nothing: the regular player still ends day 1 short of the Eel and buys it on day 2.
+The starter set pays 425 for a full day against about 433 that `economy.sim` pays a regular player on day 1 (each of the three goals done with a 90% chance, the all-three bonus when all are). The gap moves nothing: the regular player still ends day 1 short of the Eel (about 2,680 Pearls in hand against 3,500) and buys it on day 2.
 
 **What the first-draft canon anchors did.** The same simulation with the first-draft canon's cove formula (10 × 2^(tier − 1)) and trait bonuses (+25% to +400%):
 
@@ -766,7 +766,7 @@ The anchors gave the Shark Pup away 19 days early and left a regular player owni
 3. Slot prices set so that a 20% slot budget buys slot 12 by about day 11 and slot 18 by day 27.
 4. Daily goal, streak and Reef Rank rewards trimmed so that a regular player ends day 1 with 2,498 Pearls, short of the Eel's 3,000. The Eel then lands early on day 2. (First-draft model. With income counted from the bank the regular player ends day 1 with about 2,680 Pearls in hand, so the Eel now costs 3,500; section 4.1.)
 
-**Re-check after the consistency pass (13 October 2026).** The simulation was not re-run; each change was checked by hand against the day tables above. No species unlock day moved.
+**Re-check after the consistency pass (13 October 2026).** The simulation was not re-run; each change was checked by hand against the first-draft day tables. Superseded: the day tables are now `economy.sim`'s output (section 5.4), which includes every change below, so the hand-checked figures in this table (for example 31,499 Pearls of decoration spending by day 30, where the sim gives about 56,800, and the 2,479 Pearls at the end of day 1) are history, kept for the reasoning.
 
 | Change | Effect on the 30-day model |
 |---|---|
@@ -827,7 +827,7 @@ A perfect player is modelled as losing no time (60 useful seconds a minute), cat
 
 Crystal Jellies roam as a drift of five, about one drift per server every five minutes (canon 8.2), so one player can gain Crystal from a single drift. The Crystal rows assume the perfect player finds a drift on every run and eats all five jellies; Keen Nose lowers that to four of the five and does not raise the ceiling.
 
-So the ceiling without Crystal is about **25,000 Pearls an hour** for a free player and about 50,000 with Deep Pockets. A player who also wins a whole drift on every run reaches about **38,000**, or about **75,000** with Deep Pockets. An average player earns 3,200 to 4,600 an hour of run time (section 5.3). The gap without Crystal is about sevenfold and is all skill and survival.
+So the ceiling without Crystal is about **25,000 Pearls an hour** for a free player and about 50,000 with Deep Pockets. A player who also wins a whole drift on every run reaches about **38,000**, or about **75,000** with Deep Pockets. An average player earns 3,400 to 4,600 an hour of run time (section 5.3). The gap without Crystal is about sevenfold and is all skill and survival.
 
 Crystal is capped by supply, not by skill: at most 12 drifts an hour per server. The ×1.5 adds at most 2,700 Pearls to one bank (5,400 base at 3,000 mass), so it can add at most 32,400 base Pearls an hour to a whole server, whatever its players do.
 
@@ -999,13 +999,13 @@ Soft-launch slice (chapter 13, section 3.2): every row.
 
 The rank thresholds in the table above are the authority. Chapter 03's "lifetime Pearls banked to enter" column for each band of ranks should read from it: rank 6 = 3,450, rank 11 = 16,000, rank 16 = 38,500, rank 21 = 73,000, rank 26 = 119,000, rank 31 = 178,000, rank 36 = 249,000, rank 41 = 335,000, rank 46 = 434,000, rank 50 = 523,000.
 
-Pace in the model:
+Pace in the model (`economy.sim`, medians; rank 50 from the 240-day report run):
 
 | Player | Rank on day 1 | Day 10 | Day 30 | Day 90 | Rank 50 |
 |---|---|---|---|---|---|
-| Casual | 3 | 7 | 12 | 20 | More than a year |
-| Regular | 4 | 12 | 20 | 33 | About day 225 |
-| Heavy | 6 | 18 | 32 | 50 | Day 78 |
+| Casual | 3 | 8 | 12 | 20 | After day 240 |
+| Regular | 4 | 12 | 20 | 33 | Day 219 |
+| Heavy | 6 | 19 | 32 | 50 | Day 76 |
 
 A new player gains two or three ranks in the first session, which is the point of the 2.2 exponent: early ranks are quick, and each later rank costs more than the one before.
 
