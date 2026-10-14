@@ -45,7 +45,20 @@
     "StarterGui": { "$properties": { "ScreenOrientation": "LandscapeSensor" } }, // 15 section 1, PF21
     "TextChatService": { "$properties": { "ChatVersion": "TextChatService" } },
     "VoiceChatService": { "$properties": { "EnableDefaultVoice": false } }, // 09 section 6.10
-    "Lighting": {},
+    "Lighting": {
+      // 06 section 10.1: set here, never by game scripts (spike S0-A5, F22). Technology stays unset.
+      // Presets (ambient, fog, grade) are written per player by TideController.
+      "$properties": {
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": true,
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.8,
+        "EnvironmentDiffuseScale": 0,
+        "EnvironmentSpecularScale": 0,
+        "GeographicLatitude": 15,
+        "ClockTime": 13
+      }
+    },
     "SoundService": {},
     "MaterialService": {},
     "Workspace": {
