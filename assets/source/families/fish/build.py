@@ -26,31 +26,22 @@ import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
 
-NAME = "M_Species_Base_Fish"
-LENGTH, HEIGHT, WIDTH = 3.0, 1.1, 0.7
-Y_NOSE, Y_BODY_END, Y_TAIL_ROOT, Y_TAIL_TIP = -1.5, 1.05, 0.95, 1.5
-FIN_THICK = 0.04            # the floor is 0.03 (06 section 6.5)
-EYE_RADIUS = 0.11
 
-# Rings and segments per part. Triangles: lod0 1,452 of 1,500; lod1 704 of 750; shell 536 of 600.
+NAME = "M_Species_Base_Fish"
+from fishshape import (FIN_THICK, HEIGHT, LENGTH, WIDTH, Y_NOSE, Y_TAIL_ROOT, Y_TAIL_TIP,  # noqa: E402
+                       body_part, dorsal_part, half_h, half_w, spread, tail_part)
+EYE_RADIUS = 0.11
+MOUTH_Y = -1.12             # the mouth line runs from the nose back to here
+
+# Rings and segments per part. Triangles: lod0 1,452 of 1,500; lod1 704 of 750; shell 576 of 600.
 RES = {
     "lod0": dict(segs=20, rings=20, tail=(5, 5), dorsal=(6, 4), pec=(4, 4), eye=(8, 6), lid=(5, 4)),
     "lod1": dict(segs=14, rings=14, tail=(4, 3), dorsal=(4, 3), pec=(3, 3), eye=(6, 4), lid=(3, 3)),
-    "shell": dict(segs=12, rings=12, tail=(4, 3), dorsal=(4, 3), pec=(3, 3), eye=(6, 4), lid=None),
+    "shell": dict(segs=14, rings=14, tail=(4, 3), dorsal=(4, 3), pec=None, eye=(6, 4), lid=None),
 }
 
 LIGHT, MID, DARK, ACCENT = (common.colour("creatures.minnow." + k) for k in ("light", "mid", "dark", "accent"))
 EYE_WHITE, PUPIL = "#FFFFFF", common.colour("ui.ink")
-
-
-def half_h(y):
-    """Half height of the body at station y: a slightly fat teardrop, blunt nose, thin tail root."""
-    t = min(1.0, max(0.0, (y - Y_NOSE) / (Y_BODY_END - Y_NOSE)))
-    return 0.45 * math.sin(math.pi * (0.93 * t) ** 0.75) ** 0.6
-
-
-def half_w(y):
-    return half_h(y) * (0.26 / 0.45)
 
 
 def on_flank(y, z, inset):
@@ -60,39 +51,6 @@ def on_flank(y, z, inset):
 EYE = (on_flank(-1.05, 0.10, 0.03), -1.05, 0.10)      # left eye centre (+X is the creature's left)
 PEC = (on_flank(-0.55, -0.12, 0.03), -0.55, -0.12)    # left pectoral root
 DORSAL_TIP = (0.0, -0.1, HEIGHT / 2.0)
-
-
-def spread(a, b, n):
-    return [a + (b - a) * i / (n - 1) for i in range(n)]
-
-
-# ---------------------------------------------------------------- parts
-
-def body_part(segs, rings):
-    out = []
-    for k in range(1, rings + 1):
-        y = Y_NOSE + (k / rings) ** 1.25 * (Y_BODY_END - Y_NOSE)
-        hh, hw = half_h(y), half_w(y)
-        out.append([(hw * math.sin(a), y, hh * math.cos(a)) for a in (2.0 * math.pi * j / segs for j in range(segs))])
-    return meshgen.loft(out, (0.0, Y_NOSE, 0.0), (0.0, Y_BODY_END + 0.05, 0.0))
-
-
-def tail_part(n):
-    rows, cols = n
-    grid = [[(0.0, Y_TAIL_ROOT + u * ((Y_TAIL_TIP - Y_TAIL_ROOT) - 0.18 * (1.0 - abs(v)) ** 2),
-              v * (0.13 + (HEIGHT / 2.0 - 0.13) * u ** 0.8))
-             for v in spread(-1.0, 1.0, cols)] for u in spread(0.0, 1.0, rows)]
-    return meshgen.slab(grid, (1.0, 0.0, 0.0), FIN_THICK)
-
-
-def dorsal_part(n):
-    rows, cols = n
-    grid = []
-    for u in spread(0.0, 1.0, rows):
-        yb = -0.5 + 0.8 * u
-        rise = 0.05 + 0.09 * math.sin(math.pi * u ** 0.6)
-        grid.append([(0.0, yb + 0.12 * v, min(HEIGHT / 2.0, half_h(yb) - 0.04 + v * rise)) for v in spread(0.0, 1.0, cols)])
-    return meshgen.slab(grid, (1.0, 0.0, 0.0), FIN_THICK)
 
 
 def pec_part(side, n):
@@ -135,6 +93,10 @@ def crest_part():
 # ---------------------------------------------------------------- colours and the standard UV layout (06 section 5.4)
 
 def body_colour(p, q):
+    """Mid back and flank, light belly, and a dark mouth line (mouth interior, 06 section 4.1)
+    along the lip, where the sharp jaw weights split; it widens as the jaw opens."""
+    if p.y < MOUTH_Y and -0.12 <= p.z <= 0.01:
+        return DARK
     return LIGHT if p.z / max(half_h(p.y), 1e-6) < -0.5 else MID
 
 
@@ -146,17 +108,23 @@ def tail_uv(p, q):
     return 0.8 + 0.2 * (p.y - Y_TAIL_ROOT) / (Y_TAIL_TIP - Y_TAIL_ROOT), 0.75 + 0.25 * p.z / (HEIGHT / 2.0)
 
 
-def fish_meshdata(res, fit):
+def fish_meshdata(res, fit, offset=0.0):
+    """The fish's parts; with `offset`, each part grown along its own normals by that much
+    (the outline shell). The shell leaves out the pectorals, which sit inside the grown
+    body, and the lids, which sit inside the grown eyes."""
     md = meshgen.MeshData()
-    md.add_part(body_part(res["segs"], res["rings"]), body_colour, uv=body_uv, weights=lambda p, q: fit.body_weights(p))
-    md.add_part(tail_part(res["tail"]), lambda p, q: DARK if q[0] > 0.55 else MID, uv=tail_uv, weights={"TailFin": 1.0})
-    md.add_part(dorsal_part(res["dorsal"]), DARK, uv=lambda p, q: (0.02 + 0.46 * q[0], 0.26 + 0.23 * q[1]),
+    md.add_part(body_part(res["segs"], res["rings"], offset), body_colour, uv=body_uv,
+                weights=lambda p, q: fit.body_weights(p))
+    md.add_part(tail_part(res["tail"], offset), lambda p, q: DARK if q[0] > 0.55 else MID, uv=tail_uv,
+                weights={"TailFin": 1.0})
+    md.add_part(dorsal_part(res["dorsal"], offset), DARK, uv=lambda p, q: (0.02 + 0.46 * q[0], 0.26 + 0.23 * q[1]),
                 weights={"Dorsal": 1.0})
     for side, tag in ((1.0, "L"), (-1.0, "R")):
-        md.add_part(pec_part(side, res["pec"]), lambda p, q: ACCENT if q[0] > 0.6 else MID,
-                    uv=lambda p, q: (0.52 + 0.46 * q[0], 0.26 + 0.23 * q[1]), weights={"Pec_" + tag: 1.0},
-                    clamp=(WIDTH / 2.0, 0.0, 0.0))
-        md.add_part(meshgen.sphere(eye_centre(side), EYE_RADIUS, (side, 0.0, 0.0), (0.0, 0.0, 1.0), *res["eye"]),
+        if res["pec"]:
+            md.add_part(pec_part(side, res["pec"]), lambda p, q: ACCENT if q[0] > 0.6 else MID,
+                        uv=lambda p, q: (0.52 + 0.46 * q[0], 0.26 + 0.23 * q[1]), weights={"Pec_" + tag: 1.0},
+                        clamp=(WIDTH / 2.0, 0.0, 0.0))
+        md.add_part(meshgen.sphere(eye_centre(side), EYE_RADIUS + offset, (side, 0.0, 0.0), (0.0, 0.0, 1.0), *res["eye"]),
                     lambda p, q: PUPIL if q[0] < 0.4 else EYE_WHITE,
                     uv=lambda p, q: (0.01 + 0.23 * q[0], 0.01 + 0.11 * q[1]), weights={"Eye_" + tag: 1.0})
         if res["lid"]:
@@ -173,9 +141,9 @@ def build():
 
     body = meshgen.skin(fish_meshdata(RES["lod0"], fit).to_object(NAME, "GEO"), arm)
     lod1 = meshgen.skin(fish_meshdata(RES["lod1"], fit).to_object(NAME + "_LOD1", "LOD"), arm)
-    shell = fish_meshdata(RES["shell"], fit).to_object(NAME + "_Shell", "SHELL")
-    shell = meshgen.skin(meshgen.make_shell(shell, NAME + "_Shell", meshgen.shell_thickness(HEIGHT),
-                                            common.colour("signal.can_eat")), arm)
+    thickness = meshgen.shell_thickness(HEIGHT)
+    shell = fish_meshdata(RES["shell"], fit, offset=thickness).to_object(NAME + "_Shell", "SHELL")
+    shell = meshgen.skin(meshgen.make_shell(shell, NAME + "_Shell", 0.0, common.colour("signal.can_eat")), arm)
 
     crest_md = meshgen.MeshData().add_part(crest_part(), ACCENT, uv=lambda p, q: (0.64 + 0.34 * q[0], 0.02 + 0.21 * q[1]))
     crest = meshgen.attach_to_bone(crest_md.to_object(NAME + "_Crest", "SOCKETS"), arm, "Sock_Crest")
@@ -192,6 +160,12 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
+        # The bible's own Minnow dark (06 section 4.3) breaks its dark-block rule (4.1): logged,
+        # reported to the owner in spike/results/art-blender.md, and waived for this stand-in only.
+        "waivers": {
+            "palette: dark L*": "06 4.3 Minnow dark #C2491D vs 4.1 dark <= 35; bible inconsistency for the owner",
+            "value: dark L*": "follows from the palette waiver above",
+        },
         "meshes": [
             {"object": body, "role": "body", "primary": True},
             {"object": lod1, "role": "body", "lod": "LOD1"},
@@ -213,10 +187,10 @@ def build():
             "lineup": [
                 {"label": "LOD0 with _Shell and crest", "objects": [body, shell, crest]},
                 {"label": "_LOD1", "objects": [lod1]},
-                {"label": "tier-1 minnow silhouette, 3 studs", "objects": [bpy.data.objects["REF_Minnow_T1"]]},
+                {"label": "capsule fish silhouette, 3 studs", "objects": [bpy.data.objects["REF_Minnow_T1"]]},
             ],
             "lineup_caption": ["no look-alike species exist yet"],
-            "extras": [{"title": title, "view": "ThreeQuarter", "pose": pose} for title, pose in rigs.fish_poses()],
+            "extras": [{"title": title, "view": view, "pose": pose} for title, view, pose in rigs.fish_poses()],
             "texture": "none (vertex colour; capsule stand-in)",
         },
     }

@@ -262,11 +262,15 @@ def apply_pose(armature, pose):
 
 def make_shell(source, name, thickness, colour_hex, collection="SHELL"):
     """Outline shell (06 section 13.2): a copy pushed out along its normals with the faces
-    flipped, skinned to the same bones. `source` is consumed and renamed."""
+    flipped, skinned to the same bones. `source` is consumed and renamed.
+    Pass thickness 0 when the source parts were already generated grown by the shell
+    thickness (the clean way for parametric parts: averaged vertex normals on thin fins
+    and pole fans make an uneven, self-intersecting shell)."""
     mesh = source.data
-    normals = [v.normal.copy() for v in mesh.vertices]
-    for v, n in zip(mesh.vertices, normals):
-        v.co = v.co + n * thickness
+    if thickness:
+        normals = [v.normal.copy() for v in mesh.vertices]
+        for v, n in zip(mesh.vertices, normals):
+            v.co = v.co + n * thickness
     mesh.flip_normals()
     mesh.update()
     source.name = name

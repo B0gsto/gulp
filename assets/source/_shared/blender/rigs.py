@@ -95,7 +95,7 @@ class FishFit:
         w = self.spine_weights(y)
         hh, hw = max(self.half_h(y), 1e-6), max(self.half_w(y), 1e-6)
         girth = 0.5 * max(0.0, 1.0 - ((y - self.girth_y) / self.girth_reach) ** 2)
-        jaw = smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((-0.03 - z) / 0.12)
+        jaw = smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((-0.03 - z) / 0.04)   # a sharp lip line, so the mouth opens
         if jaw > 0.0:
             w = {n: v * (1.0 - jaw) for n, v in w.items()}
             w["Jaw"] = jaw
@@ -151,24 +151,27 @@ def bake_clip(armature, name, frames, pose_at):
 
 
 def fish_poses(k=1.0):
-    """Key poses for the contact sheet, cells 10 to 12 (06 section 15.5)."""
+    """Key poses for the contact sheet, cells 10 to 12 (06 section 15.5), as
+    (title, view, pose). Bite: jaw open and the head lunging 12% of body length, reaching
+    the 115% stretch of 06 section 7.2. Dash: stretched to 125% (07, A_Fish_Dash)."""
     return [
-        ("Bite", {
-            "Jaw": {"rot": (32.0, 0.0, 0.0)},
-            "Spine1": {"loc": (0.0, -0.15 * k, 0.0)},
+        ("Bite", "Side", {
+            "Jaw": {"rot": (38.0, 0.0, 0.0)},
+            "Spine1": {"loc": (0.0, -0.36 * k, 0.0)},
+            "TailFin": {"loc": (0.0, 0.09 * k, 0.0)},
             "Girth_L": {"loc": (0.04, 0.0, 0.0)}, "Girth_R": {"loc": (-0.04, 0.0, 0.0)},
         }),
-        ("Dash stretch", {
-            "Spine1": {"loc": (0.0, -0.3 * k, 0.0)},
-            "Spine3": {"loc": (0.0, 0.1 * k, 0.0)},
-            "Spine4": {"loc": (0.0, 0.15 * k, 0.0)},
+        ("Dash stretch", "Side", {
+            "Spine1": {"loc": (0.0, -0.35 * k, 0.0)},
+            "Spine3": {"loc": (0.0, 0.12 * k, 0.0)},
+            "Spine4": {"loc": (0.0, 0.18 * k, 0.0)},
             "TailFin": {"loc": (0.0, 0.1 * k, 0.0)},
             "Girth_Top": {"loc": (0.0, 0.0, -0.07)}, "Girth_Bot": {"loc": (0.0, 0.0, 0.07)},
             "Girth_L": {"loc": (-0.04, 0.0, 0.0)}, "Girth_R": {"loc": (0.04, 0.0, 0.0)},
             "Pec_L": {"rot": (0.0, 0.0, 22.0)}, "Pec_R": {"rot": (0.0, 0.0, -22.0)},
             "Dorsal": {"rot": (-14.0, 0.0, 0.0)},
         }),
-        ("Scared", {
+        ("Scared", "ThreeQuarter", {
             "Spine1": {"loc": (0.0, 0.12 * k, 0.0)},
             "TailFin": {"loc": (0.0, -0.1 * k, 0.0), "rot": (0.0, 0.0, 14.0)},
             "Girth_Top": {"loc": (0.0, 0.0, 0.06)}, "Girth_Bot": {"loc": (0.0, 0.0, -0.06)},

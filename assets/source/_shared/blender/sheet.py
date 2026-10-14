@@ -73,7 +73,15 @@ def cell_image(job, cell):
     kind = cell["kind"]
     reef = common.colour("water.reef.fog")
     if kind == "view":
-        return over(load(job, cell["image"]), reef)
+        out = over(load(job, cell["image"]), reef)
+        draw = ImageDraw.Draw(out)
+        f = font(13)
+        for y, text in cell.get("labels", []):
+            y = max(0, min(IMG - 18, y - 19))
+            box = draw.textbbox((6, y), text, font=f)
+            draw.rectangle((box[0] - 3, box[1] - 2, box[2] + 3, box[3] + 2), fill=rgb(common.colour("ui.panel")))
+            draw.text((6, y), text, font=f, fill=rgb(common.colour("ui.ink")))
+        return out
     if kind == "silhouette":
         out = Image.new("RGB", (IMG, IMG), (255, 255, 255))
         for i, name in enumerate(cell["images"]):
@@ -115,22 +123,52 @@ def cell_image(job, cell):
     return out
 
 
+def wrap(draw, lines, f, width):
+    """Word-wraps caption lines to the cell width."""
+    out = []
+    for line in lines:
+        words, current = line.split(" "), ""
+        for word in words:
+            trial = (current + " " + word).strip()
+            if current and draw.textlength(trial, font=f) > width:
+                out.append(current)
+                current = word
+            else:
+                current = trial
+        out.append(current)
+    return out
+
+
+def caption_lines(draw, lines):
+    """Fits a caption into its 68-pixel band: 12-point type, then 10-point, then cut."""
+    for size, step, room in ((12, 15, 4), (10, 12, 5)):
+        f = font(size)
+        wrapped = wrap(draw, lines, f, CELL_W - 16)
+        if len(wrapped) <= room:
+            return f, step, wrapped
+    wrapped[room - 1] = wrapped[room - 1][:60] + "..."
+    return f, step, wrapped[:room]
+
+
 def build(job):
     ink, panel = rgb(common.colour("ui.ink")), rgb(common.colour("ui.panel"))
     sheet = Image.new("RGB", (SIZE, SIZE), panel)
     draw = ImageDraw.Draw(sheet)
-    title_font, caption_font, footer_font = font(16), font(12), font(15)
+    title_font, footer_font = font(16), font(15)
     for i, cell in enumerate(job["cells"][:COLS * ROWS]):
         x, y = (i % COLS) * CELL_W, (i // COLS) * CELL_H
         sheet.paste(cell_image(job, cell), (x, y + TITLE_H))
         draw.text((x + 8, y + 5), "%d  %s" % (i + 1, cell["title"]), font=title_font, fill=ink)
-        for n, line in enumerate(cell.get("caption", [])[:4]):
-            draw.text((x + 8, y + TITLE_H + IMG + 3 + n * 15), line, font=caption_font, fill=ink)
+        f, step, lines = caption_lines(draw, cell.get("caption", []))
+        for n, line in enumerate(lines):
+            draw.text((x + 8, y + TITLE_H + IMG + 3 + n * step), line, font=f, fill=ink)
         draw.rectangle((x, y, x + CELL_W - 1, y + CELL_H - 1), outline=ink)
     top = ROWS * CELL_H
     draw.rectangle((0, top, SIZE - 1, SIZE - 1), fill=rgb(common.colour("ui.panel_shade")), outline=ink)
-    for n, line in enumerate(job["footer"][:4]):
-        draw.text((12, top + 8 + n * 21), line, font=footer_font, fill=ink)
+    lines = wrap(draw, job["footer"], footer_font, SIZE - 24)
+    step = 21 if len(lines) <= 4 else max(14, (FOOTER_H - 10) // len(lines))
+    for n, line in enumerate(lines[:6]):
+        draw.text((12, top + 6 + n * step), line, font=footer_font if step >= 18 else font(12), fill=ink)
     os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
     sheet.save(job["out"])
     return job["out"]

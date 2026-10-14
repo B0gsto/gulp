@@ -172,19 +172,19 @@ def build_scene():
     bmesh.ops.translate(bm, verts=bm.verts, vec=(0.0, 0.0, 2.0))
     cube = _mesh_object("REF_Cube4", bm, "PREVIEW", ref_mat)
     cube.location = (0.0, 30.0, 0.0)
+    import fishshape   # late: fishshape -> meshgen -> template
     for name, scale in (("REF_Minnow_T1", 1.0), ("REF_Minnow_T7", 6.5)):
-        bm = bmesh.new()
-        bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.5)
-        bmesh.ops.scale(bm, verts=bm.verts, vec=(0.7 * scale, 3.0 * scale, 1.1 * scale))
-        ref = _mesh_object(name, bm, "PREVIEW", ref_mat)
+        ref = fishshape.silhouette(common.colour("ui.ink"), scale).to_object(name, "PREVIEW", material=ref_mat)
+        ref.hide_render = True
         ref.location = (0.0, 40.0 if scale == 1.0 else 60.0, 0.0)
     return scene
 
 
 def ensure_template():
     path = common.TEMPLATE_BLEND
-    stale = (not os.path.exists(path)) or os.path.getmtime(path) < max(
-        os.path.getmtime(__file__), os.path.getmtime(common.PALETTE_JSON))
+    sources = [__file__, common.PALETTE_JSON, os.path.join(common.LIB_DIR, "fishshape.py"),
+               os.path.join(common.LIB_DIR, "meshgen.py")]
+    stale = (not os.path.exists(path)) or os.path.getmtime(path) < max(os.path.getmtime(s) for s in sources)
     if stale:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         build_scene()

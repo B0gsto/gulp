@@ -27,9 +27,14 @@ class Report:
     def __init__(self):
         self.rows = []
 
-    def add(self, subject, check, ok, detail=""):
-        self.rows.append({"subject": subject, "check": check, "ok": bool(ok), "detail": str(detail)})
-        return bool(ok)
+    def add(self, subject, check, ok, detail="", waiver=None):
+        """A failed check passes only with a waiver: a stated reason, logged in the report."""
+        waived = bool(not ok and waiver)
+        if waived:
+            detail = "WAIVED (%s): %s" % (waiver, detail)
+        self.rows.append({"subject": subject, "check": check, "ok": bool(ok) or waived, "waived": waived,
+                          "detail": str(detail)})
+        return bool(ok) or waived
 
     @property
     def ok(self):
@@ -38,10 +43,14 @@ class Report:
     def failures(self):
         return [r for r in self.rows if not r["ok"]]
 
+    def waived(self):
+        return [r for r in self.rows if r.get("waived")]
+
     def print(self):
         for r in self.rows:
-            print("[validate] %s  %-28s %-22s %s" % ("PASS" if r["ok"] else "FAIL", r["subject"], r["check"], r["detail"]))
-        print("[validate] %s: %d checks, %d failed" % ("PASS" if self.ok else "FAIL", len(self.rows), len(self.failures())))
+            print("[validate] %s  %-28s %-22s %s" % ("WAIV" if r.get("waived") else "PASS" if r["ok"] else "FAIL", r["subject"], r["check"], r["detail"]))
+        print("[validate] %s: %d checks, %d failed, %d waived" % ("PASS" if self.ok else "FAIL", len(self.rows),
+                                                                 len(self.failures()), len(self.waived())))
 
 
 def mesh_name_problem(name):
@@ -234,6 +243,64 @@ def check_placement(spec, obj, add):
         add("facing", False, "the asset states no facing check")
 
 
+BLOCK_RULES = {  # 06 section 4.1: share of surface, lightness
+    "mid": ((55, 65), (45, 80)),
+    "light": ((20, 30), (85, 100)),
+    "dark": ((10, 15), (0, 35)),
+    "accent": ((0, 5), (0, 100)),
+}
+
+
+def value_blocks(obj, declared):
+    """Share of surface and L* of each declared colour block, from the vertex colours."""
+    mesh = obj.data
+    mesh.calc_loop_triangles()
+    col = mesh.color_attributes[common.COLOR_ATTR]
+    targets = {name: common.hex_to_srgb(h) for name, h in declared.items()}
+    area = {name: 0.0 for name in targets}
+    light = {name: 0.0 for name in targets}
+    for tri in mesh.loop_triangles:
+        for li in tri.loops:
+            rgb = tuple(col.data[li].color_srgb[:3])
+            name = min(targets, key=lambda n: sum((a - b) ** 2 for a, b in zip(rgb, targets[n])))
+            area[name] += tri.area / 3.0
+            light[name] += common.lstar_from_srgb(rgb) * tri.area / 3.0
+    total = sum(area.values()) or 1.0
+    out = []
+    for name in ("mid", "light", "dark", "accent"):
+        if name not in targets or area[name] <= 0.0:
+            continue
+        share, lstar = 100.0 * area[name] / total, light[name] / area[name]
+        (s0, s1), (l0, l1) = BLOCK_RULES[name]
+        out.append({"block": name, "share": round(share, 1), "lstar": round(lstar, 1),
+                    "share_ok": s0 <= share <= s1, "lstar_ok": l0 <= lstar <= l1,
+                    "rule": "%d-%d%%, L* %d-%d" % (s0, s1, l0, l1)})
+    return out
+
+
+def check_values(spec, report):
+    """06 section 4.1 (checklist line 5): every declared block inside its share and L* range.
+    Checks the palette colours themselves and the area-weighted vertex colours of the body.
+    A failure can only pass through a waiver the asset states, and the report says so."""
+    declared = spec["preview"]["blocks"]
+    body = next(e["object"] for e in spec["meshes"] if e.get("primary"))
+    waivers = spec.get("waivers", {})
+    for block, hexcode in declared.items():
+        (l0, l1) = BLOCK_RULES[block][1]
+        lstar = common.lstar(hexcode)
+        check = "palette: %s L*" % block
+        report.add(body.name, check, l0 <= lstar <= l1, "%s is L* %.1f, rule %d-%d" % (hexcode, lstar, l0, l1),
+                   waiver=waivers.get(check))
+    blocks = value_blocks(body, declared)
+    spec["value_blocks"] = blocks
+    for b in blocks:
+        check = "value: %s share" % b["block"]
+        report.add(body.name, check, b["share_ok"], "%.1f%% of the surface, rule %s" % (b["share"], b["rule"]),
+                   waiver=waivers.get(check))
+        check = "value: %s L*" % b["block"]
+        report.add(body.name, check, b["lstar_ok"], "L* %.1f, rule %s" % (b["lstar"], b["rule"]), waiver=waivers.get(check))
+
+
 # ---------------------------------------------------------------- rig and clips
 
 def check_rig(spec, report):
@@ -306,6 +373,8 @@ def run(spec):
         spec["body_tris"] = triangle_count(body[0]["object"].data)
     for entry in spec["meshes"]:
         check_mesh(spec, entry, report)
+    if spec.get("preview", {}).get("blocks"):
+        check_values(spec, report)
     if spec.get("armature"):
         check_rig(spec, report)
     for clip in spec.get("actions", []):

@@ -70,7 +70,7 @@ def build():
             "lineup": [
                 {"label": NAME, "objects": [cube]},
                 {"label": "the template's 4-stud cube", "objects": [refs["REF_Cube4"]]},
-                {"label": "tier-1 minnow silhouette, 3 studs", "objects": [refs["REF_Minnow_T1"]]},
+                {"label": "capsule fish silhouette, 3 studs", "objects": [refs["REF_Minnow_T1"]]},
             ],
             "lineup_caption": ["a calibration asset has no look-alikes"],
             "extras": [

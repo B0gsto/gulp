@@ -16,14 +16,6 @@ import common
 import meshgen
 import template
 
-BLOCK_RULES = {  # 06 section 4.1: share of surface, lightness
-    "mid": ((55, 65), (45, 80)),
-    "light": ((20, 30), (85, 100)),
-    "dark": ((10, 15), (0, 35)),
-    "accent": ((0, 5), (0, 100)),
-}
-
-
 def world_points(objs):
     dg = bpy.context.evaluated_depsgraph_get()
     pts = []
@@ -98,33 +90,6 @@ def stack(groups, gap):
     return saved
 
 
-def value_blocks(obj, declared):
-    """Share of surface and L* of each declared colour block, from the vertex colours."""
-    mesh = obj.data
-    mesh.calc_loop_triangles()
-    col = mesh.color_attributes[common.COLOR_ATTR]
-    targets = {name: common.hex_to_srgb(h) for name, h in declared.items()}
-    area = {name: 0.0 for name in targets}
-    light = {name: 0.0 for name in targets}
-    for tri in mesh.loop_triangles:
-        for li in tri.loops:
-            rgb = tuple(col.data[li].color_srgb[:3])
-            name = min(targets, key=lambda n: sum((a - b) ** 2 for a, b in zip(rgb, targets[n])))
-            area[name] += tri.area / 3.0
-            light[name] += common.lstar_from_srgb(rgb) * tri.area / 3.0
-    total = sum(area.values()) or 1.0
-    out = []
-    for name in ("mid", "light", "dark", "accent"):
-        if name not in targets or area[name] <= 0.0:
-            continue
-        share, lstar = 100.0 * area[name] / total, light[name] / area[name]
-        (s0, s1), (l0, l1) = BLOCK_RULES[name]
-        out.append({"block": name, "share": round(share, 1), "lstar": round(lstar, 1),
-                    "share_ok": s0 <= share <= s1, "lstar_ok": l0 <= lstar <= l1,
-                    "rule": "%d-%d%%, L* %d-%d" % (s0, s1, l0, l1)})
-    return out
-
-
 def run(spec, report, validation_ok):
     scene = bpy.context.scene
     pv = spec["preview"]
@@ -149,32 +114,43 @@ def run(spec, report, validation_ok):
         cells.append({"title": "Six fog colours, lime and red outline", "kind": "fogs", "image": "Side.png",
                       "caption": [", ".join(template.BACKDROP_ZONES), "outline drawn by the sheet tool, not the shell mesh"]})
 
-        blocks = value_blocks(main[0], pv["blocks"]) if pv.get("blocks") else []
+        blocks = spec.get("value_blocks") or []
         caption = ["%s %.0f%% L* %.0f%s" % (b["block"], b["share"], b["lstar"],
                                             "" if b["share_ok"] and b["lstar_ok"] else "  (rule: %s)" % b["rule"]) for b in blocks]
         cells.append({"title": "Value check", "kind": "value", "image": "Side.png",
                       "caption": caption or ["no value blocks declared"]})
 
         groups = pv["lineup"]
-        saved = stack([g["objects"] for g in groups], pv.get("lineup_gap", 0.5))
+        saved = stack([g["objects"] for g in groups], pv.get("lineup_gap", 0.8))
         everything = [o for g in groups for o in g["objects"]]
         image = shot("Side", everything, os.path.join(tmp, "Lineup.png"))
+        centre, scale = scene.camera.matrix_world.translation, scene.camera.data.ortho_scale
+        labels = []
+        for g in groups:
+            top = extent(world_points(g["objects"]))[1].z
+            labels.append([round((0.5 - (top - centre.z) / scale) * template.RENDER_SIZE), g["label"]])
         for obj, (basis, _) in saved.items():
             obj.matrix_basis = basis
         bpy.context.view_layer.update()
-        cells.append({"title": "Line-up", "kind": "view", "image": image,
-                      "caption": ["top to bottom: " + "; ".join(g["label"] for g in groups)] + pv.get("lineup_caption", [])})
+        cells.append({"title": "Line-up", "kind": "view", "image": image, "labels": labels,
+                      "caption": pv.get("lineup_caption", [])})
 
         for i, extra in enumerate(pv["extras"]):
             if "legend" in extra:
                 cells.append({"title": extra["title"], "kind": "legend", "legend": extra["legend"], "caption": extra.get("caption", [])})
                 continue
-            if arm:
-                meshgen.apply_pose(arm, extra.get("pose"))
+            caption = list(extra.get("caption", []))
+            if arm and extra.get("pose"):
+                rest = extent(world_points(main[:1]))
+                meshgen.apply_pose(arm, extra["pose"])
+                bpy.context.view_layer.update()
+                posed = extent(world_points(main[:1]))
+                rest_len, posed_len = rest[1].y - rest[0].y, posed[1].y - posed[0].y
+                caption.insert(0, "length %.2f of %.2f studs: %.0f%% of rest" % (posed_len, rest_len, 100.0 * posed_len / rest_len))
             image = shot(extra.get("view", "ThreeQuarter"), extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i))
             if arm:
                 meshgen.apply_pose(arm, None)
-            cells.append({"title": extra["title"], "kind": "view", "image": image, "caption": extra.get("caption", [])})
+            cells.append({"title": extra["title"], "kind": "view", "image": image, "caption": caption})
     finally:
         if arm:
             meshgen.apply_pose(arm, None)
@@ -199,8 +175,10 @@ def run(spec, report, validation_ok):
             "%s    %s    script commit %s    Blender %s" % (name, common.today(), common.git_commit(), bpy.app.version_string),
             "Triangles: " + tris,
             "Bones: %s    Texture: %s" % (bones, pv.get("texture", "none (vertex colour)")),
-            "Validation: %s (%d checks%s)" % ("PASS" if validation_ok and not failures else "FAIL", len(report.rows),
-                                               "" if not failures else ", failed: " + ", ".join(sorted({r["check"] for r in failures}))),
+            "Validation: %s (%d checks%s%s)" % (
+                "PASS" if validation_ok and not failures else "FAIL", len(report.rows),
+                "" if not failures else ", failed: " + ", ".join(sorted({r["check"] for r in failures})),
+                "" if not report.waived() else ", WAIVED: " + ", ".join(r["check"] for r in report.waived())),
         ],
     }
     job_path = os.path.join(tmp, "sheet.json")
