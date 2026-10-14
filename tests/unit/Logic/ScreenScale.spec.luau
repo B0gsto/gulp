@@ -289,3 +289,41 @@ describe("ScreenScale.compute", function()
 		expect(layout.scale).toBe(0.40)
 	end)
 end)
+
+describe(
+	"ScreenScale.textRpx (docs/08 section 1.5 text floor, rounded up to whole pixels)",
+	function()
+		it("lifts the 22 rpx floor on the 844 x 390 phone (scale 0.542) to 12 px drawn", function()
+			local size = ScreenScale.textRpx(22, 0.542)
+			expect(ScreenScale.drawnPx(size, 0.542)).toBe(12)
+			expect(ScreenScale.drawnPx(size, 0.542) / 0.542 >= 22).toBe(true)
+		end)
+
+		it("keeps the size at scale 1 and on exact pixels", function()
+			expect(ScreenScale.textRpx(22, 1)).toBe(22)
+			expect(ScreenScale.textRpx(22, 0.5)).toBe(22)
+			expect(ScreenScale.textRpx(28, 1.5)).toBe(28)
+		end)
+
+		it("never draws under ceil(rpx x scale) at any scale from 0.40 to 2.60", function()
+			for _, rpx in { 22, 24, 28, 40, 64 } do
+				for step = 0, 220 do
+					local scale = 0.40 + step * 0.01
+					local size = ScreenScale.textRpx(rpx, scale)
+					expect(size >= rpx).toBe(true)
+					expect(ScreenScale.drawnPx(size, scale) >= math.ceil(rpx * scale - 1e-6)).toBe(
+						true
+					)
+				end
+			end
+		end)
+	end
+)
+
+describe("ScreenScale.wholePxRpx (text strokes in whole pixels)", function()
+	it("draws a 2 rpx stroke as 2 px on the phone and keeps it at scale 1", function()
+		expect(math.abs(ScreenScale.wholePxRpx(2, 0.542) * 0.542 - 2) < 1e-9).toBe(true)
+		expect(ScreenScale.wholePxRpx(2, 1)).toBe(2)
+		expect(ScreenScale.wholePxRpx(2, 1.5)).toBe(2)
+	end)
+end)

@@ -43,6 +43,9 @@ export type Layout = {
 	-- The safe frame less its margins (docs/08 section 1.3), in rpx: the content box children of
 	-- a `DeviceSafeInsets` root are laid out in.
 	contentSize: Size,
+	-- The top left of the content box in rpx of the full screen (a `None` layer's root), so the
+	-- markers of the full-screen `GulpWorld` layer can be clamped into the safe frame.
+	contentOrigin: { x: number, y: number },
 	-- The occupied parts of the Roblox top bar in rpx, clipped to the safe frame and measured from
 	-- the top left of the content box (so a rect may start at a negative x or y, inside the
 	-- margin). Nothing persistent may overlap them (docs/08 section 1.3; spike F11).
@@ -154,6 +157,32 @@ function ScreenScale.scale(
 	)
 end
 
+--- The TextSize (rpx) to give a label so that text of `rpx` drawn at `scale` keeps at least
+--- ceil(rpx x scale) whole pixels. The engine draws a scaled TextSize floored to whole pixels,
+--- so a 22 rpx label at scale 0.542 (11.9 px) would draw 11 px, 20 rpx, under the 22 rpx floor
+--- of docs/08 section 1.5. Rounding up holds the floor at every scale.
+function ScreenScale.textRpx(rpx: number, scale: number): number
+	if scale <= 0 then
+		return rpx
+	end
+	local px = math.ceil(rpx * scale - 1e-6)
+	return math.max(rpx, math.ceil(px / scale))
+end
+
+--- A length of `rpx` rounded up to whole pixels at `scale`, in rpx: a text stroke of 2 rpx at
+--- scale 0.542 (1.08 px) draws 2 px, so the dark outline of docs/08 section 1.5 never thins out.
+function ScreenScale.wholePxRpx(rpx: number, scale: number): number
+	if scale <= 0 then
+		return rpx
+	end
+	return math.max(1, math.ceil(rpx * scale - 1e-6)) / scale
+end
+
+--- The whole pixels the engine draws a `textSize` rpx label at `scale` (floored).
+function ScreenScale.drawnPx(textSize: number, scale: number): number
+	return math.floor(textSize * scale + 1e-6)
+end
+
 --- The safe frame inside a device safe area of the given size, relative to its top left: the TV
 --- margins on a TV, then the ultrawide cap, centred.
 function ScreenScale.safeFrame(screenClass: ScreenClass, safeAreaSize: Size): Rect
@@ -263,6 +292,10 @@ function ScreenScale.compute(
 		contentSize = {
 			width = frame.width / scale - 2 * ScreenScale.MARGIN_SIDE,
 			height = frame.height / scale - ScreenScale.MARGIN_TOP - ScreenScale.MARGIN_BOTTOM,
+		},
+		contentOrigin = {
+			x = (safeArea.x + frame.x) / scale + ScreenScale.MARGIN_SIDE,
+			y = (safeArea.y + frame.y) / scale + ScreenScale.MARGIN_TOP,
 		},
 		fullSize = { width = screen.width / scale, height = screen.height / scale },
 		keepOut = keepOut,
