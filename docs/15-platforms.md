@@ -43,7 +43,7 @@ Checked on 13 October 2026. Pages on `create.roblox.com` were read as `/docs/en-
 | PF23 | The Input Action System (`InputAction`, `InputBinding`, `InputContext`) exists and is the recommended cross-platform route. `InputActionLabel` and the Input Action Manager are beta. Player remapping as a built-in feature is not confirmed. | V, partly U | [Input Action System](https://create.roblox.com/docs/input/input-action-system) |
 | PF24 | Pad focus: `GuiObject.NextSelectionUp`, `Down`, `Left`, `Right`; `SelectionImageObject`. Roblox also offers a virtual cursor. | V | [GuiObject](https://create.roblox.com/docs/reference/engine/classes/GuiObject), console guidelines |
 | PF25 | Roblox graphics quality: `SavedQualitySetting` is Automatic or level 1 to 10. Reading a saved level is documented, but there is "no reliable way" to get the level in use under Automatic (S). No way for a script to set it was found. Shadows are disabled "at quality levels below 4". The engine "automatically starts with lower quality textures and then ramps up quality based on available device memory". | V, partly S | [SavedQualitySetting](https://create.roblox.com/docs/reference/engine/enums/SavedQualitySetting), [Improve performance](https://create.roblox.com/docs/performance-optimization/improve) |
-| PF26 | Lighting: `Lighting.Technology` is being retired for `LightingStyle` plus `PrioritizeLightingQuality`. Staff mapping: Future = Realistic + prioritise on; ShadowMap = Soft + prioritise on; Voxel = Soft + prioritise off. How each renders on phones and consoles is not documented. | V (staff post, Jan 2025), U | [Unified lighting](https://devforum.roblox.com/t/let-there-be-unified-light-unified-lighting-is-fully-live/3401512), [Lighting](https://create.roblox.com/docs/environment/lighting) |
+| PF26 | Lighting: `Lighting.Technology` is being retired for `LightingStyle` plus `PrioritizeLightingQuality`. Staff mapping: Future = Realistic + prioritise on; ShadowMap = Soft + prioritise on; Voxel = Soft + prioritise off. How each renders on phones and consoles is not documented. Measured in Sprint 0: scripts cannot read `Lighting.Technology` at all; `LightingStyle` and `PrioritizeLightingQuality` are writable from Edit (plugin) code, so both are set in the project file or the build step (spike S0-A5, F22). | V (staff post, Jan 2025), U; script access measured | [Unified lighting](https://devforum.roblox.com/t/let-there-be-unified-light-unified-lighting-is-fully-live/3401512), [Lighting](https://create.roblox.com/docs/environment/lighting) |
 | PF27 | Frame rate: the Windows client has a Maximum Frame Rate setting: "Default (60 FPS, not your refresh rate), 60 FPS, 120 FPS, 144 FPS, and 240 FPS". Caps on Mac, phones, Xbox, PlayStation and handhelds are not confirmed. | V (staff post, May 2024), U | [Maximum Framerate](https://devforum.roblox.com/t/introducing-the-maximum-framerate-setting/2995965) |
 | PF28 | Memory: Roblox publishes no numeric client memory limit for any device class. "Lower-end devices, particularly mobile devices, have severe memory limitations." The Studio emulator "isn't accurate for memory usage". | V | [Design for performance](https://create.roblox.com/docs/performance-optimization/design) |
 | PF29 | Engine draw distance on weak phones: the RDC26 post says the minimum will rise to 500 studs in "Late 2026", "even on a low-end android device that might be running at quality level 1", and describes this as more than double today's 200. | V (announcement) | [RDC26](https://devforum.roblox.com/t/rdc26-what-we-announced/4865880) |
@@ -123,6 +123,8 @@ widthScale  = safeFrameWidth / 1280
 scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 ```
 
+`safeFrameWidth` is the width of the device safe area after the TV margins (5% of the screen on each side, TV only, section 3.5) and the ultrawide cap (2.34 × the height, section 5.2), and before the 16 and 28 rpx margins of document 08, section 1.3, which are in rpx and so come after the scale.
+
 `interfaceSize` is a new setting [L]: 0.8 to 1.3, default 1.0. It covers a PC plugged into a TV, weak eyesight and handhelds without more detection rules. The width term guarantees that 1,280 rpx always fit, which the height-only formula in document 08 does not (a narrow desktop window breaks it).
 
 **Input mode** decides the control scheme, the hints and the assist strength. It is `UserInputService.PreferredInput`, re-read on every change (section 5). Values: `Touch`, `Keys`, `Pad`.
@@ -164,14 +166,14 @@ These three tables apply to every platform section below.
 |---|---|---|---|
 | Typical device | Phones with 4 GB of RAM or less, old laptops | Recent phones, tablets, handhelds, most laptops, older consoles | Gaming PCs, current consoles, flagship tablets |
 | Frame rate target | 30 fps | 60 fps | 60 fps or the player's cap |
-| Lighting | One place-wide setting for everyone: `LightingStyle = Realistic`, `PrioritizeLightingQuality = true` (document 06, section 10.1). It cannot differ per device; the engine lowers it with the player's quality level [U how]. | Same | Same |
+| Lighting | One place-wide setting for everyone: `LightingStyle = Realistic`, `PrioritizeLightingQuality = true` (document 06, section 10.1), set in the project file or the build step, not by game scripts (PF26). It cannot differ per device; the engine lowers it with the player's quality level [U how]. | Same | Same |
 | Shadows | Off (`GlobalShadows = false` on this client). Roblox also drops them below quality level 4 (PF25). | On: landmarks, cliffs and floor only | On, same casters |
 | Colour correction | On | On | On |
 | Bloom | On, intensity 0.4 (tune) | On, 0.6 | On, 0.6 |
 | Sun rays | Off | Off | On within 40 studs of the surface |
 | Depth of field (cove inspect only) | Off | On | On |
 | Blur behind menus | Off; a 60% dark scrim instead | On | On |
-| Fog: zone view distance (document 06, section 10.2) | Capped at 220 studs (tune). Hides the engine's 200-stud draw limit on weak phones (PF29). | Capped at 350 studs | As authored (200 to 450) |
+| Fog: zone view distance (document 06, section 10.2: legacy fog, which hit its caps exactly in Sprint 0, F21) | Capped at 220 studs (tune). Hides the engine's 200-stud draw limit on weak phones (PF29). | Capped at 350 studs | As authored (200 to 450) |
 | Caustic shells | Off | Within 100 studs | Within 150 studs |
 | Light shafts visible | 12 | 18 | 24 |
 | Prey drawn as meshes (pool size) | 80 | 150 | 250 |
@@ -280,7 +282,7 @@ All movement, camera and interface code uses the real frame time, so the game pl
 
 | Action | Control | Detail |
 |---|---|---|
-| Swim | Drag anywhere that is not a button | Floating origin; dead zone 14 px, full at 80 px, clamp 100 px; left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° |
+| Swim | Drag anywhere that is not a button | Floating origin; dead zone 14 rpx, full at 80 rpx, clamp 100 rpx (tune); left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° |
 | Look | None. The camera follows. | Two-thumb scheme [L]: drag on the right 60%, 0.35° per px |
 | Brake | Lift the thumb | Coasts to a stop. Two-thumb [L]: stick down |
 | Dash | `HUD.Dash` | Press; holding repeats on cooldown ("held dash", on by default) |
@@ -378,7 +380,7 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 |---|---|---|---|
 | 4:3 | iPad 1,024 × 768 | 79° | 95° |
 | 1.44 | iPad 1,180 × 820 | 74° | 95° |
-| 16:10 | Android tablets, many laptops | 70° | 97° |
+| 16:10 | Android tablets, many laptops | 70° | 96.5° |
 | 16:9 | Phones, monitors, TVs | 70° | 102° |
 | 19.5:9 | Large phones | 70° | 113° |
 | 21:9 | Ultrawide monitors | 70° | 117° |
@@ -977,7 +979,7 @@ These changes were applied to the chapters named during reconciliation. The fina
 | 10 | "Prey drawn 250 / 400 / 800" (06) and "prey meshes 80 / 150 / 250" (09), and "skinned 30 / 50 / 120" (06) and "animated rigs 8 / 16 / 24" (09), are kept as two separate rows each: total visible, and full meshes or full animation. Tier names Smooth, Balanced, Pretty equal Low, Mid, High. | 06 §11.4, §14.1; 09 §15.1, §8.8 | Use both rows and the three tier names; 06 §11.4 gains a middle column. |
 | 11 | The cut "StreamingTargetRadius 512 → 384" cannot be per device: 09's own V4 and V29 say streaming properties are not scriptable. Replaced by a fog cap. | 09 §15.6 step 6 | Replace the step. |
 | 12 | Zone view distance is capped at 220 studs on Smooth and 350 on Balanced, because the engine draws only about 200 studs on weak Android phones today (PF29). | 06 §10.2 | Add the two caps; re-check the Nursery and Reef looks at 220. |
-| 13 | 06 lists `Technology = ShadowMap` ("middle cost") beside `LightingStyle = Realistic` with `PrioritizeLightingQuality = true`. By Roblox's mapping (PF26) that pair is the old Future, the most expensive; ShadowMap equals Soft, which 06 rejects. | 06 §2.4, §10.1, §18.2 | Remove the ShadowMap row; make "Realistic holds 30 fps on test row 1" a gate in the lighting spike, with Soft + prioritise on as the fallback. |
+| 13 | 06 lists `Technology = ShadowMap` ("middle cost") beside `LightingStyle = Realistic` with `PrioritizeLightingQuality = true`. By Roblox's mapping (PF26) that pair is the old Future, the most expensive; ShadowMap equals Soft, which 06 rejects. | 06 §2.4, §10.1, §18.2 | Remove the ShadowMap row; make "Realistic holds 30 fps on test row 1" a gate in the lighting spike, with Soft + prioritise on as the fallback. Sprint 0 added: `Technology` stays unset and unread; the two properties are set in the project file or build step (PF26). |
 | 14 | Horizontal field of view held between 95° and 117° by adjusting the vertical one (cap 90°). | 02 §3.1 | Add the rule and the table from 3.2. |
 | 15 | Gulp assist strength varies by input type; steering nudge and dash snap are new [L] assists for touch and pad; the server validates against the widest set. | 02 §4.1, §2.5; 09 §8.9 | 02: add the 4.3 table; note the snap as the one exception to "dash goes along current facing". 09: widen bite validation to the touch set. |
 | 16 | Quality scaling adds a step-up probe, a memory guard, `lastGoodTier` and a manual override with two guards. | 09 §15.1, §5.2 | Extend the `UIController` rule or add a `QualityController`. |

@@ -117,12 +117,19 @@ return function()
 			expect(PlayerLifecycle.policy(player).AreAdsAllowed ~= nil).toBe(true)
 		end)
 
-		it("placed it at the cove spawn (nothing moves it yet)", function()
-			local slot = PlayerLifecycle.getSlot(player) :: number
-			local state = assert(CreatureService.get(slot))
-			local want = CreatureService.coveSpawnCFrame(slot).Position
-			expect((state.root.Position - want).Magnitude < 2).toBe(true)
-		end)
+		it(
+			"returns it to the cove spawn, and the owner's MovementController keeps it there",
+			function()
+				-- The owner swims from the moment it spawns (MovementController, S2-C4), so the spawn
+				-- point is checked through a server teleport, which the owner's copy obeys (spike S4).
+				local slot = PlayerLifecycle.getSlot(player) :: number
+				local state = assert(CreatureService.get(slot))
+				local want = CreatureService.coveSpawnCFrame(slot).Position
+				CreatureService.teleport(slot, CreatureService.coveSpawnCFrame(slot))
+				task.wait(0.5)
+				expect((state.root.Position - want).Magnitude < 2).toBe(true)
+			end
+		)
 
 		it("derives tier and size from mass: Root.Size by the 3% rule, onTierChanged", function()
 			local slot = PlayerLifecycle.getSlot(player) :: number

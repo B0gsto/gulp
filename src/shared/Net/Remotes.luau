@@ -83,7 +83,19 @@ Remotes.list = {
 	-- Client to server. Rate limit per player (bucket size).
 	c2s("ClientReady", "Reliable", "none", "none", 0, 1, "MVP"), -- 1 per session
 	sized(c2s("Bite", "Reliable", "buffer", "8 to 40 bytes (8.9)", 12, 20, "MVP"), 8, 40),
-	sized(c2s("Ability", "Reliable", "buffer", "6 bytes: op, seq, time", 4, 6, "MVP"), 6, 6),
+	sized(
+		c2s(
+			"Ability",
+			"Reliable",
+			"buffer",
+			"6 bytes: op u8 (1 dash, 2 press, 3 release), seq u8, timeMs u32",
+			4,
+			6,
+			"MVP"
+		),
+		6,
+		6
+	),
 	c2s("RunAction", "Reliable", "scalars", "op + up to 2 numbers", 5, 8, "MVP"),
 	c2s("CoveAction", "Reliable", "scalars", "op + up to 2 scalars", 5, 8, "MVP"),
 	withString(

@@ -8,7 +8,7 @@ This chapter turns section 14 of `01-game-canon.md` into a buildable design. It 
 |---|---|---|
 | G1 | Phones first. Low-end phone holds 30 fps, mid phone 60 fps. | Client draws prey from pools, strict instance and draw-call budgets (section 15), no per-prey Instances on the server. |
 | G2 | 24 players per server. | Per-player work on the server is staggered across frames. Every per-player cost in this chapter is multiplied by 24. |
-| G3 | About 1,300 live prey in 250 groups, 2,000 during a Feeding Frenzy **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
+| G3 | About 1,300 live prey in 250 groups, about 2,540 members in 468 groups at the strict Frenzy target, with buffers and budgets sized for about 2,620 in 508 groups (`MAX_GROUPS = 512`, 8.1) during a Feeding Frenzy (twice normal, chapter 02, section 14.4) **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
 | G4 | No Humanoid, no avatar, no default interface. | We own spawning, movement, camera, input, health, death, nameplates and chat (section 6.10). |
 | G5 | Bites and Pearls cannot be forged. | The client never reports mass, tier or Pearls. It only claims "I bit X"; the server decides (sections 8.9, 10, 14). |
 | G6 | Movement feels instant on a phone. | The client owns its root part; the server validates after the fact (section 7). |
@@ -109,10 +109,17 @@ The type-check command (flags confirmed with `luau-lsp analyze --help` on this M
 ```sh
 rojo sourcemap default.project.json --output sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --base-luaurc .luaurc \
+  --definitions @roblox=.cache/globalTypes-<version>.d.luau \
   --ignore "Packages/**" --ignore "**/Vendor/**" src
 ```
 
-If the CLI does not load Roblox globals on its own, pass a definitions file with `--definitions @roblox=globalTypes.d.luau` (**U16**).
+`--definitions` is required: without it the CLI does not load Roblox globals and reports every one as unknown (spike, F27; **U16** settled). `tools/check` downloads the file that belongs to the luau-lsp version pinned in `rokit.toml` into `.cache/` (not committed).
+
+**Tool traps found in the spike (F27).** `tools/check` enforces the first two; the review of a diff (R15) checks all three:
+
+- `luau-lsp analyze` without `--definitions` still passes shared modules that use no Roblox global, which hides the missing flag until a module touches one. `tools/check` always passes the flag.
+- Rojo 7.7.1 rejects the implicit `CFrame` property form (`{"position", "orientation"}`) in project files with only "Failed to deserialize JSON". Write the explicit `{"CFrame": {...}}` wrapper. `tools/check` builds `ci.project.json` and every project file is built before a publish, so a wrong form fails there.
+- `Stats.DataReceiveKbps` reads 0 on a Studio client. Bytes received are measured on the server (`DataSendKbps`, or our own byte counters), never from that property in Studio.
 
 Every MCP call needs a `studio_id` (**V17**); the agent calls `list_roblox_studios` first and never assumes one. `script_search` returns at most 10 results and `script_grep` at most 50, so agents search on disk with normal tools and use MCP only for what exists solely in Studio. Agents never edit scripts through `multi_edit`: disk is the source of truth and Rojo would overwrite the change.
 
@@ -124,13 +131,13 @@ Fallback if Rojo live sync misbehaves on a Studio update: Studio's built-in Scri
 
 ### 2.5 Memory rules for a 16 GB Mac
 
-The numbers are estimates to be measured with Activity Monitor in week one (**U15**).
+Studio rows were measured in the spike as physical footprint (vmmap), not RSS, which reads far lower (**U15** settled, F25); the other rows are estimates.
 
-| Process | Expected memory |
+| Process | Memory |
 |---|---|
-| Studio, world place open, not playing | 2.5 to 4 GB |
-| Studio play test (server and one client in one process) | add 1.5 to 2.5 GB |
-| Each extra local test client | add 1 to 1.5 GB |
+| Studio, world place open, not playing | 2.5 to 4 GB (spike place: 3.1 GB) |
+| Studio play test (server and one client in one process) | add 0.5 to 1 GB (spike: 3.6 GB, peak 3.9 GB in total) |
+| Two-client test (a server process and two client processes beside the editor) | add about 6 GB: 2.0 to 2.1 GB each (spike: about 9.3 GB in total) |
 | Blender with one species scene | 2 to 6 GB |
 | Claude Code, terminal, editor | 1 to 2 GB |
 
@@ -138,7 +145,7 @@ Rules:
 
 1. A Studio play test and a Blender render are both heavy jobs. Never more than two heavy jobs at once.
 2. One Studio window only. Close the place before a Blender bake of more than a few minutes.
-3. Multi-client tests (section 16.5) use at most two local clients and run with Blender closed.
+3. Multi-client tests (section 16.5) use at most two local clients and run with Blender closed. Only one two-client test runs at a time, and never beside a second Studio. It is ended with `EndTest("<reason>")` on the server instance, which closes all three processes: `EndTest()` with no argument raises an error, and SIGTERM does not end them (F25).
 4. Headless agents (code, tests, docs) can run in parallel; only one agent at a time holds the Studio MCP session. The lock is an atomic `mkdir .locks/studio`, held only for sync, play, capture and stop.
 5. Screenshots are taken through `screen_capture`, saved to disk and downscaled (`sips -Z 768`) before any agent reads them.
 
@@ -516,25 +523,25 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 
 ### 5.3 Remotes
 
-Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. Every payload is one `buffer` except `State` and the low-rate `*Action` remotes, which carry a small array of scalars.
+Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. The payload column says how each one is encoded. **Buffers** (one `buffer` argument, laid out in 8.7 and 8.9): `Bite`, `Ability`, `Telemetry`, `BiteResult`, `PreyEvent`, `PredatorEvent`, `PreyState` and `PredatorState`. **Every other remote carries plain Luau arguments** (numbers, booleans, short strings, or one table where the row says so): `State`, `WorldInfo`, the low-rate `*Action` remotes, `SettingsSet`, `TutorialStep`, `CreatureEvent`, `TideEvent` and `CoveView`. Plain arguments are type-checked and range-checked on arrival like everything else (14.2).
 
 | Remote | Kind | Direction | Payload | Rate limit per player (bucket size) |
 |---|---|---|---|---|
 | `ClientReady` | Reliable | C→S | none | 1 per session |
 | `Bite` | Reliable | C→S | 8 to 40 bytes (8.9) | 12/s (20) |
-| `Ability` | Reliable | C→S | 6 bytes: op, seq, time | 4/s (6) |
+| `Ability` | Reliable | C→S | 6 bytes: `op` u8 (1 dash, 2 ability press, 3 ability release for held abilities such as Shell), `seq` u8, `timeMs` u32 (the client's estimate of server time when pressed). The client starts its dash at once and reports it with op 1; the server's dash window (7.1) opens only from that message | 4/s (6) |
 | `RunAction` | Reliable | C→S | op + up to 2 numbers | 5/s (8) |
 | `CoveAction` | Reliable | C→S | op + up to 2 scalars | 5/s (8) |
 | `ShopAction` | Reliable | C→S | op + sku string ≤ 32 chars | 3/s (5) |
 | `GoalAction` | Reliable | C→S | op + index | 2/s (4) |
-| `SettingsSet` | Reliable | C→S | key + value | 2/s (4) |
-| `TutorialStep` | Reliable | C→S | step number | 2/s (4) |
+| `SettingsSet` | Reliable | C→S | Plain arguments, not a buffer: key (string from the fixed settings list, ≤ 32 chars) + value (number or boolean) | 2/s (4) |
+| `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: step number (integer) | 2/s (4) |
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
 | `State` | Reliable | S→C | path string, value | n/a |
 | `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady` | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
-| `PreyEvent` | Reliable | S→C | 1 + 6n bytes | n/a |
+| `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
 | `CreatureEvent` | Reliable | S→C | gulped, revived, status, tier change, bite absorbed, emote [L] | n/a |
 | `PredatorEvent` | Reliable | S→C | 14 bytes | n/a |
 | `TideEvent` | Reliable | S→C | override start and end only | n/a |
@@ -587,7 +594,7 @@ The model is built once per session and reused. Destroying and rebuilding it on 
 
 | Event | Server steps | Time budget |
 |---|---|---|
-| Join | Build, place in the cove, assign, own, `Phase = cove`. One exception: an account that has never banked is placed in the Nursery for its first run (canon 5.5, chapter 04); every later run starts at the cove | Creature controllable within 1.0 s of `ClientReady` |
+| Join | Build, place in the cove, assign, own, `Phase = cove`. One exception: an account that has never banked is placed in the Nursery for its first run (canon 5.5, chapter 04); every later run starts at the cove | Creature controllable within 1.0 s of `ClientReady` (measured in Studio: 0.34–0.91 s from `ClientReady` to the client's `CharacterAdded`, spike F5; re-measured on a real server with the real map, 6.11) |
 | Run start | Player swims out of the cove mouth; `RunLoopService.start` sets `Phase = run` | Instant |
 | Gulped | `Phase = dead`; `SetNetworkOwner(nil)`; anchor; move to cove spawn; reset size to tier 1 (or tier 2 for `shark`); wait for the client's 0.8 s gulp effect; unanchor; `SetNetworkOwner(player)`; `Phase = cove`; `MovementValidator.grace(slot, 2)` | 2.0 s total, canon limit 3 s |
 | Revive | Same as gulped but placed by the return rule below (the gulp position, or a revive point), traits kept, mass × 0.7 (the tier is derived again from the new mass), `Protected = true` for 3 s | 1.0 s |
@@ -600,14 +607,14 @@ The model is built once per session and reused. Destroying and rebuilding it on 
 
 ### 6.4 Network ownership
 
-The player's client owns `Root`. That gives zero-latency control, and the engine replicates the part to the server and on to other clients. Roblox states that it cannot verify physics on client-owned parts (**V5**), which is why section 7 exists. `Workspace.AuthorityMode` stays `Automatic`; Server Authority is evaluated in spike item S12 and is not used at MVP (section 20, R2).
+The player's client owns `Root`. That gives zero-latency control, and the engine replicates the part to the server and on to other clients. Roblox states that it cannot verify physics on client-owned parts (**V5**), which is why section 7 exists. `Workspace.AuthorityMode` stays `Automatic`; Server Authority is evaluated in spike item S12 and is not used at MVP (section 20, R2). Under `AuthorityMode = Server` the spike found that `SetNetworkOwner` throws, string attributes are capped at 50 characters, and scripts cannot read the mode (F24). If Server Authority is ever adopted, every `SetNetworkOwner` call in this chapter is replaced and every long-string attribute is reviewed first, starting with `Traits` (comma-joined IDs, section 5.3).
 
 The server takes ownership back (`SetNetworkOwner(nil)`) only while the creature is dead or being hard-corrected. Anchored parts are always server-owned (**V5**), so anchoring is the freeze switch.
 
 ### 6.5 Physics setup
 
 - **Underwater (root Y ≤ 0):** `MovementController` writes `Move.VectorVelocity` and `Turn.CFrame` every frame from `SwimModel.step`. `MaxForce` is high enough that gravity is irrelevant. The sea is **not** Terrain water: it is empty space dressed with fog, colour and a surface mesh, so the engine applies no buoyancy we would have to fight.
-- **Above the surface (root Y > 0):** `Move.Enabled = false`; the creature follows a ballistic arc under `Workspace.Gravity` (196.2 by default, **V29**) and re-enters. This is the breach.
+- **Above the surface (root Y > 0):** `Move.Enabled = false`; the creature follows a ballistic arc under `Workspace.Gravity` and re-enters. This is the breach. The project files set `Workspace.Gravity = 80`, chapter 02's air gravity (02 §1.7; the engine default is 196.2, **V29**). One global value is enough: under water `MaxForce` overrides gravity whatever its value, nothing else in the game falls (prey and predators are moved by code), and `SwimModel`'s own air step uses the same 80 (`Config/Defaults`, `swim.gravity`), so the client's prediction and the engine's arc agree. No custom downward force is needed. Concretely, when `SwimModel` reports `Airborne`, `MovementController` sets `root.AssemblyLinearVelocity` to the model's velocity, sets `Move.Enabled = false` and keeps `Turn` (turn rate ×0.3, 02 §1.7); the engine then flies the arc. Each frame in the air it copies the root's position and velocity back into the model's state, so `SwimModel`'s air step only predicts between frames. When the centre is below `Y = 0` again it scales the velocity by 0.8 into the model and sets `Move.Enabled = true`.
 - `Workspace.FallenPartsDestroyHeight` is set to `-5000`; the map reaches 600 studs below the surface and the engine default would delete creatures in the Drop-off.
 - World origin is the centre of the map on the surface: X and Z from −1,024 to +1,024, Y from −600 to +96.
 - `PhysicsSteppingMethod = Adaptive` (**V32**).
@@ -626,12 +633,14 @@ Same-tier players bump because `Creature` collides with `Creature`. Bites never 
 
 ### 6.6 Streaming and ReplicationFocus
 
-Streaming properties cannot be set from scripts (**V4**); they are set by hand in Studio and listed in section 15.4. Decisions:
+Streaming properties cannot be set from scripts (**V4**), and the spike found that scripts cannot read them either (F6). They live in the Rojo project file (`world.project.json`), never set by hand in Studio, and are listed in section 15.4. Decisions:
 
 - The **collision shell is Persistent**, so the owner's physics always has walls to hit even when the visible reef around it has not streamed in. The shell is at most 150 simple parts **(tune)**; Roblox warns that Persistent models are for rare cases (**V4**), and this is one.
 - **Creature models are Atomic** (one part each) and stream by distance. A player more than `StreamingTargetRadius` away has no model on this client; the leaderboard and cove signs use `Player` attributes instead.
 - Everything the client creates itself (rigs, prey, effects) is exempt from streaming out (**V4**).
 - `ReplicationFocus` is the root while alive and the cove anchor part while dead.
+- **The client waits for `workspace.PersistentLoaded`** before it touches any Persistent model (the collision shell). Persistent models are absent when `StarterPlayerScripts` start, even when `game:IsLoaded()` is true; the event fired 3 to 341 ms later in the spike (F4). `first/Loading` keeps the loading screen up until it has fired.
+- **`PauseOutsideLoadedArea` is harmless with our root.** It freezes a non-Humanoid root without anchoring it; in the spike it fired once, 0.7 s after joining, for 56 to 69 ms (F7). Nothing reacts to it except this: while `Player.GameplayPaused` is true, client code and `MovementValidator` ignore the root's velocity (the validator's grace in 7.4 already covers the pose).
 
 ### 6.7 Smoothing other players
 
@@ -639,13 +648,19 @@ Each client builds a rig for every creature model that streams in. The rig is ne
 
 ```text
 target      = root.CFrame (own creature: the simulated value; others: the engine's replicated value)
-rig.pos     = critically damped spring toward target.Position   (τ = 0.08 s others, 0.03 s own) (tune)
+velocity    = root.AssemblyLinearVelocity, clamped to 1.2 × the creature's dash speed (tune)
+lead        = target.Position + velocity × 2τ                     -- velocity lead
+rig.pos     = critically damped spring toward lead               (τ = 0.08 s others, 0.03 s own) (tune)
 rig.heading = spring toward look direction                       (τ = 0.10 s) (tune)
               look direction = velocity if speed > 2 studs/s, else root look vector
 rig:PivotTo(CFrame.lookAlong(rig.pos, rig.heading) * bankAndPitchFromTurnRate)
 ```
 
+**Why the lead.** A critically damped spring toward a target moving at speed v settles 2τv behind it. In the spike (S3, F1) that was 6.1 to 6.4 studs behind the replicated root at 38 studs/s and 12.5 to 13 studs in a dash, at τ = 0.08 s: no pops, but a rig visibly behind the ball the server judges bites from. Springing toward `root + velocity × 2τ` cancels the trail, so the rig sits on the root at steady speed and still smooths its corrections. The clamp stops a replication overshoot from throwing the lead point. `tests/unit` checks the spring against a constant-velocity target: within 0.5 studs of it after 0.5 s **(tune)**.
+
 The engine already interpolates replicated assemblies; the spring hides its corrections and lets us add banking, squash and stretch without touching replicated state. Pass criteria are in S3.
+
+**Visuals read the rig, never the root (F2).** The replicated root of a client-owned creature pops 7.3 to 10.4 studs in one frame at dash onset, at every lag including 0 ms (S3). So every client visual that follows a creature reads the smoothed `rig.pos`, never raw `root.Position`: nameplates, outline shells, bite reach and mouth indicators, threat arrows, UI anchors and the camera's follow point. Server rules do not change: `MovementValidator`, `BiteService` and lag compensation keep reading the replicated root.
 
 ### 6.8 Scale with mass, steps with tier
 
@@ -675,13 +690,13 @@ Animations play through an `Animator` under an `AnimationController` in the clie
 |---|---|---|
 | Avatar loading and appearance | Never loaded. `CharacterAutoLoads = false` | PlayerLifecycle |
 | Control scripts, touch thumbstick, jump button | `InputController` reads `UserInputService` directly. A stub `PlayerModule` in `StarterPlayerScripts` stops the default one from loading (**U1**, S9) | InputController |
-| Camera follow, zoom, occlusion | `CameraType = Scriptable` gives full control (**V32**); `CameraController` sets `CFrame` and `Focus` every frame; occlusion by one raycast against `World` | CameraController |
+| Camera follow, zoom, occlusion | `CameraType = Scriptable` gives full control (**V32**); `CameraController` sets `CFrame` and `Focus` every frame; occlusion by one sphere-cast (radius 1.0, chapter 02, section 3.5) from the look-at point to the desired camera position against `workspace.Collision`, the World shell; a ray in the `World` group would miss it, because that group does not collide with itself | CameraController |
 | Health and health bar | No health. A creature is alive, protected or gulped. Plated's single save is a flag in `CreatureState` | CreatureService |
 | Death and respawn (`Humanoid.Died`, `RespawnTime`) | `RunLoopService.gulp` and the table in 6.3 | RunLoopService |
 | Swimming, buoyancy | `SwimModel` plus mover constraints | MovementController |
 | Name and health display over the head | A pooled `BillboardGui` per visible creature: name, tier pips, eat or flee colour | CreatureController |
-| Chat window | Text chat is off in the MVP: `StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)` (**V14**). Whether to turn it on is reviewed for launch (canon 14); nothing in this design depends on it. If the review says yes, it is a panel on `TextChatService` behind `flag.textChat`, never shown on a TV (chapter 15) | UIController |
-| Chat bubbles | Off in the MVP. Part of the same launch review: `TextChatService:DisplayBubble(root, text)` works only if S16 passes (**U6**) | UIController |
+| Chat window | Text chat is off in the MVP: `StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)` (**V14**). Whether to turn it on is reviewed for launch (canon 14); nothing in this design depends on it. If the review says yes, it is a panel on `TextChatService` behind `flag.textChat`, never shown on a TV (chapter 15). Either way the Rojo project file sets `TextChatService.ChatVersion = TextChatService` (15.4): a Rojo-built place otherwise defaults to legacy chat, and scripts cannot write the property (spike F3) | UIController |
+| Chat bubbles | Off in the MVP. Part of the same launch review: `TextChatService:DisplayBubble(root, text)` draws on our ball root (S16 passed on Mac, **U6**), but only with `ChatVersion = TextChatService`; under legacy chat it fails silently, with no error (F3) | UIController |
 | Voice chat | Off. `VoiceChatService.EnableDefaultVoice = false` (**V31**) | Place setting |
 | Player list, backpack, emotes, health GUI | All core GUI off; our own leaderboard; our own six quick emotes [L] through `EmoteService` | UIController |
 | ProximityPrompts | Not used. World prompts are our own Hud elements driven by volumes | UIController |
@@ -701,7 +716,7 @@ One throwaway place, one week. Each item is pass or fail. A fail triggers the fa
 | S3 | Other players look smooth | Two clients, Studio network simulation at 100 ms and 200 ms: with rig smoothing no visible pop larger than 2 studs at 38 studs/s, and none larger than 4 studs during a dash |
 | S4 | Server correction works | Server sets `root.CFrame` on a client-owned root and the owner's creature moves there within 0.3 s; `SetNetworkOwner(nil)` plus anchor freezes it regardless of the client (**U3**) |
 | S5 | Streaming | Persistent collision shell present before the creature can move; `PauseOutsideLoadedArea` either behaves or is harmless with a non-Humanoid character; `Player.GameplayPaused` reaches the server (**U18**) |
-| S6 | Prey pipeline | 250 groups and 1,300 members: server step ≤ 2.0 ms per 100 ms tick; ≤ 6 kB/s per player with 24 bots; a low-end phone draws 80 pooled prey at 30 fps with `BulkMoveTo` |
+| S6 | Prey pipeline | 250 groups and 1,300 members: the simulation (8.4, steps 1 to 5) ≤ 2.0 ms per 100 ms tick; interest and send, timed separately, ≤ 0.25 ms per player per tick (15.2); ≤ 6 kB/s per player with 24 bots; a low-end phone draws 80 pooled prey at 30 fps with `BulkMoveTo` |
 | S7 | Buffers over remotes | A 900-byte `buffer` arrives intact through `UnreliableRemoteEvent`; measured loss under 5% on Wi-Fi; measured bytes on the wire recorded (**U2**) |
 | S8 | Skinned rigs without a Humanoid | `AnimationController` + `Animator` plays on a client-made rig; two MeshParts share one skeleton; 24 rigs on screen at 30 fps on a low-end phone |
 | S9 | Camera and controls | Scriptable camera; no default touch controls appear; drag to swim, mouse and keyboard all drive the same `SwimInput` (gamepad is [L] and is not part of the pass criteria) |
@@ -715,6 +730,14 @@ One throwaway place, one week. Each item is pass or fail. A fail triggers the fa
 | S17 | Headless engine tests | `rojo build ci.project.json`, publish through Open Cloud, run one spec through Luau execution, read the result; record the real concurrency limit (**U9**) |
 | S18 | Scaling | `Model:ScaleTo` from 1.0 to 6.5 on an animated skinned rig shows no joint or animation errors |
 
+Sprint 0 ran the spike on the Mac; its results and findings (F1 to F27) are in `docs/spike-report.md`, and the rules they changed are written into the sections they touch. Studio on one Mac cannot settle everything, so these are measured again before the soft launch, with the method of 16.4:
+
+| Re-measure | Where | Spike value | Pass when |
+|---|---|---|---|
+| Join to control (6.3, F5) | A real server with the real world place | 0.34–0.91 s in Studio, small spike place | Creature controllable within 1.0 s of `ClientReady` on a mid phone |
+| Server correction (S4, 7.3, F9) | A real phone on a real network | 0.212–0.272 s at 200 ms simulated lag: about 30 ms margin | The owner's creature reaches a server-set pose within 0.3 s |
+| Phone frame rates (S2, S6, S8) | Device rows 1 and 3 of chapter 15 | Not run: Mac only, vsync-capped at 60 fps (F12) | The S2, S6 and S8 phone criteria above |
+
 ## 7. Movement validation
 
 `MovementValidator` runs at 20 Hz. It reads each root's replicated `Position` and look vector, never anything the client sends in a remote. Per slot it keeps a ring of 32 pose samples (1.6 s): time, position, look vector, allowed speed at that moment.
@@ -722,11 +745,21 @@ One throwaway place, one week. Each item is pass or fail. A fail triggers the fa
 ### 7.1 Allowed speed
 
 ```text
-vAllowed = Tiers[tier].swimSpeed × species.speedMult × TraitService.speedMult(slot)   -- Stripes ×1.08
+vSwim    = Tiers[tier].swimSpeed × species.speedMult × TraitService.speedMult(slot)   -- Stripes ×1.08
          × statusMult        -- statuses slow 0.5 (anemone), puff 0.4, shell 0, stun 0, rampage 1.25
-         × currentMult       -- 1.6 while WorldIndex says the pose is inside a Current volume
-         × dashMult          -- 2.2 from (dashStart − 0.10 s) to (dashStart + dashDuration + 0.25 s)
+         × dashFactor        -- species.dashMult (2.2; Sea Turtle 2.0, Squid 2.6) from (dashStart − 0.10 s)
+                             -- to (dashStart + dashDuration + 0.25 s), then the dash tail below; else 1
+vCurrent = 0.6 × Tiers[tier].swimSpeed while WorldIndex says the pose is inside a Current volume, else 0
+vForward = vSwim + vCurrent              -- the most an honest creature moves along its look vector
+vAllowed = vSwim × slideMult + vCurrent  -- the most it moves in any direction
+slideMult = 1.17                         -- √(1 + 0.6²): full forward speed plus a full strafe (02 §1.3) (tune)
 ```
+
+A current adds `0.6 × tierSpeed` along the stream after everything else (02 §1.2); it is added here, not multiplied, so a slow species or a dash is not over- or under-credited.
+
+**Dash tail.** After the dash window closes, `dashFactor = 1 + (species.dashMult − 1) × e^(−accel × species.accelMult × t)`, with `t` the seconds since the window closed and `accel` the tier's value from 02 §1.3. This is the relaxation `SwimModel` itself uses, so the validator expects exactly the slow-down an honest creature has. It matters at high tiers: a tier-7 creature (accel 4/s) needs about 0.6 s to fall back within 10% of its top speed after a dash (ln 12 / 4 = 0.62 s), longer than the 0.25 s that closes the window; a tier-1 creature needs 0.28 s. The tail's clock `t` stops while the creature is `Airborne` and runs again from re-entry: there is no drag in the air, so an honest dash into a breach keeps its speed through the arc (measured 1.86 × `vAllowed` in the air and 1.51 × just after re-entry with a running clock; 0.945 × with the clock paused, task S2-C1 follow-up, 14 October 2026). While `Airborne`, the speed check of section 7.2 also allows the vertical speed gravity adds, `80 × (seconds in the air)` studs/s (02 §1.7) **(tune)**.
+
+**Why the slide term.** 02 §1.3 relaxes forward and lateral speed separately, so a creature that strafes at full speed moves at √(1 + 0.6²) = 1.166 × its top speed, and one that turns hard in a dash slides past its forward target for a moment. `SwimModel` measured both on 14 October 2026 (task S2-C1, `movement_fuzz.sim`): the worst honest speed was **1.072 × dash speed** in turns and strafes during dashes, and the worst honest 1 s displacement away from dashes **0.925 × top speed** for the Minnow, **1.051 ×** across all six species (re-measured the same day once `movement_fuzz.sim` ran every species). `slideMult` covers the strafe in any direction; the forward check of 7.2 still holds a creature that is simply faster than it should be to `vForward`.
 
 A dash window opens only when the server accepts an `Ability` message: cooldown elapsed (2.5 s, `minnow` 2.0 s, checked with 0.15 s slack), not stunned, alive. An exploiter who never sends `Ability` gets no window; one who sends it early is refused.
 
@@ -736,7 +769,7 @@ The status `rampage` is the Shark Pup's passive ability (canon 7): `BiteService`
 
 | Check | Rule | Starting tolerance (tune) | On failure |
 |---|---|---|---|
-| Speed (windowed) | Distance travelled over the last 1.0 s ≤ Σ(`vAllowed` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vAllowed` | 10% + 6 studs + ping slack | Rubber-band, +2 suspicion |
+| Speed (windowed) | Over the last 1.0 s: the distance travelled ≤ Σ(`vAllowed` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vAllowed`, **and** the part of it along the sampled look vectors ≤ Σ(`vForward` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vForward` (7.1) | 10% + 6 studs + ping slack | Rubber-band, +2 suspicion |
 | Teleport | One-sample displacement ≤ `max(30 studs, 4 × vAllowed × dt)` unless explained by a stall (7.4) | 30 studs | Rubber-band, +5 |
 | Acceleration | Speed change over 0.1 s ≤ 2 × `vAllowed` + 10 studs/s | Soft | +1 only, no correction |
 | World bounds | \|x\|, \|z\| ≤ 1,032; −608 ≤ y ≤ 40 | 8 studs | Rubber-band, +2 |
@@ -751,7 +784,7 @@ The last accepted position is always in open water, so one ray per tick per play
 | Level | Trigger | What the server does | What the player sees |
 |---|---|---|---|
 | 0. Accept | All checks pass | Store pose as accepted | Nothing |
-| 1. Correct | A hard check fails, suspicion < 10 | Set `root.CFrame` to the last accepted pose; expect the next poses within 15 studs of it for 1 s | A small snap back |
+| 1. Correct | A hard check fails, suspicion < 10 | Set `root.CFrame` to the last accepted pose; the owner's creature is there within 0.3 s (S4; measured in Studio: 0.212–0.272 s at 200 ms lag, about 30 ms margin, F9; re-measured on a real phone and network, 6.11); expect the next poses within 15 studs of it for 1 s. On the client, `MovementController` treats a root more than 8 studs **(tune)** from where `SwimModel` put it on the last frame as a server correction: it moves the model to the root's pose and clears its velocity | A small snap back |
 | 2. Rubber-band (hard) | The level 1 correction is ignored, or suspicion ≥ 10 | `SetNetworkOwner(nil)`, anchor at the last accepted pose for 0.5 s, unanchor, return ownership, grace 0.5 s | A half-second freeze |
 | 3. Flag | Suspicion ≥ 25 | Log `guard_flag` (chapter 10; ctx is the rule ID, `speed` for movement checks) with the reasons in the server log; reject bites for 10 s; mark the run `untrusted` (it banks Pearls but is excluded from leaderboards and yields no specimen above tier 4) | Bites fail briefly |
 | 4. Kick | Suspicion ≥ 50 in one session, or 3 flags | Discard the run, log `guard_action` with ctx `kick`, `player:Kick("Connection problem. Please rejoin.")`, increment `moderation.kicks` in the profile | Disconnect |
@@ -763,7 +796,7 @@ Suspicion decays by 1 point every 10 s. There is no automatic ban at MVP; `Playe
 - **Windowed speed, not per-sample speed.** A phone that stalls for 200 ms and then delivers its updates in a burst shows a huge speed for one sample and a normal distance over one second. Only the one-second distance is checked.
 - **Stall catch-up.** If no pose change arrives for more than 0.4 s and then a jump arrives, the allowed distance for that jump is `vAllowed × stallTime`, capped at 2.0 s of travel. Longer gaps are corrected at level 1 with no suspicion.
 - **Ping slack.** `Player:GetNetworkPing()` returns the round trip in seconds (**V1**); an average over 5 s widens the speed window and the dash window.
-- **Grace periods.** 2 s after spawn, respawn, revive or a server teleport; 0.5 s after a tier-up or a hard correction; for as long as `Player.GameplayPaused` is true.
+- **Grace periods.** 2 s after spawn, respawn, revive or a server teleport; 0.5 s after a tier-up or a hard correction; for as long as `Player.GameplayPaused` is true, when the root's velocity is also ignored (6.6, F7).
 - **Corrections cost nothing by themselves.** Only points do, and points decay. A player on a bad connection sees an occasional snap back, never a kick: honest play cannot reach 50 points because one violation per 10 s nets zero.
 - **Tolerances are live config** (`tune.move.*`, section 17.4) so they can be widened without a release if `guard_flag` shows false positives. Target: fewer than 0.5% of sessions reach level 2.
 
@@ -795,11 +828,11 @@ Starting population **(tune)**. Chapter 03 owns the group sizes (section 2.1) an
 | Trait prey (all kinds; a `crystal_jelly` drift is one group of 5) | 40 | 1 to 5 | 80 |
 | **Total** | **254** | | **≈ 1,310** |
 
-Limits: `MAX_GROUPS = 384`, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate and raises the live target to 1.5 times normal (381 groups, inside the limit).
+Limits: `MAX_GROUPS = 512` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. That is about 2,540 members in 468 groups. The pipeline is sized for twice the whole table, about 2,620 members in 508 groups, inside the limit; every budget in this section holds at that count (16.2).
 
 ### 8.2 Server data layout
 
-Struct of arrays, one `buffer` per field, indexed by group ID (0 to 383). Total about 22 kB.
+Struct of arrays, one `buffer` per field, indexed by group ID (0 to 511). Total about 69 kB (135 bytes per group × 512).
 
 ```lua
 --!strict
@@ -826,7 +859,7 @@ export type PreyBuffers = {
 }
 ```
 
-Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 16 bytes × 384 groups × 24 players = 147 kB.
+Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 18 bytes × 512 groups × 24 players = 221 kB.
 
 ### 8.3 Spatial grid
 
@@ -852,7 +885,7 @@ Per tick:
 4. **Leash.** Outside the home volume, add a pull back; beyond 1.5 times its radius, clamp. Prey therefore never need collision with the world: volumes are authored in open water. `hop` kinds take `y = WorldIndex.floorY(x, z) + hopArc(phase)`.
 5. **History.** Write the quantised position and scatter into the 8-sample ring (0.8 s) used by bite validation.
 
-Cost: about 250 group updates per tick, no allocation, no Instance access. Budget 2.0 ms per tick, 0.35 ms averaged per frame.
+Cost: about 250 group updates per tick (468 in a Frenzy, 508 at the sized count), no allocation, no Instance access. **Budget: the simulation, steps 1 to 5 above, takes at most 2.0 ms per tick (0.35 ms averaged per frame) at the Frenzy count.** Interest and send (8.5) are not part of that 2.0 ms: they have their own budget, 0.25 ms per player per tick, 4 players per frame (15.2). The spike measured the two apart at 254 groups (S6): simulation p50 0.33 ms, p99 0.41 ms; interest and send about 0.13 ms per player p50 and 0.19 ms p99.
 
 Schooling is therefore free: members hold formation by construction, "flee as a group" is one velocity, and "scatter when approached" is one number.
 
@@ -869,11 +902,17 @@ For each player at 10 Hz, visit grid cells within 600 studs and classify each gr
 
 **Dead reckoning.** The server knows what it last sent to this player (`sentPos`, `sentVel`, `sentTick`). It predicts where the client now believes the group is (`sentPos + sentVel × elapsed`) and sends an update only if the real position differs by more than the band's threshold. A school cruising in a straight line costs zero bytes.
 
-A group new to a player is sent as a **full record** in two consecutive packets, and again as a keyframe every 2 s; all other updates are **delta records**. When more records are due than fit in one packet, they are ordered by `error ÷ threshold`, nearest band first, and the rest wait for the next tick.
+A group new to a player is sent as a **full record** in two consecutive packets; all other updates are **delta records**, except keyframes. When more records are due than fit in one packet, they are ordered by `error ÷ threshold`, nearest band first, and the rest wait for the next tick.
+
+**Keyframes.** In the spike, interest was about 90% of the prey server cost and keyframes were 77% of all records sent (S6, F10). So keyframes are limited and spread out:
+
+- Only groups in the **Near and Mid** bands get a keyframe: their full record again every 2 s.
+- Keyframes are **staggered**: a group's keyframe for a player falls on the ticks where `(groupId + slot) % 20` equals `tick % 20`, so each tick carries about a twentieth of them instead of all at once.
+- A **Far** group gets no keyframe. If nothing else was sent to that player for it in the last 2 s, it gets one delta record on its staggered tick, which keeps the client from dropping it (the 3 s rule above).
 
 ### 8.6 Byte budget
 
-`UnreliableRemoteEvent` payloads above 1,000 bytes risk being dropped (**V6**). One `PreyState` packet is at most 900 bytes and at most one is sent per player per tick.
+`UnreliableRemoteEvent` payloads above 1,000 bytes risk being dropped (**V6**). In the spike, payloads of 999 bytes or more were dropped every time and silently, while 900 to 980 bytes arrived (S7, F8). One `PreyState` packet is at most 900 bytes and at most one is sent per player per tick. Every unreliable encoder asserts its payload is at most 900 bytes (`buffer.len`) before sending, so an oversized packet fails loudly in tests instead of vanishing in play.
 
 | Stream | Hard cap per player | Expected average |
 |---|---|---|
@@ -883,7 +922,7 @@ A group new to a player is sent as a **full record** in two consecutive packets,
 | Engine replication of other creatures | not ours to cap | estimate 5 to 14 kB/s (**U2**) |
 | **Total received** | | **target ≤ 30 kB/s average, ≤ 50 kB/s peak** |
 
-Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 120 known groups every 2 s (60 × 22 B = 1.3 kB/s), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.7 kB/s.
+Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 60 Near and Mid groups every 2 s (30 × 22 B = 0.66 kB/s), keep-alive deltas for 60 quiet Far groups every 2 s (30 × 13 B = 0.4 kB/s), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.4 kB/s. In a Frenzy the group counts double and so, roughly, does the stream: about 5 kB/s here, under the 9.0 kB/s cap.
 
 ### 8.7 Packet formats
 
@@ -1082,7 +1121,7 @@ A hazard pass runs at 10 Hz: each creature in a run is tested against `Hazard` v
 | `anemone` [L] | Status `slow` 2 s | `vAllowed × 0.5` |
 | `vent` [L] | Only while the vent is `Erupting` (rule below): mass × 0.95 each second inside the column. Skipped with Ember | Server-side mass only |
 | `hook` | Biting the bait (the flagged prey member of 9.2) gives no mass; mass × 0.8; status `yank` 1.0 s | Server-side mass; 1.0 s validator grace for the pull upward |
-| `current` | None | `vAllowed × 1.6` while inside |
+| `current` | None | `vCurrent = 0.6 × tierSpeed` added to `vAllowed` while inside (7.1, 02 §1.2) |
 
 **Thermal vents [L]** (chapter 03, section 5.1 owns the rule; chapter 02, section 10.3 owns how the burn is ticked). There are nine `Hazard` volumes with `HazardId = "vent"` at the Chimneys. Each is the burning column: a cylinder 10 studs wide (radius 5) and 40 studs tall, rising from the chimney top; a creature is inside when its centre is. Three vents have no `CycleOffset` and are `Erupting` all the time. The other six cycle every 8 s: `Dormant` 4 s, `Rumble` 1 s (the warning, harmless), `Erupting` 3 s. The lengths are `HazardDef.cycle` and each vent's `CycleOffset` is fixed in Studio so the six never all erupt together. The state is a pure function of the clock, like the tides (section 11.1):
 
@@ -1630,8 +1669,8 @@ Asset ceilings are owned by chapter 06, section 6.3 and are not repeated here be
 |---|---|
 | Heartbeat | ≥ 58 per second on average; the server-side sign of trouble is under 59 (**V20**) |
 | Our script time per frame | ≤ 3 ms average, ≤ 6 ms peak |
-| `PreyService` simulate | 2.0 ms per 100 ms tick |
-| `PreyService` interest and send | 0.25 ms per player per tick, 4 players per frame |
+| `PreyService` simulate (8.4, steps 1 to 5) | 2.0 ms per 100 ms tick, at the Frenzy count; interest and send are not included |
+| `PreyService` interest and send | 0.25 ms per player per tick, 4 players per frame; a budget of its own, separate from the simulation's |
 | `MovementValidator` | 0.4 ms per 50 ms tick (24 rays) |
 | `PredatorService` including hazards | 0.3 ms per tick |
 | `BiteService` | 0.05 ms per claim |
@@ -1647,7 +1686,7 @@ Asset ceilings are owned by chapter 06, section 6.3 and are not repeated here be
 
 ### 15.4 Place settings
 
-Set by hand in Studio, because most are not scriptable (**V4**, **V29**). `tools/studio/check_place.luau` checks the scriptable ones through MCP; the rest are on the release checklist. The world place was first built by `rojo build world.project.json -o assets/place/gulp-world.rbxl`, which sets every row below except the experience setting; the spike found that Studio code cannot read the streaming properties, `AuthorityMode`, `SignalBehavior` or `PhysicsSteppingMethod`, nor write `TextChatService.ChatVersion` (which must be `TextChatService` for `DisplayBubble`), so `lune run tools/check_place_file` reads them from a saved copy.
+Every row but the experience setting is set in the Rojo project file that builds the place (`world.project.json`; `ci.project.json` repeats the Workspace rows), never by hand in Studio: most are not scriptable (**V4**, **V29**), and the streaming properties cannot even be read by scripts (spike F6), so a value set by hand could neither be checked nor rebuilt. `tools/studio/check_place.luau` checks the scriptable ones through MCP; the rest are on the release checklist. The world place was first built by `rojo build world.project.json -o assets/place/gulp-world.rbxl`, which sets every row below except the experience setting; the spike found that Studio code cannot read the streaming properties, `AuthorityMode`, `SignalBehavior` or `PhysicsSteppingMethod`, nor write `TextChatService.ChatVersion` (which must be `TextChatService` for `DisplayBubble`), so `lune run tools/check_place_file` reads them from a saved copy.
 
 | Property | Value | Note |
 |---|---|---|
@@ -1661,7 +1700,7 @@ Set by hand in Studio, because most are not scriptable (**V4**, **V29**). `tools
 | `Workspace.SignalBehavior` | Deferred | |
 | `Workspace.PhysicsSteppingMethod` | Adaptive | |
 | `Workspace.FallenPartsDestroyHeight` | −5000 | |
-| `Workspace.Gravity` | 196.2 | Default; only matters above the surface |
+| `Workspace.Gravity` | 80 | Chapter 02's air gravity (02 §1.7, 6.5); only matters above the surface. The engine default is 196.2 |
 | `Players.CharacterAutoLoads` | false | Also set in code |
 | `VoiceChatService.EnableDefaultVoice` | false | |
 | `StarterGui.ScreenOrientation` | LandscapeSensor | Phones are landscape only (canon 15). The client sets the same value on `PlayerGui` at start (chapter 15) |
@@ -1706,8 +1745,8 @@ Never cut on any device: edible and danger outline shells on the nearest 6 objec
 | Test | What it runs | Fails when |
 |---|---|---|
 | `tests/sim/economy.sim.luau` | 2,000 scripted players through 30 days using the data tables: bites per minute by tier, bank and death rates, cove income | Time to each tier is more than 25% off canon 5.1; any species unlock day is more than 30% off canon section 7; Pearls per hour grows without bound |
-| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes |
-| `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Any honest trace reaches suspicion 10; a trace at 1.3 × speed is not flagged within 5 s |
+| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the sized Frenzy count (8.1: about 2,620 members in 508 groups; the strict target is about 2,540 in 468), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
+| `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Either of: any honest trace reaches suspicion 10, or a trace at 1.3 × speed is not flagged within 5 s (it passes when no honest trace reaches 10 and the 1.3 × trace is flagged within 5 s, 13 Sprint 8) |
 
 Command: `lune run tools/test/runner -- sim`.
 
@@ -1725,12 +1764,15 @@ Specs under `src/server/Tests/` use the same `TestKit` and cover what needs the 
 1. `start_stop_play` (start); poll `get_studio_state` until the client datamodel exists.
 2. Server `execute_luau`: one player has a slot, a profile and a creature whose network owner is that player.
 3. `user_keyboard_input`: hold W for 2 s. Server `execute_luau`: the pose moved more than 30 studs and suspicion is 0.
-4. Client `execute_luau`: `PreyRenderer` knows more than 10 groups; frame time average is under 16.7 ms.
+4. Client `execute_luau`: `PreyRenderer` knows more than 10 groups; frame time average is at most 17 ms (the Mac is vsync-capped at 60 fps, so 16.7 ms is the floor, not a margin).
 5. Server `execute_luau`: place a `krill` group in front of the creature. Wait 1 s. Mass is greater than 0.
-6. `get_console_output`: no line at error level.
-7. `screen_capture` to disk, then `start_stop_play` (stop).
+6. Server `execute_luau`: `return game.ServerScriptService.Server.RunTests:Invoke()` (16.3); the summary's first line starts with `PASS`.
+7. `get_console_output`: no line at error level.
+8. `screen_capture` to disk, then `start_stop_play` (stop).
 
 `character_navigation` is not used; it is assumed to need a Humanoid.
+
+**Test method (spike F12).** Studio is brought to the front before any timed run: a background Studio window is throttled to 15 fps, which also slows anything driven from `RenderStepped` or `PreRender`. Frame rates measured on the Mac are vsync-capped at 60 fps, so they show a stall or a hitch but never headroom. Phone frame rates and phone budgets (15.1) come only from phones (chapter 15's device rows), never from the Mac or Studio's device emulation.
 
 ### 16.5 Multi-client routine
 
@@ -1754,7 +1796,7 @@ Whether an agent can start a two-client test through MCP is not known (**U13**);
 | `unit` | `lune run tools/test/runner -- unit` | ubuntu-latest |
 | `sim` | `lune run tools/test/runner -- sim` | ubuntu-latest |
 | `build` | `rojo build ci.project.json -o build/ci.rbxl`; upload as an artifact | ubuntu-latest |
-| `engine` (on `main` only) | `lune run tools/cloud/publish_ci` then `lune run tools/cloud/run_engine_tests` | ubuntu-latest, concurrency group of 1 |
+| `engine` (on `main` only) | `lune run tools/cloud/publish_ci` then `lune run tools/cloud/run_engine_tests`: one Luau execution task that calls the `RunTests` hook of 16.3 (`Main` creates it in the CI environment) and requires `Tests/RunAll` itself only if the hook is not there yet; the summary's first line must start with `PASS` | ubuntu-latest, concurrency group of 1 |
 
 Each job starts with `actions/checkout` and `CompeyDev/setup-rokit@v0.2.1`. The `engine` job needs the secret `ROBLOX_API_KEY` with `universe-places` write on the CI place and `universe.place.luau-execution-session:write` (**V15**, **V16**). Luau execution allows 5 task creations a minute per key owner and tasks of up to 5 minutes (**V16**); one task runs all engine specs.
 
@@ -1764,12 +1806,12 @@ Each job starts with `actions/checkout` and `CompeyDev/setup-rokit@v0.2.1`. The 
 
 Four experiences, so data stores never mix (data stores belong to an experience).
 
-| Environment | Experience | Who can join | Data | How it is updated |
-|---|---|---|---|---|
-| Development | `GULP Dev` | Owner, in Studio | `ProfileStore.Mock` by default | Rojo live sync |
-| CI | `GULP CI` | Nobody | Mock | `rojo build ci.project.json` + Open Cloud publish |
-| Staging | `GULP Staging` | Owner and invited testers, private | Real, disposable | Studio "Publish to Roblox As" from the dev place |
-| Production | `GULP` | Public | Real | Studio "Publish to Roblox As" from the dev place, after staging passes |
+| Environment | Experience | Who can join | Data | How it is updated | Purchases | Analytics | Dev cheats |
+|---|---|---|---|---|---|---|---|
+| Development | `GULP Dev` | Owner, in Studio | `ProfileStore.Mock` by default | Rojo live sync | On (Studio test purchases) | Off (Studio sends none, 10 §2.4) | On |
+| CI | `GULP CI` | Nobody | Mock | `rojo build ci.project.json` + Open Cloud publish | Off | Off | Off |
+| Staging | `GULP Staging` | Owner and invited testers, private | Real, disposable | Studio "Publish to Roblox As" from the dev place | On | On | Off |
+| Production | `GULP` | Public | Real | Studio "Publish to Roblox As" from the dev place, after staging passes | On | On | Off |
 
 `Config/Defaults.luau` holds one table per environment keyed by `game.GameId` (product IDs, pass IDs, analytics on or off, dev cheats on or off). An unknown `GameId` selects the development table with all purchases disabled.
 
@@ -1940,7 +1982,7 @@ Milestones on the critical path:
 | # | Risk | Mitigation | Fallback |
 |---|---|---|---|
 | R1 | A character with no Humanoid breaks core scripts or streaming (**U1**) | Spike S1, S5, S9, S10 in week one | Keep a Humanoid in the model with its state machine and name display switched off, and still drive the root ourselves |
-| R2 | Client-owned movement is exploited faster than validation is tuned | Validator from day one; `guard_flag` analytics; tolerances in live config | Move to Server Authority. `SwimModel` is already a pure step function that can be bound to the fixed simulation (**V20**); S12 tells us in week one whether that path is open |
+| R2 | Client-owned movement is exploited faster than validation is tuned | Validator from day one; `guard_flag` analytics; tolerances in live config | Move to Server Authority. `SwimModel` is already a pure step function that can be bound to the fixed simulation (**V20**); S12 tells us in week one whether that path is open. Before switching: `SetNetworkOwner` throws under it and string attributes are capped at 50 characters, so every ownership call and long-string attribute is reviewed first (6.4, F24) |
 | R3 | Low-end phones miss 30 fps | Budgets and pools from the start; weekly phone run | The ordered cuts in 15.6 |
 | R4 | Unreliable packets are dropped or throttled more than expected (**U2**) | Dead reckoning, keyframes every 2 s, reliable eaten events | Halve the send rate, shrink the bands, raise the thresholds |
 | R5 | Honest bites are rejected often enough to feel bad | Count rejects by reason on the server and write distances to the server log (no per-bite analytics event); target under 2%; tolerances in live config | Server-side bite detection for the near band (the server sweeps mouth spheres against group members at 20 Hz), making the client claim only a hint |

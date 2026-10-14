@@ -14,6 +14,14 @@ local TAG = "Net"
 
 local Client = {}
 
+-- ServerEpoch (8.7), from the Net folder until WorldInfo carries it (see Net/Server).
+local epoch = 0
+
+--- The client's estimate of server time now as a packet's `timeMs` (8.7): ms since ServerEpoch.
+function Client.timeMs(): number
+	return math.floor((workspace:GetServerTimeNow() - epoch) * 1000)
+end
+
 --- The net protocol version this client was built with; compare it with the one in `WorldInfo`.
 Client.NET_VERSION = Remotes.NET_VERSION
 
@@ -22,6 +30,12 @@ local unreliable: { [string]: UnreliableRemoteEvent } = {}
 
 do
 	local folder = ReplicatedStorage:WaitForChild(Remotes.FOLDER)
+	local value = folder:GetAttribute("ServerEpoch")
+	if type(value) == "number" then
+		epoch = value
+	else
+		Log.warn(TAG, "ReplicatedStorage.Net has no ServerEpoch; timeMs counts from 0")
+	end
 	for _, def in Remotes.list do
 		local remote = folder:WaitForChild(def.name)
 		if def.kind == "Reliable" and remote:IsA("RemoteEvent") then

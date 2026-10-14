@@ -9,7 +9,13 @@
 export type Reason = "count" | "type" | "size" | "range"
 
 export type Spec =
-	{ kind: "buffer", min: number, max: number, accepts: ((length: number) -> boolean)? }
+	{
+		kind: "buffer",
+		min: number,
+		max: number,
+		accepts: ((length: number) -> boolean)?,
+		valid: ((value: buffer) -> boolean)?,
+	}
 	| { kind: "string", maxLength: number, ids: { [string]: boolean }? }
 	| { kind: "number", min: number, max: number, integer: boolean }
 	| { kind: "boolean" }
@@ -18,12 +24,18 @@ export type Spec =
 local Validate = {}
 
 --- A buffer of `min` to `max` bytes; `accepts`, when given, must also say yes to its length
---- (for `Bite`: 8, or 8 + 4n with n from 1 to 8).
-function Validate.buffer(min: number, max: number, accepts: ((length: number) -> boolean)?): Spec
+--- (for `Bite`: 8, or 8 + 4n with n from 1 to 8). `valid`, when given, checks the contents once
+--- the size passed (a codec's range check, for `Ability`: a known op); a no is a "range" reject.
+function Validate.buffer(
+	min: number,
+	max: number,
+	accepts: ((length: number) -> boolean)?,
+	valid: ((value: buffer) -> boolean)?
+): Spec
 	if not (min >= 0 and max >= min) then
 		error(`Validate.buffer: needs 0 <= min <= max, got {min} and {max}`, 2)
 	end
-	return { kind = "buffer", min = min, max = max, accepts = accepts }
+	return { kind = "buffer", min = min, max = max, accepts = accepts, valid = valid }
 end
 
 --- A string of at most `maxLength` bytes; when `ids` is given, it must be one of its keys.
@@ -76,6 +88,9 @@ function Validate.value(spec: Spec, value: unknown): (boolean, Reason?)
 		end
 		if spec.accepts and not spec.accepts(length) then
 			return false, "size"
+		end
+		if spec.valid and not spec.valid(value :: buffer) then -- safe: typeof said buffer
+			return false, "range"
 		end
 		return true, nil
 	elseif spec.kind == "string" then

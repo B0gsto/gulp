@@ -135,7 +135,6 @@ Defaults.swim = table.freeze({
 	stopSpeed = 0.5, -- 02 §1.3: below this with no thrust input, speed = 0
 	turnGain = 10, -- 02 §1.4: angular speed = clamp(error × 10, ±turnRate)
 	pitchLimit = 70, -- 02 §1.4: degrees, every control scheme
-	dashMult = 2.2, -- canon 5.3; 02 §1.2 (Turtle 2.0 and Squid 2.6 are [L], not in Species data)
 	dashDuration = 0.35, -- canon 5.3; 02 §7.1: 0.35 × (dashDurationMult + 0.3 per Longfin)
 	dashLongfinAdd = 0.3, -- 02 §7.1
 	dashAccel = 30, -- 02 §7.1: forward relaxation constant (1/s) while Dashing
@@ -145,10 +144,30 @@ Defaults.swim = table.freeze({
 	breachSpeed = 8, -- 02 §1.7: upward speed needed to breach; below it the creature skims
 	skimDepth = 0.5, -- 02 §1.7: skim at Y = −0.5 × collision radius
 	collisionRadius = 0.9, -- 02 §0.2: collision radius = 0.9 × bodyScale × radiusMult
-	gravity = 80, -- 02 §1.7: studs/s² in the air (09 §6.5 says Workspace.Gravity; see SwimModel)
+	gravity = 80, -- 02 §1.7: studs/s² in the air; the project files set Workspace.Gravity to the same 80 (09 §6.5)
 	airTurnMult = 0.3, -- 02 §1.4 and §1.7
 	minAirTime = 0.2, -- 02 §1.7
 	reentryMult = 0.8, -- 02 §1.7: velocity × 0.8 on re-entry
+})
+
+-- The control schemes' numbers (Logic/InputMath, client InputController). Chapter 02 section 2
+-- and chapter 15 sections 3.1, 3.3 and 5.1. Drag lengths are rpx (02 §2, 08 §1.2): reference-canvas
+-- pixels, converted from device px with the interface scale; mouse look is in device px (02 §2.3).
+Defaults.input = table.freeze({
+	dragDeadZone = 14, -- 02 §2.1: rpx radius; inside it throttle 0 and no turn
+	dragFull = 80, -- 02 §2.1: rpx from the origin for full deflection, at sensitivity 1
+	dragClamp = 100, -- 02 §2.1: rpx; past it the origin trails the finger
+	dragSensitivity = 1.0, -- 02 §2.1, 08 §6.7: default; divides dragFull
+	dragSensitivityMin = 0.5,
+	dragSensitivityMax = 1.5,
+	curveExponent = 1.4, -- 02 §2.1: curve(v) = sign(v) × |v|^1.4
+	autoLevelBand = 0.15, -- 02 §2.1: a drag with |y| < 0.15 levels the creature
+	autoLevelRate = 90, -- 02 §2.1: °/s back to level with no touch
+	autoLevelDelay = 0.4, -- 02 §2.1: s after the touch lifts
+	mouseDegPerPx = 0.20, -- 02 §2.3, 15 §3.3: look, ° per px × look speed
+	mouseLookSpeed = 1.0, -- 15 §3.3: default; range 0.2 to 3.0
+	mouseLookSpeedMin = 0.2,
+	mouseLookSpeedMax = 3.0,
 })
 
 return Defaults
