@@ -4,8 +4,11 @@
 -- them. `init` sets up private state and must not yield or call another service; `start`
 -- connects events and begins loops. PlayerLifecycle is always last.
 
--- Moves to shared/Types with task S1-C4.
-type Service = { name: string, init: () -> (), start: () -> () }
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Types = require(ReplicatedStorage.Shared.Types)
+
+type Service = Types.Service
 
 local loaded: { Service } = {
 	-- No services yet: each one is added here by the task that writes it.

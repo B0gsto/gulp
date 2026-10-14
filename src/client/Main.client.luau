@@ -4,8 +4,12 @@
 -- them. `init` sets up private state and must not yield or call another controller; `start`
 -- connects events and begins loops.
 
--- Moves to shared/Types with task S1-C4.
-type Controller = { name: string, init: () -> (), start: () -> () }
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Types = require(ReplicatedStorage.Shared.Types)
+
+-- Controllers have the shape of services (section 4.2), so the two loaders treat them alike.
+type Controller = Types.Service
 
 local loaded: { Controller } = {
 	-- No controllers yet: each one is added here by the task that writes it.
