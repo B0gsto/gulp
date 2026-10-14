@@ -757,8 +757,8 @@ Places with no mesh of their own: **Krill Corner** (a bowl-shaped floor chunk), 
 
 | Asset | Tag | Description | Qty | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|---|
-| `M_Env_Nursery_Floor_01–04` | [MVP] | Pale sand floor chunks; one is the Krill Corner bowl | 4 | 3,000 tris each | T_Tile_Sand_Alb | 5 | not started |
-| `M_Env_Nursery_Rim_01–02` | [MVP] | Low rounded rim pieces that enclose the pool | 2 | 1,000 tris | T_Tile_Rock_Alb | 2 | not started |
+| `M_Env_Nursery_Floor_01–04` | [MVP] | Pale sand floor chunks; one is the Krill Corner bowl (`_03`). Every edge carries one shared profile, so any chunk meets any other at any 90-degree turn; laid unrotated on the 128-stud grid the sand repeat runs on across the seams (document 13, S6-A3). The slice keeps `_01` to `_03` (13 §3.2) | 4 | 3,000 tris each | T_Tile_Sand_Alb | 5 | not started |
+| `M_Env_Nursery_Rim_01–02` | [MVP] | Low rounded rim pieces that enclose the pool: low banks of coral rock whose toe follows the oval of document 03 §6.2 (`_01` its long sides, `_02` its ends) and whose crest stands 4 to 7 above the surface. Coral rock, not `T_Tile_Rock_Alb`, which read as paving on a wall (S5-A2), nor the Rim's `T_Rim_Alb`, which read as cold cobbles in the pastel pool (S6-A3) | 2 | 1,000 tris | T_Tile_CoralRock_Alb | 2 | not started |
 | `M_Env_Nursery_Coral_01–03` | [MVP] | Round pastel corals | 3 | 250 tris | T_EnvNursery_Alb | 2 | not started |
 | `M_Env_Nursery_GrassTuft_01–02` | [MVP] | Soft sea-grass tufts | 2 | 80 tris | T_EnvNursery_Alb | 1 | not started |
 | `M_Env_Nursery_GlowBuoy` | [MVP] | Lantern warm-white (`#FFF1DC`) glow buoy. A ring of them marks the safe edge | 1 | 150 tris | T_EnvNursery_Alb | 1 | not started |
@@ -768,7 +768,7 @@ Places with no mesh of their own: **Krill Corner** (a bowl-shaped floor chunk), 
 | `M_Env_Nursery_LM_SleepyClam` | [MVP] | Landmark "Sleepy Clam": giant clam 16 across that opens and closes slowly and snores bubbles. Two bones | 1 | 1,800 tris, 2 bones | T_EnvNursery_Alb | 3 | not started |
 | `A_SleepyClam_Snore` | [MVP] | Slow open and close | 1 | loop 120 frames | M_Env_Nursery_LM_SleepyClam | 0.6 | not started |
 | `M_Prop_Nursery_ShellSign` | [MVP] | Shell signpost beside the Sleepy Clam that points to Little Arch. A picture, no words | 1 | 200 tris | T_EnvNursery_Alb | 0.8 | not started |
-| `T_EnvNursery_Alb` | [MVP] | Pastel atlas for the Nursery pieces | 1 | 512² | — | 2.5 | not started |
+| `T_EnvNursery_Alb` | [MVP] | Pastel atlas for the Nursery pieces: one cell for each (S6-A3: the three corals, both grass tufts, the glow buoy, Little Arch and its shell lights, Three Rings, the Sleepy Clam's shell and mantle, the Shell Sign and its post) | 1 | 512² | — | 2.5 | not started |
 | (assembly) Nursery Lagoon | [MVP] | Build the pool, place the kit and landmarks, check that Little Arch is visible from everywhere and the first Krill are in view from the Hatch Bed | 1 | — | Nursery kit, shared pieces | 6 | not started |
 
 ### 6.3 Sunlit Reef [MVP]
