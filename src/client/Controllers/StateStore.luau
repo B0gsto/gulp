@@ -7,6 +7,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Flags = require(ReplicatedStorage.Shared.Config.Flags)
+local LiveConfigRules = require(ReplicatedStorage.Shared.Logic.LiveConfigRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local StatePatch = require(ReplicatedStorage.Shared.Logic.StatePatch)
 
@@ -51,6 +53,12 @@ local function onState(path: unknown, value: unknown)
 	if type(path) ~= "string" or not StatePatch.apply(mirror, path, value) then
 		Log.warn(TAG, `bad State path {tostring(path)}`)
 		return
+	end
+	-- `config.<key>`: a live-config value LiveConfig forwarded (09 §17.4). Client code reads it
+	-- through Config/Flags, which types it and falls back to the default like the server.
+	local liveKey = LiveConfigRules.keyOf(path)
+	if liveKey then
+		Flags.set(liveKey, value)
 	end
 	for _, watch in table.clone(watches) do
 		if watch.live and StatePatch.touches(path, watch.path) then
