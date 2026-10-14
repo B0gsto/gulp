@@ -69,6 +69,8 @@ def mesh_name_problem(name):
     rank, seen_suffix = 0, False
     for i, w in enumerate(words):
         r = SUFFIX_RANK.get(w)
+        if r == SUFFIX_RANK["Shell"] and i != len(words) - 1:
+            r = None    # the outline-shell suffix ends the name; `M_Env_Shell_01` is a seashell named Shell
         if r is None:
             if seen_suffix:
                 return "'%s' comes after a suffix; order is age, form, LOD, shell" % w
