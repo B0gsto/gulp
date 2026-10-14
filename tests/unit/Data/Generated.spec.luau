@@ -10,6 +10,7 @@ local Goals = require("../../../src/shared/Data/Generated/Goals")
 local Hazards = require("../../../src/shared/Data/Generated/Hazards")
 local Index = require("../../../src/shared/Data/Index")
 local MarkdownTables = require("../../../tools/lib/markdown_tables")
+local NurseryPath = require("../../../src/shared/Data/Generated/NurseryPath")
 local Predators = require("../../../src/shared/Data/Generated/Predators")
 local Prey = require("../../../src/shared/Data/Generated/Prey")
 local PreySpawnMath = require("../../../src/shared/Logic/PreySpawnMath")
@@ -68,6 +69,7 @@ describe("Generated content", function()
 			CoveMouths = CoveMouths,
 			Goals = Goals,
 			Hazards = Hazards,
+			NurseryPath = NurseryPath,
 			Predators = Predators,
 			Prey = Prey,
 			RevivePoints = RevivePoints,
@@ -85,6 +87,7 @@ describe("Generated content", function()
 			CoveMouths = 24,
 			Goals = 42,
 			Hazards = 5,
+			NurseryPath = 11,
 			Predators = 5,
 			Prey = 8,
 			RevivePoints = 12,

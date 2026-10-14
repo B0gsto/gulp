@@ -14,6 +14,12 @@
 -- back into the model. Re-entry (×0.8) is the model's, and `Move` takes over again. A dash start
 -- is reported with `Ability` op 1 (09 §5.3). A jump of the root the model did not make is a server correction (6.3, 7.3,
 -- spike S4): the model is placed there at rest.
+--
+-- Traits (task S6-C3; 02 §8.4, §8.5): Stripes multiplies the status speed product by 1.08. The
+-- own held traits come from the replicated `Traits` attribute (TraitService, 09 §5.3); a gain
+-- takes effect 0.5 s after the client hears it (02 §8.2, TraitRules.noteHeld), a shed at once.
+-- The server stays authoritative: TODO(B14, S8-C2) MovementValidator bounds the speed with
+-- TraitService.speedMult(slot).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -25,6 +31,7 @@ local Log = require(ReplicatedStorage.Shared.Util.Log)
 local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
 local SwimStatus = require(ReplicatedStorage.Shared.Logic.SwimStatus)
 local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local Client = require("../Net/Client")
 local InputController = require("./InputController")
@@ -55,6 +62,18 @@ local active: { [string]: boolean } = {}
 local untilTime: { [string]: number } = {}
 local timed = 0 -- number of entries in untilTime
 
+-- The own traits (Stripes): when each held trait was first read, and the speed they give now.
+local traitSeen: { [string]: number } = {}
+local traitsRead = false
+local traitSpeed = 1
+local traitWake = 0 -- token of the pending re-read at the next activation
+
+-- The mods from the statuses, then the traits' speed (02 §8.5: speed multipliers multiply).
+local function applyMods(s: SwimModel.SwimState)
+	SwimStatus.apply(s.mods, active)
+	s.mods.speedMult *= traitSpeed
+end
+
 local function placeAtRoot(s: SwimModel.SwimState, part: BasePart)
 	local cf = part.CFrame
 	local pitch, yaw = cf:ToEulerAnglesYXZ()
@@ -76,7 +95,7 @@ local function rebuild()
 	end
 	local s = SwimModel.new(species, math.clamp(tier, 1, #Index.Tiers.list))
 	SwimModel.setBodyScale(s, TierMath.bodyScale(attributeNumber("Mass") or 0))
-	SwimStatus.apply(s.mods, active)
+	applyMods(s)
 	placeAtRoot(s, part)
 	state = s
 end
@@ -124,7 +143,7 @@ local function expireStatuses(now: number)
 		end
 	end
 	if changed and state then
-		SwimStatus.apply(state.mods, active)
+		applyMods(state)
 	end
 end
 
@@ -193,7 +212,28 @@ function MovementController.setStatus(effect: Status, seconds: number)
 		active[effect] = nil
 	end
 	if state then
-		SwimStatus.apply(state.mods, active)
+		applyMods(state)
+	end
+end
+
+-- Reads the own `Traits` attribute; re-reads itself when a new trait's 0.5 s are up.
+local function readTraits()
+	local held = TraitRules.splitIds(player:GetAttribute("Traits"))
+	local now = os.clock()
+	local wait = TraitRules.noteHeld(traitSeen, held, now, not traitsRead)
+	traitsRead = true
+	traitSpeed = TraitRules.speedMult(TraitRules.activeOf(held, traitSeen, now))
+	if state then
+		applyMods(state)
+	end
+	traitWake += 1
+	if wait then
+		local token = traitWake
+		task.delay(wait, function()
+			if token == traitWake then
+				readTraits()
+			end
+		end)
 	end
 end
 
@@ -241,6 +281,8 @@ function MovementController.start()
 		end
 	end)
 	player:GetAttributeChangedSignal("Species"):Connect(rebuild)
+	player:GetAttributeChangedSignal("Traits"):Connect(readTraits)
+	readTraits()
 	player.CharacterAdded:Connect(bind)
 	player.CharacterRemoving:Connect(unbind)
 	if player.Character then

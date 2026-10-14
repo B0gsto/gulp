@@ -49,6 +49,7 @@ local Outlines = require(script.Parent.Parent.Render.Outlines)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
 local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
 local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local CreatureController = {}
 CreatureController.name = "CreatureController"
@@ -79,6 +80,10 @@ type Entry = {
 	shown: boolean,
 	scaling: boolean,
 	dead: boolean, -- Phase = dead: the rig is hidden
+	glow: boolean, -- `Traits` holds Glow, active: the body lights up (02 §8.4)
+	traitSeen: { [string]: number }, -- TraitRules.noteHeld: the light starts 0.5 s late (02 §8.2)
+	traitsRead: boolean,
+	traitWake: number, -- token of the pending re-read at the next activation
 	popAt: number?, -- os.clock() when the code tier-up pop started
 	connections: { RBXScriptConnection },
 }
@@ -114,6 +119,8 @@ local function numberAttr(from: Instance, name: string, default: number): number
 	return if typeof(v) == "number" then v else default
 end
 
+local onFacts: (e: Entry) -> ()
+
 -- Reads every fact from the replicated attributes; returns true when the species changed.
 local function readFacts(e: Entry): boolean
 	local from = source(e)
@@ -133,6 +140,20 @@ local function readFacts(e: Entry): boolean
 	local phase = attr(from, "Phase")
 	e.shielded = attr(from, "Protected") == true or phase ~= "run"
 	e.dead = phase == "dead"
+	local held = TraitRules.splitIds(attr(from, "Traits"))
+	local now = os.clock()
+	local wait = TraitRules.noteHeld(e.traitSeen, held, now, not e.traitsRead)
+	e.traitsRead = true
+	e.glow = TraitRules.has(TraitRules.activeOf(held, e.traitSeen, now), "glow")
+	e.traitWake += 1
+	if wait then
+		local token = e.traitWake
+		task.delay(wait, function()
+			if e.traitWake == token and byModel[e.model] == e then
+				onFacts(e)
+			end
+		end)
+	end
 	if def then
 		e.radiusMult = def.radiusMult
 		e.topSpeed = SwimModel.topSpeed(tier, def, 1)
@@ -155,6 +176,7 @@ local function buildRig(e: Entry)
 	rig.model.Parent = rigFolder
 	e.rig = rig
 	e.kind, e.shown = "none", false
+	CreatureRig.setGlow(rig, e.glow)
 end
 
 local function recomputeKind(e: Entry)
@@ -162,6 +184,7 @@ local function recomputeKind(e: Entry)
 	if e.own or own == nil then
 		e.kind = "none"
 	else
+		-- TODO(B25, S12-C2): Spiny's +1 defence tier (02 §0.4) in the colour, with player bites.
 		e.kind = OutlineRules.creature(own.tier, own.shielded, e.tier, e.shielded)
 	end
 	sinceSelect = math.huge -- re-pick on the next frame
@@ -184,12 +207,13 @@ local function showAlive(e: Entry)
 	end
 end
 
-local function onFacts(e: Entry)
+function onFacts(e: Entry)
 	if readFacts(e) then
 		CreatureRig.destroy(e.rig)
 		buildRig(e)
 	end
 	showAlive(e)
+	CreatureRig.setGlow(e.rig, e.glow)
 	RigMath.retargetScale(e.rig.scaleEase, TierMath.bodyScale(e.mass))
 	if e.own then
 		recomputeAll()
@@ -219,7 +243,7 @@ local function remove(model: Model)
 end
 
 local function watch(e: Entry, from: Instance)
-	for _, name in { "Species", "Tier", "Mass", "Phase", "Protected" } do
+	for _, name in { "Species", "Tier", "Mass", "Phase", "Protected", "Traits" } do
 		table.insert(
 			e.connections,
 			from:GetAttributeChangedSignal(name):Connect(function()
@@ -263,6 +287,10 @@ local function add(model: Instance)
 		shown = false,
 		scaling = false,
 		dead = false,
+		glow = false,
+		traitSeen = {},
+		traitsRead = false,
+		traitWake = 0,
 		popAt = nil,
 		connections = {},
 	}

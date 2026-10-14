@@ -282,7 +282,7 @@ Each element has an ID that chapter 04 and the code use to show, hide or point a
 | `HUD.Settings` | [MVP] | 1, 0 | `{1, -12},{0, 8}` | 88 hit, 56 visible | Gear button |
 | `HUD.Lag` | [MVP] | 1, 0 | `{1, -204},{0, 32}` | 40 × 40 | Weak-connection icon, only when needed |
 | `HUD.Toasts` | [MVP] | 1, 0 | `{1, -16},{0, 124}` | 320 × 64 each, 2 max | Toast stack |
-| `HUD.Traits` | [MVP] | 0.5, 1 | `{0.5, 0},{1, -28}` | 272 × 80 | Three trait slots, 80 each, 16 gap |
+| `HUD.Traits` | [MVP] | 0.5, 1 | `{0.5, 0},{1, -28}` | 288 × 80 | Three trait slots, 80 each, 24 gap (so the 88 rpx hit areas keep 16 apart, section 1.5) |
 | `HUD.Status` | [MVP] | 0.5, 1 | `{0.5, 0},{1, -120}` | up to 216 × 48 | Up to four status icons |
 | `HUD.SafeBadge` | [MVP] | 0.5, 1 | `{0.5, -176},{1, -40}` | 56 × 56 | "Nobody can eat you here" badge |
 | `HUD.Dash` | [MVP] | 1, 1 | `{1, -40},{1, -44}` | 136 × 136 | Dash button |
@@ -352,7 +352,7 @@ Chapter 15 owns the layout of each platform (sections 3.1 to 3.7). This table li
 
 ### 3.6 Trait slots (`HUD.Traits`) and the shed action [MVP]
 
-Three slots in a row. Each slot is an 80 rpx circle with an 88 rpx hit area.
+Three slots in a row. Each slot is an 80 rpx circle with an 88 rpx hit area, 24 rpx apart. The pips are 14 rpx dots on an arc above the slot, their centres 50 rpx from the slot's centre and 24° apart, centred on 12 o'clock.
 
 ```
    o o o . .          <- 5 progress pips on an arc above the slot (4 with Keen Nose)
@@ -435,7 +435,7 @@ An arrow on the screen edge points at each off-screen creature that can eat the 
 
 ### 3.10 Trait prey markers (`HUD.TraitMarkers`) [MVP]
 
-Only while the player owns Glow: trait prey within 60 studs and off screen show as a 44 rpx marker (`UI_HUD_TraitMarker`, tinted by rarity) with the prey's trait icon at 28 rpx. At most four markers.
+Only while the player owns Glow (chapter 02, section 8.4): trait prey within 60 studs of the creature's centre, through terrain, get a marker coloured by rarity. On screen it is a ring around the prey; off screen it is a 44 rpx edge marker (`UI_HUD_TraitMarker`, tinted by rarity) with the prey's trait icon at 28 rpx and a pointer toward the prey, its centre clamped 40 rpx inside the content box. The six nearest at most; prey of a trait already held shows dimmed. Markers pause while an Eel is in transit (02 §8.6).
 
 ### 3.11 Edible and danger outlines (`HUD.Outlines`): what gets one [MVP]
 
@@ -558,7 +558,7 @@ A higher priority moment replaces a lower one at once. Up to three wait in a que
 
 Each card sits 8 rpx down in the slot and is 104 rpx tall, so it keeps the 16 rpx gap of 1.5 under `HUD.BankChip` (which ends at 122) and ends with the slot. Its `UI_Common_Rays` may reach past the card's sides and up into that gap, never below the card.
 
-Chapter 04's first-run banners (NIBBLER and GLOW, 1.5 s, 04 §3.3) pass their own hold in place of the times above. Chapter 14, section 4, row 28 lists what is still open between this section, chapter 04 and the keep-clear box.
+Chapter 04's first-run banners (NIBBLER and GLOW, 1.5 s, 04 §3.3) pass their own hold in place of the times above. Chapter 14, section 4, row 35 lists what is still open between this section, chapter 04 and the keep-clear box.
 
 ### 4.2 Tier-up (S07) [MVP]
 

@@ -427,7 +427,7 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 			end
 		end)
 
-		it(`{name}: the slot and the keep-clear box (docs/14 section 4, row 28)`, function()
+		it(`{name}: the slot and the keep-clear box (docs/14 section 4, row 35)`, function()
 			-- On a phone the content box is 676 rpx tall, so the box starts at 229.8 and the
 			-- slot dips 12 rpx into it; elsewhere it stays clear.
 			local dip = slot.y + slot.height - rects.keepClear.y
@@ -544,3 +544,102 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 		expect(t.foodIcon <= line.height).toBe(true)
 	end)
 end)
+describe(
+	"HudLayout HUD.Traits and HUD.TraitMarkers (docs/08 sections 1.5, 3.3, 3.6, 3.10)",
+	function()
+		for name, layout in SCREENS do
+			local content = layout.contentSize
+			local box = { x = 0, y = 0, width = content.width, height = content.height }
+			local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
+			local traits = HudLayout.traits(layout.screenClass, content)
+			local min = HudLayout.minTarget(layout.screenClass)
+
+			it(`{name}: the slots, their hits and their pips are inside the content box`, function()
+				for i = 1, 3 do
+					expect(inside(traits.slots[i], box)).toBe(true)
+					expect(inside(traits.hits[i], box)).toBe(true)
+					expect(inside(HudLayout.traitPipsRect(traits.slots[i]), box)).toBe(true)
+				end
+			end)
+
+			it(`{name}: slot hit areas meet the minimum and keep 16 rpx apart`, function()
+				for i = 1, 3 do
+					expect(traits.hits[i].width >= min and traits.hits[i].height >= min).toBe(true)
+				end
+				for i = 1, 2 do
+					local gap = traits.hits[i + 1].x - (traits.hits[i].x + traits.hits[i].width)
+					expect(gap >= HudLayout.GAP_MIN - 1e-6).toBe(true)
+				end
+			end)
+
+			it(
+				`{name}: the row and pips stay out of the keep-clear box and clear the bottom`,
+				function()
+					for i = 1, 3 do
+						local pips = HudLayout.traitPipsRect(traits.slots[i])
+						expect(HudLayout.overlaps(pips, rects.keepClear)).toBe(false)
+						expect(HudLayout.overlaps(traits.hits[i], rects.keepClear)).toBe(false)
+						local fromSafeBottom = content.height
+							+ HudLayout.MARGIN_BOTTOM
+							- (traits.slots[i].y + traits.slots[i].height)
+						expect(fromSafeBottom >= HudLayout.BOTTOM_TAP_CLEAR).toBe(true)
+					end
+				end
+			)
+
+			it(`{name}: the slot hits keep 16 rpx from dash, ability and the mass bar`, function()
+				local others = {
+					rects.massBar,
+					rects.dashHit,
+					HudLayout.hitRect(rects.ability, min),
+				}
+				for i = 1, 3 do
+					for _, other in others do
+						local grown = HudLayout.grow(traits.hits[i], HudLayout.GAP_MIN - 1e-6)
+						expect(HudLayout.overlaps(grown, other)).toBe(false)
+					end
+				end
+			end)
+
+			it(`{name}: off-screen trait markers sit 40 rpx inside, clear of the edge`, function()
+				local half = HudLayout.TRAIT_MARKER.size / 2
+				for step = 0, 35 do
+					local x, y = HudLayout.traitMarkerEdge(content, step * math.pi / 18)
+					local marker =
+						{ x = x - half, y = y - half, width = 2 * half, height = 2 * half }
+					expect(inside(marker, box)).toBe(true)
+					local fromEdge = math.min(x, y, content.width - x, content.height - y)
+					expect(fromEdge).toBeCloseTo(HudLayout.TRAIT_MARKER.inset, 1e-6)
+				end
+			end)
+		end
+
+		it("puts the phone row where the element table says", function()
+			local content = { width = 1251, height = 677 }
+			local t = HudLayout.traits("Phone", content)
+			expect(t.row.width).toBe(3 * 80 + 2 * 24)
+			expect(t.row.x).toBe((1251 - t.row.width) / 2)
+			expect(t.row.y + t.row.height).toBe(677 - 28)
+			expect(t.slots[2].x + 40).toBe(1251 / 2)
+			expect(t.hits[1].width).toBe(88)
+		end)
+
+		it("lays five pips (four with Keen Nose) on an arc centred above the slot", function()
+			local slot = { x = 0, y = 0, width = 80, height = 80 }
+			local five = HudLayout.traitPips(slot, 5)
+			expect(#five).toBe(5)
+			expect(five[3].x).toBeCloseTo(40, 1e-9)
+			expect(five[3].y).toBeCloseTo(40 - 50, 1e-9)
+			expect(five[1].x < five[2].x and five[4].x < five[5].x).toBe(true)
+			expect(five[1].y).toBeCloseTo(five[5].y, 1e-9)
+			local four = HudLayout.traitPips(slot, 4)
+			expect(#four).toBe(4)
+			expect((four[2].x + four[3].x) / 2).toBeCloseTo(40, 1e-9)
+			-- No two pips touch.
+			for i = 1, 4 do
+				local dx, dy = five[i + 1].x - five[i].x, five[i + 1].y - five[i].y
+				expect(math.sqrt(dx * dx + dy * dy) > HudLayout.TRAITS.pip).toBe(true)
+			end
+		end)
+	end
+)

@@ -41,7 +41,7 @@ MomentQueue.ENTER = 0.18
 MomentQueue.LEAVE = 0.16
 MomentQueue.DROP = 24
 -- `UI_Common_Rays` turns behind the tier 7 badge and Epic and Mythic traits (08 §4.2, §4.3). The
--- bible gives no speed: one turn in 8 s (tune; docs/14 section 4, row 28).
+-- bible gives no speed: one turn in 8 s (tune; docs/14 section 4, row 35).
 MomentQueue.RAYS_TURN = 45 -- degrees a second
 
 export type Moment = {

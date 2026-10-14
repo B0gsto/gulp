@@ -661,4 +661,87 @@ function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: numb
 	}
 end
 
+-- 08 §3.3 and §3.6, `HUD.Traits`: three 80 rpx slots bottom centre, 28 rpx above the content
+-- box's bottom, each with an 88 rpx hit area and a 56 rpx icon. The gap is 24 so the hit areas
+-- keep 08 §1.5's 16 rpx apart (14 §4 entry 32). The pips sit on an arc above each slot: 14 rpx
+-- dots whose centres are 50 rpx from the slot's centre, 24° apart, centred on 12 o'clock.
+HudLayout.TRAITS = table.freeze({
+	bottom = 28,
+	slot = 80,
+	gap = 24,
+	icon = 56,
+	pip = 14,
+	pipRadius = 50,
+	pipStep = math.rad(24),
+})
+
+-- 08 §3.3 and §3.10, `HUD.TraitMarkers`: 44 rpx markers, the trait icon at 28; off screen the
+-- marker's centre is clamped 40 rpx inside the content box.
+HudLayout.TRAIT_MARKER = table.freeze({ size = 44, icon = 28, inset = 40 })
+
+export type TraitRects = {
+	row: Rect, -- the three slots and their gaps
+	slots: { Rect },
+	hits: { Rect },
+}
+
+--- `HUD.Traits` (08 §3.3, §3.6) for one screen: the row, each slot and each slot's hit area.
+--- The same on every screen class (the desktop key caps under the slots are a later stage).
+function HudLayout.traits(screenClass: ScreenClass, content: Size): TraitRects
+	local t = HudLayout.TRAITS
+	local min = HudLayout.minTarget(screenClass)
+	local width = 3 * t.slot + 2 * t.gap
+	local x0 = (content.width - width) / 2
+	local y = content.height - t.bottom - t.slot
+	local slots: { Rect } = {}
+	local hits: { Rect } = {}
+	for i = 1, 3 do
+		local slot = { x = x0 + (i - 1) * (t.slot + t.gap), y = y, width = t.slot, height = t.slot }
+		table.insert(slots, slot)
+		table.insert(hits, HudLayout.hitRect(slot, min))
+	end
+	return { row = { x = x0, y = y, width = width, height = t.slot }, slots = slots, hits = hits }
+end
+
+--- The centres of `count` pips (5, or 4 with Keen Nose) on the arc above a slot whose rect is
+--- `slot`, left to right, in the slot rect's space.
+function HudLayout.traitPips(slot: Rect, count: number): { { x: number, y: number } }
+	local t = HudLayout.TRAITS
+	local cx, cy = slot.x + slot.width / 2, slot.y + slot.height / 2
+	local pips = {}
+	for i = 1, count do
+		local a = -math.pi / 2 + (i - (count + 1) / 2) * t.pipStep
+		table.insert(
+			pips,
+			{ x = cx + t.pipRadius * math.cos(a), y = cy + t.pipRadius * math.sin(a) }
+		)
+	end
+	return pips
+end
+
+--- The rect every pip of a slot can take (the arc of five), for the layout checks.
+function HudLayout.traitPipsRect(slot: Rect): Rect
+	local half = HudLayout.TRAITS.pip / 2
+	local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+	for _, p in HudLayout.traitPips(slot, 5) do
+		x0, y0 = math.min(x0, p.x - half), math.min(y0, p.y - half)
+		x1, y1 = math.max(x1, p.x + half), math.max(y1, p.y + half)
+	end
+	return { x = x0, y = y0, width = x1 - x0, height = y1 - y0 }
+end
+
+--- An off-screen trait prey marker (08 §3.10): the point where the ray from the content centre
+--- at `angle` (radians, screen space: 0 points right, π/2 down) meets the rect 40 rpx inside the
+--- content box.
+function HudLayout.traitMarkerEdge(content: Size, angle: number): (number, number)
+	local inset = HudLayout.TRAIT_MARKER.inset
+	local ax = math.max(0, content.width / 2 - inset)
+	local ay = math.max(0, content.height / 2 - inset)
+	local c, s = math.cos(angle), math.sin(angle)
+	local tx = if math.abs(c) > 1e-9 then ax / math.abs(c) else math.huge
+	local ty = if math.abs(s) > 1e-9 then ay / math.abs(s) else math.huge
+	local t = math.min(tx, ty)
+	return content.width / 2 + t * c, content.height / 2 + t * s
+end
+
 return table.freeze(HudLayout)

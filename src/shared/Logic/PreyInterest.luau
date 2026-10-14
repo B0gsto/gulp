@@ -8,6 +8,8 @@
 -- For one player per call (`updatePlayer`), at the sim's current tick:
 --   1 Visit the grid cells within 600 studs and put each group in a band by 3D distance:
 --     Near 0 to 150, Mid 150 to 350, Far 350 to 600 (beyond: nothing, the client drops it).
+--     A group owned by another slot (PreySim.own: scripted prey, docs/04 §3.5) is skipped, so
+--     only its owner is ever sent it, knows it, or gets its PreyEvents.
 --   2 Dead reckoning: the client believes the group is at sentPos + sentVel × (now − sentTime),
 --     from the quantised values it was last sent. A delta record is due when the real position is
 --     off by more than the band's threshold (1, 3, 8 studs); in Near also when the flags change or
@@ -229,6 +231,7 @@ function PreyInterest.updatePlayer(
 ): buffer?
 	profileBegin("PreyInterest.updatePlayer")
 	local b, grid = sim.buffers, sim.grid
+	local owner = b.owner
 	local tick, now = sim.tick, sim.now
 	local base = (slot - 1) * G
 	local known, fullLeft, sentTick, keyTick =
@@ -252,7 +255,8 @@ function PreyInterest.updatePlayer(
 					buffer.readf32(b.posZ, o4)
 				local dx, dy, dz = x - px, y - py, z - pz
 				local d2 = dx * dx + dy * dy + dz * dz
-				if d2 <= FAR2 then
+				local own = buffer.readu8(owner, g)
+				if d2 <= FAR2 and (own == 0 or own == slot) then
 					local band = if d2 <= NEAR2 then 0 elseif d2 <= MID2 then 1 else 2
 					local i = base + g
 					local gen = buffer.readu8(b.gen, g)

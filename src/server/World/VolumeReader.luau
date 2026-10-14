@@ -1,7 +1,8 @@
 --!strict
 -- VolumeReader: turns the parts tagged `Volume` (authored in Studio under `Workspace.Volumes`)
 -- into data and destroys them (docs/09, section 9.1). A volume keeps its shape, inverse frame,
--- half size and attributes; a `RevivePoint` keeps only its centre. A part with an unknown `Kind`
+-- half size and attributes; a `RevivePoint` keeps only its centre. A `NurseryPath` volume must
+-- name a data:NurseryPath row (docs/03, section 6.2). A part with an unknown `Kind`
 -- or a missing attribute WorldIndex needs is skipped and reported, never half-read.
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -83,6 +84,9 @@ function VolumeReader.read(): Result
 				local p = part.Position
 				points[id] = { id = id, wire = def.wire, x = p.X, y = p.Y, z = p.Z }
 			end
+		elseif kind == "NurseryPath" and Index.NurseryPath.byId[attrs.PointId :: string] == nil then
+			-- safe: validate() checked that PointId is a string
+			table.insert(problems, `{part:GetFullName()}: unknown PointId {attrs.PointId}`)
 		else
 			local size = part.Size
 			table.insert(
