@@ -238,6 +238,9 @@ specimenPearlsPerHour = base[tier] × (1 + sum of trait bonuses)
 covePearlsPerHour     = sum over all specimens in slots
 ```
 
+<!-- data:CoveIncome -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
 | Tier | Base Pearls/h | Pearls per 16 hours | Pearls per 24 hours | First-draft canon anchor (Pearls/h) |
 |---|---|---|---|---|
 | 1 Fry | Not applicable: a specimen needs tier 2 | — | — | 10 |
@@ -247,6 +250,8 @@ covePearlsPerHour     = sum over all specimens in slots
 | 5 Brute | 30 | 480 | 720 | 160 |
 | 6 Titan | 50 | 800 | 1,200 | 320 |
 | 7 Leviathan | 80 | 1,280 | 1,920 | 640 |
+
+<!-- /data -->
 
 The base rises about 1.67 times per tier (close to 6 × 1.68^(tier − 2)). The table is the authority, not the formula.
 
@@ -399,6 +404,9 @@ Chapter 03 tags rewards with a band and leaves the amount to this chapter. These
 
 **Table: reward band amounts**
 
+<!-- data:RewardBands -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
 | Band | Pearls | Where chapter 03 uses it |
 |---|---|---|
 | R1 | 100 | Easy daily goal; the bonus for finishing all three goals |
@@ -406,6 +414,8 @@ Chapter 03 tags rewards with a band and leaves the amount to this chapter. These
 | R3 | 175 | Hard daily goal; Species, Prey, Dangers and Places categories of the Codex |
 | R4 | 2,500 | Traits category of the Codex |
 | R5 | 5,000 | All six species pages of the Codex; the whole Codex |
+
+<!-- /data -->
 
 Chapter 03 now copies this chapter's amounts for the four rewards that once differed: the bonus for all three daily goals (R1, 100; section 3.5), the seven login streak boxes (section 3.6; Pearls only, no tokens), the Pearl gift for a new Reef Rank (25 × the new rank, section 3.9) and each Codex entry added after launch (the per-entry amounts in section 3.8). The 30-day model in section 5 is built on these amounts.
 
