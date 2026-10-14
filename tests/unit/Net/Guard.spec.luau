@@ -48,7 +48,7 @@ describe("Net/Guard", function()
 		local guard: Guard.Guard<string> = Guard.new()
 		local noop = function(_key: string, ...: unknown) end
 		local cases: { { string | { Validate.Spec } } } = {
-			{ "ClientReady", { Validate.boolean() }, "no payload" },
+			{ "ClientReady", {}, "scalars" },
 			{ "Bite", { Validate.string(8) }, "one buffer" },
 			{ "Bite", { Validate.buffer(8, 44) }, "maximum is 40" },
 			{ "Bite", { Validate.buffer(4, 40) }, "minimum is 8" },
@@ -169,11 +169,11 @@ describe("Net/Guard", function()
 	it("a rejected listener that throws does not escape", function()
 		quietly(function(lines)
 			local guard: Guard.Guard<string> = Guard.new()
-			Guard.route(guard, "ClientReady", {}, function() end)
+			Guard.route(guard, "ClientReady", { Validate.int(1, 3) }, function() end)
 			guard.rejected:connect(function()
 				error("listener broke")
 			end)
-			expect(select(2, Guard.handle(guard, "p1", "ClientReady", 0, 1))).toBe("count")
+			expect(select(2, Guard.handle(guard, "p1", "ClientReady", 0, 1, 2))).toBe("count")
 			expect(lines[#lines].level).toBe("warn")
 		end)
 	end)
@@ -181,9 +181,9 @@ describe("Net/Guard", function()
 	it("ClientReady passes once per session", function()
 		quietly(function()
 			local guard: Guard.Guard<string> = Guard.new()
-			Guard.route(guard, "ClientReady", {}, function() end)
-			expect(Guard.handle(guard, "p1", "ClientReady", 0)).toBe(true)
-			expect(select(2, Guard.handle(guard, "p1", "ClientReady", 60))).toBe("rate")
+			Guard.route(guard, "ClientReady", { Validate.int(1, 3) }, function() end)
+			expect(Guard.handle(guard, "p1", "ClientReady", 0, 2)).toBe(true)
+			expect(select(2, Guard.handle(guard, "p1", "ClientReady", 60, 2))).toBe("rate")
 		end)
 	end)
 

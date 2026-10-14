@@ -7,6 +7,9 @@
 -- TraitService.onTraitPreyEaten as BiteService does: the prey belongs to that slot alone, every
 -- stage is saved, and the first trait is Glow. The stage machine's rules are
 -- tests/unit/Logic/FtueRules; the route helpers tests/unit/Logic/FtuePlan.
+-- Analytics (task S6-C6; docs/10, sections 3.1 and 4.2; Sprint 6 acceptance "onboarding steps log
+-- in order in the Studio event buffer"): the stand-in reports as STAND_IN, and the spec reads
+-- Analytics' buffer (nothing is sent outside a live server) for its records.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FtueConfig = require(ReplicatedStorage.Shared.Config.FtueConfig)
@@ -16,6 +19,8 @@ local Index = require(ReplicatedStorage.Shared.Data.Index)
 local PreySim = require(ReplicatedStorage.Shared.Sim.PreySim)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 
+local Analytics = require("../Services/Analytics")
+local AnalyticsRules = require(ReplicatedStorage.Shared.Logic.AnalyticsRules)
 local CreatureService = require("../Services/CreatureService")
 local PreyService = require("../Services/PreyService")
 local TraitService = require("../Services/TraitService")
@@ -30,6 +35,8 @@ local OTHER = 20
 local S = FtueRules.Stage
 local C = FtuePlan.Code
 local T = TutorialService._test
+-- The player the stand-in sessions report to Analytics as (Analytics reads only `UserId`).
+local STAND_IN: Player = ({ UserId = -9801, Name = "StandIn" } :: any) :: Player
 
 local function ensureRunning()
 	if not PreyService.isRunning() then
@@ -40,6 +47,29 @@ local function ensureRunning()
 		TutorialService.init()
 		TutorialService.start()
 	end
+	Analytics._test.ensureInit()
+end
+
+-- STAND_IN's records in the Analytics buffer, oldest first.
+local function reported(): { Analytics.Record }
+	local out = {}
+	for _, r in Analytics.buffer() do
+		if r.userId == STAND_IN.UserId then
+			table.insert(out, r)
+		end
+	end
+	return out
+end
+
+-- STAND_IN's custom events called `name`, as their ctx values, in order.
+local function eventsNamed(name: string): { string }
+	local out = {}
+	for _, r in reported() do
+		if r.kind == "event" and r.name == name then
+			table.insert(out, r.ctx)
+		end
+	end
+	return out
 end
 
 type World = {
@@ -91,7 +121,12 @@ local function world(): World
 		return if slot == SLOT then traits else nil
 	end, function() end)
 	T.clearLog()
+	T.reporter(STAND_IN)
+	Analytics.forget(STAND_IN)
+	Analytics.clearBuffer()
 	w.done = function()
+		T.reporter(nil)
+		Analytics.forget(STAND_IN)
 		T.finish(SLOT)
 		PreyService.clearScripted(SLOT)
 		TutorialService._test.stub(nil, nil)
@@ -360,6 +395,62 @@ return function()
 				expect(cued(w.cues, "startChase")).toBe(false)
 				expect(cued(w.cues, "startCurrent")).toBe(true)
 				expect(logged("step", 10) and logged("step", 11)).toBe(true)
+
+				-- Analytics: every step the rules emitted for S0 to S5 is in the buffer, on the
+				-- onboarding funnel, in order and once each (10 §3.1).
+				local hooked, buffered = {}, {}
+				for _, entry in T.log() do
+					if entry.kind == "step" then
+						table.insert(hooked, entry.value)
+					end
+				end
+				for _, r in reported() do
+					if r.kind == "step" then
+						expect(r.name).toBe("onboarding")
+						expect(r.sessionId).toBe(nil)
+						table.insert(buffered, r.value)
+					end
+				end
+				expect(table.concat(buffered, ",")).toBe("1,2,3,4,5,6,7,8,9,10,11")
+				expect(table.concat(hooked, ",")).toBe(table.concat(buffered, ","))
+				expect(reported()[1].stepName).toBe("01_joined")
+				-- ftue_milestone once each for the first bite, tier 2 and the first trait.
+				local milestones = eventsNamed("ftue_milestone")
+				expect(#milestones).toBe(3)
+				expect(string.sub(milestones[1], 1, 5)).toBe("bite_")
+				expect(string.sub(milestones[2], 1, 6)).toBe("tier2_")
+				expect(string.sub(milestones[3], 1, 6)).toBe("trait_")
+				expect(#eventsNamed("ftue_chase_result")).toBe(1) -- skipped, until S7-C1
+				expect(#eventsNamed("ftue_bite_assist")).toBe(0) -- the input came first
+			end)
+		end)
+
+		it("sends a fail-safe once per account, across a rejoin", function()
+			run(function(w)
+				local fresh = { stage = 0, completed = false, attempts = 0, banked = false }
+				T.begin(SLOT, fresh)
+				T.signal(SLOT, C.LOADED)
+				ticks(FtueConfig.hatch.seconds + 0.1)
+				expect(stage()).toBe(S.S2_FIRST_BITE)
+				T.signal(SLOT, C.BACKGROUND) -- 04 §3.7: the hold at once
+				expect(table.concat(eventsNamed("ftue_failsafe"), ",")).toBe("afk_hold")
+				local mask = lastSaved("ftue.logged", w.saves)
+				expect(AnalyticsRules.isLogged(mask, "failsafe_afk_hold")).toBe(true)
+				-- The next session reads the saved bits: the hold is not sent again.
+				T.finish(SLOT)
+				T.begin(SLOT, fresh, false, mask)
+				T.signal(SLOT, C.LOADED)
+				ticks(FtueConfig.hatch.seconds + 0.1)
+				T.signal(SLOT, C.BACKGROUND)
+				expect((T.state(SLOT) :: FtueRules.State).held).toBe(true)
+				expect(table.concat(eventsNamed("ftue_failsafe"), ",")).toBe("afk_hold")
+				-- A fresh account (nothing saved) sends it.
+				T.finish(SLOT)
+				T.begin(SLOT, fresh, false, 0)
+				T.signal(SLOT, C.LOADED)
+				ticks(FtueConfig.hatch.seconds + 0.1)
+				T.signal(SLOT, C.BACKGROUND)
+				expect(table.concat(eventsNamed("ftue_failsafe"), ",")).toBe("afk_hold,afk_hold")
 			end)
 		end)
 
@@ -427,6 +518,7 @@ return function()
 				T.signal(SLOT, C.TAP)
 				T.signal(SLOT, C.STEER)
 				expect(logged("step", 5)).toBe(true)
+				expect(#eventsNamed("ftue_bite_assist")).toBe(1) -- the bite came before any input
 			end)
 		end)
 
