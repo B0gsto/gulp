@@ -240,4 +240,15 @@ def run(spec, report):
         if info["dropped_settings"]:
             add("exporter settings", False, "not accepted by this Blender: " + ", ".join(info["dropped_settings"]))
         print("[export] %s  %d bytes" % (entry["file"], info["bytes"]))
+    for entry in spec.get("textures", []):
+        # Painted textures (06 section 5.1): the asset writes the file; the check is the 07 1.4 rules.
+        path = os.path.join(common.EXPORT_DIR, entry["file"])
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        w, h = entry["write"](path)
+        name = os.path.basename(entry["file"])
+        pow2 = w == h and w & (w - 1) == 0
+        report.add(name, "texture", pow2 and w <= entry.get("max", 1024) and name.startswith("T_") and name.endswith(".png"),
+                   "%d x %d PNG, ceiling %d" % (w, h, entry.get("max", 1024)))
+        infos.append({"file": entry["file"], "bytes": os.path.getsize(path)})
+        print("[export] %s  %d bytes" % (entry["file"], os.path.getsize(path)))
     return infos
