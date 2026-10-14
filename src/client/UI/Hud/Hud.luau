@@ -78,6 +78,8 @@ local heldTraits: { string } = {}
 local heldSeen: { [string]: number } = {} -- TraitRules.noteHeld: Glow's markers start 0.5 s late
 local heldRead = false
 local lastPips: { [string]: number } = {}
+local lastKeen = false
+local traitHint: string? = nil -- Hud.setTraitHint
 local pipRecency: { [string]: number } = {}
 local pipClock = 0
 local traitRects: HudLayout.TraitRects? = nil
@@ -205,10 +207,29 @@ function Hud.setTraits(traits: { string }, progress: { [string]: number }, keenN
 		end
 	end
 	lastPips = table.clone(progress)
+	lastKeen = keenNose
 	local b = built
 	if b then
-		b.traits.set(TraitRules.slotView(traits, progress, pipRecency, keenNose))
+		local views = TraitRules.slotView(traits, progress, pipRecency, keenNose)
+		local first = views[1]
+		if
+			traitHint
+			and first
+			and first.state == "empty"
+			and not TraitRules.has(traits, traitHint)
+		then
+			-- 04 §3.6 B5: slot 1 waits for the first trait with its pips empty.
+			views[1] = { state = "progress", traitId = traitHint, pips = 0, needed = first.needed }
+		end
+		b.traits.set(views)
 	end
+end
+
+--- 04 §3.6 B5 (TutorialDirector's `pips` prompt): while set, an empty slot 1 shows `traitId` in
+--- progress with no pips filled, so the player sees five empty pips before the first Glowfry.
+function Hud.setTraitHint(traitId: string?)
+	traitHint = traitId
+	Hud.setTraits(heldTraits, lastPips, lastKeen)
 end
 
 --- The Just gained flash of slot `index` (08 §3.6), on the "traitGained" `CreatureEvent`.

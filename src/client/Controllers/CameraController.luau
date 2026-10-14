@@ -71,6 +71,8 @@ local tierUpAt: number? = nil
 local tierDownAt: number? = nil
 local tierDownFrom = 0
 
+local push: (() -> number)? = nil -- setPush
+
 -- Shake (02 §3.4).
 local shakeEnabled = true
 local shakeAmount, shakeSeconds, shakeAt = 0, 0, -math.huge
@@ -261,6 +263,9 @@ local function update(dt: number)
 		baseDistance = CameraMath.smooth(baseDistance, desiredBase, dt, CameraMath.TAU_DISTANCE)
 	end
 	local distance = baseDistance
+	if push then
+		distance = math.max(0, distance - push())
+	end
 	if tierUpAt then
 		local t = now - tierUpAt
 		distance *= CameraMath.pullBack(t)
@@ -371,6 +376,12 @@ end
 --- The "camera shake" setting (02 §3.4). TODO(StateStore): read it from the saved settings.
 function CameraController.setShakeEnabled(enabled: boolean)
 	shakeEnabled = enabled
+end
+
+--- A push-in: `offset()` studs closer every frame while set (04 §3.6 B5: TutorialDirector's push
+--- on the fifth pip); nil ends it.
+function CameraController.setPush(offset: (() -> number)?)
+	push = offset
 end
 
 --- Replaces the follow target; CreatureController passes its own rig's `rig.pos` here. nil goes

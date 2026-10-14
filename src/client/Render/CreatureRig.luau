@@ -96,6 +96,7 @@ export type Rig = {
 	heading: Vector3,
 	cframe: CFrame,
 	glow: Glow?, -- set while the creature holds Glow
+	override: AnimationTrack?, -- a one-off clip that owns the bones while it plays (the hatch)
 }
 
 -- Clip IDs by clip name, filled by CreatureController from the manifest.
@@ -556,6 +557,7 @@ function CreatureRig.new(species: string, radiusMult: number): Rig
 		heading = Vector3.new(0, 0, -1),
 		cframe = root.CFrame,
 		glow = nil,
+		override = nil,
 	}
 	for _, clip in RigMath.CLIPS do
 		local id = clipIds[clip]
@@ -784,12 +786,53 @@ function CreatureRig.playAction(rig: Rig, clip: Clip)
 	end
 end
 
+--- Plays the clip with asset `id` once (04 §3.6 B1: `A_Fish_Hatch`) at `speed`; the loops and
+--- the code sway leave the bones to it until it ends or `stopOverride`. Nil when it cannot load.
+function CreatureRig.playOverride(rig: Rig, id: number, speed: number): AnimationTrack?
+	local animator = rig.animator
+	if animator == nil then
+		return nil
+	end
+	local animation = Instance.new("Animation")
+	animation.AnimationId = `rbxassetid://{id}`
+	local ok, loaded = pcall(animator.LoadAnimation, animator, animation)
+	if not ok or typeof(loaded) ~= "Instance" then
+		Log.warn(TAG, `clip {id} did not load`)
+		return nil
+	end
+	local track = loaded :: AnimationTrack -- safe: LoadAnimation returns an AnimationTrack
+	for _, other in rig.tracks do
+		other:Stop(0)
+	end
+	track.Looped = false
+	track.Priority = Enum.AnimationPriority.Action4
+	track:Play(0, 1, speed)
+	rig.override = track
+	return track
+end
+
+--- Ends the one-off clip early (control came before it finished).
+function CreatureRig.stopOverride(rig: Rig)
+	local track = rig.override
+	if track then
+		rig.override = nil
+		track:Stop()
+	end
+end
+
 local swayBones = RigMath.SWAY
 
 --- Animates one frame at `speed` studs/s against `topSpeed`. With clips: crossfades the loops.
 --- Without: advances the phase and writes the sway onto the bones (render step, after the
 --- Animator). Hot path: no allocation beyond the CFrames it writes.
 function CreatureRig.animate(rig: Rig, dt: number, speed: number, topSpeed: number)
+	local override = rig.override
+	if override then
+		if override.IsPlaying then
+			return
+		end
+		rig.override = nil
+	end
 	local loop: Clip = RigMath.loopFor(speed, topSpeed) :: Clip
 	if next(rig.tracks) ~= nil then
 		if loop ~= rig.loop or not (rig.tracks[loop] and rig.tracks[loop].IsPlaying) then

@@ -9,6 +9,7 @@
 -- No default controls exist: the stub `PlayerModule` stops them loading (09 §6.10).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
@@ -68,6 +69,7 @@ local keys: InputMath.Keys =
 	{ forward = false, brake = false, left = false, right = false, autoSwim = false }
 local arrowLeft, arrowRight, arrowUp, arrowDown, altHeld = false, false, false, false, false
 local lookYaw, lookPitch = 0, 0
+local pilot: ((SwimInput) -> ())? = nil -- setPilot (Studio only)
 local mouseDX, mouseDY = 0, 0
 
 -- Dash: a press is true for one read; a held HUD button is true every read (held dash).
@@ -257,7 +259,18 @@ function InputController.read(): SwimInput
 	end
 	input.dash = dashPressed or dashHeld
 	dashPressed = false
+	if pilot then
+		pilot(input)
+	end
 	return input
+end
+
+--- Studio only: `fn` rewrites each frame's SwimInput (the tutorial play check's autopilot,
+--- TutorialDirector); nil gives the controls back. Ignored outside Studio.
+function InputController.setPilot(fn: ((SwimInput) -> ())?)
+	if RunService:IsStudio() then
+		pilot = fn
+	end
 end
 
 --- The current input mode (15 §5.1).

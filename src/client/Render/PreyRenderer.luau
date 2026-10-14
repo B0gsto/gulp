@@ -147,6 +147,7 @@ local pools: { [number]: Pools.Pool<Item> } = {}
 local poolList: { Pools.Pool<Item> } = {}
 local missingKind: { [number]: boolean } = {}
 local clock = 0 -- seconds of drawing, for the wiggle
+local outlineScale = 1 -- 04 §3.2, §4: the FTUE's thicker food outline (TutorialDirector sets it)
 
 -- Scratch, reused every frame (09 §4.7).
 local moveParts: { BasePart } = {}
@@ -273,7 +274,7 @@ local function lookOf(kind: number): Look?
 		then template.Size
 		elseif def.tier == 0 then Vector3.new(length, length, length)
 		else Vector3.new(length * WIDTH, length * HEIGHT, length)
-	local edibleT = OutlineRules.thickness(size.Y, "edible", true)
+	local edibleT = OutlineRules.thickness(size.Y, "edible", true) * outlineScale
 	-- 06 §7.6 data:PreyMotion: the wobble block, else the sway as a yaw wiggle, else still.
 	local motion = Index.PreyMotion.byId[def.id]
 	local wobble = motion and motion.wobble
@@ -911,6 +912,28 @@ function PreyRenderer.setQuality(newTier: GraphicsTier)
 		Pools.setCap(pool, budget, destroyItem)
 	end
 	setHostCap(farEmitters)
+end
+
+--- 04 §3.2 and §4: the food outline's width times `scale` (the FTUE's 30% thicker outline,
+--- FtueConfig.prompts.outlineThicken); 1 is the normal width. Resizes the shells already made.
+function PreyRenderer.setOutlineScale(scale: number)
+	if scale == outlineScale then
+		return
+	end
+	outlineScale = scale
+	for kind, look in looks do
+		local t = OutlineRules.thickness(look.size.Y, "edible", true) * scale
+		look.shellSize = look.size + Vector3.new(2 * t, 2 * t, 2 * t)
+		local pool = pools[kind]
+		if pool then
+			for n = 1, Pools.size(pool) do
+				local shell = Pools.at(pool, n).shell
+				if shell then
+					shell.Size = look.shellSize
+				end
+			end
+		end
+	end
 end
 
 --- Dev: makes `feed` the one packet source ("remote" by default; PreyHarness takes it while it
