@@ -14,10 +14,10 @@ bone, offset). It makes:
   M_Species_Base_Fish_LOD1, _LOD2                       half and a quarter of the triangles
   M_Species_Base_Fish[_LOD1|_LOD2]_Shell, _ShellThick   flipped-face outline shells
   M_Species_Base_Fish_Crest   the family back sail stand-in, rigid on the socket Sock_Crest
-  A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite
-                              the five family clips (rigs.FISH_CLIPS), baked here for the rig
+  A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite, _Gulp, _Hit, _Stunned, _TierUp, _Gulped
+                              the ten family clips (rigs.FISH_CLIPS), baked here for the rig
                               review only: their export files (A_*.fbx and .rbxm) come from the
-                              Minnow juvenile (species/minnow/build.py, S2-A3)
+                              Minnow juvenile (species/minnow/build.py, S2-A3 and S4-A3)
   M_Species_Base_Fish_RigTest all of the above in one file, for the Studio rig tests
 and the weight check (weightcheck.py): the dash squash and stretch and the bite, measured and
 rendered. Vertex-coloured in the Minnow palette; the UVs follow the family layout (06 5.4).
@@ -32,6 +32,7 @@ import bpy  # noqa: E402
 import clips  # noqa: E402
 import common  # noqa: E402
 import meshgen  # noqa: E402
+import mouth  # noqa: E402
 import rigs  # noqa: E402
 import texgen  # noqa: E402
 from fishshape import (EYE, HEIGHT, LENGTH, MOUTH_Y, PEC, WIDTH, Y_BODY_END, Y_NOSE, Y_TAIL_ROOT,  # noqa: E402
@@ -41,7 +42,7 @@ from fishshape import (EYE, HEIGHT, LENGTH, MOUTH_Y, PEC, WIDTH, Y_BODY_END, Y_N
 NAME = "M_Species_Base_Fish"
 
 # Rings and segments per part: 1,456 of 1,500 triangles. LODs and shells come from versions.py.
-RES = dict(segs=20, rings=20, tail=(5, 5), dorsal=(7, 3), pec=(5, 4), eye=(12, 5), lid=(3, 4))
+RES = dict(segs=20, rings=20, tail=(5, 5), dorsal=(7, 3), pec=(5, 4), eye=(12, 4), lid=(3, 4))   # eye 12 x 4 (was 5): S4-A3 freed 48 triangles for the mouth interior
 TEXTURE = "species_juv"     # 06 section 5.6: 256 x 256, 60 px/stud
 TEX = texgen.TEXTURE_CLASSES[TEXTURE][0]
 
@@ -69,6 +70,7 @@ UV = {
     "eye": texgen.place("Fish", "eye", TEX, v=(0.0, 0.125)),
     "lid": texgen.place("Fish", "eye", TEX, v=(0.125, 0.25)),
     "crest": texgen.place("Fish", "free", TEX),
+    "mouth": texgen.place("Fish", "mouth", TEX),                # S4-A3: the mouth interior (mouth.py)
 }
 
 
@@ -88,6 +90,7 @@ def fish_meshdata(res, fit):
     md = meshgen.MeshData()
     md.add_part(body_part(res["segs"], res["rings"]), body_colour, uv=body_uv,
                 weights=lambda p, q: fit.body_weights(p))
+    body_count = len(md.verts)
     md.add_part(tail_part(res["tail"]), lambda p, q: DARK if q[0] > 0.78 else MID, uv=tail_uv,
                 weights=fit.part_weights("tail"))
     md.add_part(dorsal_part(res["dorsal"]), lambda p, q: DARK if q[1] > 0.6 else MID, uv=lambda p, q: UV["dorsal"](*q),
@@ -98,6 +101,7 @@ def fish_meshdata(res, fit):
         md.add_part(eye_part(side, res["eye"]), lambda p, q: PUPIL if q[0] < 0.36 else EYE_WHITE,
                     uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights=fit.part_weights("eye", tag))
         md.add_part(lid_part(side, res["lid"]), MID, uv=lambda p, q: UV["lid"](*q), weights=fit.part_weights("lid", tag))
+    mouth.add_mouth(md, body_count, fit, UV["mouth"], k=fit.k)     # S4-A3: the lip seam and the mouth interior
     return md
 
 

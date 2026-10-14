@@ -47,6 +47,9 @@ STRIP_SIZE = 640              # key-pose strips larger, so every pose reads whol
 PREVIEW_SECONDS = 2
 STRIP_VIEWS = ("Side", "Top")  # the fish wave is sideways, so it reads from the top
 CLIP_VIEW = "ThreeQuarter"
+# Clips whose strips need more (S4-A3 review): bigger cells, and a close-up row of the head from
+# the side (the front `head` share of the body), where the action is in the mouth.
+STRIP_EXTRA = {"A_Fish_Gulp": {"size": 800, "head": 0.45}}
 RE_PATH = re.compile(r'^pose\.bones\["([^"]+)"\]\.(location|rotation_quaternion|rotation_euler|scale)$')
 RE_LENGTH = re.compile(r"^\s*(loop\s+)?(\d+)(?:\s+to\s+(\d+))?\s+frames", re.I)
 
@@ -214,15 +217,22 @@ def check(spec, clip, report):
 
 # ---------------------------------------------------------------- previews (06 15.5)
 
-def _render_set(objs, view, frames, folder, prefix):
+def _render_set(objs, view, frames, folder, prefix, head=None):
     previewlib.show_only(objs)
     previewlib.show_helpers(False)
+    pts = []
+    for f in sorted(set(frames)):          # one still camera that frames every pose: motion shows against it,
+        bpy.context.scene.frame_set(f)     # and a stretch or a lunge cannot leave the cell
+        pts += previewlib.world_points(objs)
+    if head:                               # a close-up: only the front `head` share of the body (-Y forward)
+        y0, y1 = min(p.y for p in pts), max(p.y for p in pts)
+        pts = [p for p in pts if p.y <= y0 + head * (y1 - y0)]
     bpy.context.scene.frame_set(frames[0])
-    previewlib.fit_camera(view, objs, margin=1.5)   # once, at the first frame: motion shows against a still camera
+    previewlib.fit_camera(view, objs, margin=1.3, pts=pts)
     out = []
     for i, f in enumerate(frames):
         bpy.context.scene.frame_set(f)
-        out.append(os.path.join(folder, "%s_%s_%03d.png" % (prefix, view, i)))
+        out.append(os.path.join(folder, "%s_%s%s_%03d.png" % (prefix, view, "_head" if head else "", i)))
         previewlib.render(out[-1])
     return out
 
@@ -241,9 +251,13 @@ def preview(spec, report, validation_ok):
             arm.animation_data.action = clip["action"]
             length = clip["end"] - clip["start"]
             keys = clip.get("keys") or [(clip["start"], "")]
-            scene.render.resolution_x = scene.render.resolution_y = STRIP_SIZE
-            rows = [{"view": v, "frames": _render_set(objs, v, [clip["start"] + k for k, _ in keys], tmp, name + "_k")}
-                    for v in STRIP_VIEWS]
+            extra = STRIP_EXTRA.get(name, {})
+            strip_size = extra.get("size", STRIP_SIZE)
+            scene.render.resolution_x = scene.render.resolution_y = strip_size
+            key_frames = [clip["start"] + k for k, _ in keys]
+            rows = [{"view": v, "frames": _render_set(objs, v, key_frames, tmp, name + "_k")} for v in STRIP_VIEWS]
+            if extra.get("head"):
+                rows.insert(1, {"view": "Head", "frames": _render_set(objs, "Side", key_frames, tmp, name + "_k", head=extra["head"])})
             scene.render.resolution_x = scene.render.resolution_y = PREVIEW_SIZE
             # 2 seconds at 30 fps: a loop repeats, an action plays and then holds its last frame
             seq = [clip["start"] + (i % length if clip.get("loop") else min(i, length)) for i in range(PREVIEW_SECONDS * common.FPS)]
@@ -251,7 +265,7 @@ def preview(spec, report, validation_ok):
             rendered = dict(zip(unique, _render_set(objs, CLIP_VIEW, unique, tmp, name + "_c")))
             rows_ok = [r for r in report.rows if r["subject"] == name]
             base = os.path.join(common.review_dir(name), common.today())
-            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE, "strip_size": STRIP_SIZE,
+            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE, "strip_size": strip_size,
                    "labels": ["f%d %s" % (k, lab) for k, lab in keys], "rows": rows,
                    "clip_frames": [rendered[f] for f in seq], "fps": common.FPS,
                    "footer": ["%s  %d frames%s  %s  RIG_%s" % (name, length, " loop" if clip.get("loop") else "",

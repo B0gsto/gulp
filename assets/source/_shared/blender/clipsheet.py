@@ -30,25 +30,40 @@ def flat(path, size):
 
 
 def strip(job):
+    """Text is sized to the sheet, so the labels still read when the strip is viewed at 768 wide."""
     size, rows, labels = job.get("strip_size", job["size"]), job["rows"], job["labels"]
     cols = len(labels)
-    footer_h = 22 * len(job["footer"]) + 12
-    w = ROW_LABEL_W + cols * size
-    h = LABEL_H + len(rows) * size + footer_h
+    lab = max(16, int(size * cols / 64))           # about 12 px at 768 wide
+    small, foot = font(lab), font(max(14, int(lab * 0.75)))
+    row_w = max(ROW_LABEL_W, int(lab * 3.2))
+    label_h = max(LABEL_H, int(lab * 1.5))
+    w = row_w + cols * size
+    lines = []
+    for line in job["footer"]:
+        words, cur = line.split(" "), ""
+        for word in words:
+            trial = (cur + " " + word).strip()
+            if cur and foot.getlength(trial) > w - 16:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = trial
+        lines.append(cur)
+    line_h = int(lab * 0.75 * 1.35)
+    h = label_h + len(rows) * size + line_h * len(lines) + 12
     sheet = Image.new("RGB", (w, h), (24, 28, 36))
     draw = ImageDraw.Draw(sheet)
-    small = font(16)
     for c, text in enumerate(labels):
-        draw.text((ROW_LABEL_W + c * size + 8, 5), text, fill=INK, font=small)
+        draw.text((row_w + c * size + 8, (label_h - lab) // 2), text, fill=INK, font=small)
     for r, row in enumerate(rows):
-        y = LABEL_H + r * size
-        draw.text((8, y + size // 2 - 8), row["view"], fill=INK, font=small)
+        y = label_h + r * size
+        draw.text((8, y + size // 2 - lab // 2), row["view"], fill=INK, font=small)
         for c, path in enumerate(row["frames"]):
-            sheet.paste(flat(path, size), (ROW_LABEL_W + c * size, y))
-    y = LABEL_H + len(rows) * size + 6
-    for line in job["footer"]:
-        draw.text((8, y), line[:220], fill=INK, font=font(14))
-        y += 22
+            sheet.paste(flat(path, size), (row_w + c * size, y))
+    y = label_h + len(rows) * size + 6
+    for line in lines:
+        draw.text((8, y), line, fill=INK, font=foot)
+        y += line_h
     os.makedirs(os.path.dirname(job["strip"]), exist_ok=True)
     sheet.save(job["strip"])
 
