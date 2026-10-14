@@ -16,9 +16,9 @@
 --             0.1 s time constant, so a new packet never pops (8.8). A group's first record snaps.
 --             The heading (Formation's: atan2(velX, velZ)) eases the same way along the shorter
 --             arc and is kept while the group is still.
---   Pools     `assign` gives the mesh budget (8.8 and 15.1: 80, 150, 250 by graphics tier) to the
---             nearest groups first, whole groups while it lasts; the group where it runs out is
---             drawn in part, and the rest of it, like every group past the mesh range, falls to
+--   Pools     `assign` gives the mesh budget (8.8 and 15.1: tune.quality.preyMeshes, within
+--             tune.quality.preyMeshDistance; the renderer passes both) to the nearest groups
+--             first, whole groups while it lasts; the group where it runs out is drawn in part, and the rest of it, like every group past the mesh range, falls to
 --             particles (part 2, S4-C1).
 --
 -- Hot path (09 §4.7): the group table is arrays indexed by groupId + 1, preallocated for the 512
@@ -72,13 +72,12 @@ PreyMirror.MAX_GROUPS = PreyState.MAX_GROUPS -- 512
 PreyMirror.DROP_AFTER = 3 -- seconds
 --- 8.8: time constant of the ease toward the dead-reckoned target.
 PreyMirror.EASE_TAU = 0.1 -- seconds
---- 8.5: Near and Mid bands are drawn as meshes; Far (350 to 600 studs) as particles.
+--- 8.5: the default mesh range, the outer edge of the Mid band; the renderer passes its graphics
+--- tier's prey mesh distance (150, 250, 350 studs, 15.1). Past it, and on Smooth the whole Mid
+--- band, groups are particles.
 PreyMirror.MESH_RANGE = 350 -- studs (tune)
 --- Below this speed a group keeps its heading.
 PreyMirror.STILL_SPEED = 0.25 -- studs/s
---- 8.8 and 15.1: prey drawn as meshes, by graphics tier.
-PreyMirror.POOL =
-	table.freeze({ Smooth = 80, Balanced = 150, Pretty = 250 } :: { [string]: number })
 
 local N = PreyState.MAX_GROUPS
 local TWO_PI = 2 * math.pi
@@ -432,11 +431,6 @@ function PreyMirror.nearest(
 		end
 	end
 	return best, if best then math.sqrt(bestD2) else math.huge
-end
-
---- Meshes for a graphics tier (8.8, 15.1); Balanced for anything else.
-function PreyMirror.poolSize(tier: GraphicsTier): number
-	return PreyMirror.POOL[tier] or PreyMirror.POOL.Balanced
 end
 
 return table.freeze(PreyMirror)

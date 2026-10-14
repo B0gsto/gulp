@@ -24,7 +24,7 @@ OutlineRules.COLOURS_COLOURBLIND = table.freeze({
 
 OutlineRules.THICK_RATIO = 0.06 -- 06 §13.2: players and predators, share of body height (tune)
 OutlineRules.THICK_RATIO_PREY = 0.10 -- 06 §13.2: prey
-OutlineRules.THICK_MIN = 0.12 -- studs (06 §13.2)
+OutlineRules.THICK_MIN = 0.12 -- studs (06 §13.2): players and predators only; prey have none
 OutlineRules.DANGER_THICK = 1.5 -- 06 §13.2: "Can eat you" is 1.5× thicker
 OutlineRules.PULSE_HZ = 2 -- 06 §13.2: pulses to white twice a second
 
@@ -77,12 +77,12 @@ function OutlineRules.prey(viewerTier: number, preyTier: number, isBait: boolean
 	return if preyTier <= viewerTier then "edible" else "none"
 end
 
---- Shell thickness in studs for a body `height` studs tall (06 §13.2).
+--- Shell thickness in studs for a body `height` studs tall (06 §13.2): 6% of the height and at
+--- least 0.12 studs for players and predators, 10% of the height with no minimum for prey.
 function OutlineRules.thickness(height: number, kind: Kind, isPrey: boolean): number
-	local t = math.max(
-		OutlineRules.THICK_MIN,
-		height * (if isPrey then OutlineRules.THICK_RATIO_PREY else OutlineRules.THICK_RATIO)
-	)
+	local t = if isPrey
+		then height * OutlineRules.THICK_RATIO_PREY
+		else math.max(OutlineRules.THICK_MIN, height * OutlineRules.THICK_RATIO)
 	return if kind == "dangerous" then t * OutlineRules.DANGER_THICK else t
 end
 

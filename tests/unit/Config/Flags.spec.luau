@@ -138,4 +138,41 @@ describe("Flags", function()
 			expect(Flags.string("live.noticeTextKey")).toBe("")
 		end)
 	end)
+	it(
+		"reads the tune.quality keys as per-tier numbers, the 09 §15.1 values by default",
+		function()
+			isolated(function(lines)
+				local want = {
+					["tune.quality.preyMeshes"] = { 80, 150, 250 },
+					["tune.quality.preyMeshDistance"] = { 150, 250, 350 },
+					["tune.quality.preyVisible"] = { 250, 400, 800 },
+					["tune.quality.farPreyEmitters"] = { 30, 60, 60 },
+					["tune.quality.particleEmitters"] = { 40, 80, 150 },
+					["tune.quality.outlinesEdible"] = { 8, 20, 20 },
+					["tune.quality.outlinesDangerous"] = { 4, 10, 10 },
+				}
+				for key, v in want do
+					local t = Flags.tiers(key)
+					expect({ key, t.Smooth, t.Balanced, t.Pretty }).toEqual({
+						key,
+						v[1],
+						v[2],
+						v[3],
+					})
+				end
+				expect(
+					Flags.set(
+						"tune.quality.farPreyEmitters",
+						'{ "Pretty": 90, "Smooth": 20, "Balanced": 45 }'
+					)
+				).toBe(true)
+				local t = Flags.tiers("tune.quality.farPreyEmitters")
+				expect({ t.Smooth, t.Balanced, t.Pretty }).toEqual({ 20, 45, 90 })
+				expect(Flags.set("tune.quality.farPreyEmitters", '{"Smooth":20}')).toBe(true)
+				t = Flags.tiers("tune.quality.farPreyEmitters")
+				expect({ t.Smooth, t.Balanced, t.Pretty }).toEqual({ 30, 60, 60 })
+				expect(#lines >= 1).toBe(true)
+			end)
+		end
+	)
 end)

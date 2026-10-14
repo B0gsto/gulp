@@ -6,30 +6,40 @@
 --   Group table, packets, events, the 3 s drop rule, dead reckoning and the mesh budget are the
 --   pure `Shared.Logic.PreyMirror` (specs in tests/unit/Logic). Members are placed with the same
 --   `Sim/Formation` the server uses: a pure function of group state, member index and time.
---   Pools      one `Render/Pools` pool per prey kind, sized by graphics tier (8.8, 15.1: 80, 150,
---              250 meshes in all). Parts are anchored, `CollisionGroup` "Visual", and CanCollide,
+--   Quality    per graphics tier from `tune.quality.*` (09 §15.1, §17.4; Config/Flags): meshes
+--              (`preyMeshes`), the distance they reach (`preyMeshDistance`: 150, 250, 350 studs,
+--              so on Smooth the whole Mid band is particles, 8.5), far emitters
+--              (`farPreyEmitters`, for part 2) and the outline caps (`outlinesEdible`,
+--              `outlinesDangerous`). Read at start and on `setQuality`.
+--   Pools      one `Render/Pools` pool per prey kind, sized by the tier's mesh budget. Parts
+--              are anchored, `CollisionGroup` "Visual", and CanCollide,
 --              CanTouch, CanQuery and CastShadow off. Unused parts are hidden, not moved.
 --   Look       `ReplicatedStorage.Assets.Prey.<Kind>` (a BasePart, e.g. the imported MeshPart) is
 --              cloned when Studio holds it; until then a placeholder ellipsoid sized from 06 §6.3's
 --              lengths and coloured with 06 §6.2's Mid colour (07 §16: "low-poly ellipsoids sized
 --              by tier in one flat colour per prey"). A missing asset never errors.
---   Motion     every member is wiggled in code, yaw and roll, phase from seed + member (8.8),
---              with the settings of the prey motion table (assets/source/prey/prey_motion.json,
---              copied below) plus Formation's cosmetic wobble.
+--   Motion     every member is wiggled in code, yaw, roll and bob, phase from seed + member (8.8),
+--              with the `wobble` block of the prey motion table (06 §7.6, `Index.PreyMotion`; a
+--              row with only `sway` wiggles its yaw by the sway; a row with neither is not
+--              wiggled) plus Formation's cosmetic wobble. No motion number is copied here.
 --   Outlines   lime "can eat" shells (06 §13.2, canon 5.2) on the nearest edible groups, capped by
---              `OutlineRules` (8.8: 20 groups, 8 on Smooth). Placeholder shells are the CreatureRig
+--              the tier's outline caps (8.8: 20 groups, 8 on Smooth). Prey shells are 10% of body
+--              height with no minimum (06 §13.2). Placeholder shells are the CreatureRig
 --              kind: a slightly larger copy pushed away from the camera so only a rim shows; the
 --              push is folded into the shell's CFrame, so it costs no property write.
 --
 -- Not here yet: far groups and members past the pool as particles (S4-C1), and
 -- TODO(S4-C1): local bite detection (09 §8.9, PreyRenderer part 2). Skinned prey (tier 3 and up,
 -- `RIG_Prey3`) are wiggled rigid until their meshes exist. The Smooth tier and `setQuality` come
--- from QualityController once it exists; until then the tier is Balanced.
+-- from QualityController once it exists; until then the tier is Balanced. The far emitter cap is
+-- read but nothing draws far groups yet (S4-C1).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Flags = require(ReplicatedStorage.Shared.Config.Flags)
 local Formation = require(ReplicatedStorage.Shared.Sim.Formation)
+local Index = require(ReplicatedStorage.Shared.Data.Index)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
 local PreyMirror = require(ReplicatedStorage.Shared.Logic.PreyMirror)
@@ -87,30 +97,14 @@ local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
 local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey until chapter 06 rows are wired (tune)
 local WIDTH, HEIGHT = 0.4, 0.45 -- shares of the length (tune)
 
--- The prey motion table's `wobble` block (assets/source/prey/prey_motion.json, task S3-A1):
--- { hz, yawDeg, rollDeg, bobStuds }. Tuned there; copied here until the table is generated.
-local MOTION: { [string]: { number } } = {
-	krill = { 3.0, 12, 10, 0.03 },
-	shrimp = { 1.2, 6, 4, 0 },
-	sardine = { 4.0, 12, 8, 0 },
-	darter = { 2.5, 12, 6, 0 },
-	mackerel = { 1.6, 6, 4, 0 },
-	bonito = { 1.4, 5, 3, 0 },
-	tuna = { 1.0, 4, 2, 0 },
-	glowfry = { 3.0, 12, 8, 0 },
-	zebra_darter = { 2.5, 12, 6, 0 },
-	dotted_goby = { 0.8, 4, 0, 0 },
-	lunar_fry = { 2.5, 10, 8, 0 },
-	armor_shrimp = { 0.8, 4, 2, 0 },
-	leaf_drifter = { 0.4, 8, 6, 0 },
-	marrow = { 0.3, 10, 10, 0 },
-}
-local MOTION_DEFAULT = { 1.0, 4, 2, 0 }
-
 local player = Players.LocalPlayer
 local mirror = PreyMirror.new()
 local tier: GraphicsTier = "Balanced"
-local budget = PreyMirror.poolSize(tier)
+-- The tier's numbers (tune.quality.*), set by `readQuality`.
+local budget = 0 -- prey drawn as meshes
+local meshDistance = 0 -- studs
+local farEmitters = 0 -- far group emitters (part 2, S4-C1)
+local capEdible, capDangerous = 0, 0
 local viewerTier = 1
 local folder: Folder? = nil
 local looks: { [number]: Look } = {}
@@ -129,7 +123,30 @@ local outlineOrder: { number } = {}
 local outlineShown: { boolean } = {}
 
 -- Frame statistics for the dev harness: the draw step's time and the meshes drawn.
-local stats = { drawMs = 0, drawn = 0, outlined = 0, groups = 0, packets = 0, rejected = 0 }
+local stats = {
+	drawMs = 0,
+	drawn = 0,
+	outlined = 0,
+	groups = 0,
+	packets = 0,
+	rejected = 0,
+	-- The graphics tier's numbers in use (tune.quality.*).
+	tier = "Balanced" :: string,
+	meshes = 0,
+	meshDistance = 0,
+	farEmitters = 0,
+}
+
+local function readQuality(t: GraphicsTier)
+	budget = Flags.tiers("tune.quality.preyMeshes")[t]
+	meshDistance = Flags.tiers("tune.quality.preyMeshDistance")[t]
+	farEmitters = Flags.tiers("tune.quality.farPreyEmitters")[t]
+	capEdible = Flags.tiers("tune.quality.outlinesEdible")[t]
+	capDangerous = Flags.tiers("tune.quality.outlinesDangerous")[t]
+	stats.tier, stats.meshes, stats.meshDistance, stats.farEmitters =
+		t, budget, meshDistance, farEmitters
+end
+readQuality(tier)
 
 local function setVisualPart(part: BasePart)
 	part.Anchored = true
@@ -176,7 +193,10 @@ local function lookOf(kind: number): Look?
 		elseif def.tier == 0 then Vector3.new(length, length, length)
 		else Vector3.new(length * WIDTH, length * HEIGHT, length)
 	local edibleT = OutlineRules.thickness(size.Y, "edible", true)
-	local motion = MOTION[def.id] or MOTION_DEFAULT
+	-- 06 §7.6 data:PreyMotion: the wobble block, else the sway as a yaw wiggle, else still.
+	local motion = Index.PreyMotion.byId[def.id]
+	local wobble = motion and motion.wobble
+	local sway = motion and motion.sway
 	local made: Look = {
 		kind = kind,
 		def = def,
@@ -187,10 +207,10 @@ local function lookOf(kind: number): Look?
 		shellSize = size + Vector3.new(2 * edibleT, 2 * edibleT, 2 * edibleT),
 		-- 06 §13.2: plankton has no shell; hook bait is not a prey kind.
 		hasShell = OutlineRules.prey(math.huge, def.tier, false) ~= "none",
-		hz = motion[1],
-		yaw = math.rad(motion[2]),
-		roll = math.rad(motion[3]),
-		bob = motion[4],
+		hz = if wobble then wobble.hz elseif sway then sway.hz else 0,
+		yaw = math.rad(if wobble then wobble.yawDeg elseif sway then sway.ampDeg else 0),
+		roll = math.rad(if wobble then wobble.rollDeg else 0),
+		bob = if wobble then wobble.bobStuds else 0,
 	}
 	looks[kind] = made
 	return made
@@ -283,7 +303,7 @@ function PreyRenderer.render(dt: number)
 	local ex, ey, ez = eye.X, eye.Y, eye.Z
 	local given, front = 0, 0
 	if viewer then
-		given, front = PreyMirror.assign(mirror, viewer.X, viewer.Y, viewer.Z, budget)
+		given, front = PreyMirror.assign(mirror, viewer.X, viewer.Y, viewer.Z, budget, meshDistance)
 	end
 
 	-- Outlines: nearest edible groups first, up to the cap (8.8).
@@ -296,7 +316,6 @@ function PreyRenderer.render(dt: number)
 			else "none"
 		outlineDistances[k] = mirror.dist[i]
 	end
-	local capEdible, capDangerous = Outlines.caps(tier == "Smooth")
 	OutlineRules.select(
 		outlineKinds,
 		outlineDistances,
@@ -446,10 +465,11 @@ function PreyRenderer.nearest(kindFilter: { [number]: boolean }?): (number?, Vec
 	return id, Vector3.new(mirror.dx[i], mirror.dy[i], mirror.dz[i]), d
 end
 
---- 5.2: the graphics tier (QualityController calls it): the mesh budget, 80, 150 or 250 (15.1).
+--- 5.2: the graphics tier (QualityController calls it): the tier's numbers from tune.quality.*
+--- (15.1: 80, 150 or 250 meshes within 150, 250 or 350 studs).
 function PreyRenderer.setQuality(newTier: GraphicsTier)
 	tier = newTier
-	budget = PreyMirror.poolSize(newTier)
+	readQuality(newTier)
 	for _, pool in poolList do
 		Pools.setCap(pool, budget, destroyItem)
 	end
