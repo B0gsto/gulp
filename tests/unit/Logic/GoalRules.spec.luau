@@ -64,6 +64,19 @@ describe("GoalRules: fit (02 §15.3, 03 §9)", function()
 		expect(GoalRules.eatsPlayers("dg_players_3")).toBe(true)
 		expect(GoalRules.eatsPlayers("dg_visit_3")).toBe(false)
 		expect(GoalRules.eatsPlayers("nothing")).toBe(false)
+		-- Kind and subject, not the text: a goal that merely mentions players is not one.
+		for _, def in Index.Goals.list do
+			expect(GoalRules.eatsPlayers(def.id)).toBe(def.kind == "eat_player")
+			if def.kind == "reach_tier" then
+				expect(GoalRules.goalTier(def.id)).toBe(tonumber(def.subject))
+			else
+				expect(GoalRules.goalTier(def.id)).toBe(nil)
+			end
+		end
+		expect(GoalRules.pool("dg_frenzy_40")).toBe("world")
+		expect(GoalRules.pool("dg_bank_1")).toBe("grow")
+		expect(GoalRules.pool("dg_kelp_20")).toBe("eat")
+		expect(GoalRules.pool("nothing")).toBe(nil)
 	end)
 
 	it("checks scope, needs and the best tier + 1 limit", function()
@@ -140,6 +153,36 @@ describe("GoalRules.pick", function()
 			end
 			expect(eating <= 1).toBe(true)
 		end
+	end)
+
+	it("draws three different pools whenever the fitting goals allow (02 §15.3)", function()
+		local pools = function(goals: { string }): number
+			local seen, n = {}, 0
+			for _, id in goals do
+				local pool = GoalRules.pool(id) :: string
+				if not seen[pool] then
+					seen[pool] = true
+					n += 1
+				end
+			end
+			return n
+		end
+		-- A tier-3 account on a small server: the only fitting Hard goals are grow and eat goals
+		-- (dg_bank_brute, dg_bank_mass_1000, dg_lunar_3 …), so Easy and Medium must leave a pool.
+		local low: GoalRules.Context = { bestTier = 3, speciesOwned = 1, players = 1 }
+		local hardPools: { [string]: boolean } = {}
+		for n = 1, 200 do
+			for _, ctx in { VETERAN, low } do
+				local goals = GoalRules.pick(n * 7919, DAY + n, ctx, false, nil)
+				expect(#goals).toBe(3)
+				expect(pools(goals)).toBe(3)
+				if ctx == low then
+					hardPools[GoalRules.pool(goals[3]) :: string] = true
+				end
+			end
+		end
+		expect(hardPools.world).toBe(nil)
+		expect(hardPools.eat and hardPools.grow).toBe(true)
 	end)
 
 	it("varies by user and by day", function()
