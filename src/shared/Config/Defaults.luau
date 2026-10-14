@@ -225,6 +225,9 @@ Defaults.cove = table.freeze({
 	refundMin = 5, -- 05 §3.10: release refund floor
 	awayMinSeconds = 600, -- 02 §13.3: "While you were away" card after 10 minutes away
 	awayMinPearls = 10, -- 02 §13.3: and 10 Pearls earned
+	biggerCoveSlots = 10, -- 05 §4.2: Bigger Cove adds 10 on top, at read time (09 §12.2)
+	gap = table.freeze({ -290, 290 }), -- 03 §6.2: Little Arch, "the Gap" (X, Z); 04 §5.5 measures from it
+	returningPool = 20, -- 04 §5.5, 09 §13.1: a returning player's cove is among the 20 nearest the Gap
 })
 
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.

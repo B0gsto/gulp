@@ -267,6 +267,13 @@ export type RevivePointDef = {
 	depth: number,
 }
 
+export type CoveMouthDef = {
+	id: string, -- C01 to C24 (chapter 03, section 6.7)
+	wire: number, -- the cove number, which is the slot (section 5.1)
+	x: number, -- mouth centre (x, z) on the Rim's inner face
+	z: number,
+}
+
 -- Section 9.1: gameplay volumes, read from tagged Studio parts by WorldIndex at server start and
 -- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
 -- rows), so a world point turns into the part's local space with plain arithmetic.

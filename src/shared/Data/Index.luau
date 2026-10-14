@@ -5,6 +5,7 @@
 -- have gaps. Pure Luau: no `game`, no Instances (section 4.4).
 local BankRates = require("./Generated/BankRates")
 local Codex = require("./Generated/Codex")
+local CoveMouths = require("./Generated/CoveMouths")
 local Goals = require("./Generated/Goals")
 local Hazards = require("./Generated/Hazards")
 local Predators = require("./Generated/Predators")
@@ -117,6 +118,13 @@ local Index = {
 	Prey = lookup("Prey", Prey, function(def: Types.PreyDef): (string, number)
 		return def.id, def.wire
 	end),
+	CoveMouths = lookup(
+		"CoveMouths",
+		CoveMouths,
+		function(def: Types.CoveMouthDef): (string, number)
+			return def.id, def.wire
+		end
+	),
 	RevivePoints = lookup(
 		"RevivePoints",
 		RevivePoints,

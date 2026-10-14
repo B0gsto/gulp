@@ -4,6 +4,7 @@ local fs = require("@lune/fs")
 
 local BankRates = require("../../../src/shared/Data/Generated/BankRates")
 local Codex = require("../../../src/shared/Data/Generated/Codex")
+local CoveMouths = require("../../../src/shared/Data/Generated/CoveMouths")
 local Defaults = require("../../../src/shared/Config/Defaults")
 local Goals = require("../../../src/shared/Data/Generated/Goals")
 local Hazards = require("../../../src/shared/Data/Generated/Hazards")
@@ -64,6 +65,7 @@ describe("Generated content", function()
 	it("gives every keyed table unique IDs and dense wire indices", function()
 		local tables: { [string]: { Keyed } } = {
 			Codex = Codex,
+			CoveMouths = CoveMouths,
 			Goals = Goals,
 			Hazards = Hazards,
 			Predators = Predators,
@@ -80,6 +82,7 @@ describe("Generated content", function()
 		end
 		local counts = {
 			Codex = 8,
+			CoveMouths = 24,
 			Goals = 42,
 			Hazards = 5,
 			Predators = 5,
