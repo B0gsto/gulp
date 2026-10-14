@@ -355,7 +355,9 @@ function UIController.start()
 	end
 	player:GetAttributeChangedSignal("Phase"):Connect(function()
 		refreshCove(true)
+		Hud.setGulped(player:GetAttribute("Phase") == "dead")
 	end)
+	Hud.setGulped(player:GetAttribute("Phase") == "dead")
 	player:GetAttributeChangedSignal("Slot"):Connect(function()
 		viewCapacity = nil
 		refreshPileAnchor()

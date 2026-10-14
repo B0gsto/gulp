@@ -17,7 +17,8 @@
 --             + 0.15 × (eater + prey speed)
 --   7 apply   PreyService.tryEat clears the member and sends PreyEvent; mass and tier follow
 -- Player bites (B25, S12-C2) will run 09 §10.2's ten rules in order through
--- BiteRules.playerBite, the 90 s repeat guard (rule 7, reason 9 "repeat") included; prey has no
+-- BiteRules.playerBite, the victim's Spiny from TraitService.defenceTierBonus (rule 5, 02 §8.4)
+-- and the 90 s repeat guard (rule 7, reason 9 "repeat") included; prey has no
 -- repeat guard (02 §4.2 check 7 is about players).
 -- One `BiteResult` answers each claim: the accepted targets' bits, the first reject reason, the
 -- new mass and tier. Rejects are counted by reason (section 20, R5: target under 2%) and range

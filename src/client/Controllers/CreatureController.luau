@@ -80,7 +80,10 @@ type Entry = {
 	shown: boolean,
 	scaling: boolean,
 	dead: boolean, -- Phase = dead: the rig is hidden
-	glow: boolean, -- `Traits` holds Glow: the body lights up (02 §8.4)
+	glow: boolean, -- `Traits` holds Glow, active: the body lights up (02 §8.4)
+	traitSeen: { [string]: number }, -- TraitRules.noteHeld: the light starts 0.5 s late (02 §8.2)
+	traitsRead: boolean,
+	traitWake: number, -- token of the pending re-read at the next activation
 	popAt: number?, -- os.clock() when the code tier-up pop started
 	connections: { RBXScriptConnection },
 }
@@ -116,6 +119,8 @@ local function numberAttr(from: Instance, name: string, default: number): number
 	return if typeof(v) == "number" then v else default
 end
 
+local onFacts: (e: Entry) -> ()
+
 -- Reads every fact from the replicated attributes; returns true when the species changed.
 local function readFacts(e: Entry): boolean
 	local from = source(e)
@@ -135,7 +140,20 @@ local function readFacts(e: Entry): boolean
 	local phase = attr(from, "Phase")
 	e.shielded = attr(from, "Protected") == true or phase ~= "run"
 	e.dead = phase == "dead"
-	e.glow = TraitRules.has(TraitRules.splitIds(attr(from, "Traits")), "glow")
+	local held = TraitRules.splitIds(attr(from, "Traits"))
+	local now = os.clock()
+	local wait = TraitRules.noteHeld(e.traitSeen, held, now, not e.traitsRead)
+	e.traitsRead = true
+	e.glow = TraitRules.has(TraitRules.activeOf(held, e.traitSeen, now), "glow")
+	e.traitWake += 1
+	if wait then
+		local token = e.traitWake
+		task.delay(wait, function()
+			if e.traitWake == token and byModel[e.model] == e then
+				onFacts(e)
+			end
+		end)
+	end
 	if def then
 		e.radiusMult = def.radiusMult
 		e.topSpeed = SwimModel.topSpeed(tier, def, 1)
@@ -166,6 +184,7 @@ local function recomputeKind(e: Entry)
 	if e.own or own == nil then
 		e.kind = "none"
 	else
+		-- TODO(B25, S12-C2): Spiny's +1 defence tier (02 §0.4) in the colour, with player bites.
 		e.kind = OutlineRules.creature(own.tier, own.shielded, e.tier, e.shielded)
 	end
 	sinceSelect = math.huge -- re-pick on the next frame
@@ -188,7 +207,7 @@ local function showAlive(e: Entry)
 	end
 end
 
-local function onFacts(e: Entry)
+function onFacts(e: Entry)
 	if readFacts(e) then
 		CreatureRig.destroy(e.rig)
 		buildRig(e)
@@ -269,6 +288,9 @@ local function add(model: Instance)
 		scaling = false,
 		dead = false,
 		glow = false,
+		traitSeen = {},
+		traitsRead = false,
+		traitWake = 0,
 		popAt = nil,
 		connections = {},
 	}

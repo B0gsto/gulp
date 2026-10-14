@@ -199,6 +199,55 @@ function TraitRules.isActive(gainedAt: number, now: number): boolean
 	return now - gainedAt >= TraitRules.ACTIVATE_DELAY
 end
 
+--- The traits of `traits` whose effect is active at `now` (02 §8.2), in order: those whose time
+--- in `gainedAt` (trait ID → when it was gained, or first seen held) is at least the activation
+--- delay ago. A trait with no time (restored, not gained) is active.
+function TraitRules.activeOf(
+	traits: { string },
+	gainedAt: { [string]: number },
+	now: number
+): { string }
+	local active: { string } = {}
+	for _, id in traits do
+		if TraitRules.isActive(gainedAt[id] or -math.huge, now) then
+			table.insert(active, id)
+		end
+	end
+	return active
+end
+
+--- A client's clock for the activation delay (02 §8.2): the client hears a gain through `Traits`
+--- or `run.traits` and starts the effect's visuals and its own movement 0.5 s after it heard it.
+--- Keeps `seen` (trait ID → os.clock() when first read as held) in step with `traits` read at
+--- `now`: new IDs get `now`, or -math.huge on the reader's first read (`initial`: traits held
+--- before the client looked are already active); IDs no longer held are dropped. Returns the
+--- seconds until the next held trait turns active, or nil when every held trait is active.
+function TraitRules.noteHeld(
+	seen: { [string]: number },
+	traits: { string },
+	now: number,
+	initial: boolean
+): number?
+	for id in seen do
+		if not TraitRules.has(traits, id) then
+			seen[id] = nil
+		end
+	end
+	local wait: number? = nil
+	for _, id in traits do
+		local at = seen[id]
+		if at == nil then
+			at = if initial then -math.huge else now
+			seen[id] = at
+		end
+		local left = at + TraitRules.ACTIVATE_DELAY - now
+		if left > 0 and (wait == nil or left < wait) then
+			wait = left
+		end
+	end
+	return wait
+end
+
 --- The `Traits` player attribute (09 §5.3): the held IDs comma-joined, "" for none.
 function TraitRules.joinIds(traits: { string }): string
 	return table.concat(traits, ",")

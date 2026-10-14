@@ -69,9 +69,14 @@ local visible: { [string]: boolean } = {
 }
 local shown = true -- false while a post-run screen covers the HUD
 local inCove = false -- 08 §5.1: in the cove the mass bar and its pops are hidden
+-- `Phase = dead`: the traits and their pips are hidden until the respawn clears them (02 §8.1;
+-- TraitService resets them only when Swim again moves the creature) or a revive brings them back.
+local gulped = false
 -- HUD.Traits and HUD.TraitMarkers (S6-C3): the held traits, a pip recency counter per trait for
 -- TraitRules.slotView's ties, the trait rects, and scratch for the per-frame marker pick.
 local heldTraits: { string } = {}
+local heldSeen: { [string]: number } = {} -- TraitRules.noteHeld: Glow's markers start 0.5 s late
+local heldRead = false
 local lastPips: { [string]: number } = {}
 local pipRecency: { [string]: number } = {}
 local pipClock = 0
@@ -89,8 +94,8 @@ local function apply()
 	b.dragRing.root.Visible = shown and visible["HUD.DragRing"]
 	b.pops.root.Visible = shown and visible["HUD.MassPops"] and not inCove
 	b.home.root.Visible = shown and visible["HUD.Home"]
-	b.traits.root.Visible = shown and visible["HUD.Traits"] and not inCove
-	b.markers.root.Visible = shown and visible["HUD.TraitMarkers"] and not inCove
+	b.traits.root.Visible = shown and visible["HUD.Traits"] and not inCove and not gulped
+	b.markers.root.Visible = shown and visible["HUD.TraitMarkers"] and not inCove and not gulped
 	Outlines.setVisible(visible["HUD.Outlines"])
 end
 
@@ -156,6 +161,12 @@ function Hud.setCove(on: boolean)
 	apply()
 end
 
+--- While gulped (`Phase = dead`) HUD.Traits and HUD.TraitMarkers are hidden.
+function Hud.setGulped(on: boolean)
+	gulped = on
+	apply()
+end
+
 --- The GulpHUD layer's root, for the cove HUD (S14); nil before `build`.
 function Hud.root(): Frame?
 	local b = built
@@ -185,6 +196,8 @@ end
 --- (08 §3.6), and whether Keen Nose cuts the pips to four.
 function Hud.setTraits(traits: { string }, progress: { [string]: number }, keenNose: boolean)
 	heldTraits = traits
+	TraitRules.noteHeld(heldSeen, traits, os.clock(), not heldRead)
+	heldRead = true
 	for id, count in progress do
 		if count > (lastPips[id] or 0) then
 			pipClock += 1
@@ -237,13 +250,17 @@ function Hud.update(f: Tick)
 	end
 	b.pops.update(f.now, mx, my)
 
-	-- 02 §8.4 Glow: the six nearest trait prey within 60 studs, ring on screen, edge off screen.
+	-- 02 §8.4 Glow: the six nearest trait prey within 60 studs, ring on screen, edge off screen,
+	-- from 0.5 s after the gain (02 §8.2).
 	local markers = 0
+	local glowAt = heldSeen.glow
 	if
 		camera
 		and visible["HUD.TraitMarkers"]
 		and not inCove
-		and TraitRules.has(heldTraits, "glow")
+		and not gulped
+		and glowAt ~= nil
+		and TraitRules.isActive(glowAt, f.now)
 	then
 		local n = PreyRenderer.traitPreyNear(TraitRules.GLOW_RADIUS, nearTraitPrey)
 		table.clear(markerPick)

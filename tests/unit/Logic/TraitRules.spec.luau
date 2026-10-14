@@ -253,3 +253,62 @@ describe("TraitRules.pickMarkers (02 §8.4 Glow)", function()
 		expect(TraitRules.pickMarkers({ { traitId = "ink", distance = 3 } }, 4)).toBe(1)
 	end)
 end)
+
+describe("TraitRules: the activation delay on a reader's clock (02 §8.2)", function()
+	local D = TraitRules.ACTIVATE_DELAY
+
+	it(
+		"activeOf keeps the traits past the delay, in order; a trait with no time is active",
+		function()
+			local at = { glow = 10, stripes = 9.75 }
+			expect(TraitRules.activeOf({ "stripes", "glow" }, at, 10)).toEqual({})
+			expect(TraitRules.activeOf({ "stripes", "glow" }, at, 9.75 + D)).toEqual({ "stripes" })
+			expect(TraitRules.activeOf({ "stripes", "glow" }, at, 10 + D)).toEqual({
+				"stripes",
+				"glow",
+			})
+			expect(TraitRules.activeOf({ "spiny" }, at, 0)).toEqual({ "spiny" })
+		end
+	)
+
+	it("noteHeld: a trait held at the first read is active at once", function()
+		local seen = {}
+		expect(TraitRules.noteHeld(seen, { "glow", "stripes" }, 100, true)).toBe(nil)
+		expect(TraitRules.activeOf({ "glow", "stripes" }, seen, 100)).toEqual({ "glow", "stripes" })
+	end)
+
+	it("noteHeld: a gain heard later waits the delay, and says how long", function()
+		local seen = {}
+		expect(TraitRules.noteHeld(seen, {}, 100, true)).toBe(nil)
+		expect(TraitRules.noteHeld(seen, { "stripes" }, 101, false)).toBe(D)
+		expect(TraitRules.speedMult(TraitRules.activeOf({ "stripes" }, seen, 101))).toBe(1)
+		-- A later read keeps the first time and counts down from it.
+		expect(TraitRules.noteHeld(seen, { "stripes" }, 101 + D / 2, false)).toBeCloseTo(
+			D / 2,
+			1e-9
+		)
+		expect(TraitRules.noteHeld(seen, { "stripes" }, 101 + D, false)).toBe(nil)
+		expect(TraitRules.speedMult(TraitRules.activeOf({ "stripes" }, seen, 101 + D))).toBe(
+			TraitRules.STRIPES_SPEED
+		)
+	end)
+
+	it("noteHeld: a shed drops at once, and a regain starts the delay again", function()
+		local seen = {}
+		TraitRules.noteHeld(seen, { "glow" }, 0, true)
+		TraitRules.noteHeld(seen, {}, 5, false)
+		expect(seen.glow).toBe(nil)
+		expect(TraitRules.noteHeld(seen, { "glow" }, 6, false)).toBe(D)
+		expect(TraitRules.has(TraitRules.activeOf({ "glow" }, seen, 6), "glow")).toBe(false)
+	end)
+
+	it("noteHeld returns the soonest of several pending traits", function()
+		local seen = {}
+		TraitRules.noteHeld(seen, {}, 0, true)
+		TraitRules.noteHeld(seen, { "glow" }, 10, false)
+		expect(TraitRules.noteHeld(seen, { "glow", "spiny" }, 10 + D / 4, false)).toBeCloseTo(
+			D * 3 / 4,
+			1e-9
+		)
+	end)
+end)

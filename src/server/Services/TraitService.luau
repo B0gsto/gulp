@@ -11,8 +11,13 @@
 -- Gain      the trait takes the first free slot (02 §8.2) and its effect is active 0.5 s later
 --           (`has` and the multipliers read it through TraitRules.isActive).
 -- Shed      `shed(slot, index)`: removed at once, its pips reset, the traits after it close up
---           (02 §8.3). Refused while gulped. TODO(B24): also while Stunned or Hooked; TODO(B32):
---           Transit (Eel); TODO(B19, S7-C3): Banking, once the bank sequence exists.
+--           (02 §8.3). Refused while gulped (`Phase = dead`). TODO(B24): also while Stunned or
+--           Hooked; TODO(B32): Transit (Eel); TODO(B19, S7-C3): Banking (see `baseState`).
+-- Effects   Spots and Bonefed: BiteService's mass (`massMult`). Stripes: the owner's
+--           MovementController reads `Traits` and applies the ×1.08 0.5 s after it hears the gain;
+--           `speedMult` is the server's value for MovementValidator (TODO(B14, S8-C2)). Spiny:
+--           `defenceTierBonus`, for the victim's defence tier of player bites (BiteRules.canEat
+--           `spiny`; TODO(B25, S12-C2) in BiteService).
 -- Reset     `reset(slot)` clears traits and pips: RunLoopService calls it when a bank starts the
 --           creature again and when a gulped creature respawns (02 §8.1: pips reset on banking
 --           and are lost when gulped; held traits go with the specimen or are lost).
@@ -81,7 +86,11 @@ local function baseState(state: CreatureState): string
 	elseif phase == "cove" then
 		return "InCove"
 	end
-	-- TODO(B24): Stunned, Hooked; TODO(B32): Transit; TODO(B19, S7-C3): Banking.
+	-- Banking: RunLoopService pays a bank in one block with no yield and its phase goes from `run`
+	-- to `cove` inside it (09 §13.4), so no shed can land in a bank today. TODO(B19, S7-C3): the
+	-- bank sequence (controls locked, the swim to the bank spot) makes it last; return "Banking"
+	-- while it runs.
+	-- TODO(B24): Stunned, Hooked (CreatureService.setStatus); TODO(B32): Transit (the Eel).
 	return "Swimming"
 end
 
@@ -91,14 +100,7 @@ local function activeTraits(slot: Slot): { string }?
 	if state == nil then
 		return nil
 	end
-	local now = os.clock()
-	local active: { string } = {}
-	for _, id in state.traits do
-		if TraitRules.isActive(state.traitGainedAt[id] or -math.huge, now) then
-			table.insert(active, id)
-		end
-	end
-	return active
+	return TraitRules.activeOf(state.traits, state.traitGainedAt, os.clock())
 end
 
 --- One trait prey of `traitId` was eaten by `slot` (02 §8.1, §8.2): adds its pip, or gains the
@@ -158,7 +160,8 @@ function TraitService.traits(slot: Slot): { string }
 	return if state then table.clone(state.traits) else {}
 end
 
---- The swim speed multiplier of `slot` (Stripes, 02 §8.4).
+--- The swim speed multiplier of `slot` (Stripes, 02 §8.4). The owner's client applies the same
+--- value from `Traits` (MovementController). TODO(B14, S8-C2): MovementValidator's speed bound.
 function TraitService.speedMult(slot: Slot): number
 	return TraitRules.speedMult(activeTraits(slot) or {})
 end
@@ -170,6 +173,7 @@ function TraitService.massMult(slot: Slot, source: TraitRules.MassSource?): numb
 end
 
 --- Tiers added to `slot`'s defence tier in the eat test (Spiny, 02 §8.4; 09 §10.2 rule 5).
+--- TODO(B25, S12-C2): BiteService's player bites pass `spiny = defenceTierBonus(victim) > 0`.
 function TraitService.defenceTierBonus(slot: Slot): number
 	return TraitRules.defenceTierBonus(activeTraits(slot) or {})
 end
