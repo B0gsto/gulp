@@ -104,6 +104,8 @@ local function quietly(body: () -> ())
 end
 
 return function()
+	-- Luau execution (CI) does not run Main, so nothing has started Analytics there.
+	Analytics._test.ensureInit()
 	describe("CoveService (engine)", function()
 		it("fills the free slots, then keeps the new one waiting (cove full)", function()
 			withCove(0, function(player, data)

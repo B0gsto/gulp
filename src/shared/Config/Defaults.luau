@@ -13,6 +13,7 @@ export type EnvironmentName = "development" | "ci" | "staging" | "production"
 export type Environment = {
 	name: EnvironmentName,
 	purchases: boolean, -- false: no Robux prompt is ever shown
+	mockData: boolean, -- true: DataService runs on ProfileStore.Mock, never the real store
 	analytics: boolean, -- false: Analytics writes to its memory buffer only
 	devCheats: boolean, -- true: server/Dev (BotPlayers, Cheats) may load
 	productIds: { [string]: number }, -- prod_<name> → Roblox developer product ID
@@ -35,12 +36,14 @@ local MANIFEST_ASSET_IDS = table.freeze(Manifest.assetIds(Manifest.load()))
 local function environment(
 	name: EnvironmentName,
 	purchases: boolean,
+	mockData: boolean,
 	analytics: boolean,
 	devCheats: boolean
 ): Environment
 	return table.freeze({
 		name = name,
 		purchases = purchases,
+		mockData = mockData,
 		analytics = analytics,
 		devCheats = devCheats,
 		-- Product and pass IDs are empty until they exist in each experience; the task that
@@ -51,23 +54,31 @@ local function environment(
 	})
 end
 
--- Section 17.1: four experiences, so data stores never mix. The section names the four switches
--- but not their value per environment; these follow from its table and the rest of the bible:
+-- Section 17.1: four experiences, so data stores never mix. The section names the switches but
+-- not every value per environment; these follow from its table and the rest of the bible:
+-- development and CI use Mock data and the real store is only staging's and production's,
 -- Studio sends no analytics (chapter 10, section 2.4), nobody can join CI, server/Dev is for dev
 -- places only (section 3), and purchases are tested in Staging before Production sells them.
+-- Columns: purchases, mockData, analytics, devCheats.
 Defaults.environments = table.freeze({
-	development = environment("development", true, false, true), -- GULP Dev: owner, in Studio
-	ci = environment("ci", false, false, false), -- GULP CI: nobody can join
-	staging = environment("staging", true, true, false), -- GULP Staging: owner and testers
-	production = environment("production", true, true, false), -- GULP: public
+	development = environment("development", true, true, false, true), -- GULP Dev: owner, in Studio
+	ci = environment("ci", false, true, false, false), -- GULP CI: nobody can join
+	staging = environment("staging", true, false, true, false), -- GULP Staging: owner and testers
+	production = environment("production", true, false, true, false), -- GULP: public
 })
 
--- The development table with all purchases disabled: what an unknown GameId gets.
-Defaults.unknown = environment("development", false, false, true)
+-- The development table with all purchases disabled: what an unknown GameId gets (a place file
+-- opened in Studio has GameId 0, so Studio runs as development).
+Defaults.unknown = environment("development", false, true, false, true)
 
--- `game.GameId` of each experience → its environment. Empty until the four experiences exist;
--- until an ID is listed here its place runs on `Defaults.unknown`.
-local GAME_IDS: { [number]: EnvironmentName } = {}
+-- `game.GameId` of each experience → its environment. An experience that is not listed yet runs
+-- on `Defaults.unknown`. GULP CI is tools/cloud/target.json's universe.
+local GAME_IDS: { [number]: EnvironmentName } = {
+	[10770882807] = "development", -- GULP Dev (place 93549306834616)
+	[10770882319] = "ci", -- GULP CI (place 86401799950889)
+	[10770883054] = "staging", -- GULP Staging (place 104247046146910)
+	-- GULP (production): its universe ID goes here as `"production"` at launch.
+}
 Defaults.GAME_IDS = table.freeze(GAME_IDS)
 
 --- The environment table for `gameId` (pass `game.GameId`). An unknown ID selects the

@@ -85,6 +85,7 @@ DataService.onLoaded = Signal.new() :: Types.Signal<Player>
 local TEMPLATE = SaveSchema.template()
 local store: Store? = nil
 local mocked = true
+local initialized = false
 local byKey: { [string]: Entry | true } = {} -- true while a session is starting
 local byPlayer: { [Player]: Entry } = {}
 local sendHook: ((Player, string, any) -> ())? = nil -- engine spec only
@@ -337,8 +338,8 @@ function DataService.saveNow(player: Player): boolean
 end
 
 function DataService.init()
-	local environment = Defaults.forGame(game.GameId)
-	mocked = environment.name ~= "staging" and environment.name ~= "production"
+	initialized = true
+	mocked = Defaults.forGame(game.GameId).mockData
 	local ok, result = pcall(function()
 		local ProfileStore = require(script.Parent.Parent.Vendor.ProfileStore) :: any
 		local module = ProfileStore :: ProfileStoreModule
@@ -364,6 +365,13 @@ function DataService.start() end
 
 -- Engine-spec hooks (src/server/Tests/DataSpec). Not for game code.
 DataService._test = table.freeze({
+	--- Runs `init` unless it has run. Open Cloud Luau execution runs the specs without starting
+	--- the place's scripts (no Main), so there the spec starts the service itself.
+	ensureInit = function()
+		if not initialized then
+			DataService.init()
+		end
+	end,
 	--- Opens a session on any key with no player, as `load` does; returns the profile or nil and why.
 	open = function(key: string): (Profile?, string?)
 		local profile, why = openSession(key, nil)

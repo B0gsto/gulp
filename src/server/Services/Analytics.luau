@@ -68,6 +68,7 @@ Analytics.name = "Analytics"
 Analytics.debugPrint = false
 
 local sending = false
+local initialized = false
 local buffer: Ring.Ring<Record> = Ring.new(LIMITS.bufferSize)
 local states: { [Player]: PlayerState } = {}
 local logCounts: { [string]: number } = {}
@@ -298,6 +299,7 @@ local function reportDrops()
 end
 
 function Analytics.init()
+	initialized = true
 	local environment = Defaults.forGame(game.GameId)
 	sending = environment.analytics and not RunService:IsStudio()
 	Log.setCounter(function(level: Log.Level, tag: string)
@@ -324,6 +326,12 @@ end
 
 -- Engine-spec hooks (src/server/Tests/EconomySpec). Not for game code.
 Analytics._test = table.freeze({
+	--- Runs `init` unless it has run (Open Cloud Luau execution does not start Main).
+	ensureInit = function()
+		if not initialized then
+			Analytics.init()
+		end
+	end,
 	--- The drops counted for a player since the last report.
 	drops = function(player: Player): number
 		local state = states[player]

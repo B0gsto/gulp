@@ -31,6 +31,8 @@ local function waitFor(done: () -> boolean): boolean
 end
 
 return function()
+	-- Luau execution (CI) does not run Main, so nothing has started the service there.
+	DataService._test.ensureInit()
 	describe("DataService (engine, ProfileStore.Mock)", function()
 		it("uses the Mock store in development and CI", function()
 			expect(DataService._test.isMock()).toBe(true)
