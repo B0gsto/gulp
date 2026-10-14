@@ -6,7 +6,8 @@
 --   frame 0      threats (every creature's root and tier) into the sim, then PreySim.step (10 Hz)
 --   frame k      interest and send for the slots with slot % 6 == k (Logic/PreyInterest), one
 --                PreyState packet of at most 900 bytes per player per tick, unreliable
---   frame 3      the spawner's once-a-second pass (Logic/PreySpawner)
+--   frame 3      the spawner's pass, on the first tick at or after each whole second since the
+--                last one, so every 10th tick (Logic/PreySpawner)
 --   every frame  queued PreyEvent records go, reliable, to every player who knows the group
 -- Spawn areas: each PreySpawn volume (attributes PreyIds, a comma list, and MaxGroups, read but not
 -- used yet); a zone without one spawns in its Zone volumes instead (the CI arena). An area is the
@@ -40,9 +41,6 @@ local MAX_SLOTS = 24
 local FRAMES = 6
 local TICK = 0.1
 local SEED = 0x5EED
--- Event prey groups alive per tide event (03 §3.1: lunar_fry "12 (4 per moonbeam)"). Gap: not in
--- the generated data.
-local EVENT_GROUPS: { [string]: number } = { lunar_fry = 12 }
 
 export type Stats = {
 	groups: number,
@@ -383,12 +381,19 @@ function PreyService.memberPosAt(
 	return PreySim.memberPosAt(sim, groupId, member, t - Server.EPOCH)
 end
 
---- Respawn multiplier: 3 in a Feeding Frenzy (which also doubles normal prey targets), 1 after.
-function PreyService.setSpawnRate(mult: number)
-	PreySpawner.setRate(spawner, mult)
+--- The running tide, nil for none (09 §5.1). The tide's spawnRateMult (canon data:Tides) divides
+--- the respawn delays of normal prey and sets the spawns per row per pass; only `frenzy` doubles
+--- the targets and caps of normal prey (02 §14.4).
+function PreyService.setTide(tideId: string?)
+	if tideId and Index.Tides.byId[tideId] == nil then
+		Log.warn(TAG, `setTide: unknown tide {tideId}`)
+		return
+	end
+	PreySpawner.setTide(spawner, tideId)
 end
 
---- Spawns the event prey of tide `tideId` (Moon Tide: lunar_fry) with the event flag.
+--- Spawns the event prey of tide `tideId` (Moon Tide: lunar_fry) with the event flag: the prey's
+--- `alive` groups at once, topped up by the spawn pass until its `eventTotal` is released (03 §3.1).
 function PreyService.spawnEventPrey(tideId: string)
 	local tide = Index.Tides.byId[tideId]
 	if tide == nil then
@@ -398,16 +403,7 @@ function PreyService.spawnEventPrey(tideId: string)
 	for _, id in tide.eventPrey do
 		local def = Index.TraitPrey.byId[id] or Index.Prey.byId[id]
 		if def and def.scope == "MVP" then
-			PreySpawner.spawnEvent(
-				spawner,
-				id,
-				EVENT_GROUPS[id] or 4,
-				serverNow(),
-				px,
-				py,
-				pz,
-				playerCount
-			)
+			PreySpawner.startEvent(spawner, id, serverNow(), px, py, pz, playerCount)
 		end
 	end
 end

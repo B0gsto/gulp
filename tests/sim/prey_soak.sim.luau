@@ -11,10 +11,11 @@
 -- area to area across every zone; 6 dash across the map (3 s at dash speed, 2 s at cruise).
 -- Every swimmer bites the nearest edible prey within reach (tier ≤ its own, faded in), then
 -- spends that catch's seconds from 05 §2.2 before the next, through PreySim.clearMember and PreySpawner.onEaten, as PreyService.tryEat does.
--- Frenzy. 02 §14.2 and §14.4: T+0 at FRENZY_AT, rules off 240 s later; rate = the frenzy tide's
--- spawnRateMult (3), which doubles normal prey targets. Its eventPrey list is empty, so the soak
--- adds the worst case 09 §8.1 leaves room for: Moon Tide's 12 lunar_fry event groups for the
--- Frenzy's length, cleared at its end.
+-- Frenzy. 02 §14.2 and §14.4: T+0 at FRENZY_AT, rules off 240 s later; PreySpawner.setTide("frenzy")
+-- (spawnRateMult 3 divides respawn delays; the frenzy tide doubles normal prey targets). Its
+-- eventPrey list is empty, so the soak adds the worst case 09 §8.1 leaves room for: Moon Tide's
+-- lunar_fry event (PreyDef.alive = 12 groups at once, topped up to eventTotal) for the Frenzy's
+-- length, cleared at its end.
 --
 -- Fails (16.2): live members outside 60% to 160% of target; a group outside its leash (1.5 × its
 -- home's radius and half height, 8.4 step 4); bytes per player per second above 9,000 in any
@@ -71,7 +72,6 @@ local BITE_REACH = 10 -- studs from the swimmer to a group's centre
 local HUNT_RADIUS = 120 -- studs: packs chase prey this close to their anchor
 local LEASH_EPS = 0.05 -- studs of f32 slack on the leash check
 local EVENT_PREY = "lunar_fry"
-local EVENT_GROUPS = 12 -- 03 §3.1, as PreyService.EVENT_GROUPS
 -- 16.2 limits.
 local POP_LOW, POP_HIGH = 0.6, 1.6
 local PEAK_BYTES, AVG_BYTES = 9000, 4500
@@ -494,14 +494,14 @@ local function run(seed: number): Result
 
 		-- Tide.
 		if math.abs(now - FRENZY_AT) < 1e-6 then
-			PreySpawner.setRate(sp, frenzyTide.spawnRateMult)
+			PreySpawner.setTide(sp, frenzyTide.id)
 			for _, id in frenzyTide.eventPrey do
-				PreySpawner.spawnEvent(sp, id, EVENT_GROUPS, now, px, py, pz, PLAYERS)
+				PreySpawner.startEvent(sp, id, now, px, py, pz, PLAYERS)
 			end
 			result.frenzyEventGroups =
-				PreySpawner.spawnEvent(sp, EVENT_PREY, EVENT_GROUPS, now, px, py, pz, PLAYERS)
+				PreySpawner.startEvent(sp, EVENT_PREY, now, px, py, pz, PLAYERS)
 		elseif math.abs(now - frenzyEnd) < 1e-6 then
-			PreySpawner.setRate(sp, 1)
+			PreySpawner.setTide(sp, nil)
 			PreySpawner.clearEvents(sp, now)
 		end
 
