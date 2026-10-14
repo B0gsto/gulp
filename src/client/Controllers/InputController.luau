@@ -212,6 +212,7 @@ local function onInputChanged(object: InputObject, gameProcessed: boolean)
 	local kind = object.UserInputType
 	if kind == Enum.UserInputType.MouseMovement then
 		overGui = gameProcessed
+		focused = true -- a move reaches us, so the window has focus again (Studio may skip WindowFocused)
 		mouseDX += object.Delta.X
 		mouseDY += object.Delta.Y
 	elseif kind == Enum.UserInputType.Touch and object == swimTouch then
