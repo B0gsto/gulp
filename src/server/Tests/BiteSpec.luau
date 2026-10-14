@@ -181,7 +181,7 @@ return function()
 				empty -= 1
 			end
 			local reasons = {}
-			for seq = 1, 3 do
+			for seq = 1, 4 do
 				local payload = Bite.encodePrey(seq, (now - Server.EPOCH) * 1000, 8)
 				for k = 0, 7 do
 					Bite.writePrey(payload, k, empty, k, 0) -- not a live group: gone, until the rate
@@ -193,8 +193,9 @@ return function()
 			BiteService.forget(player)
 			local after = BiteService.counters()
 			expect(reasons[1]).toBe(BiteResult.REASON_GONE)
-			expect(reasons[3]).toBe(BiteResult.REASON_RATE)
-			expect(after.rejects.rate).toBe((before.rejects.rate or 0) + 4)
+			expect(reasons[3]).toBe(BiteResult.REASON_GONE) -- 4 gone, then 4 rate: the first decides
+			expect(reasons[4]).toBe(BiteResult.REASON_RATE)
+			expect(after.rejects.rate).toBe((before.rejects.rate or 0) + 12)
 			expect(after.rejects.gone).toBe((before.rejects.gone or 0) + 20)
 			expect(state.mass >= 0).toBe(true)
 		end)
