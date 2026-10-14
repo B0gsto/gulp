@@ -9,7 +9,9 @@ assets/review/<asset>/ (06 section 15.2; chapter 07 names no review folder).
 Steps: build, lod, shell, validate, export, preview, clips (versions.py makes the distance versions
 and outline shells of any body mesh; uvlayout.py checks the family UV layout and texel
 density inside validate; clips.py checks every clip inside validate, and the clips step renders
-each clip's strip of key poses and 2-second preview). Steps always run in that order, whatever order they are listed in:
+each clip's strip of key poses and 2-second preview; clips-rbxm writes each clip as a binary
+Roblox KeyframeSequence, assets/export/animations/<A_name>.rbxm, with no Studio click, and checks
+it read back against the rig's bone names: clips.to_rbxm, animrbx.py, luau/xml2rbxm.luau). Steps always run in that order, whatever order they are listed in:
 validate runs after lod and shell so it checks what they made. The bible's palette and bake
 are not separate steps yet; asking for one prints a note and carries on.
 Nothing in assets/export/ is written when validation fails. Exit status 1 on any failure.
@@ -36,9 +38,9 @@ import template  # noqa: E402
 import validate  # noqa: E402
 import versions  # noqa: E402
 
-STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview", "clips")
-IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview", "clips")
-DEFAULT_STEPS = "build,lod,shell,validate,export,preview,clips"
+STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview", "clips", "clips-rbxm")
+IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview", "clips", "clips-rbxm")
+DEFAULT_STEPS = "build,lod,shell,validate,export,preview,clips,clips-rbxm"
 
 
 def parse_args(build_file):
@@ -106,6 +108,9 @@ def run(build_file, steps, builder=None):
             result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
     if "clips" in steps and spec.get("actions"):
         result["clips"] = clips.preview(spec, report, ok)
+    if "clips-rbxm" in steps and spec.get("actions"):
+        result["clips_rbxm"] = clips.to_rbxm(spec, report, ok)
+        ok = report.ok
     if "build" in steps and asset_dir:
         blend = os.path.join(asset_dir, asset_id + ".blend")
         bpy.ops.wm.save_as_mainfile(filepath=blend, check_existing=False, copy=True)

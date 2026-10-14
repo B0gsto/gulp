@@ -34,7 +34,7 @@ Columns: 8
 191 233 255	water.above_surface.fog
 255 226 168	creatures.minnow.light
 255 154  61	creatures.minnow.mid
-194  73  29	creatures.minnow.dark
+146  39   0	creatures.minnow.dark
 255 210  61	creatures.minnow.accent
 255 246 214	creatures.puffer.light
 255 216  74	creatures.puffer.mid

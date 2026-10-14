@@ -3,6 +3,7 @@
 The scale and axis constants below are what the calibration asset M_Prop_ScaleCube
 confirms in Studio (06 section 6.1, spike S0-A1). Change them here and nowhere else.
 """
+import json
 import os
 
 import bpy
@@ -196,6 +197,25 @@ def export_file(entry, scene):
     return info
 
 
+def write_socket_table(entry, arm):
+    """06 8.4: sockets stay weightless (Roblox drops a bone with no weight of 0.02 or more, spike
+    tech-d item 2), so code builds them from this table, written beside the rig's FBX as
+    <stem>.sockets.json: per socket its name, parent bone and offset from that bone's rest frame in
+    Roblox axes (CFrame components; position and the socket's outward axis). Rigid pieces attach
+    to the socket with a RigidConstraint; code-owned bones are written on PreRender."""
+    import animrbx
+    bones = {b.name: {"parent": b.parent.name if b.parent else None, "rest": [list(r) for r in b.matrix_local]}
+             for b in arm.data.bones}
+    path = os.path.join(common.EXPORT_DIR, entry["file"][:-4] + ".sockets.json")
+    table = {"rig": arm.name, "fbx": os.path.basename(entry["file"]), "units": "studs",
+             "frame": "offset from the parent bone's rest frame, Roblox axes (CFrame.new(table.unpack(cframe)))",
+             "sockets": animrbx.socket_table(bones)}
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(table, f, indent=1)
+    print("[export] %s  %d sockets" % (os.path.relpath(path, common.REPO_DIR), len(table["sockets"])))
+    return {"file": os.path.relpath(path, common.REPO_DIR), "sockets": [t["name"] for t in table["sockets"]]}
+
+
 def run(spec, report):
     """Writes every file the asset lists and checks what landed in each."""
     scene = bpy.context.scene
@@ -225,6 +245,10 @@ def run(spec, report):
         if arm:
             add("bones", sorted(info["bones"]) == sorted(b.name for b in arm.data.bones),
                 "%d bones, %d skin clusters" % (len(info["bones"]), info["skin_clusters"]))
+            if not entry.get("clip"):
+                info["sockets"] = write_socket_table(entry, arm)
+                add("socket table", bool(info["sockets"]["sockets"]) or not any(b.name.startswith("Sock_") for b in arm.data.bones),
+                    "%s: %d sockets (name, parent bone, offset)" % (info["sockets"]["file"], len(info["sockets"]["sockets"])))
         for obj in entry["objects"]:
             if obj.type == 'MESH' and obj.parent_type == 'BONE' and obj.parent in entry["objects"]:
                 add("piece on socket", info["parents"].get(obj.name) == obj.parent_bone,

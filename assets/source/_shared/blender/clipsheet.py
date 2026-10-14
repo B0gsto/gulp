@@ -30,7 +30,7 @@ def flat(path, size):
 
 
 def strip(job):
-    size, rows, labels = job["size"], job["rows"], job["labels"]
+    size, rows, labels = job.get("strip_size", job["size"]), job["rows"], job["labels"]
     cols = len(labels)
     footer_h = 22 * len(job["footer"]) + 12
     w = ROW_LABEL_W + cols * size

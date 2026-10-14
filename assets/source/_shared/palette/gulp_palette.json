@@ -12,7 +12,7 @@
     "above_surface": {"sky_top": "#4FB8FF", "fog": "#BFE9FF", "fog_lstar": 89}
   },
   "creatures": {
-    "minnow": {"light": "#FFE2A8", "mid": "#FF9A3D", "dark": "#C2491D", "accent": "#FFD23D"},
+    "minnow": {"light": "#FFE2A8", "mid": "#FF9A3D", "dark": "#922700", "accent": "#FFD23D"},
     "puffer": {"light": "#FFF6D6", "mid": "#FFD84A", "dark": "#B8791F", "accent": "#FF8C5A"},
     "eel": {"light": "#E0D6FF", "mid": "#8A6BF0", "dark": "#3B2A8C", "accent": "#FFE066"},
     "turtle": {"light": "#FFF1C2", "mid": "#7CCB7A", "mid_shell": "#D9933D", "dark": "#7A4A1E", "accent": "#FFE08A"},

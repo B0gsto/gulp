@@ -1,14 +1,24 @@
-"""M_Species_Minnow_Juv on RIG_Fish with T_Minnow_Juv_Alb: art spike S0-A7, the agent art trial
-(docs/13-sprint-plan.md Sprint 0; docs/06-art-bible.md sections 3 to 7 and 15; 07 rows
-M_Species_Minnow_Juv and T_Minnow_Juv_Alb).
+"""M_Species_Minnow_Juv on RIG_Fish with T_Minnow_Juv_Alb, and the first five family clips on it:
+tasks S2-A1 and S2-A3 (docs/13-sprint-plan.md Sprint 2; first made as the agent art trial S0-A7;
+docs/06-art-bible.md sections 3 to 8 and 15; 07 rows M_Species_Minnow_Juv, T_Minnow_Juv_Alb,
+T_Shared_Rgh*, M_Prop_EyeX with T_Shared_EyeX_Alb, T_Shared_EyeRing_Emi, A_Fish_Swim, _SwimFast,
+_Idle, _Dash and _Bite).
 
     Blender --background --python assets/source/species/minnow/build.py
 
-The Minnow juvenile at body scale 1.0 (3.0 long, 1.1 tall, 0.7 wide; 06 section 6.2): a slightly
+The Minnow juvenile at body scale 1.0 (3.0 long, 0.7 wide; 06 section 6.2; about 1.37 tall, see below): a slightly
 fat teardrop with a big round head, very large eyes, one small back fin and a short tail with a
 shallow fork (the fork grows into the adult's signature; 06 3.2, 03 "Minnow"). It sits on the
-family skeleton (rigs.FishFit, 18 deform bones and 10 sockets) and reuses the family swim clip
-and key poses. LODs and outline shells come from the run.py steps lod and shell (versions.py).
+family skeleton (rigs.FishFit, 18 deform bones and 10 weightless sockets; the export writes the
+socket table beside the FBX) and carries the five family clips of rigs.FISH_CLIPS, exported as
+A_Fish_*.fbx and, by the clips-rbxm step, as click-free Roblox .rbxm files. LODs and outline
+shells come from the run.py steps lod and shell (versions.py). Body depth: the deepest section
+(back to belly, fins left out) over the body length (nose to tail root) is printed by the build;
+the S2-A1 review sets it to 45-50%, so the height grows past the 1.1 of the 06/07 size row
+(flagged for the owner: the row needs the new height).
+
+The dark block is the bible's Minnow dark #922700 (L* about 33, inside 06 4.1's 35). The yellow
+tail is the Minnow's ID mark (03), so it may cover up to 10% of the surface (06 4.1).
 
 The colour texture is painted by this script (06 section 5.2), not by hand: every texel of the
 family UV layout (5.4) is traced back to its point on the mesh, and a paint function lays the
@@ -28,6 +38,7 @@ import bpy  # noqa: E402
 import numpy as np  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
+import clips  # noqa: E402
 import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
@@ -40,7 +51,8 @@ TEXTURE = "species_juv"                       # 06 section 5.6: 256 x 256, 60 px
 TEX = texgen.TEXTURE_CLASSES[TEXTURE][0]
 PAINT = 2 * TEX                               # painted at twice the size, then filtered down
 
-LENGTH, HEIGHT, WIDTH = 3.0, 1.1, 0.7         # 06 section 6.2
+LENGTH, WIDTH = 3.0, 0.7                      # 06 section 6.2 (height: below, from the body depth)
+DEPTH = 1.26                                  # body depth / 0.92 of the trial: 47% of the body length (S2-A1 review)
 Y_NOSE, Y_BODY_END = -1.5, 0.95
 Y_TAIL_ROOT, Y_TAIL_TIP = 0.86, 1.5
 HEAD_END = 0.40                               # body fraction where the head (and the cheek) ends: 42% of body length
@@ -75,12 +87,12 @@ def _rear(t, waist, start=0.38, power=1.35):
 
 def top(y):
     t = _t(y)
-    return 0.40 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
+    return DEPTH * (0.40 * _front(t) * _rear(t, 0.27, 0.40, 1.3) - 0.03 * (1.0 - _front(t)))   # the back falls away behind mid-body, under the fin
 
 
 def bot(y):
     t = _t(y)
-    return 0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t))
+    return DEPTH * (0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t)))
 
 
 def half_w(y):
@@ -111,7 +123,9 @@ def body_part(segs, rings):
     return meshgen.loft(out, (0.0, Y_NOSE, -0.03), (0.0, Y_BODY_END + 0.04, 0.0))
 
 
-Z_LO, Z_HI = -0.555, 0.545      # the bounding height of 1.1: the pectorals' lowest tip, the back fin's top
+Z_HI = max(top(Y_NOSE + i * 0.01) for i in range(246)) + 0.17     # the back fin's top, 0.17 over the back
+Z_LO = -max(bot(Y_NOSE + i * 0.01) for i in range(246)) - 0.035    # the pectorals' lowest tip, just under the belly
+HEIGHT = Z_HI - Z_LO            # about 1.37: the 07/06 size row's 1.1 grows with the 45-50% body depth (flagged)
 
 
 def on_flank(y, z, inset):
@@ -119,13 +133,13 @@ def on_flank(y, z, inset):
 
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
-EYE_Y, EYE_Z = -1.05, 0.12
-EYE_R = 1.46 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0    # well over the 34% row: big cartoon eyes (art-director loops)
+EYE_Y, EYE_Z = -1.05, 0.15
+EYE_R = 0.44 * (top(EYE_Y) + bot(EYE_Y)) / 2.0           # 44% of the head height, a third as seen once set into the head (03, 06 3.3)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
-PUPIL_COS = math.cos(math.asin(0.60))                       # pupil 60% of the eye diameter
-PEC = (on_flank(-0.52, -0.25, 0.03), -0.52, -0.25)
-DORSAL = (-0.42, 0.55)                                      # fore and aft ends of the back fin's root
+PUPIL_COS = math.cos(math.asin(0.56))                       # pupil 60% of the eye diameter as seen (the eyeball sits 0.02 into the head)
+PEC = (on_flank(-0.52, -0.31, 0.03), -0.52, -0.31)
+DORSAL = (-0.30, 0.50)                                      # fore and aft ends of the back fin's root: set back, where the back line falls away, so the fin stands clear of it in side view
 MOUTH_END = -1.27                                           # the closed smile runs back to here
 
 
@@ -160,7 +174,7 @@ def _dorsal_grid(rows, cols, lift):
     grid = []
     for u in spread(0.0, 1.0, rows):
         yb = y0 + (y1 - y0) * u
-        rise = lift * math.sin(math.pi * u) ** 0.8 + 0.03
+        rise = lift * math.sin(math.pi * u ** 0.85) ** 0.6 + 0.03     # a steep leading edge, a full round top
         grid.append([(0.0, yb + 0.22 * v * v, top(yb) - 0.035 + v * rise) for v in spread(0.0, 1.0, cols)])
     return grid
 
@@ -387,14 +401,14 @@ def paint(P, N, part):
     s = np.where(b, s + 0.4 * brow, s)                                                   # wet highlight on the brow
     # The smile: short, thick and upturned on the side of the head, below and in front of the eye and
     # clear of the snout tip, sitting on a cream lip patch so it still reads at 48 px.
-    my, mz, half, k = -1.235, -0.26, 0.17, 3.4
+    my, mz, half, k = -1.23, -0.27, 0.18, 3.2          # clear of the belly line, under the front of the eye
     curve = mz + k * (y - my) ** 2                         # corners turn up
-    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.05 - 0.9 * (y - my) ** 2)
+    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.085 - 0.8 * (y - my) ** 2)   # 0.17 studs: 2.7 px thick at 48 px (16 px a stud)
     corner_z = mz + k * half ** 2
     ends = np.minimum(np.hypot(y - (my - half), z - corner_z), np.hypot(y - (my + half), z - corner_z))
-    mouth = mouth | (b & (ends < 0.034))                  # round corners
+    mouth = mouth | (b & (ends < 0.05))                  # round corners
     # a thin cream lip line under the smile, so it holds at 48 px
-    lip_patch = b & ~mouth & (np.abs(y - my) < half * 0.92) & (z < curve - 0.045) & (z > curve - 0.08)
+    lip_patch = b & ~mouth & (np.abs(y - my) < half * 0.95) & (z < curve - 0.075) & (z > curve - 0.13)
     put(lip_patch, "light")
     s = np.where(lip_patch, s + 0.4, s)
     # the snout tip, where the nose's UV fan meets, stays one plain colour (no streaks)
@@ -452,7 +466,7 @@ def paint(P, N, part):
         put(pupil, "dark", PUPIL)
         s = np.where(pupil, 0.6 * smoothstep(0.86, 0.98, cos_a) - 0.6, s)
         # main glint about a quarter of the pupil across, a small second one opposite
-        glint = e & ((dvec @ g1 > math.cos(math.radians(9.5))) | (dvec @ g2 > math.cos(math.radians(4.5))))
+        glint = e & (dvec @ g1 > math.cos(math.radians(11.0)))    # one glint (06 7.7)
         put(glint, "light", EYE_WHITE)
         s = np.where(glint, 1.0, s)
         fade = np.where(e, 0.0, fade)
@@ -644,10 +658,74 @@ def paint_texture(body, part_of_vertex):
     return np.clip(small, 0.0, 1.0), block, ao is not None
 
 
+# ---------------------------------------------------------------- shared eye pieces (07 M_Prop_EyeX, T_Shared_EyeRing_Emi)
+
+EYE_TEX = 64
+
+
+def _grid(size):
+    c = (np.arange(size) + 0.5) / size
+    return np.meshgrid(c, c)
+
+
+def eye_x_texture():
+    """T_Shared_EyeX_Alb, 64 x 64 RGBA: a fat ink X with round ends inside a white rim, on clear
+    alpha (06 7.7: the gulped face). Drawn as distance fields, antialiased over one texel."""
+    u, v = _grid(EYE_TEX)
+    def seg(ax, ay, bx, by):
+        dx, dy = bx - ax, by - ay
+        t = np.clip(((u - ax) * dx + (v - ay) * dy) / (dx * dx + dy * dy), 0.0, 1.0)
+        return np.hypot(u - ax - t * dx, v - ay - t * dy)
+    d = np.minimum(seg(0.24, 0.24, 0.76, 0.76), seg(0.24, 0.76, 0.76, 0.24))
+    px = 1.0 / EYE_TEX
+    ink = np.clip((0.085 - d) / px + 0.5, 0.0, 1.0)
+    rim = np.clip((0.15 - d) / px + 0.5, 0.0, 1.0)
+    rgb = hex_rgb(PUPIL) * ink[..., None] + hex_rgb(EYE_WHITE) * (1.0 - ink[..., None])
+    return np.concatenate([rgb, rim[..., None]], -1)
+
+
+def eye_ring_texture():
+    """T_Shared_EyeRing_Emi, 64 x 64: a soft glow ring (emissive mask, white on black) that sits
+    round each eye during Moon Tide: a bright band at 70% of the radius fading out both ways."""
+    u, v = _grid(EYE_TEX)
+    r = np.hypot(u - 0.5, v - 0.5) / 0.5
+    glow = np.exp(-((r - 0.7) / 0.11) ** 2) + 0.35 * np.exp(-((r - 0.7) / 0.24) ** 2)
+    glow = np.clip(glow / glow.max(), 0.0, 1.0) * (r < 0.98)
+    return np.repeat(glow[..., None], 3, -1)
+
+
+def save_rgba(path, rgba):
+    size = rgba.shape[0]
+    img = bpy.data.images.new(os.path.basename(path)[:-4] + "_out", size, size, alpha=True)
+    img.alpha_mode = 'STRAIGHT'
+    img.pixels.foreach_set(rgba[::-1].astype(np.float32).ravel())
+    img.filepath_raw = path
+    img.file_format = 'PNG'
+    img.save()
+    return size, size
+
+
+def eye_x_card():
+    """M_Prop_EyeX: two triangles, 1 x 1 stud, facing +X (out of the left eye), origin at the
+    centre; code scales it to each eye's diameter and shows it for the 4 shrink frames."""
+    mesh = bpy.data.meshes.new("M_Prop_EyeX")
+    verts = [(0.0, -0.5, -0.5), (0.0, 0.5, -0.5), (0.0, 0.5, 0.5), (0.0, -0.5, 0.5)]
+    mesh.from_pydata(verts, [], [(0, 1, 2), (0, 2, 3)])
+    uv = mesh.uv_layers.new(name=common.UV_NAME)
+    corners = {0: (1.0, 0.0), 1: (0.0, 0.0), 2: (0.0, 1.0), 3: (1.0, 1.0)}   # seen from +X, the card's -Y is its right
+    for loop in mesh.loops:
+        uv.data[loop.index].uv = corners[loop.vertex_index]
+    mesh.materials.append(bpy.data.materials.new("MAT_M_Prop_EyeX"))
+    obj = bpy.data.objects.new("M_Prop_EyeX", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.location = (0.0, 0.0, -4.0)            # out of the creature's renders; exported at its origin
+    return obj
+
+
 # ---------------------------------------------------------------- the asset
 
 def build():
-    fit = rigs.FishFit(LENGTH, half_h, half_w, EYE, PEC, (0.0, -0.15, HEIGHT / 2.0))
+    fit = rigs.FishFit(LENGTH, half_h, half_w, EYE, PEC, (0.0, 0.18, Z_HI))   # Sock_FinDorsal at the back fin's top
     arm = meshgen.build_armature("RIG_Fish", fit.bones())
     md, part_of_vertex = minnow_meshdata(RES, fit)
     body = meshgen.skin(md.to_object(NAME, "GEO"), arm)
@@ -675,7 +753,12 @@ def build():
         rr, cc = min(TEX - 1, r // 2), min(TEX - 1, c // 2)
         return (BLOCKS[k] if k >= 0 else None), tuple(float(c) for c in albedo[rr, cc])
 
-    swim = rigs.bake_clip(arm, "A_Fish_Swim", 16, rigs.fish_swim_pose)
+    actions = clips.bake_family(arm, rigs.FISH_CLIPS)     # S2-A3: the five family clips on the Minnow
+    eye_x = eye_x_card()
+    ys = np.linspace(Y_NOSE, Y_BODY_END, 200)
+    depth = max(top(y) + bot(y) for y in ys)
+    print("[minnow] body depth %.3f studs = %.0f%% of the body length (nose to tail root, %.2f)"
+          % (depth, 100.0 * depth / (Y_BODY_END - Y_NOSE), Y_BODY_END - Y_NOSE))
 
     def write_flat(value):
         return lambda path: save_png(path, np.full((8, 8, 3), value), 8)
@@ -693,23 +776,23 @@ def build():
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
         "texture_sampler": sampler,
         "texture_name": "%s, %d px, occlusion %s" % (ALBEDO, TEX, "baked" if baked else "NOT baked"),
-        # The bible's own Minnow dark (06 section 4.3) breaks its dark-block rule (4.1): logged and
-        # waived, as on the family base mesh; the owner decides (spike/results/art-blender.md).
-        "waivers": {
-            "palette: dark L*": "06 4.3 Minnow dark #C2491D vs 4.1 dark <= 35; bible inconsistency for the owner",
-            "value: dark L*": "follows from the palette waiver above",
-            "value: accent share": "03 Minnow: the yellow tail is the ID mark, so the whole tail fin is accent "
-                                   "(art-director loop 1) vs 06 4.1 accent <= 5%; conflict logged for the owner",
-        },
+        "id_mark": {"block": "accent", "what": "the yellow tail, 03 Minnow"},
         "meshes": [{"object": body, "role": "body", "primary": True}],
-        "actions": [swim],
-        "exports": [{"file": "meshes/%s.fbx" % NAME, "objects": [body, arm]}],
+        "actions": actions,
+        "exports": [
+            {"file": "meshes/%s.fbx" % NAME, "objects": [body, arm]},
+            {"file": "meshes/M_Prop_EyeX.fbx", "objects": [eye_x], "at_origin": True},
+            *[clips.export_entry(clip, [body, arm]) for clip in actions],
+        ],
         "textures": [
             {"file": "textures/%s.png" % ALBEDO, "write": lambda path: save_png(path, albedo, TEX), "max": TEX},
             # 06 section 5.1: the three shared flat roughness maps, 8 x 8 (07 T_Shared_Rgh*).
             {"file": "textures/T_Shared_Rgh.png", "write": write_flat(0.85), "max": 8},
             {"file": "textures/T_Shared_RghWet.png", "write": write_flat(0.35), "max": 8},
             {"file": "textures/T_Shared_RghChalk.png", "write": write_flat(1.0), "max": 8},
+            # 07: the gulped-eye X card's colour map and the Moon Tide eye ring, 64 x 64 each.
+            {"file": "textures/T_Shared_EyeX_Alb.png", "write": lambda path: save_rgba(path, eye_x_texture()), "max": 64},
+            {"file": "textures/T_Shared_EyeRing_Emi.png", "write": lambda path: save_png(path, eye_ring_texture(), 64), "max": 64},
         ],
         "preview": {
             "main": [body],
