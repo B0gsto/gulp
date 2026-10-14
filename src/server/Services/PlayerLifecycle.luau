@@ -7,6 +7,10 @@
 --        `Slot` attribute; the cove rule of 13.1), policy, cove (CoveService.open); then, once the
 --        client has sent ClientReady (it waits for `workspace.PersistentLoaded` first, spike F4),
 --        the creature, then `onReady`. ClientReady may arrive before the join steps finish; it is kept.
+-- Load:  `sys_load_time` (10 §4.2) is J, seconds from `PlayerAdded` to control. Control comes at
+--        the spawn for an account that has finished the FTUE (the loading screen fades straight
+--        into the water, 08 §8.1); for one that has not, the hatch comes first (04 §3.1 S1_HATCH)
+--        and the tutorial calls `controlGranted` when it ends.
 -- Leave: `onLeaving` (settlement), the creature is removed, the cove closed, then the slot is
 --        freed.
 local Players = game:GetService("Players")
@@ -14,12 +18,14 @@ local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
+local LoadTime = require(ReplicatedStorage.Shared.Logic.LoadTime)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local PolicyRules = require(ReplicatedStorage.Shared.Logic.PolicyRules)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local SlotPool = require(ReplicatedStorage.Shared.Logic.SlotPool)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local Analytics = require("./Analytics")
 local CoveService = require("./CoveService")
 local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
@@ -50,6 +56,8 @@ local playerAt: { [Slot]: Player } = {}
 local stageOf: { [Player]: Stage } = {}
 local readyAsked: { [Player]: boolean } = {}
 local policyOf: { [Player]: Policy } = {}
+local joinedAt: { [Player]: number } = {} -- os.clock() at PlayerAdded: J = 0 (10, the clocks)
+local controlReported: { [Player]: boolean } = {}
 
 --- The player's slot, or nil when they hold none.
 function PlayerLifecycle.getSlot(player: Player): Slot?
@@ -67,6 +75,19 @@ function PlayerLifecycle.policy(player: Player): Policy
 	return policyOf[player] or PolicyRules.MOST_RESTRICTIVE
 end
 
+--- Control granted (04 §2.1, end of phase E): sends `sys_load_time` with J (10 §4.2), once a
+--- session. PlayerLifecycle calls it at the spawn for an account that has finished the FTUE; the
+--- tutorial calls it when the hatch ends (04 §3.1: S1_HATCH to S2_FIRST_BITE).
+function PlayerLifecycle.controlGranted(player: Player)
+	local at = joinedAt[player]
+	if not at or controlReported[player] then
+		return
+	end
+	controlReported[player] = true
+	local j = os.clock() - at
+	Analytics.event(player, "sys_load_time", LoadTime.value(j), LoadTime.bucket(j))
+end
+
 local function spawnCreature(player: Player)
 	local slot = slotOf[player]
 	stageOf[player] = "spawned"
@@ -75,12 +96,17 @@ local function spawnCreature(player: Player)
 	DataService.pushAll(player) -- the first state push, before onReady
 	LiveConfig.pushAll(player) -- the `config.*` root of the same push (09 §5.3, §17.4)
 	PlayerLifecycle.onReady:fire(player, slot)
+	local data = DataService.get(player)
+	if data and data.ftue.completed then
+		PlayerLifecycle.controlGranted(player) -- no hatch: control as the loading screen fades
+	end
 end
 
 local function join(player: Player)
 	if slotOf[player] or player.Parent ~= Players then
 		return -- replayed twice, or already gone
 	end
+	joinedAt[player] = joinedAt[player] or os.clock()
 	-- The profile first (09 §12.4: without one there is no creature); section 13.1 gives the
 	-- slot once it is loaded. `load` yields, and kicks when there is no profile.
 	if not DataService.load(player) then
@@ -133,7 +159,7 @@ local function onClientReady(player: Player)
 end
 
 local function leave(player: Player)
-	readyAsked[player] = nil
+	readyAsked[player], joinedAt[player], controlReported[player] = nil, nil, nil
 	local slot = slotOf[player]
 	if not slot then
 		DataService.release(player) -- left between the profile and the slot
