@@ -22,7 +22,15 @@ export type Environment = {
 
 export type LiveValue = boolean | number | string
 
+local Manifest = require("../Data/Manifest")
+
 local Defaults = {}
+
+-- Asset IDs come from the asset manifest (docs/07, sections 1.3 and 16): `assets/manifest.csv`,
+-- copied into Config/AssetManifest by `lune run tools/gen/manifest`. An uploaded asset belongs
+-- to the creator, not to one experience, so every environment starts from the same IDs; an
+-- environment that ever needs a different file for a name overrides it in its own table.
+local MANIFEST_ASSET_IDS = table.freeze(Manifest.assetIds(Manifest.load()))
 
 local function environment(
 	name: EnvironmentName,
@@ -35,11 +43,11 @@ local function environment(
 		purchases = purchases,
 		analytics = analytics,
 		devCheats = devCheats,
-		-- Empty until the passes and products exist in each experience; the task that creates
-		-- them fills its environment's tables.
+		-- Product and pass IDs are empty until they exist in each experience; the task that
+		-- creates them fills its environment's tables.
 		productIds = table.freeze({}),
 		passIds = table.freeze({}),
-		assetIds = table.freeze({}),
+		assetIds = MANIFEST_ASSET_IDS,
 	})
 end
 

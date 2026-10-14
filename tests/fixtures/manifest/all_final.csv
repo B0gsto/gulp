@@ -1,0 +1,7 @@
+name,tag,status,asset_id,placeholder,note
+M_Species_Minnow_Juv,MVP,done,1000001,no,
+T_Minnow_Juv_Alb,MVP,done,1000002,no,
+A_Fish_Bite,MVP,in review,1000003,no,"final art, waiting for the review"
+SFX_Gulp,MVP,done,1000004,no,
+FX_BiteChomp,MVP,done,,no,
+LGT_Reef,MVP,done,,no,

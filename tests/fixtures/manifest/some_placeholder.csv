@@ -1,0 +1,6 @@
+name,tag,status,asset_id,placeholder,note
+M_Species_Minnow_Juv,MVP,done,1000001,no,
+T_Minnow_Juv_Alb,MVP,in progress,1000002,yes,
+A_Fish_Bite,MVP,blocked,,yes,"waits for RIG_Fish, see S1-A3"
+SFX_Gulp,MVP,in review,,no,
+FX_BiteChomp,MVP,done,,no,
