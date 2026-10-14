@@ -737,7 +737,7 @@ Budgets from document 06: sea-floor chunk (128 × 128 studs) 3,000 triangles; cl
 
 | Asset | Tag | Description | Qty | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|---|
-| `T_Tile_Sand_Alb, T_Tile_Rock_Alb, T_Tile_CoralRock_Alb, T_Tile_Slate_Alb` | [MVP] | The four tiling ground textures, repeating every 32 studs: sand, rock, coral rock, slate. Silt and sandstone are tints of these | 4 | 512² each | — | 6 | not started |
+| `T_Tile_Sand_Alb, T_Tile_Rock_Alb, T_Tile_CoralRock_Alb, T_Tile_Slate_Alb` | [MVP] | The four tiling ground textures, repeating every 32 studs: sand, rock, coral rock, slate. Silt and sandstone are tints of these (`SurfaceAppearance.Color` tints shift value and hue only slightly: sand to silt, rock to kelp rock, slate to deep slate). Stripe Alley's orange canyon is not a tint of coral rock; Stripe Alley is deferred (document 13, section 3.3), so it needs no extra tile until it returns | 4 | 512² each | — | 6 | not started |
 | `T_EnvShared_Alb` | [MVP] | Atlas for rocks, pebbles, shells, sea grass and eel-hole rings | 1 | 512² | — | 2.5 | not started |
 | `M_Env_Rock_01–06` | [MVP] | Rounded rocks: two small, two medium, two large | 6 | 120, 350 or 1,000 tris | T_Tile_Rock_Alb | 3.5 | not started |
 | `M_Env_Pebble_01–03` | [MVP] | Smooth pebbles | 3 | 60 tris | T_EnvShared_Alb | 0.8 | not started |

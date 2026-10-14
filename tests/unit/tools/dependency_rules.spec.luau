@@ -105,3 +105,84 @@ describe("DependencyRules.applies", function()
 		expect(DependencyRules.applies("src/server/Services/PreyService.luau")).toBe(false)
 	end)
 end)
+
+local function writes(source: string): { string }
+	local found = {}
+	for _, violation in DependencyRules.pearlWrites(source) do
+		table.insert(found, `{violation.line}:{violation.token}`)
+	end
+	return found
+end
+
+describe("DependencyRules.pearlWrites (09 §4.4: only EconomyService changes Pearls)", function()
+	it("flags field writes, compound writes and string-index writes", function()
+		local source = table.concat({
+			"local data = DataService.get(player)",
+			"data.pearls = 10",
+			"data.pearls += 5",
+			"profile.Data . pearls -= 1",
+			'data["pearls"] = 3',
+			"data['pearls'] //= 2",
+		}, "\n")
+		expect(writes(source)).toEqual({
+			"2:.pearls =",
+			"3:.pearls =",
+			"4:.pearls =",
+			'5:["pearls"] =',
+			'6:["pearls"] =',
+		})
+	end)
+
+	it("flags the pearls path in patch and rawset calls, split over lines or nested", function()
+		local source = table.concat({
+			'DataService.patch(player, "pearls", 10)',
+			"DataService.patch(",
+			"\tplayer,",
+			"\t'pearls',",
+			"\tmath.max(0, n)",
+			")",
+			"log(DataService.patch(player, `pearls`, 1))",
+			'rawset(data, "pearls", 0)',
+		}, "\n")
+		expect(writes(source)).toEqual({
+			'1:patch(..., "pearls", ...)',
+			'4:patch(..., "pearls", ...)',
+			'7:patch(..., "pearls", ...)',
+			'8:rawset(..., "pearls", ...)',
+		})
+	end)
+
+	it("passes reads, comparisons, other names, comments and string text", function()
+		local source = table.concat({
+			"local n = data.pearls",
+			"if data.pearls == 0 or data.pearls >= 5 or data.pearls ~= 3 then end",
+			"result.pearlsPaid = 4",
+			"local t = { pearls = 1 }",
+			'-- data.pearls = 1, DataService.patch(player, "pearls", 1)',
+			'Log.warn("Economy", "data.pearls = 1")',
+			'DataService.patch(player, "settings.music", 4)',
+			'DataService.patch(player, "pearlsX", 4)',
+			'mypatch(player, "pearls", 4)',
+			'local s = data.pearls .. "="',
+		}, "\n")
+		expect(writes(source)).toEqual({})
+	end)
+end)
+
+describe("DependencyRules.pearlRuleApplies", function()
+	it("covers server files except EconomyService and the engine specs", function()
+		expect(DependencyRules.pearlRuleApplies("src/server/Services/RunLoopService.luau")).toBe(
+			true
+		)
+		expect(DependencyRules.pearlRuleApplies("src/server/Services/DataService.luau")).toBe(true)
+		expect(DependencyRules.pearlRuleApplies("src/server/Dev/Cheats.luau")).toBe(true)
+		expect(DependencyRules.pearlRuleApplies("src/server/Services/EconomyService.luau")).toBe(
+			false
+		)
+		expect(DependencyRules.pearlRuleApplies("src/server/Tests/DataSpec.luau")).toBe(false)
+		expect(DependencyRules.pearlRuleApplies("src/shared/Logic/SaveSchema.luau")).toBe(false)
+		expect(DependencyRules.pearlRuleApplies("src/client/Controllers/StateStore.luau")).toBe(
+			false
+		)
+	end)
+end)
