@@ -1,0 +1,47 @@
+--!strict
+local SwimModel = require("../../../src/shared/Sim/SwimModel")
+local SwimStatus = require("../../../src/shared/Logic/SwimStatus")
+local TestKit = require("../../../src/shared/Util/TestKit")
+
+local describe, it, expect = TestKit.describe, TestKit.it, TestKit.expect
+
+describe("SwimStatus", function()
+	it("leaves the mods neutral with nothing active", function()
+		local mods = SwimModel.newMods()
+		mods.speedMult, mods.turnMult, mods.canThrust, mods.dashBlocked = 9, 9, false, true
+		SwimStatus.apply(mods, {})
+		expect(mods.speedMult).toBe(1)
+		expect(mods.turnMult).toBe(1)
+		expect(mods.canThrust).toBe(true)
+		expect(mods.dashBlocked).toBe(false)
+	end)
+
+	it("multiplies the speed multipliers of 02 §1.2", function()
+		local mods = SwimModel.newMods()
+		SwimStatus.apply(mods, { Rampaging = true, Slowed = true })
+		expect(mods.speedMult).toBeCloseTo(0.625, 1e-12)
+		SwimStatus.apply(mods, { Puffed = true, Swallowing = true, Slowed = false })
+		expect(mods.speedMult).toBeCloseTo(0.24, 1e-12)
+		expect(mods.dashBlocked).toBe(true) -- Puffed (02 §7.1)
+		expect(mods.canThrust).toBe(true)
+	end)
+
+	it("stops turning, thrust and dash while stunned (02 §1.4, §7.1)", function()
+		local mods = SwimModel.newMods()
+		SwimStatus.apply(mods, { Stunned = true, Jetting = true })
+		expect(mods.turnMult).toBe(0)
+		expect(mods.canThrust).toBe(false)
+		expect(mods.dashBlocked).toBe(true)
+		SwimStatus.apply(mods, { Jetting = true })
+		expect(mods.turnMult).toBe(0.3)
+		SwimStatus.apply(mods, { Bumped = true })
+		expect(mods.turnMult).toBe(1)
+		expect(mods.dashBlocked).toBe(true)
+	end)
+
+	it("knows its status names", function()
+		expect(SwimStatus.isStatus("Hooked")).toBe(true)
+		expect(SwimStatus.isStatus("Dashing")).toBe(false)
+		expect(#SwimStatus.ALL).toBe(12)
+	end)
+end)
