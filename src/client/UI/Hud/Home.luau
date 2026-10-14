@@ -128,14 +128,28 @@ function Home.new(parent: Instance): Home
 	end
 	Draw.slot("UI_HUD_HomePointer", pointer, 6)
 
+	-- 08 §1.5: text over the 3D world sits on a chip (and keeps its 2 rpx dark stroke).
+	local chip = Draw.new("Frame", {
+		Name = "DistanceChip",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 4),
+		Size = UDim2.fromOffset(0, spec.labelHeight),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = Theme.DIM,
+		BackgroundTransparency = 0.3,
+		ZIndex = 5,
+		Parent = marker,
+	}, {
+		Draw.corner(),
+		Draw.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }),
+	}) :: Frame
 	local distance = Draw.text({
 		Name = "Distance",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 2),
-		Size = UDim2.fromOffset(120, spec.labelHeight),
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
 		TextColor3 = Theme.WHITE,
 		ZIndex = 6,
-		Parent = marker,
+		Parent = chip,
 	}, Theme.TEXT.small, "body", Theme.STROKE_TEXT)
 
 	local nextText = 0

@@ -22,6 +22,7 @@ export type Dash = {
 }
 
 local READY_PULSE = 0.25 -- 08 §3.7 ring pulse
+local GROUP_PAD = 16
 
 -- The dash symbol: two navy chevrons pointing forward (up-right), drawn from bars.
 local function chevrons(parent: Instance, size: number, z: number)
@@ -71,17 +72,25 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		"Frame",
 		{ Name = "HUD.Dash", Size = UDim2.fromOffset(136, 136), Parent = parent }
 	) :: Frame
-	local group = Draw.new(
-		"CanvasGroup",
-		{ Name = "Group", Size = UDim2.fromScale(1, 1), Parent = root }
-	) :: CanvasGroup
+	-- The CanvasGroup (for the 40% disabled fade) clips to its bounds, so it is padded on every
+	-- side to hold the stroke, the lip and the hard shadow around the 136 rpx face.
+	local group = Draw.new("CanvasGroup", {
+		Name = "Group",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 2 * GROUP_PAD, 1, 2 * GROUP_PAD),
+		Parent = root,
+	}) :: CanvasGroup
 	local scale = Draw.new("UIScale", { Parent = group }) :: UIScale
 
 	-- Touch button: a round sun-yellow face over a darker lip, navy stroke, hard shadow.
-	local button = Draw.new(
-		"Frame",
-		{ Name = "Button", Size = UDim2.fromScale(1, 1), Parent = group }
-	) :: Frame
+	local button = Draw.new("Frame", {
+		Name = "Button",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -2 * GROUP_PAD, 1, -2 * GROUP_PAD),
+		Parent = group,
+	}) :: Frame
 	local shadow =
 		Draw.disc(136, Theme.DIM, UDim2.new(0.5, 0, 0.5, Theme.LIP + Theme.SHADOW_OFFSET), {
 			Name = "Shadow",
@@ -109,14 +118,17 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		UDim2.fromScale(0.3, 0.26),
 		{ Name = "Highlight", BackgroundTransparency = 0.45, ZIndex = 4, Parent = face }
 	)
+	-- The wedge sits under the symbol, light enough that the button still reads (08 §3.7).
+	local setWedge = Draw.wedge(face, 136, Theme.DIM, 0.6, 4)
 	chevrons(face, 136 * 0.62, 5)
-	local setWedge = Draw.wedge(face, 136, Theme.DIM, 0.42, 6)
 	Draw.slot("UI_HUD_DashButton", face, 7)
 
 	-- Desktop hint tile: icon 64 with the cooldown on it.
 	local tile = Draw.new("Frame", {
 		Name = "Tile",
-		Size = UDim2.fromScale(1, 1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -2 * GROUP_PAD, 1, -2 * GROUP_PAD),
 		Visible = false,
 		BackgroundColor3 = Theme.DIM,
 		BackgroundTransparency = 0.45,
@@ -130,8 +142,8 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		{ Name = "Icon", ZIndex = 3, Parent = tile }
 	)
 	Draw.stroke(Theme.STROKE_ICON).Parent = icon
+	local setTileWedge = Draw.wedge(icon, 64, Theme.DIM, 0.6, 3)
 	chevrons(icon, 40, 4)
-	local setTileWedge = Draw.wedge(icon, 64, Theme.DIM, 0.42, 5)
 
 	-- Ready again: `UI_Common_RingPulse`.
 	local pulse = Draw.disc(

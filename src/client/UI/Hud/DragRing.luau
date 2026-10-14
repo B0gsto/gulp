@@ -40,24 +40,25 @@ function DragRing.new(parent: Instance): DragRing
 		Parent = root,
 	}) :: CanvasGroup
 
-	-- Ring: a white band with a navy rim, inner dead-zone dot.
-	local ring = Draw.disc(spec.ring, Theme.WHITE, nil, {
+	-- Ring: a navy well at 35% (08 §3.16) framed by a white band and a navy rim, so it reads
+	-- on bright water and sky alike.
+	local ring = Draw.disc(spec.ring, Theme.DIM, nil, {
 		Name = "UI_HUD_DragRing",
 		BackgroundTransparency = 1 - RING_OPACITY,
 		ZIndex = 1,
 		Parent = group,
 	})
 	local rim = Draw.stroke(Theme.STROKE_ICON, Theme.INK)
-	rim.Transparency = 0.45 -- the whole ring reads at about 35% (08 §3.16)
+	rim.Transparency = 0.1
 	rim.Parent = ring
-	local inner = Draw.disc(
-		spec.ring - 40,
-		Theme.WHITE,
-		nil,
-		{ Name = "Inner", BackgroundTransparency = 1, ZIndex = 1, Parent = ring }
-	)
-	local innerStroke = Draw.stroke(2, Theme.WHITE)
-	innerStroke.Transparency = 0.45
+	local inner = Draw.disc(spec.ring - 8, Theme.WHITE, nil, {
+		Name = "Inner",
+		BackgroundTransparency = 1,
+		ZIndex = 1,
+		Parent = ring,
+	})
+	local innerStroke = Draw.stroke(4, Theme.WHITE)
+	innerStroke.Transparency = 0.25
 	innerStroke.Parent = inner
 	Draw.disc(
 		spec.deadZone * 2,
