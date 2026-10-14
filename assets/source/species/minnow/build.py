@@ -52,7 +52,7 @@ BLOCKS = ("mid", "light", "dark", "accent")
 BLOCK_HEX = {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT}
 
 # Rings and segments per part (1,500 triangle budget, 06 section 6.3).
-RES = dict(segs=20, rings=21, tail=(5, 7), dorsal=(5, 3), pec=(3, 4), eye=(10, 6), lid=(4, 4))
+RES = dict(segs=20, rings=21, tail=(5, 6), dorsal=(5, 3), pec=(5, 4), eye=(10, 6), lid=(4, 3))
 
 
 # ---------------------------------------------------------------- the body profile (side, top and section)
@@ -67,20 +67,20 @@ def _front(t):
     return math.sqrt(max(0.0, 1.0 - (1.0 - u) ** 2))
 
 
-def _rear(t, waist):
+def _rear(t, waist, start=0.38, power=1.35):
     """The taper from the deepest point to the thin tail root."""
-    u = min(1.0, max(0.0, (t - 0.38) / 0.62))
-    return waist + (1.0 - waist) * math.cos(0.5 * math.pi * u) ** 1.35
+    u = min(1.0, max(0.0, (t - start) / (1.0 - start)))
+    return waist + (1.0 - waist) * math.cos(0.5 * math.pi * u) ** power
 
 
 def top(y):
     t = _t(y)
-    return 0.50 * _front(t) * _rear(t, 0.26) - 0.03 * (1.0 - _front(t))
+    return 0.53 * _front(t) * _rear(t, 0.26, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
 
 
 def bot(y):
     t = _t(y)
-    return 0.545 * _front(t) ** 0.9 * _rear(t, 0.24) + 0.03 * (1.0 - _front(t))
+    return 0.55 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t))
 
 
 def half_w(y):
@@ -121,16 +121,26 @@ def on_flank(y, z, inset):
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
 EYE_Y, EYE_Z = -1.09, 0.12
 EYE_R = 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0
-EYE = (WIDTH / 2.0 - 0.004 - EYE_R, EYE_Y, EYE_Z)
+EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
 PUPIL_COS = math.cos(math.asin(0.60))                       # pupil 60% of the eye diameter
 PEC = (on_flank(-0.52, -0.2, 0.03), -0.52, -0.2)
+PEC_LEN = 0.40                                              # 140% of a real minnow's pectoral
 DORSAL = (-0.42, 0.22)                                      # fore and aft ends of the back fin's root
-MOUTH_END = -1.31                                           # the closed smile runs back to here
+MOUTH_END = -1.30                                           # the closed smile runs back to here
 
 
 def eye_centre(side):
     return Vector((side * EYE[0], EYE[1], EYE[2]))
+
+
+def tail_reach(v):
+    """How far back the tail reaches at height fraction v: a shallow fork, round lobes."""
+    return 1.0 - 0.24 * (1.0 - np.abs(v)) ** 1.6 - 0.10 * np.abs(v) ** 6
+
+
+def tail_spread(u):
+    return 0.11 + (0.43 - 0.11) * np.sin(0.5 * math.pi * u) ** 0.9
 
 
 def tail_part(n):
@@ -140,10 +150,8 @@ def tail_part(n):
     for u in spread(0.0, 1.0, rows):
         row = []
         for v in spread(-1.0, 1.0, cols):
-            reach = 1.0 - 0.24 * (1.0 - abs(v)) ** 1.6 - 0.10 * abs(v) ** 6
-            y = Y_TAIL_ROOT + u * reach * (Y_TAIL_TIP - Y_TAIL_ROOT)
-            spread_z = 0.11 + (0.43 - 0.11) * math.sin(0.5 * math.pi * u) ** 0.9
-            row.append((0.0, y, v * spread_z))
+            y = Y_TAIL_ROOT + u * float(tail_reach(v)) * (Y_TAIL_TIP - Y_TAIL_ROOT)
+            row.append((0.0, y, v * float(tail_spread(u))))
         grid.append(row)
     return meshgen.slab(grid, (1.0, 0.0, 0.0), FIN_THICK)
 
@@ -172,11 +180,13 @@ def dorsal_part(n):
 def pec_part(side, n):
     rows, cols = n
     root = Vector((side * PEC[0], PEC[1], PEC[2]))
-    along = Vector((side * 0.42, 0.8, -0.42)).normalized()
+    along = Vector((side * 0.24, 0.84, -0.48)).normalized()
     across = Vector((0.0, 0.3, 1.0))
     across = (across - across.dot(along) * along).normalized()
-    length = (WIDTH / 2.0 - 0.005 - PEC[0]) / abs(along.x)
-    grid = [[root + along * (length * u) + across * (v * (0.05 + 0.08 * math.sin(math.pi * u ** 0.7)))
+    length = PEC_LEN
+    # a rounded paddle: narrow at the root, widest past the middle, a round tip
+    width = lambda u: 0.05 + 0.085 * math.sqrt(max(0.0, 1.0 - ((u - 0.6) / 0.6) ** 2))
+    grid = [[root + along * (length * u * (1.0 - 0.16 * v * v * u ** 4)) + across * (v * width(u))
              for v in spread(-1.0, 1.0, cols)] for u in spread(0.0, 1.0, rows)]
     return meshgen.slab(grid, along.cross(across), 0.035)
 
@@ -235,7 +245,7 @@ def minnow_meshdata(res, fit):
             clamp=(WIDTH / 2.0, 0.0, 0.0))
         axis = Vector((side * EYE_AXIS.x, EYE_AXIS.y, EYE_AXIS.z))
         add(meshgen.sphere(eye_centre(side), EYE_R, axis, (0.0, 0.0, 1.0), *res["eye"]), "eye",
-            uv=lambda p, q: UV["eye"](*q), weights={"Eye_" + tag: 1.0})
+            uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights={"Eye_" + tag: 1.0})
         add(lid_part(side, res["lid"]), "lid", uv=lambda p, q: UV["lid"](*q), weights={"Lid_" + tag: 1.0})
     return md, np.array(part_of)
 
@@ -267,16 +277,30 @@ def _toward(h, target, amount):
     return h + np.sign(d) * np.minimum(np.abs(d), amount)
 
 
+_VIOLET_AB = None
+
+
+def violet_ab():
+    """a*, b* of the shadow tint #5A4FA0 (06 section 5.2 step 4)."""
+    global _VIOLET_AB
+    if _VIOLET_AB is None:
+        _VIOLET_AB = srgb_to_lab(hex_rgb("#5A4FA0"))[1:]
+    return _VIOLET_AB
+
+
 def shade(hexes, s, fade):
     """Paint a block colour with a shading value s in -1..1 (06 section 4.1): at most 6 L* either way
-    (12 points across the block), shadows turn toward blue-violet (hue toward 250, up to 20 degrees),
-    lights toward yellow (hue toward 50). `fade` 0..1 takes up to 15% of the saturation off toward the tail."""
+    (12 points across the block). Shadows lean toward the blue-violet #5A4FA0 (mixed in a*b*, so no
+    colour passes through brown or green on the way); lights lean toward yellow (hue toward 50).
+    `fade` 0..1 takes up to 15% of the saturation off toward the tail."""
     lab = srgb_to_lab(hexes)
-    L, a, b = lab[..., 0], lab[..., 1], lab[..., 2]
-    C, h = np.hypot(a, b), np.degrees(np.arctan2(b, a)) % 360.0
+    L, ab = lab[..., 0], lab[..., 1:]
     s = np.clip(s, -1.0, 1.0)
-    h = np.where(s < 0.0, _toward(h, 250.0, 20.0 * -s), _toward(h, 50.0, 10.0 * s))
-    C = C * (1.0 - 0.15 * fade) * (1.0 + 0.06 * s)
+    dark = np.clip(-s, 0.0, 1.0)[..., None]
+    ab = ab + 0.16 * dark * (violet_ab() - ab)
+    C, h = np.hypot(ab[..., 0], ab[..., 1]), np.degrees(np.arctan2(ab[..., 1], ab[..., 0])) % 360.0
+    h = np.where(s > 0.0, _toward(h, 50.0, 8.0 * np.clip(s, 0.0, 1.0)), h)
+    C = C * (1.0 - 0.15 * fade) * (1.0 + 0.05 * np.clip(s, 0.0, 1.0))
     L = np.minimum(100.0, L + 6.0 * s)
     hr = np.radians(h)
     return lab_to_srgb(np.stack([L, C * np.cos(hr), C * np.sin(hr)], -1))
@@ -299,74 +323,82 @@ _hw_v = np.vectorize(half_w)
 
 
 def paint(P, N, part):
-    """Block, painted sRGB colour and unshaded block colour (hex) at points P (n x 3) with normals N on parts `part`.
-    Left and right sides share one UV island, so the paint is mirror-symmetric (|x|)."""
+    """Block, painted sRGB colour and unshaded block colour (hex) at points P (n x 3) with normals N
+    on parts `part`. Left and right sides share one UV island, so the paint is mirror-symmetric (|x|).
+    Blocks: tangerine back and flank and fins (mid), one cream belly from chin to tail base (light),
+    rust back ridge and fin edges (dark), the yellow tail (accent); ink pupils and smile."""
     n = len(P)
     x, y, z = np.abs(P[:, 0]), P[:, 1], P[:, 2]
-    nx, nz = N[:, 0] * np.sign(P[:, 0] + 1e-9), N[:, 2]
+    nz = N[:, 2]
     t = np.clip((y - Y_NOSE) / (Y_BODY_END - Y_NOSE), 0.0, 1.0)
     block = np.zeros(n, dtype=int)                    # index into BLOCKS
     base = np.tile(hex_rgb(MID), (n, 1))
-    s = 0.55 * nz                                     # top-down light: warm above, cool below
-    s += 0.35 * (1.0 - smoothstep(0.0, 0.55, t))      # the head is the lightest third
+    s = 0.1 + 0.5 * nz                                # top-down light: warm above, cool below
+    s += 0.3 * (1.0 - smoothstep(0.0, 0.55, t))       # the head is the lightest third
     fade = smoothstep(0.25, 1.0, t)
 
     def put(mask, name, hexcode=None):
         block[mask] = BLOCKS.index(name)
         base[mask] = hex_rgb(hexcode or BLOCK_HEX[name])
 
-    # Body: tangerine back and flank, cream belly and cheeks.
+    # Body.
     b = part == PARTS.index("body")
     hwv, tv, bv = _hw_v(y), _top_v(y), _bot_v(y)
     zn = np.where(z >= 0.0, z / np.maximum(tv, 1e-4), z / np.maximum(bv, 1e-4))
     ang = np.arctan2(np.clip(x / np.maximum(hwv, 1e-4), 0.0, None), zn)          # 0 back, pi belly
-    edge = 2.40 + 0.18 * smoothstep(0.45, 1.0, t) + 0.035 * np.sin(17.0 * t + 1.0)  # belly line, a painted wave
-    cheek = ((y - (EYE_Y + 0.12)) / 0.36) ** 2 + ((z - (EYE_Z - EYE_R - 0.13)) / 0.17) ** 2 < 1.0
-    gill = (t < HEAD_END) & cheek
-    light = b & ((ang > edge) | gill)
+    edge = 2.22 - 0.3 * (1.0 - smoothstep(0.04, 0.3, t)) + 0.03 * np.sin(15.0 * t + 1.0)   # belly line, chin to tail base
+    light = b & (ang > edge)
     put(light, "light")
-    s = np.where(b & light, s + 0.25 * (1.0 - fade) - 0.15 * smoothstep(1.0, -1.0, nz), s)
-    # broad strokes along the form (smallest mark well over 2% of the texture width)
-    s = np.where(b, s + 0.16 * np.sin(8.0 * ang + 2.2 * np.sin(5.0 * t + 0.6)) * smoothstep(0.1, 0.3, t), s)
-    # rim light along the back and a wet highlight on the brow, painted in
-    s = np.where(b, s + 0.35 * np.exp(-(ang / 0.32) ** 2), s)
+    ridge_w = 0.56 * smoothstep(0.17, 0.38, t) * (1.0 - 0.3 * smoothstep(0.7, 1.0, t)) + 0.02 * np.sin(13.0 * t)
+    ridge = b & (ang < ridge_w)
+    put(ridge, "dark")
+    s = np.where(light, s + 0.25 * (1.0 - fade), s)
+    s = np.where(b, s + 0.12 * np.sin(8.0 * ang + 2.2 * np.sin(5.0 * t + 0.6)), s)     # broad strokes along the form
+    s = np.where(b & ~ridge, s + 0.3 * np.exp(-((ang - ridge_w - 0.12) / 0.2) ** 2), s)  # rim light under the ridge
     brow = np.exp(-((y - (EYE_Y + 0.05)) / 0.16) ** 2 - ((ang - 0.42) / 0.2) ** 2)
-    s = np.where(b, s + 0.8 * brow, s)
-    # the gill line: a soft cool crease where the head ends, inside the mid block
-    s = np.where(b & ~light, s - 0.45 * np.exp(-((t - HEAD_END - 0.02 + 0.05 * (zn + 0.2) ** 2) / 0.018) ** 2), s)
-    # mouth: a small closed smile on the snout, ink like the pupils (mouth interior, dark block)
-    lip = -0.04 + 0.08 * smoothstep(-1.42, MOUTH_END, y) ** 2
-    mouth = b & (y < MOUTH_END) & (np.abs(z - lip) < 0.02 + 0.012 * smoothstep(MOUTH_END, -1.5, y))
+    s = np.where(b, s + 0.8 * brow, s)                                                   # wet highlight on the brow
+    # The smile: a dark arc on the snout about a quarter of the head wide, thick enough for 48 px,
+    # ending in a small dimple.
+    lip_end = 0.055
+    lip = -0.055 + (lip_end + 0.055) * smoothstep(-1.47, MOUTH_END, y) ** 2
+    mouth = b & (y < MOUTH_END) & (np.abs(z - lip) < 0.034 + 0.02 * smoothstep(MOUTH_END, -1.5, y))
+    cy, cz = MOUTH_END - 0.03, lip_end + 0.005
+    ring = np.hypot(y - cy, z - cz)
+    dimple = b & (y > cy) & (np.abs(ring - 0.05) < 0.016)
+    mouth = mouth | dimple
     put(mouth, "dark", PUPIL)
-    s = np.where(mouth, -0.2, s)
+    s = np.where(mouth, 0.0, s)
 
-    # Fins: deep orange back fin and tail root (dark block), cream glassy pectorals, rays, lighter edges.
+    # Back fin: tangerine with a rust edge and rays.
     d = part == PARTS.index("dorsal")
     if d.any():
         y0, y1 = DORSAL
         u = np.clip((y - y0) / (y1 - y0), 0.0, 1.0)
         v = np.clip((z - _top_v(y) + 0.035) / 0.2, 0.0, 1.0)
-        put(d, "dark")
+        put(d, "mid")
+        put(d & (v > 0.72), "dark")
         rays = 0.5 + 0.5 * np.cos(2.0 * math.pi * (5.0 * u - 1.2 * v))
-        s = np.where(d, -0.35 + 0.9 * v - 0.45 * rays * (1.0 - v) + 0.2 * nz, s)
+        s = np.where(d, 0.1 + 0.5 * v - 0.4 * rays * (1.0 - v) + 0.2 * nz, s)
+    # Pectorals: rounded tangerine paddles with a rust rim and rays, lighter toward the tip.
     p = part == PARTS.index("pec")
     if p.any():
-        r = np.hypot(x - PEC[0], np.hypot(y - PEC[1], z - PEC[2])) / 0.3
-        put(p, "light")
-        ray = 0.5 + 0.5 * np.cos(28.0 * np.arctan2(z - PEC[2], y - PEC[1]))
-        s = np.where(p, -0.5 + 1.2 * r - 0.4 * ray * (1.0 - r) + 0.3 * nz, s)
+        r = np.hypot(x - PEC[0], np.hypot(y - PEC[1], z - PEC[2])) / PEC_LEN
+        put(p, "mid")
+        put(p & (r > 0.84), "dark")
+        ray = 0.5 + 0.5 * np.cos(30.0 * np.arctan2(z - PEC[2], y - PEC[1]))
+        s = np.where(p, -0.1 + 0.8 * r - 0.35 * ray * (1.0 - r) + 0.3 * nz, s)
+    # Tail: the Minnow's ID mark, yellow across the whole fin with a thin rust edge.
     tl = part == PARTS.index("tail")
     if tl.any():
         u = np.clip((y - Y_TAIL_ROOT) / (Y_TAIL_TIP - Y_TAIL_ROOT), 0.0, 1.0)
+        v = np.clip(z / tail_spread(u), -1.0, 1.0)
+        urel = u / np.maximum(tail_reach(v), 1e-3)
+        put(tl, "accent")
+        put(tl & ((urel > 0.9) | ((np.abs(v) > 0.88) & (u > 0.25))), "dark")
         fan = np.arctan2(z, y - (Y_TAIL_ROOT - 0.25))
-        split = 0.72 - 0.12 * (np.abs(z) / 0.43) ** 2            # the yellow lobes: a curved boundary
-        yellow = tl & (u > split)
-        put(tl & ~yellow, "dark")
-        put(yellow, "accent")
         ray = 0.5 + 0.5 * np.cos(30.0 * fan)
-        s = np.where(tl, -0.25 + 0.7 * u - 0.45 * ray * (1.0 - 0.5 * u), s)
-        s = np.where(yellow, s + 0.25 * smoothstep(0.85, 1.0, u + 0.2 * np.abs(z)), s)
-        fade = np.where(tl, 0.6, fade)
+        s = np.where(tl, -0.3 + 0.9 * u - 0.5 * ray * (1.0 - 0.5 * u), s)
+        fade = np.where(tl, 0.0, fade)
 
     # Eyes: white, a big ink pupil looking ahead, two painted glints that never move (06 7.7).
     e = part == PARTS.index("eye")
@@ -376,30 +408,28 @@ def paint(P, N, part):
         dvec /= np.maximum(np.linalg.norm(dvec, axis=1, keepdims=True), 1e-6)
         ax = np.array(EYE_AXIS)
         cos_a = dvec @ ax
-        g1 = np.array(Vector(EYE_AXIS) + Vector((0.0, -0.22, 0.42))).copy()
+        g1 = np.array(Vector(EYE_AXIS) + Vector((0.0, -0.2, 0.36)))
         g1 /= np.linalg.norm(g1)
-        g2 = np.array(Vector(EYE_AXIS) + Vector((0.0, 0.24, -0.22))).copy()
+        g2 = np.array(Vector(EYE_AXIS) + Vector((0.0, 0.22, -0.2)))
         g2 /= np.linalg.norm(g2)
         put(e, "light", EYE_WHITE)
         s = np.where(e, -1.0 + 1.6 * smoothstep(-0.2, 0.7, cos_a) + 0.4 * dvec[:, 2], s)
         pupil = e & (cos_a > PUPIL_COS)
         put(pupil, "dark", PUPIL)
         s = np.where(pupil, 0.6 * smoothstep(0.86, 0.98, cos_a) - 0.6, s)
-        glint = e & ((dvec @ g1 > math.cos(math.radians(11.0))) | (dvec @ g2 > math.cos(math.radians(5.5))))
+        # main glint about a quarter of the pupil across, a small second one opposite
+        glint = e & ((dvec @ g1 > math.cos(math.radians(9.5))) | (dvec @ g2 > math.cos(math.radians(4.5))))
         put(glint, "light", EYE_WHITE)
         s = np.where(glint, 1.0, s)
         fade = np.where(e, 0.0, fade)
-    # Lids: tangerine, with a dark lash line on the lower edge for expression.
+    # Lids: tangerine, no lashes and no brows (06 7.7); a soft shade on the lower rim draws the arc.
     lid = part == PARTS.index("lid")
     if lid.any():
         c = np.array([EYE[0], EYE[1], EYE[2]])
         dv = np.stack([x, y, z], -1) - c
         elev = np.degrees(np.arctan2(dv[:, 2], np.maximum(dv[:, 0], 1e-6)))
         put(lid, "mid")
-        lash = lid & (elev < 56.0)
-        put(lash, "dark")
-        s = np.where(lid, 0.3 + 0.5 * nz, s)
-        s = np.where(lash, -0.6, s)
+        s = np.where(lid, 0.35 + 0.4 * nz - 0.6 * (1.0 - smoothstep(48.0, 62.0, elev)), s)
         fade = np.where(lid, 0.0, fade)
 
     # Fin roots, eyeballs and lids buried in the body are never seen: they take the body colour and
@@ -409,10 +439,9 @@ def paint(P, N, part):
     base[ins] = hex_rgb(MID)
     block[ins] = -1
 
-    hexes = base
-    rgb = shade(hexes, s, fade)
-    # Eye whites and ink are not palette blocks to shade with hue: keep them neutral.
-    neutral = e | mouth
+    rgb = shade(base, s, fade)
+    # Eye whites and ink are neutral: no hue shading on them.
+    neutral = (e & (block != BLOCKS.index("mid"))) | mouth
     rgb[neutral] = np.clip(base[neutral] + (np.clip(s[neutral], -1, 1) * 0.06)[:, None], 0.0, 1.0)
     keys = ["#%02X%02X%02X" % tuple(int(round(255 * c)) for c in row) for row in base]
     return block, rgb, keys
@@ -549,9 +578,13 @@ def paint_texture(body, part_of_vertex):
     small_filled = filled.reshape(TEX, 2, TEX, 2).any(axis=(1, 3))
     ao = bake_occlusion(body, TEX)
     if ao is not None:
-        occl = np.clip(ao, 0.0, 1.0)[..., None]
-        tint = hex_rgb("#5A4FA0")
-        small = small * (1.0 - 0.35 * (1.0 - occl) * (1.0 - tint))      # 35% strength, tinted, never black
+        # 35% strength, tinted #5A4FA0 and never black: occlusion takes lightness and leans the
+        # colour toward the violet in a*b*, so crevices go cool, not brown.
+        amt = 0.35 * (1.0 - np.clip(ao, 0.0, 1.0))
+        lab = srgb_to_lab(small)
+        lab[..., 0] -= 14.0 * amt
+        lab[..., 1:] += 0.5 * amt[..., None] * (violet_ab() - lab[..., 1:])
+        small = lab_to_srgb(lab)
     # 06 4.1: a gradient moves the lightness inside a block by at most 12 L* points, occlusion
     # included. Where a texel lies wholly inside one block colour, hold it to that colour's band.
     sub = base_key.reshape(TEX, 2, TEX, 2).transpose(0, 2, 1, 3).reshape(TEX, TEX, 4)
@@ -562,7 +595,7 @@ def paint_texture(body, part_of_vertex):
         if k == PUPIL:
             continue
         lb = float(srgb_to_lab(hex_rgb(k))[0])
-        lo, hi = (88.0, 100.0) if k == EYE_WHITE else (lb - 6.5, lb + 5.5)
+        lo, hi = (88.0, 100.0) if k == EYE_WHITE else (lb - 6.0, lb + 6.0)
         sel = whole & (keys == k)
         lab[sel, 0] = np.clip(lab[sel, 0], lo, hi)
     small = np.where(whole[..., None], lab_to_srgb(lab), small)
@@ -631,6 +664,8 @@ def build():
         "waivers": {
             "palette: dark L*": "06 4.3 Minnow dark #C2491D vs 4.1 dark <= 35; bible inconsistency for the owner",
             "value: dark L*": "follows from the palette waiver above",
+            "value: accent share": "03 Minnow: the yellow tail is the ID mark, so the whole tail fin is accent "
+                                   "(art-director loop 1) vs 06 4.1 accent <= 5%; conflict logged for the owner",
         },
         "meshes": [{"object": body, "role": "body", "primary": True}],
         "actions": [swim],
