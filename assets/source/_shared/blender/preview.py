@@ -203,6 +203,12 @@ def run(spec, report, validation_ok):
     done = subprocess.run([python, os.path.join(common.LIB_DIR, "sheet.py"), job_path], capture_output=True, text=True)
     if done.returncode != 0:
         raise RuntimeError("sheet.py failed (needs Pillow in the system python3):\n" + done.stdout + done.stderr)
+    # Keep the raw view renders beside the sheet (ignored by git) so colours can be checked by number.
+    keep = os.path.join(common.review_dir(name), "renders")
+    os.makedirs(keep, exist_ok=True)
+    for view in ("Side", "ThreeQuarter", "Game", "Top"):
+        if os.path.exists(os.path.join(tmp, view + ".png")):
+            shutil.copy(os.path.join(tmp, view + ".png"), os.path.join(keep, view + ".png"))
     shutil.rmtree(tmp, ignore_errors=True)
     print("[preview] contact sheet", out)
     return {"sheet": out, "blocks": blocks, "rendered_objects": dict(RENDERED)}

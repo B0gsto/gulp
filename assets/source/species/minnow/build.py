@@ -52,7 +52,7 @@ BLOCKS = ("mid", "light", "dark", "accent")
 BLOCK_HEX = {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT}
 
 # Rings and segments per part (1,500 triangle budget, 06 section 6.3).
-RES = dict(segs=20, rings=21, tail=(5, 6), dorsal=(5, 3), pec=(5, 4), eye=(10, 6), lid=(4, 3))
+RES = dict(segs=20, rings=20, tail=(5, 6), dorsal=(5, 3), pec=(6, 5), eye=(10, 5), lid=(4, 3))
 
 
 # ---------------------------------------------------------------- the body profile (side, top and section)
@@ -62,9 +62,9 @@ def _t(y):
 
 
 def _front(t):
-    """A round, blunt head: a quarter ellipse up to the end of the head."""
-    u = min(1.0, t / 0.38)
-    return math.sqrt(max(0.0, 1.0 - (1.0 - u) ** 2))
+    """A round, blunt head that blends into the body with no change of curvature (no crease)."""
+    u = min(1.0, t / 0.40)
+    return math.sqrt(max(0.0, 1.0 - (1.0 - u) ** 3))
 
 
 def _rear(t, waist, start=0.38, power=1.35):
@@ -125,9 +125,9 @@ EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
 PUPIL_COS = math.cos(math.asin(0.60))                       # pupil 60% of the eye diameter
 PEC = (on_flank(-0.52, -0.2, 0.03), -0.52, -0.2)
-PEC_LEN = 0.40                                              # 140% of a real minnow's pectoral
+PEC_LEN = 0.38                                              # about 140% of a real minnow's pectoral (for the paint)
 DORSAL = (-0.42, 0.22)                                      # fore and aft ends of the back fin's root
-MOUTH_END = -1.30                                           # the closed smile runs back to here
+MOUTH_END = -1.27                                           # the closed smile runs back to here
 
 
 def eye_centre(side):
@@ -177,18 +177,30 @@ def dorsal_part(n):
     return meshgen.slab(_dorsal_grid(rows, cols, lo), (1.0, 0.0, 0.0), FIN_THICK)
 
 
-def pec_part(side, n):
-    rows, cols = n
+def _pec_grid(side, rows, cols, length):
     root = Vector((side * PEC[0], PEC[1], PEC[2]))
-    along = Vector((side * 0.24, 0.84, -0.48)).normalized()
+    back = Vector((side * 0.3, 0.86, -0.4)).normalized()
     across = Vector((0.0, 0.3, 1.0))
-    across = (across - across.dot(along) * along).normalized()
-    length = PEC_LEN
-    # a rounded paddle: narrow at the root, widest past the middle, a round tip
-    width = lambda u: 0.05 + 0.085 * math.sqrt(max(0.0, 1.0 - ((u - 0.6) / 0.6) ** 2))
-    grid = [[root + along * (length * u * (1.0 - 0.16 * v * v * u ** 4)) + across * (v * width(u))
-             for v in spread(-1.0, 1.0, cols)] for u in spread(0.0, 1.0, rows)]
-    return meshgen.slab(grid, along.cross(across), 0.035)
+    across = (across - across.dot(back) * back).normalized()
+    grid = []
+    for u in spread(0.0, 1.0, rows):
+        row = []
+        for v in spread(-1.0, 1.0, cols):
+            phi = math.radians(34.0) * v                      # a fan of rays from the root
+            reach = length * (1.0 - 0.12 * abs(v) ** 2.5)    # a round outer edge
+            d = math.cos(phi) * back + math.sin(phi) * across
+            row.append(root + d * (reach * (0.08 + 0.92 * u)))
+        grid.append(row)
+    return grid, back.cross(across)
+
+
+def pec_part(side, n):
+    """A rounded fan (140% of a real minnow's pectoral), sized so its tip touches the 0.7 width."""
+    rows, cols = n
+    grid, _ = _pec_grid(side, rows, cols, 1.0)
+    k = max(abs(p.x) for row in grid for p in row) - PEC[0]
+    grid, normal = _pec_grid(side, rows, cols, (WIDTH / 2.0 - 0.018 - PEC[0]) / k)
+    return meshgen.slab(grid, normal, 0.035)
 
 
 def lid_part(side, n):
@@ -196,7 +208,7 @@ def lid_part(side, n):
     rows, cols = n
     c = eye_centre(side)
     out, up, fwd = Vector((side, 0.0, 0.0)), Vector((0.0, 0.0, 1.0)), Vector((0.0, -1.0, 0.0))
-    r = EYE_R + 0.018
+    r = EYE_R + 0.016
     grid = [[c + r * (math.cos(b) * (math.cos(a) * out + math.sin(a) * up) + math.sin(b) * fwd)
              for b in spread(math.radians(-62), math.radians(62), cols)]
             for a in spread(math.radians(46), math.radians(112), rows)]
@@ -241,8 +253,7 @@ def minnow_meshdata(res, fit):
     add(tail_part(res["tail"]), "tail", uv=tail_uv, weights={"TailFin": 1.0})
     add(dorsal_part(res["dorsal"]), "dorsal", uv=lambda p, q: UV["dorsal"](*q), weights={"Dorsal": 1.0})
     for side, tag in ((1.0, "L"), (-1.0, "R")):
-        add(pec_part(side, res["pec"]), "pec", uv=lambda p, q: UV["pec"](*q), weights={"Pec_" + tag: 1.0},
-            clamp=(WIDTH / 2.0, 0.0, 0.0))
+        add(pec_part(side, res["pec"]), "pec", uv=lambda p, q: UV["pec"](*q), weights={"Pec_" + tag: 1.0})
         axis = Vector((side * EYE_AXIS.x, EYE_AXIS.y, EYE_AXIS.z))
         add(meshgen.sphere(eye_centre(side), EYE_R, axis, (0.0, 0.0, 1.0), *res["eye"]), "eye",
             uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights={"Eye_" + tag: 1.0})
@@ -349,7 +360,7 @@ def paint(P, N, part):
     edge = 2.22 - 0.3 * (1.0 - smoothstep(0.04, 0.3, t)) + 0.03 * np.sin(15.0 * t + 1.0)   # belly line, chin to tail base
     light = b & (ang > edge)
     put(light, "light")
-    ridge_w = 0.56 * smoothstep(0.17, 0.38, t) * (1.0 - 0.3 * smoothstep(0.7, 1.0, t)) + 0.02 * np.sin(13.0 * t)
+    ridge_w = 0.40 * smoothstep(0.17, 0.38, t) * (1.0 - 0.3 * smoothstep(0.7, 1.0, t)) + 0.02 * np.sin(13.0 * t)
     ridge = b & (ang < ridge_w)
     put(ridge, "dark")
     s = np.where(light, s + 0.25 * (1.0 - fade), s)
@@ -359,12 +370,13 @@ def paint(P, N, part):
     s = np.where(b, s + 0.8 * brow, s)                                                   # wet highlight on the brow
     # The smile: a dark arc on the snout about a quarter of the head wide, thick enough for 48 px,
     # ending in a small dimple.
-    lip_end = 0.055
-    lip = -0.055 + (lip_end + 0.055) * smoothstep(-1.47, MOUTH_END, y) ** 2
-    mouth = b & (y < MOUTH_END) & (np.abs(z - lip) < 0.034 + 0.02 * smoothstep(MOUTH_END, -1.5, y))
-    cy, cz = MOUTH_END - 0.03, lip_end + 0.005
+    # The arc spans about 28% of the head height (0.06 below the nose line to 0.1 above it, plus its weight).
+    lip_end = 0.1
+    lip = -0.075 + (lip_end + 0.075) * smoothstep(-1.47, MOUTH_END, y) ** 1.7
+    mouth = b & (y < MOUTH_END) & (np.abs(z - lip) < 0.042 + 0.012 * smoothstep(MOUTH_END, -1.5, y))
+    cy, cz = MOUTH_END - 0.035, lip_end + 0.0
     ring = np.hypot(y - cy, z - cz)
-    dimple = b & (y > cy) & (np.abs(ring - 0.05) < 0.016)
+    dimple = b & (y > cy) & (np.abs(ring - 0.06) < 0.02)
     mouth = mouth | dimple
     put(mouth, "dark", PUPIL)
     s = np.where(mouth, 0.0, s)
@@ -376,7 +388,7 @@ def paint(P, N, part):
         u = np.clip((y - y0) / (y1 - y0), 0.0, 1.0)
         v = np.clip((z - _top_v(y) + 0.035) / 0.2, 0.0, 1.0)
         put(d, "mid")
-        put(d & (v > 0.72), "dark")
+        put(d & (v > 0.6), "dark")
         rays = 0.5 + 0.5 * np.cos(2.0 * math.pi * (5.0 * u - 1.2 * v))
         s = np.where(d, 0.1 + 0.5 * v - 0.4 * rays * (1.0 - v) + 0.2 * nz, s)
     # Pectorals: rounded tangerine paddles with a rust rim and rays, lighter toward the tip.
@@ -384,7 +396,7 @@ def paint(P, N, part):
     if p.any():
         r = np.hypot(x - PEC[0], np.hypot(y - PEC[1], z - PEC[2])) / PEC_LEN
         put(p, "mid")
-        put(p & (r > 0.84), "dark")
+        put(p & (r > 0.76), "dark")
         ray = 0.5 + 0.5 * np.cos(30.0 * np.arctan2(z - PEC[2], y - PEC[1]))
         s = np.where(p, -0.1 + 0.8 * r - 0.35 * ray * (1.0 - r) + 0.3 * nz, s)
     # Tail: the Minnow's ID mark, yellow across the whole fin with a thin rust edge.
@@ -394,7 +406,7 @@ def paint(P, N, part):
         v = np.clip(z / tail_spread(u), -1.0, 1.0)
         urel = u / np.maximum(tail_reach(v), 1e-3)
         put(tl, "accent")
-        put(tl & ((urel > 0.9) | ((np.abs(v) > 0.88) & (u > 0.25))), "dark")
+        put(tl & ((urel > 0.86) | ((np.abs(v) > 0.84) & (u > 0.2))), "dark")
         fan = np.arctan2(z, y - (Y_TAIL_ROOT - 0.25))
         ray = 0.5 + 0.5 * np.cos(30.0 * fan)
         s = np.where(tl, -0.3 + 0.9 * u - 0.5 * ray * (1.0 - 0.5 * u), s)
@@ -422,14 +434,14 @@ def paint(P, N, part):
         put(glint, "light", EYE_WHITE)
         s = np.where(glint, 1.0, s)
         fade = np.where(e, 0.0, fade)
-    # Lids: tangerine, no lashes and no brows (06 7.7); a soft shade on the lower rim draws the arc.
+    # Lids: tangerine, hugging the eyeball; no lashes and no brows (06 7.7).
     lid = part == PARTS.index("lid")
     if lid.any():
         c = np.array([EYE[0], EYE[1], EYE[2]])
         dv = np.stack([x, y, z], -1) - c
         elev = np.degrees(np.arctan2(dv[:, 2], np.maximum(dv[:, 0], 1e-6)))
         put(lid, "mid")
-        s = np.where(lid, 0.35 + 0.4 * nz - 0.6 * (1.0 - smoothstep(48.0, 62.0, elev)), s)
+        s = np.where(lid, 0.3 + 0.4 * nz, s)
         fade = np.where(lid, 0.0, fade)
 
     # Fin roots, eyeballs and lids buried in the body are never seen: they take the body colour and

@@ -30,8 +30,16 @@ TEMPLATE_CAMERAS = ("Side", "ThreeQuarter", "Game", "Top", "Front")
 BACKDROP_ZONES = ("nursery", "reef", "kelp", "dropoff_upper", "dropoff_deep", "cove")
 
 RENDER_SIZE = 384
-KEY_STRENGTH = 2.0      # diffuse 0.64 of albedo when facing the key
-AMBIENT_STRENGTH = 0.35
+# Review lighting, so a painted texture reads true in cells 1 to 4: a near-white key from above,
+# front and the camera's side, a soft fill from below, and a near-neutral ambient carrying a
+# fifth of the Sunlit Reef colour (06 15.3). A flank facing the side camera shows about 0.8
+# of its albedo, the back about 0.95, the belly about 0.8; hue stays the painted hue. The
+# earlier set-up (key from straight above, blue ambient at 0.35) lit a flank at about 0.2 of
+# its albedo plus blue, which turned orange brown, cream teal and yellow olive.
+KEY_STRENGTH = 1.7
+FILL_STRENGTH = 0.8
+AMBIENT_STRENGTH = 0.6
+AMBIENT_REEF_SHARE = 0.2
 
 
 def look_matrix(look, up, location=(0.0, 0.0, 0.0)):
@@ -131,7 +139,8 @@ def build_scene():
     nt.nodes.clear()
     out = nt.nodes.new("ShaderNodeOutputWorld")
     bg = nt.nodes.new("ShaderNodeBackground")
-    bg.inputs["Color"].default_value = (*common.hex_to_linear(common.colour("preview.ambient_reef")), 1.0)
+    reef = common.hex_to_linear(common.colour("preview.ambient_reef"))
+    bg.inputs["Color"].default_value = (*(1.0 - AMBIENT_REEF_SHARE + AMBIENT_REEF_SHARE * c for c in reef), 1.0)
     bg.inputs["Strength"].default_value = AMBIENT_STRENGTH
     nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
     scene.world = world
@@ -143,7 +152,14 @@ def build_scene():
     sun.angle = math.radians(20)
     sun.use_shadow = False
     key = link(bpy.data.objects.new("PREVIEW_Key", sun), "PREVIEW")
-    key.matrix_world = look_matrix((-0.25, 0.45, -1.0), (0.0, 0.0, 1.0), (0.0, -20.0, 40.0))
+    key.matrix_world = look_matrix((-0.5, 0.45, -0.75), (0.0, 0.0, 1.0), (20.0, -20.0, 30.0))
+    fill_light = bpy.data.lights.new("PREVIEW_Fill", 'SUN')
+    fill_light.color = (1.0, 1.0, 1.0)
+    fill_light.energy = FILL_STRENGTH
+    fill_light.angle = math.radians(45)
+    fill_light.use_shadow = False
+    fill = link(bpy.data.objects.new("PREVIEW_Fill", fill_light), "PREVIEW")
+    fill.matrix_world = look_matrix((-0.6, 0.3, 0.75), (0.0, 0.0, 1.0), (20.0, -10.0, -25.0))
 
     # Cameras: orthographic, re-fitted to each asset by preview.py.
     for view in TEMPLATE_CAMERAS:
