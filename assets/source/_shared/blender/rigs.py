@@ -769,6 +769,213 @@ def fish_gulped_pose(frame, k=1.0):
     return pose
 
 
+# ---------------------------------------------------------------- the hatch (07 section 2.1, task S6-A2)
+# A_Fish_Hatch, 45 frames (07: "wriggle out of the egg and stretch; the player has control by
+# 1.5 s"; the beat is 04 3.6 B1: "it wobbles twice, cracks, and the Fry pops out with a stretch").
+# A showpiece (06 7.1: 4 to 6 frames of anticipation, squash and stretch 60 to 150%); the pop
+# follows the tier-up row of 06 7.2 (squash, pop to 130% in 3, 110% then 96% in 4, settle in 8).
+# 06 7.2 sets no turn limit; the egg's rocks stay under 20 degrees so it rolls on its round base.
+#   0-15   curled in the egg on its tail, nose up 65 degrees, squashed to 86%, in the dash's C, fins
+#          hugged. Two wobbles, each a squash (the egg 86% tall, 107% wide), a lean the other way
+#          and a roll on its base: +15 degrees on frame 5, then a bigger -18 on frame 12, each held
+#          a frame and rebounding (HATCH_EGG_ROCK, HATCH_EGG_SQUASH). The first one's landing
+#          cracks it: from frame 8 (HATCH_CRACK) the code shows the two halves closed, the crack
+#          showing, the cap lifting through the second. The body rides the rocks and the squash.
+#   12-15  the squeeze: 82%, tipped back, head tucked, the egg squashed again (anticipation)
+#   15-18  the pop (HATCH_POP: the cap is thrown up and back, tumbles and lands on the bed behind
+#          the egg, eggart.py): up out of the cup nose first to 130%, arched, fins flared, the
+#          mouth open; 110% on frame 20, 96% on 22
+#   18-30  one arc out, the rise and the turn overlapping: the nose keeps coming over from 60
+#          degrees up on the pop to level by frame 29 while the body rises to its top on 23 and
+#          goes out over the low front rim (HATCH_PATH: a smooth curve through the keys, never a
+#          stop). On the way the Fry turns its face to the B1 camera (HATCH_YAW and HATCH_GLANCE,
+#          to its left), the 3/4 key pose held 21-28, and the tail kicks it over the rim (24-31).
+#   31-45  into the swim: a small C to its right and a squash to 94% (31-34, the anticipation),
+#          then one big tail beat (the dash's 130% wave, HATCH_S) that flicks the tail and runs the
+#          body through an S and back, a surge forward past the swim spot at 108% (38) and back,
+#          settling into the rest pose, the idle's start, by 45 (code sway takes over).
+# No blink: 06 7.4 makes blinks the code's (every 2 to 4 s). Root never moves (clips.py "no root
+# motion"). The code places the Fry's model at its swim spot ahead of the egg (HATCH_EGG_AT: the
+# egg's base in the model's frame) and does not move it; the clip carries the body from inside the
+# egg to there by moving and turning the bones on Root together (place_body: a rigid move, no
+# skin bends). The curl, the S and the squash stay inside what the rig skins cleanly
+# (weightcheck.py). Every value is (tune); the staging numbers are chapter 14 section 5.1's.
+HATCH_EGG_AT = (0.0, 3.0, -2.6)    # the egg's base in the Fry's model frame: the model sits 3.0 ahead of it, 2.6 up
+HATCH_CRACK = 8                    # the whole egg gives way to its two halves, closed, crack showing
+HATCH_POP = 15                     # the cap is thrown off
+HATCH_EGG_ROCK = [(0, 0.0), (1, 0.0), (3, -0.12, "in"), (5, 1.0, "snap"), (6, 0.94, "io"), (8, -0.2, "io"), (9, 0.0, "io"),
+                  (10, 0.1, "in"), (12, -1.2, "snap"), (13, -1.12, "io"), (14, -0.3, "io"), (15, 0.0, "io")]
+HATCH_EGG_ROCK_DEG = 15.0          # sideways (about Y; + tips the top to +X, the Fry's left): +15 then -18
+HATCH_EGG_ROLL = 1.42              # radius of the egg's base (eggart.py measures it): the rock rolls on it, no slide
+HATCH_EGG_SQUASH = [(0, 0.0), (1, 0.0), (3, 1.0, "in"), (5, -0.5, "snap"), (7, 0.1, "io"), (8, 0.4, "in"), (10, 1.0, "in"),
+                    (12, -0.5, "snap"), (13, 0.1, "io"), (14, 0.4, "in"), (15, 0.8, "in"), (17, -0.4, "snap"),
+                    (20, 0.1, "io"), (23, 0.0, "io")]
+HATCH_EGG_SQUASH_AMOUNT = 0.14     # at 1 the egg is 86% tall and 107% wide; at -0.5, 107% and 96.5% (06 7.1 showpiece)
+HATCH_SQUASH_RIDE = 0.5            # the body's centre goes down by this share of the squash at its height (its ends fit)
+# Where the body's centre (Root's rest place) is carried, in the egg's frame (studs along and above
+# its base), and how far its nose is turned up (degrees): eased keys in the egg, then one smooth
+# curve from the squeeze to the swim spot (smooth_keys), so the arc never stops on a key.
+HATCH_PATH_Y = [(0, 0.04), (14, 0.04), (15, 0.06, "in")]
+HATCH_PATH_Z = [(0, 1.52), (14, 1.52), (15, 1.46, "in")]
+HATCH_PITCH = [(0, 65.0), (12, 65.0), (15, 70.0, "in")]
+HATCH_ARC = [  # frame, y, z, pitch, from the squeeze on (smooth_keys; the last is the swim spot, level)
+    (15, 0.06, 1.46, 70.0), (16, 0.04, 2.2, 74.0), (17, -0.02, 2.72, 75.0), (18, -0.1, 3.0, 71.0), (20, -0.32, 3.28, 58.0),
+    (22, -0.7, 3.38, 40.0), (24, -1.15, 3.3, 23.0), (26, -1.65, 3.1, 10.0), (29, -2.3, 2.8, -2.0), (32, -2.72, 2.62, -5.0),
+    (35, -2.92, 2.57, -1.0), (38, -3.28, 2.6, 0.0), (41, -2.94, 2.6, 0.0), (45, -HATCH_EGG_AT[1], -HATCH_EGG_AT[2], 0.0)]
+HATCH_YAW = [(0, 0.0), (17, 0.0), (21, 20.0), (28, 24.0, "io"), (33, 0.0, "io")]   # + turns the nose to its left
+HATCH_STRETCH = [(0, 0.86), (1, 0.86), (3, 0.83, "in"), (5, 0.89, "snap"), (7, 0.86, "io"), (8, 0.85), (10, 0.83, "in"),
+                 (12, 0.89, "snap"), (13, 0.86, "io"), (15, 0.82, "in"), (18, 1.30, "snap"), (20, 1.10, "io"),
+                 (22, 0.96, "io"), (26, 1.02, "io"), (30, 1.0, "io"), (34, 0.94, "in"), (37, 1.08, "snap"),
+                 (40, 0.98, "io"), (43, 1.0, "io")]
+HATCH_CURL = [(0, 1.0), (2, 1.0), (3, 0.8, "snap"), (5, 1.0, "io"), (9, 1.0), (10, 0.8, "snap"), (12, 1.0, "io"),
+              (18, -0.3, "snap"), (21, 0.1, "io"), (24, 0.0, "io"), (31, 0.0), (34, -0.45, "in"), (37, 0.0, "snap")]
+HATCH_C = DASH_C               # the dash's even C (degrees at curl 1; + curls the head left)
+HATCH_ARCH = [(0, 0.3), (12, 0.3), (15, 1.0, "in"), (18, -1.0, "snap"), (21, -0.6, "io"), (25, 0.0, "io")]
+HATCH_ARCH_DEG = (7.0, 11.0)    # head down in the tuck, head up on the pop (the tail answers a frame late, 06 7.1 drag)
+HATCH_FINS = [(0, -1.0), (15, -1.0), (18, 1.0, "snap"), (21, 0.7, "io"), (26, 0.3, "io"), (30, 0.6, "out"),
+              (34, -0.6, "in"), (37, 0.5, "snap"), (42, 0.0, "io")]
+HATCH_JAW = [(0, 0.0), (15, 0.0), (17, 26.0, "snap"), (20, 18.0, "io"), (24, 0.0, "io")]
+HATCH_WRIGGLE = [(0, 0.0), (2, 0.0), (3, 1.0, "snap"), (4, -0.8, "io"), (5, 0.0, "io"), (9, 0.0), (10, 1.0, "snap"),
+                 (11, -0.8, "io"), (12, 0.0, "io")]
+HATCH_GLANCE = [(0, 0.0), (19, 0.0), (22, 1.0), (27, 1.15, "io"), (31, 0.0, "io")]   # a moving hold, not a freeze
+HATCH_GLANCE_DEG = (("Spine1", 16.0, 0.50), ("Spine2", 5.0, 0.55))   # the head turns to its left (+), about these pivots
+HATCH_KICK = [(0, 0.0), (23, 0.0), (25, -1.0, "in"), (27, 1.0, "snap"), (29, -0.4, "io"), (31, 0.0, "io")]
+HATCH_KICK_BONES = (("Spine3", 6.0, 0.79, 0.0), ("Spine4", 15.0, 0.94, 0.6), ("TailFin", 28.0, 1.03, 1.2))
+# The flick into the swim: one big beat of a travelling wave out of the C (each bone back from the
+# head a little later, 06 7.1 drag), so the body runs through an S, head one way, middle the other,
+# tail tip back, and through the reverse S, fading out by 45. HATCH_S: the wave's size; at 1 the
+# bones turn these degrees about Z (bone, degrees, lag in radians of the beat). The back half
+# carries more of it than in the swim loop (06 7.3) and the tail fin less, so the S reads in the
+# body and the joints skin cleanly (weightcheck.py).
+HATCH_S = [(0, 0.0), (34, 0.0), (36, 1.0, "out"), (40, 0.85, "io"), (45, 0.0, "io")]
+HATCH_S_BEAT = 9.0             # frames per beat (the swim loop's 16 at cruise, 8 at dash)
+HATCH_S_START = 34.0           # the beat's phase 0: out of the C
+HATCH_S_BONES = (("Spine1", -5.0, -0.6), ("Spine2", 2.0, -0.6), ("Spine3", 13.0, 0.9), ("Spine4", 14.0, 1.8),
+                 ("TailFin", 15.0, 2.7))
+BODY_CENTRE_T = -CANON_NOSE / CANON_LENGTH     # the origin (Root) as a body fraction
+
+
+def smooth_keys(frame, keys, i):
+    """Value i of the keys (frame, v0, v1, ...) at `frame` on one smooth curve through them (cubic
+    Hermite, the slope at each inner key from its neighbours, flat at both ends): a path that eases
+    out of its first key and into its last and never stops between."""
+    if frame <= keys[0][0]:
+        return keys[0][i]
+    if frame >= keys[-1][0]:
+        return keys[-1][i]
+    n = len(keys)
+
+    def slope(j):
+        if j == 0 or j == n - 1:
+            return 0.0
+        return (keys[j + 1][i] - keys[j - 1][i]) / float(keys[j + 1][0] - keys[j - 1][0])
+    for j in range(n - 1):
+        f0, f1 = keys[j][0], keys[j + 1][0]
+        if frame <= f1:
+            h = float(f1 - f0)
+            u = (frame - f0) / h
+            p0, p1, m0, m1 = keys[j][i], keys[j + 1][i], slope(j) * h, slope(j + 1) * h
+            return ((2 * u ** 3 - 3 * u ** 2 + 1) * p0 + (u ** 3 - 2 * u ** 2 + u) * m0
+                    + (-2 * u ** 3 + 3 * u ** 2) * p1 + (u ** 3 - u ** 2) * m1)
+    return keys[-1][i]
+
+
+def place_body(pose, turn, move, k=1.0):
+    """Moves the whole posed body rigidly, after everything else in `pose`: every point p goes to
+    turn p + move (`turn` a 3x3 rotation, `move` a vector, both in the model's frame with Root at
+    the origin). The pose of each bone on Root (Spine2 and Spine3, which carry the chains, and the
+    Girth bones, whose heads sit on the skin) is composed with the move, so the curl and squash keep
+    their shape in the body's own frame. Rest matrices are pure translations
+    (meshgen.build_armature), so a bone's pose maps p to head + loc + R (p - head); moved it becomes
+    loc' = turn (head + loc) + move - head, R' = turn R."""
+    from mathutils import Euler, Vector
+    top, bot, half = (r * k for r in GIRTH_REF)
+    yg = k * (CANON_NOSE + GIRTH_T * CANON_LENGTH)
+    heads = {"Spine2": (0.0, k * (CANON_NOSE + PIVOTS["Spine2"] * CANON_LENGTH), 0.0),
+             "Spine3": (0.0, k * (CANON_NOSE + PIVOTS["Spine3"] * CANON_LENGTH), 0.0),
+             "Girth_Top": (0.0, yg, top), "Girth_Bot": (0.0, yg, -bot), "Girth_L": (half, yg, 0.0), "Girth_R": (-half, yg, 0.0)}
+    for bone, head in heads.items():
+        entry = pose.get(bone, {})
+        h = Vector(head)
+        loc = turn @ (h + Vector(entry.get("loc", (0.0, 0.0, 0.0)))) + Vector(move) - h
+        rot = (turn @ Euler([math.radians(a) for a in entry.get("rot", (0.0, 0.0, 0.0))], 'XYZ').to_matrix()).to_euler('XYZ')
+        pose[bone] = {"loc": tuple(loc), "rot": tuple(math.degrees(a) for a in rot)}
+    return pose
+
+
+def hatch_egg_rock(frame):
+    """The egg's rock at `frame` as a 4x4 matrix in the egg's frame (origin the centre of its base):
+    a turn about Y that rolls on the round base (radius HATCH_EGG_ROLL), so the contact point moves
+    with the turn and nothing slides."""
+    from mathutils import Matrix
+    a = math.radians(HATCH_EGG_ROCK_DEG * ease_keys(frame, HATCH_EGG_ROCK))
+    r = HATCH_EGG_ROLL
+    return (Matrix.Translation((r * a, 0.0, r)) @ Matrix.Rotation(a, 4, 'Y') @ Matrix.Translation((0.0, 0.0, -r)))
+
+
+def hatch_egg_squash(frame):
+    """The egg's squash at `frame` as a 4x4 scale about its base (height 1 - a, width 1 + a / 2)."""
+    from mathutils import Matrix
+    a = HATCH_EGG_SQUASH_AMOUNT * ease_keys(frame, HATCH_EGG_SQUASH)
+    return Matrix.Diagonal((1.0 + 0.5 * a, 1.0 + 0.5 * a, 1.0 - a, 1.0))
+
+
+def hatch_body_matrix(frame):
+    """Where the hatch carries the body at `frame`: a 4x4 matrix in the Fry's model frame (Root at
+    the origin) taking the body at its rest place to its place in, over or out of the egg. Inside
+    the egg the body's centre rides the egg's rock and part of its squash (moved, never scaled). The places
+    are studs, for the tier-1 Fry the egg is sized for (eggart.py)."""
+    from mathutils import Matrix, Vector
+    egg = Vector(HATCH_EGG_AT)
+    if frame <= HATCH_POP:
+        y, z, pitch = ease_keys(frame, HATCH_PATH_Y), ease_keys(frame, HATCH_PATH_Z), ease_keys(frame, HATCH_PITCH)
+    else:
+        y, z, pitch = (smooth_keys(frame, HATCH_ARC, i) for i in (1, 2, 3))
+    a = HATCH_EGG_SQUASH_AMOUNT * ease_keys(frame, HATCH_EGG_SQUASH) if frame <= HATCH_POP else 0.0
+    centre = Vector((0.0, y, z * (1.0 - HATCH_SQUASH_RIDE * a)))
+    body = (Matrix.Translation(centre) @ Matrix.Rotation(math.radians(ease_keys(frame, HATCH_YAW)), 4, 'Z')
+            @ Matrix.Rotation(math.radians(-pitch), 4, 'X'))
+    rock = hatch_egg_rock(frame) if frame <= HATCH_POP else Matrix.Identity(4)
+    return Matrix.Translation(egg) @ rock @ body
+
+
+def fish_hatch_pose(frame, k=1.0):
+    """A_Fish_Hatch: curled in the egg through two wobbles that rock and squash it, a squeeze, the
+    pop to 130% up out of the cup nose first, 110% and 96%, one arc out over the rim that turns the
+    face to the camera and levels, a tail kick, then a C, a hard tail flick into an S and a settle
+    into the rest pose (06 7.1, 7.2; 04 B1)."""
+    stretch = ease_keys(frame, HATCH_STRETCH)
+    pose = fish_squash_pose(stretch, k) if stretch < 1.0 else fish_stretch_pose(stretch, k)
+    # The C: every bone curls together into it; out of it, each bone back from the middle follows a
+    # little later, so the uncurl whips down the body to the tail fin.
+    for bone, angle, pivot, lag in HATCH_C:
+        rotate_about(pose, bone, (0.0, 0.0, angle * ease_keys(max(frame - lag, min(frame, float(HATCH_POP))), HATCH_CURL)), pivot, k)
+    arch = lambda c: HATCH_ARCH_DEG[0] * c if c > 0.0 else HATCH_ARCH_DEG[1] * c
+    rotate_about(pose, "Spine1", (arch(ease_keys(frame, HATCH_ARCH)), 0.0, 0.0), 0.50, k)
+    rotate_about(pose, "Spine4", (-0.7 * arch(ease_keys(frame - 1.0, HATCH_ARCH)), 0.0, 0.0), 0.79, k)
+    glance = ease_keys(frame, HATCH_GLANCE)
+    for bone, angle, pivot in HATCH_GLANCE_DEG:
+        rotate_about(pose, bone, (0.0, 0.0, angle * glance), pivot, k)
+    for bone, angle, pivot, lag in HATCH_KICK_BONES:
+        rotate_about(pose, bone, (0.0, 0.0, angle * ease_keys(frame - lag, HATCH_KICK)), pivot, k)
+    wave = ease_keys(frame, HATCH_S)
+    if wave > 0.0:
+        a = 2.0 * math.pi * (frame - HATCH_S_START) / HATCH_S_BEAT
+        for bone, size, lag in HATCH_S_BONES:
+            _put(pose, bone, rot=(0.0, 0.0, wave * size * math.sin(a - lag)))
+    _put(pose, "TailFin", rot=(0.0, 0.0, 16.0 * ease_keys(frame - 1.0, HATCH_WRIGGLE)))
+    fins = ease_keys(frame - 1.0, HATCH_FINS)
+    hug, spread = max(-fins, 0.0), max(fins, 0.0)
+    flutter = 10.0 * math.sin(math.pi * (frame - 21.0) / 2.0) if 21.0 <= frame <= 29.0 else 0.0
+    _put(pose, "Pec_L", rot=(-18.0 * spread, 40.0 * spread + flutter, 26.0 * hug))
+    _put(pose, "Pec_R", rot=(-18.0 * spread, -40.0 * spread - flutter, -26.0 * hug))
+    _put(pose, "Dorsal", rot=(18.0 * spread - 16.0 * hug, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(ease_keys(frame, HATCH_JAW), 0.0, 0.0))
+    m = hatch_body_matrix(frame)
+    place_body(pose, m.to_3x3(), m.to_translation(), k)
+    return pose
+
+
 # name -> (pose function, key frames for the review strip as (frame, label)). Loop or not, and
 # the length, come from chapter 07 (clips.py).
 FISH_CLIPS = {
@@ -788,4 +995,7 @@ FISH_CLIPS = {
                                          (10, "96%"), (13, "wag"), (18, "settled")]),
     "A_Fish_Gulped": (fish_gulped_pose, [(0, "start"), (2, "pulled"), (4, "stretch 140%"), (6, "shrinking"),
                                          (8, "drawn in")]),
+    "A_Fish_Hatch": (fish_hatch_pose, [(0, "curled"), (5, "rock +15"), (8, "cracked"), (12, "rock -18"), (15, "squeeze 82%"),
+                                       (18, "pop 130%"), (20, "110%"), (24, "3/4 to camera"), (27, "tail kick"),
+                                       (34, "C"), (37, "flick, S"), (45, "idle")]),
 }

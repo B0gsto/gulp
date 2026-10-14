@@ -88,32 +88,27 @@ describe("Net/Remotes", function()
 		end
 	)
 
-	it(
-		"encodings follow 09 §5.3: eight buffers, ClientReady empty, every other remote plain",
-		function()
-			local buffers = {
-				Bite = true,
-				Ability = true,
-				Telemetry = true,
-				BiteResult = true,
-				PreyEvent = true,
-				PredatorEvent = true,
-				PreyState = true,
-				PredatorState = true,
-			}
-			for _, def in Remotes.list do
-				local expected = "scalars"
-				if def.name == "ClientReady" then
-					expected = "none"
-				elseif buffers[def.name] then
-					expected = "buffer"
-				end
-				expect(def.encoding).toBe(expected)
+	it("encodings follow 09 §5.3: eight buffers, every other remote plain", function()
+		local buffers = {
+			Bite = true,
+			Ability = true,
+			Telemetry = true,
+			BiteResult = true,
+			PreyEvent = true,
+			PredatorEvent = true,
+			PreyState = true,
+			PredatorState = true,
+		}
+		for _, def in Remotes.list do
+			local expected = "scalars"
+			if buffers[def.name] then
+				expected = "buffer"
 			end
-			expect(Remotes.byName.SettingsSet.maxString).toBe(32)
-			expect(Remotes.byName.ShopAction.maxString).toBe(32)
+			expect(def.encoding).toBe(expected)
 		end
-	)
+		expect(Remotes.byName.SettingsSet.maxString).toBe(32)
+		expect(Remotes.byName.ShopAction.maxString).toBe(32)
+	end)
 
 	it("size limits are consistent and unreliable payloads fit in one 900-byte packet", function()
 		for _, def in Remotes.list do

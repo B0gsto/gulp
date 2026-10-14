@@ -416,7 +416,7 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 
 	for name, layout in SCREENS do
 		local content = layout.contentSize
-		local slot = HudLayout.momentSlot(content)
+		local slot = HudLayout.momentCardSlot(content)
 		local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
 		local box = { x = 0, y = 0, width = content.width, height = content.height }
 		local chip = HudLayout.bankChip(content)

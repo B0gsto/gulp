@@ -10,6 +10,15 @@
 --   HudHarness:Invoke("tierup", "2".."7")   S07 for a rise to that tier (7: rays, 2.2 s)
 --   HudHarness:Invoke("trait", traitId)     S08 for that trait in slot 1 ("crystal": Epic, rays)
 --   HudHarness:Invoke("hold", "on" | "off") holds the moment card on screen for screenshots
+--   HudHarness:Invoke("device", "tablet")   a simulated 1024 x 768 tablet (task S6-C4)
+--   HudHarness:Invoke("mode", "Touch" | "Keys" | "Pad")   the guide's input pictures
+--   HudHarness:Invoke("guide", "point" | "tap" | "hold" | "ghost" | "off")   the guide kit S33
+--     (docs/08 section 7): "point" G1 arrow, G4 trail, G5 ring, G7 bubble, G8 picture, the home
+--     ring and HOME, the danger edge; "tap" G3 tap, G6 cut-out, G7, the dash pulse and DASH!;
+--     "hold" G3 hold, G7 in the moment slot, G2 curved arrow, G9 tick; "ghost" the ghost thumb
+--     and the creature's bubble. All nine parts and chapter 04's four prompts over four poses.
+--   HudHarness:Invoke("guidecheck") every shown guide part's rect in rpx, and whether it
+--     enters the keep-clear box or the HUD (08 §1.4, §7)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -18,7 +27,9 @@ local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 
 local CoveHud = require("../UI/Hud/CoveHud")
 local CreatureRig = require("../Render/CreatureRig")
+local Guide = require("../UI/Kit/Guide")
 local Hud = require("../UI/Hud/Hud")
+local InputController = require("../Controllers/InputController")
 local Outlines = require("../Render/Outlines")
 local Screen = require("../UI/Kit/Screen")
 local UIController = require("../Controllers/UIController")
@@ -41,6 +52,21 @@ local DEVICES: { [string]: Screen.Simulated } = {
 		screen = { width = 844, height = 390 },
 		safeArea = { x = 47, y = 0, width = 750, height = 390 },
 		topbar = { x = 120, y = 0, width = 724, height = 58 },
+	},
+	-- docs/15 section 3.2: a 1024 x 768 tablet, touch only, no insets.
+	tablet = {
+		reading = {
+			displaySize = "Medium",
+			viewportWidth = 1024,
+			viewportHeight = 768,
+			touch = true,
+			keyboard = false,
+			mouse = false,
+			gamepad = false,
+		},
+		screen = { width = 1024, height = 768 },
+		safeArea = { x = 0, y = 0, width = 1024, height = 768 },
+		topbar = { x = 120, y = 0, width = 904, height = 58 },
 	},
 	desktop = {
 		reading = {
@@ -368,6 +394,170 @@ end
 -- "hold": the next moment cards stay up for an hour, for screenshots.
 local holding = false
 
+-- The guide kit (task S6-C4): world points in front of the camera, on the simulated screen.
+local function ahead(sx: number, sy: number, depth: number): Vector3?
+	local camera = workspace.CurrentCamera
+	if camera == nil then
+		return nil
+	end
+	local layout = Screen.layout()
+	local w, h = layout.fullSize.width * layout.scale, layout.fullSize.height * layout.scale
+	local ray = camera:ViewportPointToRay(w * sx, h * sy)
+	return ray.Origin + ray.Direction * depth
+end
+
+local DASH_TEXT = { Touch = "guide.dash", Keys = "guide.dash_press", Pad = "guide.dash_press" }
+local SWIM_TEXT = { Touch = "guide.drag", Keys = "guide.mouse", Pad = "guide.stick" }
+
+local function guide(name: string?): string
+	if not Guide.isMounted() then
+		Guide.mount({
+			inputMode = InputController.mode,
+			modeChanged = InputController.onModeChanged,
+		})
+	end
+	Guide.reset()
+	local camera = workspace.CurrentCamera
+	-- Home up and to the left, so its marker rides the top of the ellipse, well off the danger
+	-- edge on the left (which would leave a gap round it anyway, 04 §3.2).
+	local home = if camera then (camera.CFrame * CFrame.new(-200, 350, -100)).Position else nil
+	UIController.setPreview({ dashLeft = 0, home = if name == "point" then home else nil })
+	if name == "point" then
+		Guide.point(Guide.hud("HUD.Dash"), {
+			pointer = "arrow",
+			textKey = DASH_TEXT,
+			hint = "dash",
+			ring = true,
+		})
+		-- A trail from just in front of the creature to a point up and to the left.
+		local from = ahead(0.5, 0.58, 14)
+		local to = ahead(0.22, 0.36, 90)
+		if from and to then
+			Guide.setCreature(function()
+				return from
+			end)
+			Guide.trail(to)
+		end
+		Guide.home(true)
+		Guide.danger(ahead(0.02, 0.5, 40))
+	elseif name == "tap" then
+		Guide.point(
+			Guide.hud("HUD.MassBar"),
+			{ pointer = "tap", textKey = "guide.grow", cutout = true }
+		)
+		Guide.dashPulse(true)
+	elseif name == "hold" then
+		Guide.point(Guide.hud("HUD.Dash"), {
+			pointer = "hold",
+			textKey = DASH_TEXT,
+			hint = "dash",
+			slot = true,
+			hold = 1.2,
+		})
+		Guide.tick(true)
+	elseif name == "ghost" then
+		local target = ahead(0.66, 0.42, 40)
+		if target then
+			Guide.ghost(Guide.world(target))
+		end
+		Guide.bubble(SWIM_TEXT, Guide.CREATURE, { hint = "swim" })
+	else
+		Guide.setCreature(nil)
+		UIController.setPreview(nil)
+		return "guide off"
+	end
+	return `guide {name} {Guide.inputMode()} on {Screen.layout().screenClass}`
+end
+
+-- Every shown guide part's rect in rpx of the content box, and any overlap with the keep-clear
+-- box or the HUD (the target's own element excepted).
+local function guideCheck(): string
+	local layout = Screen.layout()
+	local scale = layout.scale
+	local gui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local layer = gui:FindFirstChild("GulpGuide")
+	local canvas = layer and layer:FindFirstChild("Guide", true)
+	if canvas == nil or not canvas:IsA("GuiObject") then
+		return "guide not mounted"
+	end
+	local origin = canvas.AbsolutePosition
+	local rects = HudLayout.compute(layout.screenClass, layout.contentSize, layout.keepOut)
+	local out: { string } = { `scale {string.format("%.3f", scale)}` }
+	local names = {
+		"UI_Guide_Arrow",
+		"UI_Guide_ArrowCurved",
+		"Hand",
+		"UI_Guide_Ring",
+		"Guide.HomeRing",
+		"Guide.DashPulse",
+		"Hole",
+		"UI_Guide_Bubble",
+		"UI_Common_Check",
+		"Thumbprint",
+		"GhostKeys",
+		"Chip",
+		"UI_HUD_DangerEdge",
+		"CueArrow",
+		"HoldRing",
+		"Rim",
+	}
+	for _, d in canvas:GetDescendants() do
+		if d:IsA("GuiObject") and table.find(names, d.Name) then
+			local o = d :: GuiObject
+			local node: Instance? = o
+			local visible = true
+			while node and node ~= canvas do
+				if node:IsA("GuiObject") and not (node :: GuiObject).Visible then
+					visible = false
+				end
+				node = node.Parent
+			end
+			if visible then
+				local p = (o.AbsolutePosition - origin) / scale
+				local sz = o.AbsoluteSize / scale
+				local r = { x = p.X, y = p.Y, width = sz.X, height = sz.Y }
+				local flags = {}
+				if HudLayout.overlaps(r, rects.keepClear) then
+					table.insert(flags, "KEEPCLEAR")
+				end
+				if HudLayout.overlaps(r, rects.massBar) then
+					table.insert(flags, "massbar")
+				end
+				if HudLayout.overlaps(r, rects.dashHit) then
+					table.insert(flags, "dash")
+				end
+				local label = if o.Name == "Chip" then (o.Parent :: Instance).Name else o.Name
+				table.insert(
+					out,
+					`{label} {math.round(r.x)},{math.round(r.y)} {math.round(r.width)}x{math.round(
+						r.height
+					)}{if #flags > 0 then " " .. table.concat(flags, ",") else ""}`
+				)
+			end
+		end
+		if d:IsA("TextLabel") and d.Text ~= "" then
+			local node: Instance? = d
+			local visible = true
+			while node and node ~= canvas do
+				if node:IsA("GuiObject") and not (node :: GuiObject).Visible then
+					visible = false
+				end
+				node = node.Parent
+			end
+			if visible and d.TextTransparency < 0.9 then
+				table.insert(
+					out,
+					`text "{d.Text}" {d:GetAttribute("TextRpx") or "?"}->{d.TextSize} drawn {string.format(
+						"%.1f",
+						d.TextBounds.Y / scale
+					)}`
+				)
+			end
+		end
+	end
+	return table.concat(out, "; ")
+end
+
 function HudHarness.bind(parent: Instance)
 	if not RunService:IsStudio() then
 		return
@@ -447,6 +637,16 @@ function HudHarness.bind(parent: Instance)
 		elseif command == "hold" then
 			holding = arg ~= "off"
 			return `hold {holding}`
+		elseif command == "mode" and (arg == "Touch" or arg == "Keys" or arg == "Pad") then
+			if not Guide.isMounted() then
+				Guide.mount()
+			end
+			Guide.setInputMode(arg)
+			return `mode {arg}`
+		elseif command == "guide" then
+			return guide(arg)
+		elseif command == "guidecheck" then
+			return guideCheck()
 		elseif command == "close" and (arg == "S11" or arg == "S12") then
 			UIController.close(arg)
 			return "closed"
@@ -456,6 +656,9 @@ function HudHarness.bind(parent: Instance)
 		holding = false
 		outlineDemo(false)
 		cove(false)
+		if Guide.isMounted() then
+			guide("off")
+		end
 		return "reset"
 	end
 	f.Parent = parent

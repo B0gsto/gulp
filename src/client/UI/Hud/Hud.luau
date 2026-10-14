@@ -120,7 +120,7 @@ local function relayout(layout: Screen.Layout)
 	b.massBar.layout(r.massBar.x, r.massBar.y, r.massBar.width)
 	local tile = HudLayout.minTarget(layout.screenClass) == HudLayout.MOUSE_MIN
 	b.dash.layout(r.dash.x, r.dash.y, r.dash.width, r.dash.height, r.dashHit.width, tile)
-	local m = HudLayout.momentSlot(layout.contentSize)
+	local m = HudLayout.momentCardSlot(layout.contentSize)
 	b.moments.layout(m.x, m.y, m.width, m.height)
 	traitRects = HudLayout.traits(layout.screenClass, layout.contentSize)
 	b.traits.layout(traitRects :: HudLayout.TraitRects) -- safe: assigned on the line above
