@@ -29,6 +29,7 @@ local KINDS: { VolumeKind } = {
 	"PredatorNode",
 	"RevivePoint",
 	"HatchBed", -- a Ball: only its centre and look vector are kept (RunLoopService.join)
+	"NurseryPath", -- `PointId`: a data:NurseryPath row (03 §6.2; Logic/NurseryRoute)
 }
 VolumeMath.KINDS = table.freeze(KINDS)
 
@@ -190,24 +191,24 @@ function VolumeMath.validate(
 		then
 			return false, `{kind} with CoveIndex {tostring(index)}, not 1 to {VolumeMath.COVES}`
 		end
-	elseif kind == "RevivePoint" then
+	elseif kind == "RevivePoint" or kind == "NurseryPath" then
 		if type(attrs.PointId) ~= "string" then
-			return false, "RevivePoint without a PointId"
+			return false, `{kind} without a PointId`
 		end
 	end
 	return true, nil
 end
 
---- Orders zone volumes for `zoneAt`: the smallest first, so a zone nested inside another (the
---- Nursery inside open water, a landmark inside its zone) wins where they overlap. Ties go to
---- the lower ZoneId, then the lower centre, so the order never depends on authoring order.
-function VolumeMath.sortZones(zones: { Volume })
-	table.sort(zones, function(a: Volume, b: Volume): boolean
+--- Orders volumes the smallest first, so one nested inside another wins where they overlap
+--- (`firstContaining`). Ties go to the lower `idAttribute` value, then the lower centre, so the
+--- order never depends on authoring order.
+function VolumeMath.sortBySize(list: { Volume }, idAttribute: string)
+	table.sort(list, function(a: Volume, b: Volume): boolean
 		local ma, mb = VolumeMath.measure(a), VolumeMath.measure(b)
 		if ma ~= mb then
 			return ma < mb
 		end
-		local ia, ib = tostring(a.attrs.ZoneId), tostring(b.attrs.ZoneId)
+		local ia, ib = tostring(a.attrs[idAttribute]), tostring(b.attrs[idAttribute])
 		if ia ~= ib then
 			return ia < ib
 		end
@@ -220,6 +221,12 @@ function VolumeMath.sortZones(zones: { Volume })
 		end
 		return az < bz
 	end)
+end
+
+--- Orders zone volumes for `zoneAt` (`sortBySize` by ZoneId): a zone nested inside another (the
+--- Nursery inside open water, a landmark inside its zone) wins where they overlap.
+function VolumeMath.sortZones(zones: { Volume })
+	VolumeMath.sortBySize(zones, "ZoneId")
 end
 
 --- The zone at a point, from zone volumes ordered by `sortZones`: the first that contains the

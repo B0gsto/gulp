@@ -389,4 +389,122 @@ describe("Sim/PreySim (09 §8.1 to 8.4)", function()
 		expect(same).toBe(true)
 		expect(differs).toBe(true)
 	end)
+
+	it(
+		"owns a group: its own home at its spawn point, owner cleared when the slot is reused",
+		function()
+			local sim = newSim()
+			-- Far outside home 0 (the Nursery path is in no spawn volume).
+			local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+			PreySim.own(sim, g, 3, 3, 3)
+			expect(PreySim.ownerOf(sim, g)).toBe(3)
+			local home = buffer.readu16(sim.buffers.home, g * 2)
+			expect(home).toBe(PreySim.OWNED_HOME + g)
+			expect(buffer.readf32(sim.homes, home * 20)).toBe(400)
+			expect(buffer.readf32(sim.homes, home * 20 + 12)).toBe(3)
+			PreySim.remove(sim, g)
+			expect(PreySim.ownerOf(sim, g)).toBe(0)
+			local again = PreySim.spawn(sim, KRILL, 0, 0, -50, 0, 6, nil, g) :: number
+			expect(again).toBe(g)
+			expect(PreySim.ownerOf(sim, again)).toBe(0)
+		end
+	)
+
+	it(
+		"lets an owned group flee only from its owner's creature, and keeps it on its leash",
+		function()
+			local sim = newSim()
+			local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+			PreySim.own(sim, g, 3, 3, 3)
+			local shared = PreySim.spawn(sim, KRILL, 0, 420, -20, 300, 6) :: number
+			-- Slot 5 sits on both groups: only the shared one flees.
+			local now = run(sim, 0, 3, function()
+				PreySim.setThreat(sim, 0, 405, -20, 300, 3, PLAYER, 5)
+				PreySim.setThreat(sim, 1, 415, -20, 300, 3, PLAYER, 5)
+				PreySim.setThreatCount(sim, 2)
+			end)
+			expect(bit32.btest(flags(sim, g), PreySim.FLAG_FLEEING)).toBe(false)
+			expect(bit32.btest(flags(sim, shared), PreySim.FLAG_FLEEING)).toBe(true)
+			-- Its owner, slot 3: it flees, then wanders, never past 1.5 × its 3-stud home.
+			local fled = false
+			local worst = 0
+			run(sim, now, 200, function(t)
+				PreySim.setThreat(sim, 0, 400 + 4 * math.sin(t), -20, 302, 3, PLAYER, 3)
+				PreySim.setThreatCount(sim, 1)
+				fled = fled or bit32.btest(flags(sim, g), PreySim.FLAG_FLEEING)
+				local x, y, z = pos(sim, g)
+				worst = math.max(worst, math.sqrt((x - 400) ^ 2 + (z - 300) ^ 2), math.abs(y + 20))
+			end)
+			expect(fled).toBe(true)
+			expect(worst > 0.5).toBe(true)
+			expect(worst <= 4.5 + 1e-3).toBe(true)
+		end
+	)
+
+	it(
+		"never lets a calm owned group flee, scatter or be lured, its owner's creature included",
+		function()
+			local sim = newSim()
+			local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+			PreySim.own(sim, g, 3, 3, 3, true)
+			local fled, worstScatter = false, 0
+			run(sim, 0, 60, function(t)
+				PreySim.setThreat(sim, 0, 401 + math.sin(t), -20, 300, 3, PLAYER, 3)
+				PreySim.setThreat(sim, 1, 399, -20, 301, 3, PLAYER + PreySim.THREAT_MOONLIT, 3)
+				PreySim.setThreatCount(sim, 2)
+				local f = flags(sim, g)
+				fled = fled or bit32.btest(f, PreySim.FLAG_FLEEING + PreySim.FLAG_LURED)
+				worstScatter = math.max(worstScatter, scatter(sim, g))
+			end)
+			expect(fled).toBe(false)
+			expect(worstScatter).toBe(0)
+			-- The flag goes with the slot: a group spawned there next is not calm.
+			PreySim.remove(sim, g)
+			local again = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6, nil, g) :: number
+			PreySim.own(sim, again, 3, 3, 3)
+			run(sim, 0, 3, function()
+				PreySim.setThreat(sim, 0, 401, -20, 300, 3, PLAYER, 3)
+				PreySim.setThreatCount(sim, 1)
+			end)
+			expect(bit32.btest(flags(sim, again), PreySim.FLAG_FLEEING)).toBe(true)
+		end
+	)
+
+	it("leaves owned groups out of stunNear (Spark), whoever's they are", function()
+		local sim = newSim()
+		local shared = PreySim.spawn(sim, KRILL, 0, 5, -50, 0, 16) :: number
+		local owned = PreySim.spawn(sim, KRILL, 0, -5, -50, 0, 6) :: number
+		PreySim.own(sim, owned, 2, 3, 3)
+		expect(PreySim.stunNear(sim, 0, -50, 0, 30, 3, 1.5, 0)).toBe(1)
+		expect(bit32.btest(flags(sim, shared), PreySim.FLAG_STUNNED)).toBe(true)
+		expect(bit32.btest(flags(sim, owned), PreySim.FLAG_STUNNED)).toBe(false)
+	end)
+
+	it("moves an owned group's home with moveHome, and the group follows on its leash", function()
+		local sim = newSim()
+		local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+		PreySim.own(sim, g, 3, 3, 3, true)
+		local home = (PreySim.OWNED_HOME + g) * 20
+		-- The centre slides +X at 6 studs/s (04 §3.6 B2) for 5 s: 30 studs.
+		local cx = 400
+		local worst = 0
+		run(sim, 0, 50, function()
+			-- Its owner close by keeps it active (a calm group does not flee from it).
+			PreySim.setThreat(sim, 0, cx + 4, -20, 300, 3, PLAYER, 3)
+			PreySim.setThreatCount(sim, 1)
+			-- Where the last step left it, against the home it stepped in; then the next move.
+			local x, _, z = pos(sim, g)
+			worst = math.max(worst, math.sqrt((x - cx) ^ 2 + (z - 300) ^ 2))
+			cx += 6 * DT
+			PreySim.moveHome(sim, g, cx, -20, 300)
+		end)
+		expect(buffer.readf32(sim.homes, home)).toBeCloseTo(430, 1e-3)
+		expect(buffer.readf32(sim.homes, home + 12)).toBe(3)
+		expect(worst <= 4.5 + 1e-3).toBe(true)
+		local x = pos(sim, g)
+		expect(x > 425).toBe(true)
+		expect(function()
+			PreySim.moveHome(sim, PreySim.spawn(sim, KRILL, 0, 0, -50, 0, 6) :: number, 0, 0, 0)
+		end).toThrow()
+	end)
 end)
