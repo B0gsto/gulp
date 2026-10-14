@@ -207,8 +207,17 @@ export type Hand = {
 	root: Frame,
 	fade: (alpha: number) -> (),
 	-- Fingertip at (x, y); `down` presses it; `hold` (0 to 1) fills the ring; `trail` is the
-	-- drag's recent path, newest last.
-	set: (x: number, y: number, down: boolean, hold: number?, trail: { Vector2 }?) -> (),
+	-- drag's recent path, newest last; (ringX, ringY) the hold ring's centre (the target's; default
+	-- the fingertip).
+	set: (
+		x: number,
+		y: number,
+		down: boolean,
+		hold: number?,
+		trail: { Vector2 }?,
+		ringX: number?,
+		ringY: number?
+	) -> (),
 }
 
 local TRAIL_DOTS = 8
@@ -258,7 +267,15 @@ function GuideParts.hand(parent: Instance, z: number): Hand
 	return {
 		root = root,
 		fade = GuideParts.fader(root),
-		set = function(x: number, y: number, down: boolean, hold: number?, path: { Vector2 }?)
+		set = function(
+			x: number,
+			y: number,
+			down: boolean,
+			hold: number?,
+			path: { Vector2 }?,
+			ringX: number?,
+			ringY: number?
+		)
 			-- The down sprite: pressed in and 4 rpx lower.
 			place(hand, x, y + (if down then 4 else 0))
 			handScale.Scale = if down then 0.9 else 1
@@ -267,7 +284,7 @@ function GuideParts.hand(parent: Instance, z: number): Hand
 			ring.Visible = hold ~= nil
 			ringBack.Visible = hold ~= nil
 			if hold then
-				place(ring, x, y)
+				place(ring, ringX or x, ringY or y)
 				fill(hold)
 			end
 			local p = path or {}
@@ -306,6 +323,14 @@ function GuideParts.trail(parent: Instance, z: number): Trail
 	local dots: { { root: Frame, scale: UIScale, glow: Frame, core: Frame } } = {}
 	for i = 1, G.trailMax do
 		local d = holder(root, "UI_Guide_TrailDot", G.trailDot, z)
+		-- A dark halo under the glow and a navy rim on the core, so the dots read on bright sand
+		-- and sky (UI review 1).
+		Draw.disc(
+			G.trailDot * 0.7,
+			Theme.DIM,
+			UDim2.new(0.5, 0, 0.5, 2),
+			{ Name = "Halo", BackgroundTransparency = 0.45, ZIndex = z, Parent = d }
+		)
 		local glow = Draw.disc(
 			G.trailDot,
 			Theme.PRIMARY,
@@ -318,7 +343,7 @@ function GuideParts.trail(parent: Instance, z: number): Trail
 			nil,
 			{ Name = "Core", ZIndex = z + 1, Parent = d }
 		)
-		Draw.stroke(Theme.STROKE_CHIP, Theme.PRIMARY_SHADE).Parent = core
+		Draw.stroke(Theme.STROKE_ICON, Theme.INK).Parent = core
 		Draw.slot("UI_Guide_TrailDot", d, z + 2)
 		dots[i] =
 			{ root = d, scale = Draw.new("UIScale", { Parent = d }), glow = glow, core = core }
@@ -326,15 +351,29 @@ function GuideParts.trail(parent: Instance, z: number): Trail
 	local chevrons: { Frame } = {}
 	for i = 1, math.ceil(G.trailMax / G.chevronEvery) + 1 do
 		local c = holder(root, "UI_Guide_TrailChevron", G.trailChevron, z + 3)
+		-- Its hard shadow, then the white head with a navy outline (UI review 1).
+		local shadow = GuideHints.triangle(
+			c,
+			G.trailChevron * 0.36,
+			Theme.DIM,
+			UDim2.new(0.5, 0, 0.5, 3),
+			z + 3
+		)
+		shadow.Name = "Shadow"
+		for _, f in shadow:GetDescendants() do
+			if f:IsA("Frame") then
+				f.BackgroundTransparency = 0.5
+			end
+		end
 		GuideHints.triangle(
 			c,
 			G.trailChevron * 0.3,
 			Theme.WHITE,
 			UDim2.fromScale(0.5, 0.5),
-			z + 3,
-			Theme.STROKE_CHIP
+			z + 4,
+			Theme.STROKE_PANEL
 		)
-		Draw.slot("UI_Guide_TrailChevron", c, z + 4)
+		Draw.slot("UI_Guide_TrailChevron", c, z + 5)
 		chevrons[i] = c
 	end
 	local fades: { [Frame]: (number) -> () } = {}
@@ -381,7 +420,8 @@ end
 export type Ring = {
 	root: Frame,
 	fade: (alpha: number) -> (),
-	set: (rect: Rect, scale: number) -> (),
+	-- `k` is HudLayout.guideScale: the band and its edges thicken with it.
+	set: (rect: Rect, scale: number, k: number?) -> (),
 }
 
 --- G5 `UI_Guide_Ring` (9-slice): a sun-yellow ring with a navy edge round its rect; `colour`
@@ -403,14 +443,14 @@ function GuideParts.ring(
 	local scale = Draw.new("UIScale", { Parent = root }) :: UIScale
 	local corner = Draw.corner() :: UICorner
 	corner.Parent = root
-	Draw.new("Frame", {
+	local edge = Draw.new("Frame", {
 		Name = "Edge",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, 12, 1, 12),
 		ZIndex = z,
 		Parent = root,
-	}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) })
+	}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) }) :: Frame
 	local band = Draw.stroke(6, colour or Theme.PRIMARY)
 	band.Parent = root
 	Draw.new("Frame", {
@@ -425,10 +465,13 @@ function GuideParts.ring(
 	return {
 		root = root,
 		fade = GuideParts.fader(root),
-		set = function(rect: Rect, k: number)
+		set = function(rect: Rect, pulse: number, k: number?)
+			local f = k or 1
 			place(root, rect.x + rect.width / 2, rect.y + rect.height / 2)
 			root.Size = UDim2.fromOffset(rect.width, rect.height)
-			scale.Scale = k
+			scale.Scale = pulse
+			band.Thickness = 6 * f
+			edge.Size = UDim2.new(1, 12 * f, 1, 12 * f)
 		end,
 	}
 end
@@ -554,7 +597,7 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		Parent = root,
 	}, {
 		Draw.corner(Theme.PANEL_RADIUS),
-		Draw.stroke(Theme.STROKE_PANEL),
+		Draw.stroke(G.bubbleStroke),
 		Draw.new("UIPadding", {
 			PaddingLeft = UDim.new(0, G.bubblePad),
 			PaddingRight = UDim.new(0, G.bubblePad),
@@ -572,7 +615,7 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 	local shadow = Draw.new("Frame", {
 		Name = "Shadow",
 		BackgroundColor3 = Theme.DIM,
-		BackgroundTransparency = Theme.SHADOW_TRANSPARENCY,
+		BackgroundTransparency = G.bubbleShadowTransparency,
 		ZIndex = z,
 		Parent = root,
 	}, { Draw.corner(Theme.PANEL_RADIUS) }) :: Frame
@@ -602,6 +645,17 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		"UISizeConstraint",
 		{ MaxSize = Vector2.new(textMax, 2000), Parent = label }
 	) :: UISizeConstraint
+	-- One line of the same text style, never shown: its drawn height is the line the bubble's
+	-- line count is measured in, at any scale (08 §1.5: Body 24 up to two lines).
+	local probe = Draw.text({
+		Name = "LineProbe",
+		Size = UDim2.fromOffset(textMax, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = "Ag",
+		TextTransparency = 1,
+		ZIndex = z,
+		Parent = root,
+	}, G.bubbleText, "body")
 	-- The 9-slice art sits in a frame that follows the panel (not in the panel: its list layout
 	-- would take the slot for a row).
 	local skin = Draw.new("Frame", { Name = "Skin", ZIndex = z + 1, Parent = root }) :: Frame
@@ -616,7 +670,7 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		BackgroundTransparency = 0,
 		ZIndex = z,
 		Parent = root,
-	}, { Draw.corner(3), Draw.stroke(Theme.STROKE_PANEL) }) :: Frame
+	}, { Draw.corner(3), Draw.stroke(G.bubbleStroke) }) :: Frame
 	Draw.slot("UI_Common_BubbleTail", tail, z)
 	local hasHint = false
 	local function relimit()
@@ -629,6 +683,8 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		setText = function(text: string)
 			label:SetAttribute(Screen.TEXT_RPX, G.bubbleText)
 			label.TextSize = Screen.textSize(G.bubbleText)
+			probe:SetAttribute(Screen.TEXT_RPX, G.bubbleText)
+			probe.TextSize = Screen.textSize(G.bubbleText)
 			label.Text = text
 		end,
 		setHint = function(picture: GuideHints.Picture?)
@@ -647,11 +703,15 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		end,
 		size = function(scale: number): (number, number)
 			local s = panel.AbsoluteSize
-			-- 08 §1.5: past two lines, the text drops to 22 before it wraps further. TextBounds is
-			-- in pixels; a line of Nunito is about 1.36 x its size.
-			local lines = label.TextBounds.Y / math.max(1e-3, label.TextSize * scale * 1.36)
+			-- 08 §1.5: past two lines, the text drops to 22 before it wraps further. The line is
+			-- the probe's, drawn at the same size, so the count holds at every scale.
 			local rpx = label:GetAttribute(Screen.TEXT_RPX)
-			if lines > G.bubbleLines + 0.5 and rpx == G.bubbleText then
+			if
+				rpx == G.bubbleText
+				and label.Text ~= ""
+				and HudLayout.bubbleTextRpx(label.TextBounds.Y, probe.TextBounds.Y)
+					< G.bubbleText
+			then
 				label:SetAttribute(Screen.TEXT_RPX, HudLayout.TEXT_FLOOR)
 				label.TextSize = Screen.textSize(HudLayout.TEXT_FLOOR)
 			end
@@ -720,16 +780,29 @@ end
 
 export type Ghost = {
 	root: Frame,
-	fade: (alpha: number) -> (),
+	-- `alpha` the prompt's fade; `thumb` (0 to 1) how much of it the see-through thumb shows (the
+	-- drag cue shows at `ghostRimOpacity` of `alpha`, the rim and shadow too while the thumb shows).
+	fade: (alpha: number, thumb: number?) -> (),
 	-- Rebuilds the picture for `mode`.
 	setMode: (mode: GuideHints.InputMode) -> (),
-	-- The thumb (or key row) at (x, y); `press` 0 to 1 how far the press is in; `nudge` the
-	-- direction the mouse or stick leans.
-	set: (x: number, y: number, press: number, nudgeX: number, nudgeY: number) -> (),
+	-- The picture's size in rpx before `k` (the thumb, the key row or the stick).
+	size: () -> (number, number),
+	-- The thumb (or key row) at (x, y), `k` times its size; `press` 0 to 1 how far the press is
+	-- in; `nudge` the direction the mouse or stick leans; `cue` the drag's start and end on touch.
+	set: (
+		x: number,
+		y: number,
+		press: number,
+		nudgeX: number,
+		nudgeY: number,
+		k: number?,
+		cue: { number }?
+	) -> (),
 }
 
---- 04 §3.2 ghost thumb: the thumbprint on touch, the mouse, W and arrow keys row with keys, the
---- left stick on a pad.
+--- 04 §3.2 ghost thumb: the thumbprint on touch, with its rim, soft shadow and the drag cue (dots
+--- from the press point to a ring where the drag ends); the mouse, W and arrow keys row with keys;
+--- the left stick on a pad.
 function GuideParts.ghost(parent: Instance, z: number): Ghost
 	local root = Draw.new("Frame", {
 		Name = "Guide.Ghost",
@@ -738,11 +811,82 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 		ZIndex = z,
 		Parent = parent,
 	}) :: Frame
+	local function layer(name: string, zi: number): Frame
+		return Draw.new("Frame", {
+			Name = name,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = zi,
+			Parent = root,
+		}) :: Frame
+	end
+	local under = layer("Under", z)
+	local rim = layer("RimLayer", z + 1)
+	local pictures = layer("Picture", z + 2)
+	-- The cue and the thumb's outline: a soft shadow (three wider, fainter pads), a navy rim.
+	local cueDots: { Frame } = {}
+	for i = 1, G.ghostCueDots do
+		local d = Draw.disc(
+			G.ghostCueDot,
+			Theme.WHITE,
+			nil,
+			{ Name = "CueDot", ZIndex = z, Parent = under }
+		)
+		Draw.stroke(Theme.STROKE_ICON).Parent = d
+		cueDots[i] = d
+	end
+	local cueRing = Draw.new("Frame", {
+		Name = "CueRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(G.ghostCueRing, G.ghostCueRing),
+		ZIndex = z,
+		Parent = under,
+	}, { Draw.corner(), Draw.stroke(5, Theme.WHITE) }) :: Frame
+	Draw.new("Frame", {
+		Name = "CueRingEdge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 10, 1, 10),
+		ZIndex = z,
+		Parent = cueRing,
+	}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) })
+	local outline = Draw.new("Frame", {
+		Name = "Outline",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(G.ghost, G.ghost),
+		ZIndex = z + 1,
+		Parent = rim,
+	}) :: Frame
+	local outlineScale = Draw.new("UIScale", { Parent = outline }) :: UIScale
+	for i, grow in { 18, 12, 6 } do
+		Draw.new("Frame", {
+			Name = "Soft",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 4),
+			Size = UDim2.fromOffset(G.ghost * 0.7 + grow, G.ghost * 0.9 + grow),
+			BackgroundColor3 = Theme.DIM,
+			BackgroundTransparency = 0.94 - 0.08 * i,
+			ZIndex = z + 1,
+			Parent = outline,
+		}, { Draw.corner() })
+	end
+	Draw.new("Frame", {
+		Name = "Rim",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(G.ghost * 0.7, G.ghost * 0.9),
+		ZIndex = z + 3,
+		Parent = outline,
+	}, { Draw.corner(), Draw.stroke(Theme.STROKE_PANEL + 1) })
+	local underFade = GuideParts.fader(under)
+	local rimFade = GuideParts.fader(rim)
+	local pictureFade = GuideParts.fader(pictures)
+
 	local item: Frame? = nil
 	local face: Frame? = nil
 	local nudger: Frame? = nil
 	local scale: UIScale? = nil
 	local mode: GuideHints.InputMode = "Touch"
+	local w, h = G.ghost, G.ghost
 	local function build(m: GuideHints.InputMode)
 		if item then
 			item:Destroy()
@@ -750,37 +894,74 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 		mode = m
 		face, nudger = nil, nil
 		if m == "Touch" then
-			local t = GuideHints.thumbprint(root, G.ghost, z)
-			item = t
+			item = GuideHints.thumbprint(pictures, G.ghost, z + 2)
+			w, h = G.ghost, G.ghost
 		elseif m == "Keys" then
-			local row = GuideHints.ghostRow(root, z)
+			local row = GuideHints.ghostRow(pictures, z + 2)
 			item, face, nudger = row.root, row.face, row.mouse
+			w, h = row.width, G.hint
 		else
 			local pad = Draw.new("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				Size = UDim2.fromOffset(64, 64),
-				ZIndex = z,
-				Parent = root,
+				Size = UDim2.fromOffset(G.hint, G.hint),
+				ZIndex = z + 2,
+				Parent = pictures,
 			}) :: Frame
-			local _, cap = GuideHints.stick(pad, z)
+			local _, cap = GuideHints.stick(pad, z + 2)
 			item, nudger = pad, cap
+			w, h = G.hint, G.hint
 		end
+		outline.Visible = m == "Touch"
 		scale = Draw.new("UIScale", { Parent = item })
 	end
 	build("Touch")
+	local showCue = false
 	return {
 		root = root,
-		fade = GuideParts.fader(root),
+		fade = function(alpha: number, thumb: number?)
+			root.Visible = alpha > 0.001
+			local t = thumb or 1
+			underFade(alpha * G.ghostRimOpacity)
+			-- The rim and shadow go out with the thumb at the end of each loop.
+			rimFade(alpha * G.ghostRimOpacity * math.min(1, t / G.ghostOpacity))
+			pictureFade(alpha * t)
+		end,
 		setMode = function(m: GuideHints.InputMode)
 			if m ~= mode then
 				build(m)
 			end
 		end,
-		set = function(x: number, y: number, press: number, nx: number, ny: number)
+		size = function(): (number, number)
+			return w, h
+		end,
+		set = function(
+			x: number,
+			y: number,
+			press: number,
+			nx: number,
+			ny: number,
+			k: number?,
+			cue: { number }?
+		)
 			local it = item :: Frame
 			place(it, x, y)
 			local sc = scale :: UIScale
-			sc.Scale = if mode == "Touch" then 1 - 0.12 * press else 1
+			local squash = if mode == "Touch" then 1 - 0.12 * press else 1
+			sc.Scale = squash * (if mode == "Touch" then 1 else k or 1)
+			place(outline, x, y)
+			outlineScale.Scale = squash
+			showCue = cue ~= nil and mode == "Touch"
+			cueRing.Visible = showCue
+			for i, d in cueDots do
+				d.Visible = showCue
+				if cue and showCue then
+					local u = i / (#cueDots + 1)
+					place(d, cue[1] + (cue[3] - cue[1]) * u, cue[2] + (cue[4] - cue[2]) * u)
+				end
+			end
+			if cue and showCue then
+				place(cueRing, cue[3], cue[4])
+			end
 			local f = face
 			if f then
 				f.Position = UDim2.fromOffset(0, 3 * press)
@@ -806,10 +987,13 @@ export type Tag = {
 	setHint: (picture: GuideHints.Picture?) -> (),
 	size: (scale: number) -> (number, number),
 	set: (rect: Rect) -> (),
+	-- HudLayout.guideScale: the chip draws `k` times its size.
+	setScale: (k: number) -> (),
 }
 
---- A word on a chip (04 §3.3 HOME and DASH!): Fredoka on `colour` with a navy stroke, sized to
---- its text, `height` tall, with room for a G8 picture at its left.
+--- A word on a chip (04 §3.3 HOME and DASH!): Fredoka on `colour` with a thick navy outline and
+--- a hard shadow (so it reads on bright scenes, UI review 1), sized to its text, `height` tall,
+--- with room for a G8 picture at its left.
 function GuideParts.tag(
 	parent: Instance,
 	z: number,
@@ -822,17 +1006,24 @@ function GuideParts.tag(
 		"Frame",
 		{ Name = name, Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = z, Parent = parent }
 	) :: Frame
+	local shadow = Draw.new("Frame", {
+		Name = "Shadow",
+		BackgroundColor3 = Theme.DIM,
+		BackgroundTransparency = G.bubbleShadowTransparency,
+		ZIndex = z,
+		Parent = root,
+	}, { Draw.corner() }) :: Frame
 	local chip = Draw.new("Frame", {
 		Name = "Chip",
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, height),
 		BackgroundColor3 = colour,
 		BackgroundTransparency = 0,
-		ZIndex = z,
+		ZIndex = z + 1,
 		Parent = root,
 	}, {
 		Draw.corner(),
-		Draw.stroke(Theme.STROKE_CHIP),
+		Draw.stroke(Theme.STROKE_PANEL),
 		Draw.new("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
 		Draw.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
@@ -847,7 +1038,7 @@ function GuideParts.tag(
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, height),
 		Visible = false,
-		ZIndex = z + 1,
+		ZIndex = z + 2,
 		Parent = chip,
 	}) :: Frame
 	local label = Draw.text({
@@ -856,9 +1047,10 @@ function GuideParts.tag(
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromOffset(0, height),
 		TextColor3 = Theme.INK,
-		ZIndex = z + 1,
+		ZIndex = z + 2,
 		Parent = chip,
 	}, textSize, "display")
+	local chipScale = Draw.new("UIScale", { Parent = chip }) :: UIScale
 	return {
 		root = root,
 		fade = GuideParts.fader(root),
@@ -889,6 +1081,11 @@ function GuideParts.tag(
 		end,
 		set = function(rect: Rect)
 			place(chip, rect.x, rect.y)
+			place(shadow, rect.x, rect.y + Theme.SHADOW_OFFSET * chipScale.Scale)
+			shadow.Size = UDim2.fromOffset(rect.width, rect.height)
+		end,
+		setScale = function(k: number)
+			chipScale.Scale = k
 		end,
 	}
 end
@@ -896,11 +1093,15 @@ end
 export type Danger = {
 	root: Frame,
 	fade: (alpha: number) -> (),
-	set: (rect: Rect, side: HudLayout.Side) -> (),
+	-- The pieces of HudLayout.dangerPieces, moved into the content box's space.
+	set: (pieces: { HudLayout.DangerPiece }, side: HudLayout.Side) -> (),
 }
 
+local DANGER_PIECES = 3
+
 --- 04 §3.2 `UI_HUD_DangerEdge`: a red glow along one screen edge, 35% at the edge fading to
---- nothing inward.
+--- nothing inward, in up to three pieces round the home marker; a cut end fades out along the
+--- edge over `dangerSoftEnd` (each piece is a CanvasGroup carrying that fade).
 function GuideParts.danger(parent: Instance, z: number): Danger
 	local root = Draw.new("Frame", {
 		Name = "Guide.DangerEdge",
@@ -909,35 +1110,72 @@ function GuideParts.danger(parent: Instance, z: number): Danger
 		ZIndex = z,
 		Parent = parent,
 	}) :: Frame
-	local glow = Draw.new("Frame", {
-		Name = "UI_HUD_DangerEdge",
-		BackgroundColor3 = Theme.DANGER,
-		BackgroundTransparency = 0,
-		ZIndex = z,
-		Parent = root,
-	}) :: Frame
-	local gradient = Draw.new("UIGradient", {
-		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 1 - G.dangerOpacity),
-			NumberSequenceKeypoint.new(0.45, 1 - G.dangerOpacity * 0.45),
-			NumberSequenceKeypoint.new(1, 1),
-		}),
-		Parent = glow,
-	}) :: UIGradient
-	Draw.slot("UI_HUD_DangerEdge", glow, z + 1)
+	local inward = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1 - G.dangerOpacity),
+		NumberSequenceKeypoint.new(0.45, 1 - G.dangerOpacity * 0.45),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	type Piece = { group: CanvasGroup, along: UIGradient, inward: UIGradient }
+	local pieces: { Piece } = {}
+	for i = 1, DANGER_PIECES do
+		local group = Draw.new("CanvasGroup", {
+			Name = "Piece",
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = z,
+			Parent = root,
+		}) :: CanvasGroup
+		local along = Draw.new("UIGradient", { Parent = group }) :: UIGradient
+		local glow = Draw.new("Frame", {
+			Name = "UI_HUD_DangerEdge",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Theme.DANGER,
+			BackgroundTransparency = 0,
+			ZIndex = z,
+			Parent = group,
+		}) :: Frame
+		local grad = Draw.new("UIGradient", { Transparency = inward, Parent = glow }) :: UIGradient
+		Draw.slot("UI_HUD_DangerEdge", glow, z + 1)
+		pieces[i] = { group = group, along = along, inward = grad }
+	end
 	local fade = GuideParts.fader(root)
 	return {
 		root = root,
 		fade = fade,
-		set = function(rect: Rect, side: HudLayout.Side)
-			place(glow, rect.x, rect.y)
-			glow.Size = UDim2.fromOffset(rect.width, rect.height)
-			-- The gradient runs from the edge inward.
-			gradient.Rotation = if side == "left"
-				then 0
-				elseif side == "right" then 180
-				elseif side == "top" then 90
-				else 270
+		set = function(list: { HudLayout.DangerPiece }, side: HudLayout.Side)
+			local vertical = side == "left" or side == "right"
+			for i, p in pieces do
+				local piece = list[i]
+				p.group.Visible = piece ~= nil
+				if piece then
+					local r = piece.rect
+					place(p.group, r.x, r.y)
+					p.group.Size = UDim2.fromOffset(r.width, r.height)
+					-- The glow runs from the edge inward.
+					p.inward.Rotation = if side == "left"
+						then 0
+						elseif side == "right" then 180
+						elseif side == "top" then 90
+						else 270
+					local length = if vertical then r.height else r.width
+					local soft = math.min(0.49, G.dangerSoftEnd / math.max(1, length))
+					local keys = {}
+					if piece.softStart then
+						table.insert(keys, NumberSequenceKeypoint.new(0, 1))
+						table.insert(keys, NumberSequenceKeypoint.new(soft, 0))
+					else
+						table.insert(keys, NumberSequenceKeypoint.new(0, 0))
+					end
+					if piece.softEnd then
+						table.insert(keys, NumberSequenceKeypoint.new(1 - soft, 0))
+						table.insert(keys, NumberSequenceKeypoint.new(1, 1))
+					else
+						table.insert(keys, NumberSequenceKeypoint.new(1, 0))
+					end
+					p.along.Transparency = NumberSequence.new(keys)
+					p.along.Rotation = if vertical then 90 else 0
+				end
+			end
 		end,
 	}
 end

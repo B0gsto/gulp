@@ -315,6 +315,57 @@ local function centre(r: Rect): (number, number)
 	return r.x + r.width / 2, r.y + r.height / 2
 end
 
+-- What a HUD element draws, in content rpx: the union of its shown parts (without its own
+-- frame when `skipSelf`, for full-screen roots like `HUD.Traits`); nil when it is hidden.
+local function drawnRect(id: string, skipSelf: boolean): Rect?
+	local b = built
+	local object = findHud(id)
+	if b == nil or object == nil or not shown(object) then
+		return nil
+	end
+	local layout = Screen.layout()
+	local origin = b.canvas.AbsolutePosition
+	local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+	local function add(o: GuiObject)
+		local p, s = o.AbsolutePosition, o.AbsoluteSize
+		if s.X > 0 and s.Y > 0 then
+			x0, y0 = math.min(x0, p.X), math.min(y0, p.Y)
+			x1, y1 = math.max(x1, p.X + s.X), math.max(y1, p.Y + s.Y)
+		end
+	end
+	if not skipSelf then
+		add(object)
+	end
+	for _, d in object:GetDescendants() do
+		if d:IsA("GuiObject") and d.Visible and shown(d) then
+			local isText = d:IsA("TextLabel")
+			local drawn = isText
+				or (d :: GuiObject).BackgroundTransparency < 1
+				or d:IsA("ImageLabel") and (d :: ImageLabel).Image ~= ""
+			if drawn then
+				add(d :: GuiObject)
+			end
+		end
+	end
+	if x0 > x1 then
+		return nil
+	end
+	local k = layout.scale
+	return {
+		x = (x0 - origin.X) / k,
+		y = (y0 - origin.Y) / k,
+		width = (x1 - x0) / k,
+		height = (y1 - y0) / k,
+	}
+end
+
+-- 04 §3.2: the HUD at the bottom centre the ghost key row keeps clear of (the cove's dock and
+-- its labels, the trait slots).
+local BOTTOM_HUD: { { id: string, skipSelf: boolean } } = {
+	{ id = "Dock.species", skipSelf = false },
+	{ id = "HUD.Traits", skipSelf = true },
+}
+
 -- Text -------------------------------------------------------------------------------------------
 
 local function keyFor(key: TextKey): string
@@ -461,6 +512,16 @@ local function step(dt: number)
 	local content = layout.contentSize
 	local avoid, rects = hudAvoid(layout)
 	local glow = breathe(t)
+	-- Desktop draws the pointer, rings, chips and the ghost key row larger (08 §7).
+	local zoom = HudLayout.guideScale(layout.screenClass)
+	-- HUD.Home's marker: the HOME prompt rings it, and the danger edge leaves a gap round it.
+	local home = if homeOn or dangerAt then resolve(Guide.hud("HUD.Home")) else nil
+	local homeParts: { Rect } = {}
+	if home then
+		local hx, hy = centre(home.rect)
+		table.insert(homeParts, HudLayout.homeRect(hx, hy))
+		table.insert(homeParts, HudLayout.guideRing(home.rect, zoom))
+	end
 
 	-- 08 §7: six seconds with no input replays the pointer with a bounce.
 	if (pointer.kind or ghostState) and t - lastInput > G.idle then
@@ -489,30 +550,44 @@ local function step(dt: number)
 	end
 	fd.want = dangerAt ~= nil
 	approach(fd, dt, G.dangerFade)
-	do
-		local edge = HudLayout.dangerEdge(dangerSide, layout.fullSize)
-		local o = layout.contentOrigin
-		b.danger.set(
-			{ x = edge.x - o.x, y = edge.y - o.y, width = edge.width, height = edge.height },
-			dangerSide
-		)
-		b.danger.fade(fd.alpha)
-	end
-
 	-- Home marker (04 §3.2): the ring and the HOME chip on HUD.Home's marker.
-	local home = if homeOn then resolve(Guide.hud("HUD.Home")) else nil
 	local fh = fade("home")
-	fh.want = home ~= nil
+	fh.want = homeOn and home ~= nil
 	approach(fh, dt)
-	if home then
+	if homeOn and home then
 		local hx, hy = centre(home.rect)
 		local pulse = if lessMotion
 			then 1
 			else 1 + (G.ringPulse - 1) * (0.5 - 0.5 * math.cos(2 * math.pi * G.ringHz * t))
-		b.homeRing.set(HudLayout.guideRing(home.rect), pulse)
+		b.homeRing.set(HudLayout.guideRing(home.rect, zoom), pulse, zoom)
+		b.homeTag.setScale(zoom)
 		local w = math.max(b.homeTag.size(scale), 48)
 		local homeAvoid = HudLayout.homeAvoid(layout.screenClass, rects, nil)
-		b.homeTag.set(HudLayout.homeTag(hx, hy, w, content, homeAvoid))
+		local tag = HudLayout.homeTag(hx, hy, w, content, homeAvoid, zoom)
+		b.homeTag.set(tag)
+		table.insert(homeParts, tag)
+	end
+
+	do
+		local o = layout.contentOrigin
+		local avoidFull: { Rect } = {}
+		for _, r in homeParts do
+			table.insert(
+				avoidFull,
+				{ x = r.x + o.x, y = r.y + o.y, width = r.width, height = r.height }
+			)
+		end
+		local pieces = HudLayout.dangerPieces(dangerSide, layout.fullSize, avoidFull)
+		for _, p in pieces do
+			p.rect = {
+				x = p.rect.x - o.x,
+				y = p.rect.y - o.y,
+				width = p.rect.width,
+				height = p.rect.height,
+			}
+		end
+		b.danger.set(pieces, dangerSide)
+		b.danger.fade(fd.alpha)
 	end
 	b.homeRing.fade(fh.alpha * glow)
 	b.homeTag.fade(fh.alpha)
@@ -526,9 +601,10 @@ local function step(dt: number)
 		local swell = if lessMotion
 			then 1
 			else 1 + (G.dashPulse - 1) * (0.5 - 0.5 * math.cos(2 * math.pi * G.dashPulseHz * t))
-		b.dashRing.set(HudLayout.dashRing(dash.rect), swell)
+		b.dashRing.set(HudLayout.dashRing(dash.rect, zoom), swell, zoom)
+		b.dashTag.setScale(zoom)
 		local w = math.max(b.dashTag.size(scale), 48)
-		b.dashTag.set(HudLayout.dashTag(dash.rect, w, content))
+		b.dashTag.set(HudLayout.dashTag(dash.rect, w, content, zoom))
 	end
 	-- The ring thins as it swells, like `UI_Common_RingPulse`.
 	b.dashRing.fade(fp.alpha * glow)
@@ -543,7 +619,7 @@ local function step(dt: number)
 		local pulse = if lessMotion
 			then 1
 			else 1 + (G.ringPulse - 1) * (0.5 - 0.5 * math.cos(2 * math.pi * G.ringHz * t))
-		b.ring.set(HudLayout.guideRing(ringAt.rect), pulse)
+		b.ring.set(HudLayout.guideRing(ringAt.rect, zoom), pulse, zoom)
 	end
 	b.ring.fade(fr.alpha * glow)
 
@@ -587,15 +663,17 @@ local function step(dt: number)
 	if arrowAim then
 		local x, y, angle
 		if arrowAim.onScreen then
-			x, y, angle = HudLayout.guideArrow(arrowAim.rect, content, avoid)
+			x, y, angle = HudLayout.guideArrow(arrowAim.rect, content, avoid, zoom)
 		else
-			x, y, angle = HudLayout.guideEdgeArrow(content, arrowAim.angle, avoid)
+			x, y, angle = HudLayout.guideEdgeArrow(content, arrowAim.angle, avoid, zoom)
 		end
 		local bob = if lessMotion
 			then 0
-			else G.bob * (0.5 - 0.5 * math.cos(2 * math.pi * G.bobHz * (t - pointer.started)))
-		b.arrow.set(x, y, angle, bob, bounce(t))
-		pointerRect = HudLayout.arrowRect(x, y)
+			else G.bob * zoom * (0.5 - 0.5 * math.cos(
+				2 * math.pi * G.bobHz * (t - pointer.started)
+			))
+		b.arrow.set(x, y, angle, bob, bounce(t) * zoom)
+		pointerRect = HudLayout.arrowRect(x, y, zoom)
 	end
 	b.arrow.fade(fa.alpha * glow)
 
@@ -606,6 +684,11 @@ local function step(dt: number)
 		local tx, ty = centre(aim.rect)
 		local p = t - pointer.started
 		local gesture = pointer.gesture
+		-- Tap and hold press the target's lower right, so it and the hold ring stay in sight.
+		local fx, fy = tx, ty
+		if gesture ~= "drag" then
+			fx, fy = HudLayout.handPoint(aim.rect)
+		end
 		if gesture == "tap" then
 			local cycle = G.tapDown + G.tapUp + G.tapPause
 			local u = p % cycle
@@ -613,16 +696,16 @@ local function step(dt: number)
 				then 0
 				elseif u < G.tapDown + G.tapUp then 14 * (u - G.tapDown) / G.tapUp
 				else 14
-			b.hand.set(tx, ty - lift, u < G.tapDown, nil, nil)
+			b.hand.set(fx, fy - lift, u < G.tapDown, nil, nil)
 		elseif gesture == "hold" then
 			local hold = pointer.hold
 			local cycle = hold + G.tapUp + G.tapPause
 			local u = p % cycle
 			if u < hold then
-				b.hand.set(tx, ty, true, u / hold, nil)
+				b.hand.set(fx, fy, true, u / hold, nil, tx, ty)
 			else
 				local lift = 14 * math.min(1, (u - hold) / G.tapUp)
-				b.hand.set(tx, ty - lift, false, nil, nil)
+				b.hand.set(fx, fy - lift, false, nil, nil)
 			end
 		else
 			local from = resolve(pointer.from)
@@ -648,7 +731,7 @@ local function step(dt: number)
 			b.hand.set(x, y, u < G.tapDown + G.dragTime, nil, path)
 		end
 		pointerRect =
-			{ x = tx - G.hand * 0.3, y = ty - G.hand * 0.06, width = G.hand, height = G.hand }
+			{ x = fx - G.hand * 0.3, y = fy - G.hand * 0.06, width = G.hand, height = G.hand }
 	end
 	b.hand.fade(fhand.alpha)
 
@@ -660,6 +743,18 @@ local function step(dt: number)
 	local ghostAlpha = 1
 	if gs then
 		local sx, sy = HudLayout.ghostThumb(content)
+		if mode ~= "Touch" then
+			-- Keys and pad: the row slides sideways off the dock and the trait slots (04 §3.2).
+			local w, h = b.ghost.size()
+			local more = table.clone(avoid)
+			for _, part in BOTTOM_HUD do
+				local r = drawnRect(part.id, part.skipSelf)
+				if r then
+					table.insert(more, r)
+				end
+			end
+			sx, sy = HudLayout.ghostKeys(content, w * zoom, h * zoom, more)
+		end
 		local toward = resolve(gs.target)
 		local angle = -math.pi / 2
 		if toward then
@@ -680,8 +775,17 @@ local function step(dt: number)
 				then u / 0.1
 				elseif u < 0.7 then 1
 				else math.max(0, 1 - (u - 0.7) / 0.1)
-			ghostAlpha = G.ghostOpacity * (if u < 0.8 then 1 else math.max(0, 1 - (u - 0.8) / 0.12))
-			b.ghost.set(sx + (ex - sx) * e, sy + (ey - sy) * e, press, nx, ny)
+			local out = if u < 0.8 then 1 else math.max(0, 1 - (u - 0.8) / 0.12)
+			ghostAlpha = G.ghostOpacity * out
+			b.ghost.set(
+				sx + (ex - sx) * e,
+				sy + (ey - sy) * e,
+				press,
+				nx,
+				ny,
+				1,
+				{ sx, sy, ex, ey }
+			)
 			pointerRect = HudLayout.ghostRect(sx, sy)
 		else
 			local press = if u < 0.12
@@ -689,11 +793,12 @@ local function step(dt: number)
 				elseif u < 0.75 then 1
 				else math.max(0, 1 - (u - 0.75) / 0.1)
 			local lean = math.sin(math.clamp(u / 0.75, 0, 1) * math.pi)
-			b.ghost.set(sx, sy, press, nx * lean, ny * lean)
-			pointerRect = HudLayout.ghostRect(sx, sy, 216)
+			b.ghost.set(sx, sy, press, nx * lean, ny * lean, zoom, nil)
+			local w = b.ghost.size()
+			pointerRect = HudLayout.ghostRect(sx, sy, w, zoom)
 		end
 	end
-	b.ghost.fade(fg.alpha * ghostAlpha)
+	b.ghost.fade(fg.alpha, ghostAlpha)
 
 	-- G4 trail.
 	local ft = fade("trail")

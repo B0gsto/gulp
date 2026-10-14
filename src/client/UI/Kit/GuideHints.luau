@@ -136,8 +136,9 @@ function GuideHints.triangle(
 	return holder
 end
 
---- `UI_Hint_Key`: a cream key cap `width` x 56 with a darker lip, the label in Fredoka. Returns
---- the cap and its face (darken the face to show it pressed).
+--- `UI_Hint_Key`: a cream key cap `width` x 56 on a navy lip (no grey: it reads on the sun-yellow
+--- chips and on bright water, UI review 1), the label in Fredoka. Returns the cap and its face
+--- (tint the face to show it pressed).
 function GuideHints.keyCap(
 	parent: Instance,
 	label: string,
@@ -155,7 +156,7 @@ function GuideHints.keyCap(
 		Name = "Lip",
 		Position = UDim2.fromOffset(0, 4),
 		Size = UDim2.fromOffset(w, h),
-		BackgroundColor3 = Theme.PANEL_SHADE:Lerp(Theme.INK, 0.25),
+		BackgroundColor3 = Theme.INK,
 		BackgroundTransparency = 0,
 		ZIndex = zi,
 		Parent = cap,
@@ -178,6 +179,39 @@ function GuideHints.keyCap(
 		}, Theme.TEXT.number, "display")
 	end
 	Draw.slot("UI_Hint_Key", face, zi + 3)
+	return cap, face
+end
+
+--- The dash mark of `HUD.Dash` in small (08 §3.7): a sun-yellow disc with two navy chevrons, so
+--- the Space cap matches the button it points at.
+function GuideHints.dashMark(parent: Instance, size: number, position: UDim2, z: number): Frame
+	local disc =
+		Draw.disc(size, Theme.PRIMARY, position, { Name = "DashMark", ZIndex = z, Parent = parent })
+	Draw.stroke(Theme.STROKE_CHIP).Parent = disc
+	local len = size * 0.36
+	local thick = size * 0.14
+	for _, dx in { -0.15, 0.13 } do
+		for _, r in { 45, -45 } do
+			local y = size * 0.5 + (if r > 0 then -len * 0.33 else len * 0.33)
+			bar(disc, len, thick, size * (0.5 + dx), y, r, Theme.INK, z + 1)
+		end
+	end
+	return disc
+end
+
+--- `UI_Hint_Key` stretched for Space (`width` x 56): the dash mark at its left and the space-bar
+--- sign (a navy bracket open upward) beside it, since the engine names no label for Space.
+function GuideHints.spaceCap(parent: Instance, width: number, z: number?): (Frame, Frame)
+	local zi = z or 4
+	local cap, face = GuideHints.keyCap(parent, "", width, zi)
+	local h = GuideHints.CAP
+	GuideHints.dashMark(face, 36, UDim2.fromOffset(12 + 18, h / 2), zi + 2)
+	local signX = 12 + 36 + (width - 12 - 36) / 2
+	local signW = math.min(48, width - 36 - 36)
+	bar(face, signW, 6, signX, h / 2 + 8, 0, Theme.INK, zi + 2)
+	for _, side in { -1, 1 } do
+		bar(face, 6, 16, signX + side * (signW / 2 - 3), h / 2 + 3, 0, Theme.INK, zi + 2)
+	end
 	return cap, face
 end
 
@@ -451,7 +485,12 @@ function GuideHints.picture(parent: Instance, action: Action, mode: InputMode, z
 	local wide = key == Enum.KeyCode.Space
 	local width = if wide then GuideHints.SPACE else GuideHints.CAP
 	root.Size = UDim2.fromOffset(width, 64)
-	local cap, face = GuideHints.keyCap(root, GuideHints.keyLabel(key), width, zi)
+	local cap, face
+	if wide then
+		cap, face = GuideHints.spaceCap(root, width, zi)
+	else
+		cap, face = GuideHints.keyCap(root, GuideHints.keyLabel(key), width, zi)
+	end
 	cap.Position = UDim2.fromOffset(0, 2)
 	return { root = root, width = width, face = face }
 end

@@ -61,6 +61,8 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 		local area = { x = 0, y = 0, width = content.width, height = content.height }
 		local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
 		local min = HudLayout.minTarget(layout.screenClass)
+		-- Desktop draws the pointer, rings, chips and key row larger (08 §7).
+		local k = HudLayout.guideScale(layout.screenClass)
 		local abilityHit = HudLayout.hitRect(rects.ability, min)
 		-- The HUD the guide must stay off, and the targets chapter 04 points at.
 		local hud = { rects.massBar, rects.dashHit, abilityHit }
@@ -77,8 +79,8 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 			it(
 				`{name}: the arrow at {tname} stays in the frame, off the keep-clear box and the HUD`,
 				function()
-					local x, y, angle = HudLayout.guideArrow(target, content, hud)
-					local rect = HudLayout.arrowRect(x, y)
+					local x, y, angle = HudLayout.guideArrow(target, content, hud, k)
+					local rect = HudLayout.arrowRect(x, y, k)
 					expect(inside(rect, area)).toBe(true)
 					expect(HudLayout.overlaps(rect, rects.keepClear)).toBe(false)
 					expect(HudLayout.overlaps(rect, target)).toBe(false)
@@ -98,9 +100,9 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 			it(
 				`{name}: the bubble for {tname} clears the keep-clear box, the HUD and the arrow`,
 				function()
-					local x, y = HudLayout.guideArrow(target, content, hud)
+					local x, y = HudLayout.guideArrow(target, content, hud, k)
 					local avoid = table.clone(hud)
-					table.insert(avoid, HudLayout.arrowRect(x, y))
+					table.insert(avoid, HudLayout.arrowRect(x, y, k))
 					for _, size in
 						{
 							{ width = 260, height = g.hint + 2 * g.bubblePad },
@@ -129,7 +131,7 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 			)
 
 			it(`{name}: the ring and the cut-out round {tname} keep its whole hit area`, function()
-				local ring = HudLayout.guideRing(target)
+				local ring = HudLayout.guideRing(target, k)
 				expect(inside(target, ring)).toBe(true)
 				local hole = HudLayout.guideCutout(target, layout.screenClass)
 				expect(inside(HudLayout.hitRect(target, min), hole)).toBe(true)
@@ -178,10 +180,71 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 			end
 		)
 
+		it(
+			`{name}: the ghost key row slides off the dock, its labels and the trait slots`,
+			function()
+				-- The cove's dock (its label hangs 20 rpx past each side) and the run's trait row
+				-- with its pips: both sit at the bottom centre with the ghost point.
+				local dock = HudLayout.cove(layout.screenClass, content, 1).dock[1]
+				local traits = HudLayout.traits(layout.screenClass, content)
+				local pips = HudLayout.traitPipsRect(traits.slots[1])
+				local avoid = table.clone(hud)
+				table.insert(
+					avoid,
+					{ x = dock.x - 20, y = dock.y, width = dock.width + 40, height = dock.height }
+				)
+				table.insert(avoid, {
+					x = traits.row.x,
+					y = pips.y,
+					width = traits.row.width,
+					height = traits.row.y + traits.row.height - pips.y,
+				})
+				local w, h = 232 * k, g.hint * k
+				local x, y = HudLayout.ghostKeys(content, w, h, avoid)
+				local rect = HudLayout.ghostRect(x, y, 232, k)
+				expect(rect.height).toBe(g.hint * k)
+				expect(inside(rect, area)).toBe(true)
+				expect(HudLayout.overlaps(rect, rects.keepClear)).toBe(false)
+				for _, r in avoid do
+					expect(HudLayout.overlaps(rect, HudLayout.grow(r, HudLayout.GAP_MIN - 1e-6))).toBe(
+						false
+					)
+				end
+			end
+		)
+
+		it(`{name}: the danger edge leaves the home marker, its ring and HOME uncovered`, function()
+			local avoid = HudLayout.homeAvoid(layout.screenClass, rects, nil)
+			local o = layout.contentOrigin
+			for i = 0, 11 do
+				local hx, hy = HudLayout.homeMarker(content, i * math.pi / 6, avoid)
+				local marker = { x = hx - 36, y = hy - 36, width = 72, height = 72 }
+				local parts = {
+					HudLayout.homeRect(hx, hy),
+					HudLayout.guideRing(marker, k),
+					HudLayout.homeTag(hx, hy, 96, content, avoid, k),
+				}
+				local full: { Rect } = {}
+				for _, r in parts do
+					table.insert(
+						full,
+						{ x = r.x + o.x, y = r.y + o.y, width = r.width, height = r.height }
+					)
+				end
+				for _, side in { "left", "right", "top", "bottom" } :: { HudLayout.Side } do
+					for _, piece in HudLayout.dangerPieces(side, layout.fullSize, full) do
+						for _, r in full do
+							expect(HudLayout.overlaps(piece.rect, r)).toBe(false)
+						end
+					end
+				end
+			end
+		end)
+
 		it(`{name}: off-screen arrows ride the edge clear of the HUD`, function()
 			for i = 0, 23 do
-				local x, y = HudLayout.guideEdgeArrow(content, i * math.pi / 12, hud)
-				local rect = HudLayout.arrowRect(x, y)
+				local x, y = HudLayout.guideEdgeArrow(content, i * math.pi / 12, hud, k)
+				local rect = HudLayout.arrowRect(x, y, k)
 				expect(inside(rect, area)).toBe(true)
 				for _, r in hud do
 					expect(HudLayout.overlaps(rect, r)).toBe(false)
@@ -195,7 +258,7 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 				local avoid = HudLayout.homeAvoid(layout.screenClass, rects, nil)
 				for i = 0, 35 do
 					local hx, hy = HudLayout.homeMarker(content, i * math.pi / 18, avoid)
-					local tag = HudLayout.homeTag(hx, hy, 96, content, avoid)
+					local tag = HudLayout.homeTag(hx, hy, 96 * k, content, avoid, k)
 					expect(inside(tag, area)).toBe(true)
 					for _, r in avoid do
 						expect(HudLayout.overlaps(tag, r)).toBe(false)
@@ -214,9 +277,10 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 		it(
 			`{name}: the dash pulse ring and DASH! clear the keep-clear box and the ability`,
 			function()
-				local ring = HudLayout.dashRing(rects.dash)
+				local ring = HudLayout.dashRing(rects.dash, k)
 				expect(inside(rects.dash, ring)).toBe(true)
-				local tag = HudLayout.dashTag(rects.dash, 160, content)
+				local tag = HudLayout.dashTag(rects.dash, 160 * k, content, k)
+				expect(tag.height).toBe(g.dashTagHeight * k)
 				expect(inside(tag, area)).toBe(true)
 				expect(HudLayout.overlaps(tag, rects.keepClear)).toBe(false)
 				expect(HudLayout.overlaps(tag, abilityHit)).toBe(false)
@@ -286,6 +350,67 @@ describe("Guide kit sizes and rules (docs/08 sections 1.5 and 7)", function()
 		local left = HudLayout.dangerEdge("left", full)
 		expect(left.width).toBe(96)
 		expect(left.height).toBe(720)
+	end)
+
+	it("holds bubble text at Body 24 up to two lines at every scale, Small 22 past them", function()
+		for i = 0, 22 do
+			local scale = 0.4 + i * 0.1
+			-- The drawn size never rounds under 24 (whole pixels, 08 §1.5).
+			local rpx = ScreenScale.textRpx(g.bubbleText, scale)
+			expect(rpx >= g.bubbleText).toBe(true)
+			expect(math.ceil(rpx * scale - 1e-6) / scale >= g.bubbleText - 1e-6).toBe(true)
+			-- Any line height (Nunito's, or a font's with taller leading) at that scale.
+			for _, leading in { 1.15, 1.36, 1.6 } do
+				local line = math.ceil(rpx * scale * leading)
+				expect(HudLayout.bubbleTextRpx(line, line)).toBe(24)
+				expect(HudLayout.bubbleTextRpx(2 * line, line)).toBe(24)
+				expect(HudLayout.bubbleTextRpx(2 * line + 2, line)).toBe(24)
+				expect(HudLayout.bubbleTextRpx(3 * line, line)).toBe(HudLayout.TEXT_FLOOR)
+			end
+		end
+	end)
+
+	it("draws the guide 1.4x on desktop only, the bubble text excepted", function()
+		expect(HudLayout.guideScale("Desktop")).toBe(1.4)
+		for _, class in { "Phone", "Tablet", "Handheld", "TV" } :: { HudLayout.ScreenClass } do
+			expect(HudLayout.guideScale(class)).toBe(1)
+		end
+		local r = HudLayout.arrowRect(0, 0, 1.4)
+		expect(r.width).toBeCloseTo((g.arrow + 2 * g.bob) * 1.4)
+		local dash = { x = 0, y = 0, width = 80, height = 96 }
+		expect(HudLayout.dashRing(dash, 1.4).x).toBeCloseTo(-g.dashRingPad * 1.4)
+	end)
+
+	it("presses a tap or hold target at its lower right, inside it", function()
+		local dash = { x = 100, y = 100, width = 136, height = 136 }
+		local x, y = HudLayout.handPoint(dash)
+		expect(x).toBe(168 + g.handOffset)
+		expect(y).toBe(168 + g.handOffset)
+		-- Off the hold ring's centre by more than its radius: the fill stays in sight.
+		expect(math.sqrt(2) * g.handOffset > g.holdRing / 2).toBe(true)
+		local bar = { x = 0, y = 0, width = 440, height = 40 }
+		local bx, by = HudLayout.handPoint(bar)
+		expect(bx).toBe(220 + g.handOffset)
+		expect(by).toBe(40)
+	end)
+
+	it("cuts the danger edge round the home marker, soft at the cut ends", function()
+		local full = { width = 1280, height = 720 }
+		local pieces =
+			HudLayout.dangerPieces("left", full, { { x = 20, y = 300, width = 100, height = 120 } })
+		expect(#pieces).toBe(2)
+		expect(pieces[1].rect.y).toBe(0)
+		expect(pieces[1].rect.height).toBe(284)
+		expect(pieces[1].softStart).toBe(false)
+		expect(pieces[1].softEnd).toBe(true)
+		expect(pieces[2].rect.y).toBe(436)
+		expect(pieces[2].softStart).toBe(true)
+		expect(pieces[2].softEnd).toBe(false)
+		-- Off the edge: one whole piece.
+		local whole =
+			HudLayout.dangerPieces("left", full, { { x = 600, y = 300, width = 80, height = 80 } })
+		expect(#whole).toBe(1)
+		expect(whole[1].rect.height).toBe(720)
 	end)
 
 	it("lays trail dots every 12 studs, at most 12 ahead, the passed ones gone", function()

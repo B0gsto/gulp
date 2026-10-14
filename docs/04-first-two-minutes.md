@@ -154,7 +154,7 @@ Seven prompt types cover the whole FTUE. Each has a glyph set per input type. Ga
 | Bubble trail | `FX_HomeTrail` | A line of pearl-white bubbles, one every 6 studs, drifting along the route | Same | Same | Same |
 | Dash pulse | `UI_HUD_DashButton` | The dash button swells to 1.3× and back twice a second with a white ring | Button under right thumb | Space key cap | A button glyph |
 
-Danger uses the canon red outline plus a red screen-edge glow (`UI_HUD_DangerEdge`) on the side the predator is on.
+Danger uses the canon red outline plus a red screen-edge glow (`UI_HUD_DangerEdge`) on the side the predator is on, which leaves the home marker uncovered (08 §7).
 
 ### 3.3 Every word shown in the first 180 seconds
 

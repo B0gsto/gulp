@@ -1083,11 +1083,11 @@ Chapter 04 scripts the first two minutes and uses only these parts. All sit on t
 |---|---|---|---|---|
 | G1 | Arrow | `UI_Guide_Arrow` | 96 | Points at a HUD element (by ID) or a world position; bobs 12 rpx at 1.5 Hz along its own direction |
 | G2 | Curved arrow | `UI_Guide_ArrowCurved` | 128 | Joins a text bubble to its target when they are apart |
-| G3 | Hand | `UI_Guide_Hand` (up and down sprites) | 112 | Three loops. Tap: down 120 ms, up 380 ms, pause 500 ms. Hold: down for the hold length with a ring filling. Drag: down, moves along a path for 800 ms leaving a fading trail, up. |
-| G4 | Trail marker | `UI_Guide_TrailDot`, `UI_Guide_TrailChevron` | 48, 64 | A glowing line of dots in the world from the creature to a target, one every 12 studs, at most 12. Chevrons flow along it at two dots a second. Dots fade as the creature passes. If the target is off screen an edge arrow (G1) leads to it. |
+| G3 | Hand | `UI_Guide_Hand` (up and down sprites) | 112 | Three loops. Tap: down 120 ms, up 380 ms, pause 500 ms. Hold: down for the hold length with a ring filling. Drag: down, moves along a path for 800 ms leaving a fading trail, up. Tap and hold press 28 rpx right of and below the target's centre (held inside it), so the target and the hold ring stay in sight. |
+| G4 | Trail marker | `UI_Guide_TrailDot`, `UI_Guide_TrailChevron` | 48, 64 | A glowing line of dots in the world from the creature to a target, one every 12 studs, at most 12. Chevrons flow along it at two dots a second. Dots fade as the creature passes. If the target is off screen an edge arrow (G1) leads to it. Each dot has a dark halo and a navy rim, each chevron a navy outline and a hard shadow, so they read on bright sand and sky. |
 | G5 | Highlight ring | `UI_Guide_Ring` | 160, nine-sliced | Sits around a HUD element or a world target; pulses 1.0 to 1.15 at 1 Hz |
 | G6 | Cut-out scrim | `UI_Guide_Cutout` | Nine-sliced | Dims the screen by 50% except a rounded hole around the target. Taps reach only the target. Never used in open water. |
-| G7 | Text bubble | `UI_Guide_Bubble`, `UI_Common_BubbleTail` | Up to 420 wide | At most two lines and 28 English characters, Body 24. Sits above its target; when the target is the creature it uses the moment slot instead. |
+| G7 | Text bubble | `UI_Guide_Bubble`, `UI_Common_BubbleTail` | Up to 420 wide | At most two lines and 28 English characters, Body 24 at every scale (only a translation past two lines drops to Small 22, 1.5). A 4.5 rpx navy outline and a hard shadow 7 rpx down at 50%, for bright scenes. Sits above its target; when the target is the creature it uses the moment slot instead. |
 | G8 | Input hint | Hand, key cap or gamepad glyph | 64 | Shows the right picture for the input in use and swaps within 200 ms when the player changes input |
 | G9 | Step tick | `UI_Common_Check` | 64 | Pops on the bubble for 400 ms when the step is done, with `SFX_UI_GuideStep` |
 
@@ -1095,10 +1095,10 @@ Chapter 04 scripts the first two minutes and uses only these parts. All sit on t
 
 | Prompt | Image | Size (rpx) | Behaviour |
 |---|---|---|---|
-| Ghost thumb | `UI_Guide_GhostThumb` | 112 | Touch: a thumbprint at 45% opacity presses at lower centre (halfway between the keep-clear box and the bottom of the safe frame) and drags 84 rpx toward the target (the drag ring's reach, 3.16; 128 for the longer replay) (tune), looping every 1.6 s. Its drag is the one prompt that may cross into the keep-clear box: it is see-through and moves for under a second. Keys: a row of `UI_Hint_MouseMove`, a W key cap (`UI_Hint_Key`, pressing in the same loop) and `UI_Hint_KeyArrows` at the same place. Pad [L]: `UI_Hint_PadLStick`. |
+| Ghost thumb | `UI_Guide_GhostThumb` | 112 | Touch: a thumbprint at 45% opacity presses at lower centre (halfway between the keep-clear box and the bottom of the safe frame) and drags 84 rpx toward the target (the drag ring's reach, 3.16; 128 for the longer replay) (tune), looping every 1.6 s. A navy rim and a soft shadow (80% while the thumb shows) and a drag cue at 80% (five 14 rpx dots from the press point to a 48 rpx ring where the drag ends) keep it readable on sky and sand. Its drag is the one prompt that may cross into the keep-clear box: it is see-through and moves for under a second. Keys: a row 64 rpx tall of `UI_Hint_MouseMove`, a W key cap (`UI_Hint_Key`, pressing in the same loop) and `UI_Hint_KeyArrows` at the same place, slid sideways the shortest way until it keeps 16 rpx from the dock, its labels and the trait slots. Pad [L]: `UI_Hint_PadLStick`. |
 | Home marker | Ring `UI_Guide_Ring` on `UI_HUD_HomeMarker` | Ring 104 | The highlight ring (G5) around `HUD.Home`'s marker, and `guide.home_tag` (Small 22, on a chip) under its distance chip, or above the marker when there is no room under it |
-| Dash pulse | Ring `UI_Common_RingPulse` on `UI_HUD_DashButton` | Dash + 16 | A white ring over `HUD.Dash` swells to 1.3× and back twice a second; `guide.dash_now` (Body 24, on a chip) sits above the button. Keys: a Space key cap beside the tile; Pad [L]: `UI_Hint_PadA` |
-| Danger edge | `UI_HUD_DangerEdge` | 96 deep (tune) | A red glow (canon red, 35% at the edge, fading inward) along the full screen edge on the predator's side; fades over 0.5 s when the danger ends |
+| Dash pulse | Ring `UI_Common_RingPulse` on `UI_HUD_DashButton` | Dash + 16 | A white ring over `HUD.Dash` swells to 1.3× and back twice a second; `guide.dash_now` (Body 24, on a chip) sits above the button. Keys: a Space key cap (`UI_Hint_Key` stretched to 120, the dash button's yellow chevron mark and the space-bar sign on a cream face over a navy lip) in the chip; Pad [L]: `UI_Hint_PadA`. The HOME and DASH! chips have a 3.3 rpx navy outline and a hard shadow |
+| Danger edge | `UI_HUD_DangerEdge` | 96 deep (tune) | A red glow (canon red, 35% at the edge, fading inward) along the full screen edge on the predator's side, with a gap where `HUD.Home`'s marker, its ring and HOME sit (16 rpx clear; the cut ends fade over 48 rpx); fades over 0.5 s when the danger ends |
 
 **Calls chapter 04 can make**
 
@@ -1124,6 +1124,7 @@ A target is a HUD element by ID, a world position, a point on the screen, or the
 - Prompts never block steering, never cover the keep-clear box, and never show while an unrelated menu is open.
 - Text comes only from `guide.*` keys (section 14.11). Chapter 04 may ask for more keys; it does not write its own text.
 - With "Less motion" on, bobbing and pulsing become a slow fade (0.5 Hz).
+- On Desktop the arrow (G1), the rings (G5, the home ring, the dash pulse), the HOME and DASH! chips and the ghost key row draw at 1.4× (tune): the desktop deviceFactor (0.60, section 1.2) leaves them small in a window. Bubble text stays Body 24.
 
 ## 8. Loading and reconnect
 

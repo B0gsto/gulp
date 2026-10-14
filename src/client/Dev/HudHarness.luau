@@ -404,7 +404,9 @@ local function guide(name: string?): string
 	end
 	Guide.reset()
 	local camera = workspace.CurrentCamera
-	local home = if camera then (camera.CFrame * CFrame.new(-400, -20, 120)).Position else nil
+	-- Home up and to the left, so its marker rides the top of the ellipse, well off the danger
+	-- edge on the left (which would leave a gap round it anyway, 04 §3.2).
+	local home = if camera then (camera.CFrame * CFrame.new(-200, 350, -100)).Position else nil
 	UIController.setPreview({ dashLeft = 0, home = if name == "point" then home else nil })
 	if name == "point" then
 		Guide.point(Guide.hud("HUD.Dash"), {
@@ -481,6 +483,8 @@ local function guideCheck(): string
 		"GhostKeys",
 		"Chip",
 		"UI_HUD_DangerEdge",
+		"CueRing",
+		"Rim",
 	}
 	for _, d in canvas:GetDescendants() do
 		if d:IsA("GuiObject") and table.find(names, d.Name) then
