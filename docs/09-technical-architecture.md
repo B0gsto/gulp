@@ -1715,7 +1715,7 @@ Command: `lune run tools/test/runner -- sim`.
 
 Specs under `src/server/Tests/` use the same `TestKit` and cover what needs the engine: remote wrappers, `WorldIndex` on the test arena, a full join with `ProfileStore.Mock`, a bite end to end against a bot, a bank, a gulp, a simulated receipt (granted once, repeated receipt not granted twice), a Call the Tide override. `Tests/RunAll.luau` returns a summary string.
 
-- Locally through MCP: `execute_luau` with `datamodel_type = "Server"` during a play test, running `return require(game.ServerScriptService.Server.Tests.RunAll)()`.
+- Locally through MCP: `execute_luau` with `datamodel_type = "Server"` during a play test, running `return game.ServerScriptService.Server.RunTests:Invoke()`. MCP code runs in its own Luau VM, where requiring `Tests/RunAll` directly would load fresh copies of every module rather than the running services, so `Main` creates the `RunTests` BindableFunction (only when the environment of `Config/Defaults` has dev cheats on, or is CI) and it runs `RunAll` inside the server's VM. Specs that need a player (the join and leave of `CreatureSpec`) use the play test's own player.
 - In CI through Open Cloud Luau execution on the CI place. Physics does not step there (**V16**), so these specs call service functions directly and step simulations by hand.
 
 ### 16.4 Play tests through the Studio MCP server
