@@ -28,7 +28,7 @@ Measured 2026-10-14 with Blender 5.2.2 LTS, headless. Rebuild with
 | Clip | `A_Fish_Swim`: 16 frames at 30 fps (0.533 s), 17 keys on every curve, all 28 bones keyed, last frame equals first |
 | FBX sizes (bytes) | Body 102,604; `_LOD1` 85,468; `_Shell` 81,996; `_Crest` 17,068; `A_Fish_Swim` 288,540; `_RigTest` 397,596 |
 | Validation | 117 checks pass, 2 of them by logged waiver (the dark-block L* rows below). Weights at most 4 per vertex, normalised, none on Root or sockets; watertight; one material; one UV set; 06 §4.1 value blocks: mid 58%, light 26%, dark 13.5%, accent 2.4% |
-| Poses | Bite: jaw open 38°, head lunges 12% of length, body at 115%. Dash: 125% |
+| Poses | Bite: jaw open 52°, head lunges 12% of length, body at 115%. Dash: 125% |
 
 ## Both
 
@@ -36,4 +36,4 @@ Measured 2026-10-14 with Blender 5.2.2 LTS, headless. Rebuild with
 |---|---|
 | Blender peak memory | 385 MB (cube), 390 MB (fish), including EEVEE previews |
 | Exporter problems | None blocking. Every 06 §6.7 setting is accepted. `UnitScaleFactor` is 0.9999999776, not exactly 1. Geometry nodes are named `<mesh>.001` (the exporter's triangulated copy); the Model nodes, which Studio uses for names, are correct |
-| Bible inconsistency, for the owner | The Minnow's dark `#C2491D` (06 §4.3) is L* 47.4, but 06 §4.1 asks for 35 or less. Validation fails on it. The stand-in passes only through a logged waiver in `families/fish/build.py`; the bible colour is unchanged. Measured dark block on the body, pupils included: L* 44.3 |
+| Bible inconsistency, for the owner | The Minnow's dark `#C2491D` (06 §4.3) is L* 47.4, but 06 §4.1 asks for 35 or less. Validation fails on it. The stand-in passes only through a logged waiver in `families/fish/build.py`; the bible colour is unchanged. Measured dark block on the body, pupils and navy mouth included: L* 38.4 |
