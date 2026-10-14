@@ -94,6 +94,9 @@ PreyService.name = "PreyService"
 
 --- (slot, scripted ID, prey ID): a member of a scripted group was eaten by its owner.
 PreyService.onScriptedEaten = Signal.new() :: Types.Signal<Slot, number, string>
+--- (slot, prey ID): a member of a wild (not scripted) group was eaten, deferred like
+--- `onScriptedEaten`. TutorialService's first bite (04 §3.1: any first prey).
+PreyService.onWildEaten = Signal.new() :: Types.Signal<Slot, string>
 
 local sim: PreySim.Sim
 local interest: PreyInterest.State
@@ -219,6 +222,10 @@ end
 
 local function fireScriptedEaten(slot: Slot, id: number, preyId: string)
 	PreyService.onScriptedEaten:fire(slot, id, preyId)
+end
+
+local function fireWildEaten(slot: Slot, preyId: string)
+	PreyService.onWildEaten:fire(slot, preyId)
 end
 
 --- Removes every scripted group of `slot`; each one's knowers get a PreyEvent. Also run for a slot
@@ -436,6 +443,8 @@ function PreyService.tryEat(
 		-- Deferred: a listener runs after the bite claim, so one that throws or calls back into
 		-- PreyService cannot break BiteService's loop over the claim's targets.
 		task.defer(fireScriptedEaten, slot, run.id, run.prey)
+	elseif owner == 0 then
+		task.defer(fireWildEaten, slot, def.id)
 	end
 	return true, def
 end
@@ -498,6 +507,23 @@ function PreyService.steerScripted(
 		return PreySpawner.steerOwned(spawner, slot, scriptedId, nil)
 	end
 	return PreySpawner.steerOwned(spawner, slot, scriptedId, target.X, target.Y, target.Z, speed)
+end
+
+--- Members alive in scripted group `scriptedId` of `slot`, and its centre (where its leash is,
+--- steered or not); 0 and nil when the slot has no such group or it is gone. Addition to 5.1's
+--- API, for TutorialService (04 §3.6 B3: krill kept near the player; homing on the nearest).
+function PreyService.scriptedAlive(slot: Slot, scriptedId: number): (number, Vector3?)
+	local run = spawner.owned[scriptedId]
+	if run == nil or run.owner ~= slot then
+		return 0, nil
+	end
+	local alive = 0
+	for _, part in run.parts do
+		if part.g >= 0 then
+			alive += PreySim.aliveCount(sim, part.g)
+		end
+	end
+	return alive, Vector3.new(PreySpawner.ownedCentre(spawner, scriptedId))
 end
 
 --- The PreyDef of member `member` of group `groupId` when the group is live at `gen` and the

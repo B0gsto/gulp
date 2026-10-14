@@ -25,6 +25,7 @@ local SPECS: { () -> () } = {
 	require("./LiveConfigSpec"),
 	require("./CoveSpec"),
 	require("./TraitSpec"),
+	require("./TutorialSpec"),
 }
 
 local function runAll(): string

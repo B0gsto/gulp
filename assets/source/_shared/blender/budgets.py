@@ -57,6 +57,9 @@ BUDGETS = {
     "haze": {"tris": 200, "bones": 0},
     # Not a 06 6.3 row: the Nursery's low rim pieces are chapter 07's (section 6.2, M_Env_Nursery_Rim_01-02: 1,000 tris).
     "nursery_rim": {"tris": 1000, "bones": 0},
+    # Not a 06 6.3 row: M_Prop_HatchEgg's budget is chapter 07's (section 2.0): 200 tris; each of its
+    # three meshes, and the two halves together (cove/hatchegg/build.py).
+    "hatch_egg": {"tris": 200, "bones": 0},
     # Not a bible row: M_Prop_ScaleCube is a script output (07 section 17 tool row).
     # It is held to the cove-prop ceiling, with no floor.
     "calibration": {"tris": 800, "bones": 0},
