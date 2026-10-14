@@ -165,7 +165,7 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 		if not RateLimit.allow(eatLimit, player, EAT_BUCKET, clock) then
 			reason = BiteResult.REASON_RATE
 		else
-			local def, preySpeed = PreyService.peek(g, i, gen)
+			local def, preySpeed = PreyService.peek(state.slot, g, i, gen)
 			if def == nil then
 				reason = BiteResult.REASON_GONE
 			elseif not BiteRules.canEatPrey(state.tier, def.tier) then

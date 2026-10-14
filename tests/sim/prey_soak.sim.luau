@@ -15,8 +15,8 @@
 -- from a hatch point in the Nursery: Swarm A (6 krill) at 14 studs, a trail of 10 plankton motes
 -- every 4 studs from 20 to 56, Swarm B (14 krill) at 60 and 5 Glowfry at 90, all owned by that
 -- newcomer's slot (PreySpawner.spawnOwned) and respawning, so the 17 groups each stay for the whole
--- run. A newcomer swims the route back and forth; only it may eat its prey, and only its packets
--- carry them. The soak fails if a route is refused or the groups pass MAX_GROUPS.
+-- run; the krill are calm (04 §4: FTUE krill never scatter). A newcomer swims the route back and
+-- forth; only it may eat its prey, and only its packets carry them. The soak fails if a route is refused or the groups pass MAX_GROUPS.
 -- Frenzy. 02 §14.2 and §14.4: T+0 at FRENZY_AT, rules off 240 s later; PreySpawner.setTide("frenzy")
 -- (spawnRateMult 3 divides respawn delays; the frenzy tide doubles normal prey targets). Its
 -- eventPrey list is empty, so the soak adds the worst case 09 §8.1 leaves room for: Moon Tide's
@@ -367,6 +367,7 @@ local function run(seed: number): Result
 				z = s.hz,
 				spread = 3,
 				respawn = true,
+				calm = true,
 			},
 			{ prey = "plankton", points = trail, respawn = true },
 			{
@@ -377,6 +378,7 @@ local function run(seed: number): Result
 				z = s.hz,
 				spread = 4,
 				respawn = true,
+				calm = true,
 			},
 			{ prey = "glowfry", points = glowfry, spread = 3, respawn = true },
 		}

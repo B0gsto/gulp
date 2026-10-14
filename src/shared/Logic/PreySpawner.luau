@@ -36,7 +36,11 @@
 --           `liveMembers` leaves them out. A spec that respawns refills a group eaten out after its
 --           `PreyDef.respawn` s, on the pass. Budgets: OWNED_MAX_GROUPS on the server (MAX_GROUPS
 --           less 09 §8.1's worst case, so normal prey always have their slots) and
---           OWNED_MAX_PER_SLOT per slot; a spec that does not fit whole is refused.
+--           OWNED_MAX_PER_SLOT per slot; OWNED_MAX_MEMBERS on the server and
+--           OWNED_MAX_MEMBERS_PER_SLOT per slot; a spec that does not fit whole is refused. A
+--           `calm` spec reacts to no threat (04 §4: FTUE krill never scatter). `steerOwned` moves
+--           a run's leash: `stepOwned`, every tick, slides each part's home toward the target at
+--           the given speed, and the members follow on their leash.
 local Formation = require("../Sim/Formation")
 local Index = require("../Data/Index")
 local PreySim = require("../Sim/PreySim")
@@ -62,6 +66,12 @@ PreySpawner.FRENZY_TIDE = "frenzy" -- the one tide that doubles normal targets (
 PreySpawner.OWNED_MAX_GROUPS = PreySim.MAX_GROUPS - 548
 PreySpawner.OWNED_MAX_PER_SLOT = 20 -- (tune) one newcomer's whole route is 17 (04 §3.5: 1 + 10 + 1 + 5)
 PreySpawner.OWNED_LEASH_MIN = 2 -- studs (tune): the smallest home of an owned group
+-- (tune) 92 groups at the worst case's mean of 2,720 / 548 ≈ 4.96 members, so the server's 640
+-- groups hold at most about 3,180 members (09 §8.1), not 92 × 24 = 2,208 more.
+PreySpawner.OWNED_MAX_MEMBERS = 456
+-- (tune) the route's 35 (6 + 10 + 14 + 5), B4's grow_burst of 10 krill and a home_lure krill swarm
+-- of up to 20 (03 §2.1: 12 to 20), 04 §3.6.
+PreySpawner.OWNED_MAX_MEMBERS_PER_SLOT = 65
 
 export type Area = {
 	zone: string,
@@ -108,6 +118,7 @@ export type OwnedSpec = {
 	spread: number?, -- ball radius, studs: the radius and half height of each group's home
 	points: { { number } }?,
 	respawn: boolean?, -- a group eaten out comes back after PreyDef.respawn s (default no)
+	calm: boolean?, -- reacts to no threat, never flees or scatters (04 §4; default no)
 }
 
 export type OwnedPart = {
@@ -128,9 +139,17 @@ export type Owned = {
 	kind: number,
 	def: PreyDef,
 	respawn: boolean,
+	calm: boolean,
 	parts: { OwnedPart },
 	live: number, -- live groups
-	reserved: number, -- parts counted against the budgets
+	reserved: number, -- parts counted against the group budgets
+	reservedMembers: number, -- their members, counted against the member budgets
+	-- Steering (`steerOwned`): the target of the run's centre and its speed, studs/s.
+	steering: boolean,
+	tx: number,
+	ty: number,
+	tz: number,
+	speed: number,
 }
 
 export type Spawner = {
@@ -161,6 +180,8 @@ export type Spawner = {
 	ownedByGroup: { [number]: Owned }, -- by group ID
 	ownedBySlot: { [number]: number }, -- parts reserved per owner slot
 	ownedTotal: number, -- parts reserved on the server
+	ownedMembersBySlot: { [number]: number }, -- members of those parts per owner slot
+	ownedMembersTotal: number,
 	nextOwned: number,
 }
 
@@ -199,6 +220,8 @@ function PreySpawner.new(sim: PreySim.Sim, seed: number): Spawner
 		ownedByGroup = {},
 		ownedBySlot = {},
 		ownedTotal = 0,
+		ownedMembersBySlot = {},
+		ownedMembersTotal = 0,
 		nextOwned = 0,
 	}
 end
@@ -444,11 +467,15 @@ local spawnEventGroups: (
 	n: number
 ) -> number
 
--- Releases `n` parts of run `run` from the budgets, and forgets the run once nothing is left.
-local function release(sp: Spawner, run: Owned, n: number)
+-- Releases `n` parts of run `run` with `members` members from the budgets, and forgets the run
+-- once nothing is left.
+local function release(sp: Spawner, run: Owned, n: number, members: number)
 	run.reserved -= n
+	run.reservedMembers -= members
 	sp.ownedBySlot[run.owner] = (sp.ownedBySlot[run.owner] or 0) - n
 	sp.ownedTotal -= n
+	sp.ownedMembersBySlot[run.owner] = (sp.ownedMembersBySlot[run.owner] or 0) - members
+	sp.ownedMembersTotal -= members
 	if run.reserved <= 0 and run.live <= 0 then
 		sp.owned[run.id] = nil
 	end
@@ -460,14 +487,16 @@ local function removeGroup(sp: Spawner, g: number, now: number)
 	if run then
 		sp.ownedByGroup[g] = nil
 		run.live -= 1
+		local count = 0
 		for _, part in run.parts do
 			if part.g == g then
 				part.g = -1
 				part.readyAt = now + (run.def.respawn or 0)
+				count = part.count
 			end
 		end
 		if not run.respawn then
-			release(sp, run, 1)
+			release(sp, run, 1, count)
 		end
 	end
 	local rowIndex = buffer.readu16(sp.rowOf, g * 2)
@@ -538,7 +567,7 @@ local function spawnPart(sp: Spawner, run: Owned, part: OwnedPart, now: number):
 	if g == nil then
 		return false
 	end
-	PreySim.own(sim, g, run.owner, part.radius, part.radius)
+	PreySim.own(sim, g, run.owner, part.radius, part.radius, run.calm)
 	buffer.writeu16(sp.rowOf, g * 2, 0)
 	buffer.writef64(sp.straggleAt, g * 8, 0)
 	buffer.writef64(sp.spawnedAt, g * 8, now)
@@ -599,10 +628,15 @@ function PreySpawner.spawnOwned(sp: Spawner, owner: number, spec: OwnedSpec, now
 			readyAt = 0,
 		}
 	end
-	local n = #parts
+	local n, members = #parts, 0
+	for _, part in parts do
+		members += part.count
+	end
 	if
 		(sp.ownedBySlot[owner] or 0) + n > PreySpawner.OWNED_MAX_PER_SLOT
 		or sp.ownedTotal + n > PreySpawner.OWNED_MAX_GROUPS
+		or (sp.ownedMembersBySlot[owner] or 0) + members > PreySpawner.OWNED_MAX_MEMBERS_PER_SLOT
+		or sp.ownedMembersTotal + members > PreySpawner.OWNED_MAX_MEMBERS
 		or PreySim.MAX_GROUPS - sp.sim.liveGroups < n
 	then
 		return nil
@@ -615,13 +649,22 @@ function PreySpawner.spawnOwned(sp: Spawner, owner: number, spec: OwnedSpec, now
 		kind = kind,
 		def = def,
 		respawn = spec.respawn == true and def.respawn ~= nil,
+		calm = spec.calm == true,
 		parts = parts,
 		live = 0,
 		reserved = n,
+		reservedMembers = members,
+		steering = false,
+		tx = 0,
+		ty = 0,
+		tz = 0,
+		speed = 0,
 	}
 	sp.owned[run.id] = run
 	sp.ownedBySlot[owner] = (sp.ownedBySlot[owner] or 0) + n
 	sp.ownedTotal += n
+	sp.ownedMembersBySlot[owner] = (sp.ownedMembersBySlot[owner] or 0) + members
+	sp.ownedMembersTotal += members
 	for _, part in parts do
 		if not spawnPart(sp, run, part, now) then
 			-- A slot reserved for a respawn was in the way: undo the whole spec.
@@ -632,7 +675,7 @@ function PreySpawner.spawnOwned(sp: Spawner, owner: number, spec: OwnedSpec, now
 				end
 			end
 			if sp.owned[run.id] then
-				release(sp, run, run.reserved)
+				release(sp, run, run.reserved, run.reservedMembers)
 			end
 			return nil
 		end
@@ -656,10 +699,76 @@ function PreySpawner.clearOwned(sp: Spawner, owner: number, now: number): number
 			end
 		end
 		if sp.owned[run.id] then
-			release(sp, run, run.reserved)
+			release(sp, run, run.reserved, run.reservedMembers)
 		end
 	end
 	return n
+end
+
+--- Steers owned run `id` of slot `owner`: from the next `stepOwned` its centre (the mean of its
+--- parts' spawn points) slides toward (x, y, z) at `speed` studs/s and stops there, every part's
+--- home moving with it; nil x ends the steering where the centre is. False when slot `owner` has
+--- no such run or the speed is not positive.
+function PreySpawner.steerOwned(
+	sp: Spawner,
+	owner: number,
+	id: number,
+	x: number?,
+	y: number?,
+	z: number?,
+	speed: number?
+): boolean
+	local run = sp.owned[id]
+	if run == nil or run.owner ~= owner then
+		return false
+	end
+	if x == nil then
+		run.steering = false
+		return true
+	end
+	if y == nil or z == nil or speed == nil or not (speed > 0) then
+		return false
+	end
+	run.steering, run.tx, run.ty, run.tz, run.speed = true, x, y :: number, z :: number, speed
+	return true
+end
+
+--- The centre of owned run `id`: the mean of its parts' spawn points (each part's home centre).
+function PreySpawner.ownedCentre(sp: Spawner, id: number): (number, number, number)
+	local run = sp.owned[id]
+	assert(run, "PreySpawner.ownedCentre: no such run")
+	local x, y, z = 0, 0, 0
+	for _, part in run.parts do
+		x, y, z = x + part.x, y + part.y, z + part.z
+	end
+	local n = #run.parts
+	return x / n, y / n, z / n
+end
+
+--- Moves every steered run's centre `dt` seconds toward its target (see `steerOwned`). PreyService
+--- runs it each tick before PreySim.step. A part that is gone keeps its moved point, so it respawns
+--- there.
+function PreySpawner.stepOwned(sp: Spawner, dt: number)
+	local sim = sp.sim
+	for id, run in sp.owned do
+		if not run.steering then
+			continue
+		end
+		local cx, cy, cz = PreySpawner.ownedCentre(sp, id)
+		local dx, dy, dz = run.tx - cx, run.ty - cy, run.tz - cz
+		local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+		if d < 1e-6 then
+			continue
+		end
+		local s = math.min(1, run.speed * dt / d)
+		dx, dy, dz = dx * s, dy * s, dz * s
+		for _, part in run.parts do
+			part.x, part.y, part.z = part.x + dx, part.y + dy, part.z + dz
+			if part.g >= 0 then
+				PreySim.moveHome(sim, part.g, part.x, part.y, part.z)
+			end
+		end
+	end
 end
 
 --- The owned run group `g` belongs to, nil for a shared group.
@@ -928,7 +1037,8 @@ function PreySpawner.liveMembers(sp: Spawner): (number, number)
 	return members, groups
 end
 
---- Members alive in every live owned group, and the number of them.
+--- Members alive in every live owned group, and the number of them (Stats; the member budgets
+--- count the members reserved at spawn, `ownedMembersTotal`).
 function PreySpawner.ownedLive(sp: Spawner): (number, number)
 	local sim = sp.sim
 	local members, groups = 0, 0
