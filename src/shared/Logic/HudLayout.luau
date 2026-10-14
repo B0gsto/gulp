@@ -1,8 +1,8 @@
 --!strict
--- HudLayout: the pure geometry of the run HUD stage 1, of screens S11, S12 and S14 and of the
--- guide kit S33 (docs/08, sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.4, 4.5, 5.1 and 7; docs/04,
--- section 3.2; docs/15, sections 3.1 to 3.3). Numbers and
--- tables only, so it runs in Lune; `client/UI` places instances where this module says.
+-- HudLayout: the pure geometry of the run HUD stage 1, of screens S07, S08, S11, S12 and S14
+-- and of the guide kit S33 (docs/08, sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.1 to 4.5, 5.1 and 7;
+-- docs/04, section 3.2; docs/15, sections 3.1 to 3.3). Numbers and tables only, so it runs in
+-- Lune; `client/UI` places instances where this module says.
 --
 -- Coordinates are rpx. A `content` rect is the safe frame less its margins (Kit/Screen's
 -- `Layout.contentSize`), origin at its top left; the keep-out rects of `Layout.keepOut` are in
@@ -314,6 +314,185 @@ function HudLayout.homeMarker(
 	end
 	local x, y = HudLayout.homeOnEllipse(content, angle)
 	return x, y, angle
+end
+
+-- 08 §3.3 and §4.1: `HUD.MomentSlot`, top centre 130 rpx down, up to 480 × 112. 08 §3.3 also
+-- places `HUD.BankChip` (82 down, 40 tall) between it and the mass bar.
+HudLayout.MOMENT_SLOT = table.freeze({ top = 130, width = 480, height = 112 })
+HudLayout.BANK_CHIP = table.freeze({ top = 82, width = 240, height = 40 })
+-- 08 §4.1: every moment card sits `CARD_TOP` down in the slot, so it keeps 08 §1.5's 16 rpx gap
+-- under `HUD.BankChip` (122) and ends with the slot (242), 104 rpx tall.
+HudLayout.CARD_TOP = 8
+HudLayout.CARD_HEIGHT = 104
+-- `UI_Common_Rays` stand-in: the light spokes' outer corners reach r / cos(π/16), 2 % past the
+-- burst's radius, so its clip leaves this much round it.
+HudLayout.RAYS_PAD = 4
+-- 08 §1.5 type sizes (Kit/Theme.TEXT), here so the specs can prove the 22 rpx floor.
+HudLayout.TEXT_FLOOR = 22
+
+-- 08 §4.2, S07: the tier-up card, 460 × 104 on `UI_Common_Ribbon`: a cream band with a notched
+-- tail tucked behind each end, the new tier badge (96; 104 at tier 7) at the left of the band,
+-- then `moment.tier_up` (Body 24), the tier name (Title 40) and the `moment.new_food` row
+-- (Small 22 and up to three 36 rpx prey icons, each in an edible-colour ring, read at a glance on
+-- a phone). Rays (tier 7) turn behind the badge, over the band: a burst of `raysRadius` centred on
+-- the badge, the text moved right to clear it by `raysGap`.
+HudLayout.TIER_UP = table.freeze({
+	width = 460,
+	height = HudLayout.CARD_HEIGHT,
+	band = 24, -- each tail shows this much beyond the band
+	tailWidth = 44,
+	tailHeight = 76,
+	tailDrop = 8, -- the tails hang this much below the band's middle
+	notch = 16, -- depth of the V cut into each tail's outer end
+	art = 96,
+	topArt = 104, -- tier 7: the climax badge, on the same centre
+	topRim = 4, -- tier 7: a gold rim round the 96 rpx badge makes those 104
+	artInset = 8, -- band edge to badge
+	gap = 16, -- art to text, and text to the band's right edge
+	headerHeight = 26,
+	nameHeight = 42,
+	lineHeight = 36,
+	foodIcon = 36,
+	foodGap = 6,
+	raysRadius = 92,
+	raysGap = 8,
+	type = table.freeze({ header = 24, name = 40, line = 22 }),
+})
+-- 08 §4.3, S08: the trait gained card, 420 × 104: the trait icon (80) in its rarity frame, then
+-- `moment.trait_gained` (Body 24), the trait name (Title 40) and the effect line `trait.<id>.fx`
+-- (Body 24; Small 22 when a translation does not fit, 08 §1.5). Epic and Mythic add rays
+-- behind the icon, over the card, as S07's tier 7 does.
+HudLayout.TRAIT_GAINED = table.freeze({
+	width = 420,
+	height = HudLayout.CARD_HEIGHT,
+	band = 0,
+	art = 80,
+	artInset = 16,
+	gap = 16,
+	headerHeight = 28,
+	nameHeight = 44,
+	lineHeight = 28,
+	raysRadius = 84,
+	raysGap = 8,
+	type = table.freeze({ header = 24, name = 40, line = 24 }),
+})
+
+--- `HUD.MomentSlot` (08 §3.3) in content rpx as the moment cards use it: centred, 130 rpx from
+--- the top, 480 x 112, never moved (14 row 35 (c)). A guide bubble's place in the slot is
+--- `momentSlot(content, size)`.
+function HudLayout.momentCardSlot(content: Size): Rect
+	local s = HudLayout.MOMENT_SLOT
+	return { x = (content.width - s.width) / 2, y = s.top, width = s.width, height = s.height }
+end
+
+--- `HUD.BankChip` at its widest (08 §3.3), in content rpx. Stage 2 builds it; the moment slot
+--- keeps clear of it now.
+function HudLayout.bankChip(content: Size): Rect
+	local b = HudLayout.BANK_CHIP
+	return { x = (content.width - b.width) / 2, y = b.top, width = b.width, height = b.height }
+end
+
+export type MomentCardRects = {
+	card: Rect, -- in the slot, top centred
+	band: Rect, -- the cream panel, card-local from here down (all of the card for S08)
+	tails: { Rect }, -- S07's two ribbon tails behind the band ends, left first; empty for S08
+	art: Rect, -- badge or icon
+	rays: Rect, -- the ray burst, centred on the art
+	raysClip: Rect, -- where the rays may show: the whole burst and its spoke tips, cut only at the
+	-- card's bottom (08 §4.1: a round burst past the sides and the top, never below the card)
+	header: Rect,
+	name: Rect,
+	line: Rect?, -- the new food row or the effect line; nil when there is none
+}
+
+type CardSpec = {
+	width: number,
+	height: number,
+	band: number,
+	art: number,
+	artInset: number,
+	gap: number,
+	headerHeight: number,
+	nameHeight: number,
+	lineHeight: number,
+	raysRadius: number,
+	raysGap: number,
+}
+
+local function momentCard(
+	spec: CardSpec,
+	slot: Size,
+	line: boolean,
+	artSize: number?,
+	rays: boolean?
+): MomentCardRects
+	local band = { x = spec.band, y = 0, width = spec.width - 2 * spec.band, height = spec.height }
+	-- A bigger badge grows about the same centre, so the text does not move.
+	local cx = band.x + spec.artInset + spec.art / 2
+	local cy = spec.height / 2
+	local a = artSize or spec.art
+	local art = { x = cx - a / 2, y = cy - a / 2, width = a, height = a }
+	local r = spec.raysRadius
+	local x = band.x + spec.artInset + spec.art + spec.gap
+	if rays then
+		-- The burst is symmetric about the art, so the text starts past its right end.
+		x = math.max(x, cx + r + spec.raysGap)
+	end
+	local width = band.x + band.width - spec.gap - x
+	local stack = spec.headerHeight + spec.nameHeight + (if line then spec.lineHeight else 0)
+	local y = (spec.height - stack) / 2
+	local pad = HudLayout.RAYS_PAD
+	return {
+		card = {
+			x = (slot.width - spec.width) / 2,
+			y = HudLayout.CARD_TOP,
+			width = spec.width,
+			height = spec.height,
+		},
+		band = band,
+		tails = {},
+		art = art,
+		rays = { x = cx - r, y = cy - r, width = 2 * r, height = 2 * r },
+		raysClip = {
+			x = cx - r - pad,
+			y = cy - r - pad,
+			width = 2 * (r + pad),
+			height = spec.height - (cy - r - pad),
+		},
+		header = { x = x, y = y, width = width, height = spec.headerHeight },
+		name = { x = x, y = y + spec.headerHeight, width = width, height = spec.nameHeight },
+		line = if line
+			then {
+				x = x,
+				y = y + spec.headerHeight + spec.nameHeight,
+				width = width,
+				height = spec.lineHeight,
+			}
+			else nil,
+	}
+end
+
+--- S07 (08 §4.2) inside a `slot` sized slot; `food` false when no prey became edible, `top`
+--- true for the last tier (the bigger badge and the rays).
+function HudLayout.tierUpCard(slot: Size, food: boolean, top: boolean?): MomentCardRects
+	local spec = HudLayout.TIER_UP
+	local rects = momentCard(spec, slot, food, if top then spec.topArt else nil, top)
+	local y = (spec.height - spec.tailHeight) / 2 + spec.tailDrop
+	rects.tails = {
+		{ x = 0, y = y, width = spec.tailWidth, height = spec.tailHeight },
+		{
+			x = spec.width - spec.tailWidth,
+			y = y,
+			width = spec.tailWidth,
+			height = spec.tailHeight,
+		},
+	}
+	return rects
+end
+
+--- S08 (08 §4.3) inside a `slot` sized slot; `rays` true for an Epic or Mythic trait.
+function HudLayout.traitCard(slot: Size, rays: boolean?): MomentCardRects
+	return momentCard(HudLayout.TRAIT_GAINED, slot, true, nil, rays)
 end
 
 export type GulpedRects = { swimAgain: Rect, swimAgainHit: Rect, title: Rect }

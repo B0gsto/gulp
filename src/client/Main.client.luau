@@ -11,9 +11,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- only after it, and the tutorial leaves S0_LOADING on it (04 §3.1). The loading screen
 -- (ReplicatedFirst.Boot.Loading) decides when: it sets its `LoadMode` attribute once the minimum
 -- set of 04 §2.3 is in, collision shell included, or once the slow-load rule of 04 §2.4 starts
--- anyway. A timeout guards a place without the screen.
+-- anyway. A timeout guards a place without the screen. `ClientReady` carries that mode as one
+-- integer (09 §5.3, Logic/LoadTime): the server logs `load_partial` and `load_minimal` from it.
+-- Onboarding step 02 (docs/10, section 3.1): once the screen has drawn its first frame (its
+-- `LoadShown` attribute), `TutorialStep` 2 tells the server. The screen cannot send it itself: it
+-- runs before ReplicatedStorage, and so the remotes, have arrived.
 local LOADING_TIMEOUT = 20 -- seconds
 
+local FtuePlan = require(ReplicatedStorage.Shared.Logic.FtuePlan)
+local LoadTime = require(ReplicatedStorage.Shared.Logic.LoadTime)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Types = require(ReplicatedStorage.Shared.Types)
 
@@ -68,14 +74,24 @@ do
 	local function mode(): unknown
 		return if loading then loading:GetAttribute("LoadMode") else nil
 	end
+	local shownSent = false
+	local function reportShown()
+		if not shownSent and loading and loading:GetAttribute("LoadShown") == true then
+			shownSent = true
+			Client.send("TutorialStep", FtuePlan.Code.LOADING_SHOWN)
+		end
+	end
+	reportShown()
 	while loading and mode() == nil and os.clock() - waitedFrom < LOADING_TIMEOUT do
 		task.wait()
+		reportShown()
 	end
+	reportShown()
 	local ms = math.round((os.clock() - waitedFrom) * 1000)
 	if mode() ~= nil then
 		Log.info("Client", `ClientReady after {ms} ms (load: {mode()})`)
 	else
 		Log.warn("Client", `no LoadMode from the loading screen after {ms} ms; ClientReady anyway`)
 	end
-	Client.send("ClientReady")
+	Client.send("ClientReady", LoadTime.modeCode(mode()))
 end

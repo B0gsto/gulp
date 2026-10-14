@@ -128,8 +128,10 @@ local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
 	mackerel = { length = 3.6, colour = "#2FA89A" },
 	bonito = { length = 5.5, colour = "#6F8FD9" },
 	tuna = { length = 8.5, colour = "#4F6FD0" },
+	-- Trait prey with a 06 §4.3 row: 03 §3.2 length, 06 §4.3 Mid (M_Prey_Glowfry, task S6-A1).
+	glowfry = { length = 0.9, colour = "#C29424" },
 }
-local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey until chapter 06 rows are wired (tune)
+local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey without a 06 §4.3 row yet (tune)
 local WIDTH, HEIGHT = 0.4, 0.45 -- shares of the length (tune)
 
 local player = Players.LocalPlayer

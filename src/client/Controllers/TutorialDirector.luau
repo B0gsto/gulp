@@ -562,6 +562,7 @@ local function onFtue(value: unknown)
 	completed = v.completed == true
 	present = FtuePresent.inFtue(stage, completed)
 	PreyRenderer.setOutlineScale(if present then 1 + cfg.prompts.outlineThicken else 1)
+	UIController.setBannerHold(if present then cfg.prompts.bannerSeconds else nil)
 	if completed then
 		showAll() -- a banked account: its HUD is all there (TutorialService replays nothing)
 	end
@@ -812,6 +813,12 @@ function TutorialDirector.start()
 		mark("backgrounded")
 	end)
 	RunService:BindToRenderStep(RENDER_NAME, Enum.RenderPriority.Camera.Value + 1, frame)
+	local shown = Hud.moments()
+	if shown then
+		shown:connect(function(kind: string)
+			mark("banner " .. kind)
+		end)
+	end
 
 	-- Loading (10 §3.1 step 02, 04 §3.1): the screen is up now; its exit ends S0.
 	local loading = loadingScript()

@@ -49,6 +49,15 @@ UIController.onCoveMenu = Signal.new() :: Types.Signal<string>
 --- `HUD.setVisible(id, bool)` for chapter 04 (08 §3.3).
 UIController.setVisible = Hud.setVisible
 
+-- Chapter 04's first-run banners (04 §3.3: NIBBLER and GLOW for 1.5 s; docs/14 section 4 row 35):
+-- the hold S07 and S08 use instead of 08 §4.1's while set.
+local bannerHold: number? = nil
+
+--- TutorialDirector sets 04 §3.3's banner time in run 1 and run 2, and nil after.
+function UIController.setBannerHold(seconds: number?)
+	bannerHold = seconds
+end
+
 -- Studio only (`Dev/HudHarness`): fixed values for the HUD screenshots.
 export type Preview = {
 	drag: { active: boolean, ox: number, oy: number, tx: number, ty: number }?,
@@ -375,7 +384,7 @@ function UIController.start()
 	end)
 
 	-- HUD.Traits (08 §3.6): TraitService's `run.traits` and `run.progress` (09 §5.3), and the
-	-- Just gained flash on the own "traitGained" event (S08 itself is S6-C5's).
+	-- Just gained flash with S08 on the own "traitGained" event (below).
 	local function refreshTraits()
 		local run = StateStore.get("run")
 		local traits = if type(run) == "table" then run.traits else nil
@@ -388,18 +397,21 @@ function UIController.start()
 	end
 	StateStore.observe("run", refreshTraits)
 	StateStore.observe("passes", refreshTraits)
-	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, _id: unknown, index: unknown)
-		if
-			kind == "traitGained"
-			and slot == player:GetAttribute("Slot")
-			and type(index) == "number"
-		then
-			Hud.traitGained(index)
-		end
-	end)
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
 	Client.on("CreatureEvent", onCreatureEvent)
+	-- S07 and S08 (task S6-C5) for the own creature: "tier", slot, tier, previousTier
+	-- (RunLoopService) and "traitGained", slot, traitId, index (TraitService, S6: index 1 to 3 is
+	-- the trait slot it took; "traitShed" is the slot's, not a moment).
+	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, a: unknown, b: unknown)
+		if slot ~= player:GetAttribute("Slot") then
+			return
+		elseif kind == "tier" and type(a) == "number" and type(b) == "number" then
+			Hud.tierUp(a, b, bannerHold)
+		elseif kind == "traitGained" and type(a) == "string" and type(b) == "number" then
+			Hud.traitGained(a, b, bannerHold)
+		end
+	end)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)
 		local info, reason = WorldInfo.decode(netVersion, epoch, list)
 		if info == nil then

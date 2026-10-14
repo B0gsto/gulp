@@ -31,4 +31,21 @@ describe("LoadTime", function()
 			expect(why).toBe(nil)
 		end
 	end)
+
+	it("codes the loading screen's mode for ClientReady and names its fail-safe", function()
+		expect(LoadTime.modeCode("full")).toBe(1)
+		expect(LoadTime.modeCode("partial")).toBe(2)
+		expect(LoadTime.modeCode("minimal")).toBe(3)
+		expect(LoadTime.modeCode(nil)).toBe(1) -- no loading screen: nothing was cut
+		expect(LoadTime.modeCode("odd")).toBe(1)
+		expect(LoadTime.failsafe(1)).toBe(nil)
+		expect(LoadTime.failsafe(2)).toBe("load_partial")
+		expect(LoadTime.failsafe(3)).toBe("load_minimal")
+		for code = LoadTime.MODE_MIN, LoadTime.MODE_MAX do
+			local ctx = LoadTime.failsafe(code)
+			if ctx then
+				expect((AnalyticsRules.checkEvent("ftue_failsafe", 8, ctx))).toBe(true)
+			end
+		end
+	end)
 end)
