@@ -7,6 +7,7 @@ The bible owns these numbers: change it first, then this table.
 
 RIG_MAX_BONES = 32          # hard ceiling for any rig, sockets included (tune)
 LOD_SHARE = {"LOD1": 0.5, "LOD2": 0.25}   # 06 section 6.4
+PREY_LOD2_SHELL = 80        # 06 6.3: a prey _LOD2_Shell gets 80 triangles, or a quarter of its LOD0 shell if more (tune)
 
 BUDGETS = {
     "species_juv": {"tris": 1500, "shell": 600},
@@ -76,13 +77,17 @@ FAMILIES = {
                    "Flip_BL", "Flip_BR", "Tail"] + _FACE + _GIRTH4,
         "sockets": _SOCKETS8,
     },
+    # RIG_Prey3 (07 section 4.0): three sway bones for fish-shaped prey of tier 3 and up under an
+    # unweighted Root at the origin (no root weights, 06 15.4). The 06 6.3 bone count (3) is the
+    # sway bones; the Tuna's fourth sway bone is a later row.
+    "Prey3": {"deform": ["Root", "Spine1", "Spine2", "TailFin"], "sockets": []},
     "Squid": {
         "deform": ["Root", "Mantle1", "Mantle2", "Mantle3", "Fin_L", "Fin_R"]
                   + ["Arm%d_%d" % (a, s) for a in range(1, 7) for s in (1, 2)] + _FACE + ["Girth_L", "Girth_R"],
         "sockets": _SOCKETS8,
     },
 }
-FAMILY_DEFORM_COUNT = {"Fish": 18, "Eel": 22, "Turtle": 20, "Squid": 24}
+FAMILY_DEFORM_COUNT = {"Fish": 18, "Eel": 22, "Turtle": 20, "Squid": 24, "Prey3": 4}
 
 
 def tri_budget(budget_class, role, lod=None, body_tris=None):
@@ -97,4 +102,6 @@ def tri_budget(budget_class, role, lod=None, body_tris=None):
         limit = row["tris"]
     if lod:
         limit = int(limit * LOD_SHARE[lod])
+        if role == "shell" and lod == "LOD2" and budget_class.startswith("prey_t"):
+            limit = max(PREY_LOD2_SHELL, limit)
     return limit

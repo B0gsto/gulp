@@ -456,6 +456,21 @@ def rest_pose(spec):
         bpy.context.view_layer.update()
 
 
+def rigid_lod(spec, lod):
+    """06 6.4: a prey's LOD2 is rigid (whole-body wobble only), and so is its shell."""
+    return plan(spec)["outline"] == "prey" and lod == "LOD2"
+
+
+def make_rigid(obj):
+    """Unskinned and unparented, at the world transform it had (the rest pose)."""
+    world = obj.matrix_world.copy()
+    for m in list(obj.modifiers):
+        obj.modifiers.remove(m)
+    obj.vertex_groups.clear()
+    obj.parent = None
+    obj.matrix_world = world
+
+
 def run_lod(spec):
     rest_pose(spec)
     p = plan(spec)
@@ -474,7 +489,11 @@ def run_lod(spec):
             new = {"object": obj, "role": "body", "lod": lod, "of": src.name}
             if "budget" in entry:
                 new["budget"] = entry["budget"]
-            _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") else []))
+            rigid = rigid_lod(spec, lod)
+            if rigid:
+                make_rigid(obj)
+                new["skinned"] = False
+            _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") and not rigid else []))
             made.append((name, triangles(obj.data), target))
             print("[lod] %s %d triangles (target %d)" % (name, triangles(obj.data), target))
     return made
@@ -502,7 +521,10 @@ def run_shell(spec):
             for src, lod in levels:
                 name = "%s_%s" % (src.name, kind)
                 target = budgets.tri_budget(budget, "shell", lod=lod, body_tris=spec.get("body_tris") or triangles(body.data))
-                target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))   # 06 13.2: about 40% of the level
+                if p["outline"] != "prey":
+                    # 06 13.2: about 40% of the level. Prey keep the 06 6.3 numbers, which sit above 40%
+                    # for tier 1 and for LOD2 so the line stays even (6.3).
+                    target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))
                 # Each level is decimated from the level above (smoother than one big step). It must
                 # have no folds, no point inside the body and an even width (SHELL_WIDTH). If the 06 6.3
                 # budget cannot hold that, the triangles are raised in 25% steps up to the body's own
@@ -536,7 +558,9 @@ def run_shell(spec):
                 mesh.attributes.active_color_name = common.COLOR_ATTR
                 set_flat_colour(mesh, common.colour(SHELL_COLOUR[kind]))
                 mesh.polygons.foreach_set("use_smooth", [True] * len(mesh.polygons))
-                if spec.get("armature"):
+                rigid = bool(lod) and rigid_lod(spec, lod)
+                obj.vertex_groups.clear()
+                if spec.get("armature") and not rigid:
                     obj.parent = spec["armature"]
                     transfer_weights(obj, body)
                     meshgen.skin(obj, spec["armature"])
@@ -556,7 +580,9 @@ def run_shell(spec):
                           % (name, target, triangles(mesh)))
                 if "budget" in entry:
                     new["budget"] = entry["budget"]
-                _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") else []))
+                if rigid:
+                    new["skinned"] = False
+                _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") and not rigid else []))
                 made.append(name)
                 print("[shell] %s %.3f studs, %d triangles (budget %s), %d crossings"
                       % (name, d, triangles(mesh), target, crossings))
