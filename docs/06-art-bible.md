@@ -22,7 +22,7 @@ When two rules disagree, the lower number wins.
 
 1. **Silhouette first.** If an asset is not recognisable as a solid black shape at 48 pixels tall, it is rejected. Detail never rescues a weak shape.
 2. **Three values and one accent.** Every creature and prop is built from one light, one mid and one dark value, plus at most one small accent colour. No fourth value block.
-3. **Painted, not simulated.** Light, form, wetness and wear are painted into the colour texture or the vertex colour. No photographic textures, no normal maps, no metal, no realistic shading.
+3. **Painted, not simulated.** Light, form, wetness and wear are painted into the colour texture. No photographic textures, no normal maps, no metal, no realistic shading.
 4. **Signal colours belong to gameplay.** The "can eat", "can eat you" and "home" colours (section 4.5) never appear in art for any other reason.
 5. **The phone decides.** An asset is judged on a phone-sized frame (844 × 390 points) at the lowest graphics quality. If it needs shadows, bloom, depth of field, sun rays or flipbooks to read, it is rejected, because Roblox removes those on weak devices (section 10.5).
 
@@ -79,12 +79,13 @@ Inspiration only. We copy no character, design or name. Each reference lends exa
 | Suggested sizes: 256 for a 5 × 5 stud object, 512 for 10 × 10, 1024 for 20 × 20 (about 51 pixels per stud). | [V] | Same page |
 | Texture files: .png, .jpg, .tga, .bmp. | [V] | Same page |
 | SurfaceAppearance maps: colour, normal (OpenGL tangent space only), roughness, metalness, emissive mask. | [V] | [PBR textures](https://create.roblox.com/docs/art/modeling/surface-appearance) |
-| SurfaceAppearance maps cannot be changed by script while the game runs; `SurfaceAppearance.Color` can, and tinting costs nothing. `AlphaMode = TintMask` tints only where the alpha is visible. | [V] | Same page |
+| SurfaceAppearance maps cannot be changed by script while the game runs; `SurfaceAppearance.Color` can, and tinting costs nothing. `AlphaMode = TintMask` tints only where the alpha is visible. | [V]; measured in Sprint 0: game scripts, server or client, can write only `Color`, `AlphaMode` and the emissive strength and tint; every map needs Plugin capability (spike S0-A4, F17). So each map variant ships as a pre-made `SurfaceAppearance` that the game clones. | Same page |
 | Importer accepts .fbx, .gltf and .obj; default scale unit is studs; it has an "Ignore Vertex Colors" switch, so vertex colours are imported by default. | [V] | [3D Importer](https://create.roblox.com/docs/art/modeling/3d-importer) |
-| Vertex colour multiplies the part colour. Whether it still multiplies under a SurfaceAppearance. | [F]; under a SurfaceAppearance it does **not** show, measured in Mac Studio (Sprint 0, `docs/spike-report.md`) | [Forum tutorial](https://devforum.roblox.com/t/3050119) |
-| `Bone.Transform` is a CFrame that scripts may write. It carries position and rotation, not scale. | [V] | [Bone reference](https://create.roblox.com/docs/reference/engine/classes/Bone.md) |
+| The FBX importer drops every bone with no vertex weight of about 0.02 or more (0.01 and below are dropped), and turns a mesh parented to such a bone into a `Motor6D` on the root part. It leaves `MeshPart.Color` at 163, 162, 165, which darkens the faces. | Measured in Sprint 0 (spike S0-A2, F13, F14, F23) | Sections 6.7 and 8.4 |
+| Vertex colour multiplies the part colour. Whether it still multiplies under a SurfaceAppearance. | [F]; under a SurfaceAppearance it does **not** show, measured in Mac Studio (spike S0-A3, F16). So any mesh with a SurfaceAppearance carries its base colours in the colour map (section 5.3). | [Forum tutorial](https://devforum.roblox.com/t/3050119) |
+| `Bone.Transform` is a CFrame that scripts may write. It carries position and rotation, not scale. The Animator resets every bone each frame, keyed or not, so a script write survives only on `RunService.PreRender`; a `PreAnimation` write is lost. | [V]; the reset measured in Sprint 0 (spike S0-A2, F15) | [Bone reference](https://create.roblox.com/docs/reference/engine/classes/Bone.md) |
 | Lighting: `LightingStyle` (Realistic or Soft) and `PrioritizeLightingQuality`. Shadows are switched off below graphics quality level 4. | [V] | [Lighting guide](https://create.roblox.com/docs/environment/lighting), [performance guide](https://create.roblox.com/docs/performance-optimization/improve) |
-| `Lighting.Technology` is being retired for `LightingStyle` plus `PrioritizeLightingQuality`. Staff mapping of the old names: Future = Realistic + prioritise on; ShadowMap = Soft + prioritise on; Voxel = Soft + prioritise off. So the pair in section 10.1 is the old Future, the most expensive of the three. How each renders and what it costs on phones is not documented. | [V] staff post, January 2025; cost [U] | [Unified lighting](https://devforum.roblox.com/t/let-there-be-unified-light-unified-lighting-is-fully-live/3401512); chapter 15, fact PF26 |
+| `Lighting.Technology` is being retired for `LightingStyle` plus `PrioritizeLightingQuality`. Staff mapping of the old names: Future = Realistic + prioritise on; ShadowMap = Soft + prioritise on; Voxel = Soft + prioritise off. So the pair in section 10.1 is the old Future, the most expensive of the three. How each renders and what it costs on phones is not documented. Measured in Sprint 0: `Lighting.Technology` cannot even be read by scripts, and `LightingStyle` and `PrioritizeLightingQuality` are writable from Edit (plugin) code, so both are set in the project file or the build step (spike S0-A5, F22). | [V] staff post, January 2025; cost [U]; script access measured | [Unified lighting](https://devforum.roblox.com/t/let-there-be-unified-light-unified-lighting-is-fully-live/3401512); chapter 15, fact PF26 |
 | Fog properties are hidden when Lighting contains an Atmosphere. | [V] | [Atmosphere reference](https://create.roblox.com/docs/reference/engine/classes/Atmosphere.md) |
 | Numeric ranges and defaults for Atmosphere, Bloom, Depth of Field and Colour Correction. | [U] | The pages give types and descriptions only. |
 | Depth of field "may render differently on low-end devices"; sun rays "may not render on low-end devices". | [V] | [DepthOfFieldEffect](https://create.roblox.com/docs/reference/engine/classes/DepthOfFieldEffect.md), [SunRaysEffect](https://create.roblox.com/docs/reference/engine/classes/SunRaysEffect.md) |
@@ -141,10 +142,10 @@ Measured on the side view. Body length excludes the tail fin.
 | Mouth, fully open, as a share of head height | 80% | 90% | not animated | 100% and over |
 | Fins compared with the real animal | 140% | 130% | 120% | 100%, swept back |
 | Tail fin height as a share of body height | 80% | 90% | 70% | 100 to 120% |
-| Body depth as a share of body length (fish family) | 55% | 42% | 45% | 25 to 35% |
+| Body depth as a share of body length (fish family) | 45 to 55%, as the species' size row in section 6.2 allows | 42% | 45% | 25 to 35% |
 | Smallest radius on any outside corner | 6% of body height | 5% | 6% | 1% (sharp is allowed) |
 
-All values **(tune)** after the first three species are reviewed side by side.
+All values **(tune)** after the first three species are reviewed side by side. Where a proportion here and a size in section 6.2 disagree, the size wins: the Minnow juvenile's 3.0 × 1.1 studs, with chapter 03's short round tail, cannot reach 55% depth (spike S0-A7, F26).
 
 ### 3.4 How danger reads in shape
 
@@ -216,7 +217,7 @@ Every creature and prop has exactly three value blocks and one optional accent.
 | **Mid** (the identity colour) | 55 to 65% | 45 to 80 | Back and flank |
 | **Light** | 20 to 30% | 85 or more | Belly, cheeks, eye whites |
 | **Dark** | 10 to 15% | 35 or less | Fin edges, markings, mouth interior, pupils |
-| **Accent** (optional) | 5% or less | any | Fin tips, one stripe, eye ring |
+| **Accent** (optional) | 5% or less (a species' ID mark: up to 10%, section 4.3) | any | Fin tips, one stripe, eye ring |
 
 Rules that go with it:
 
@@ -247,9 +248,11 @@ Between the upper and deep Drop-off values the client blends by camera depth (se
 
 Light / mid / dark / accent. All **(tune)** in the first review round.
 
+**ID-mark exception to the accent cap.** A species' ID mark named in chapter 03 (the Minnow's yellow tail, for example) may take up to 10% of the visible surface **(tune)**. The 5% cap of section 4.1 applies to every other accent. (The Minnow's tail measures 8%; spike S0-A7, F26.)
+
 | ID | Scope | Light | Mid | Dark | Accent | Note |
 |---|---|---|---|---|---|---|
-| `minnow` | [MVP] | `#FFE2A8` | `#FF9A3D` | `#C2491D` | `#FFD23D` | Tangerine. The starter must be the warmest thing in the Nursery. |
+| `minnow` | [MVP] | `#FFE2A8` | `#FF9A3D` | `#922700` | `#FFD23D` | Tangerine. The starter must be the warmest thing in the Nursery. Dark was `#C2491D` (L\* 47, over the dark block's 35); `#922700` is L\* 33 at the same hue, chroma lowered to stay in sRGB (spike S0-A7, F26). Accent is the yellow tail ID mark, about 8% |
 | `puffer` | [MVP] | `#FFF6D6` | `#FFD84A` | `#B8791F` | `#FF8C5A` | Yellow ball, ochre freckles, coral lips |
 | `eel` | [MVP] | `#E0D6FF` | `#8A6BF0` | `#3B2A8C` | `#FFE066` | Violet with a yellow dorsal ribbon |
 | `turtle` | [L] | `#FFF1C2` | Skin `#7CCB7A`, shell `#D9933D` | `#7A4A1E` | `#FFE08A` | The only species with two mids: skin and shell count as one block each, belly is the light |
@@ -362,10 +365,10 @@ Navy on cream measures 15.1 : 1, navy on sun yellow 10.4 : 1, navy on aqua 8.9 :
 | Carried by | Used for | Why |
 |---|---|---|
 | Colour texture | Creature bodies, faces, patterns, hero props, anything with drawn shapes | Needs detail |
-| Vertex colour | Large gradients on terrain and rock (depth darkening, moss, sand to rock blends), occlusion on kit pieces, variation between copies | Free, and it lets one tiling texture cover a 128-stud chunk without visible repeats |
+| Vertex colour | Only meshes with no `SurfaceAppearance`. It does not show under one (spike S0-A3, F16). | Free, but every textured asset has a `SurfaceAppearance` (section 5.1), so in practice it is rarely used |
 | `SurfaceAppearance.Color` tint with `AlphaMode = TintMask` | Coral, kelp, anemone and prey colour variants; cheap pattern recolours | One texture, many colours, changeable at runtime [V] |
 
-With no custom shaders, vertex colour cannot act as a mask. It is simply a colour multiplied over the texture. Keep it between `#808080` and `#FFFFFF` so it only darkens gently. Under a `SurfaceAppearance` vertex colour does not show: measured in Mac Studio (Sprint 0, `docs/spike-report.md`); the owner decides the change. **Fallback:** environment meshes keep their `SurfaceAppearance`; depth darkening becomes a `SurfaceAppearance.Color` tint per chunk and the other gradients are painted into the tiling textures. A bare `MeshPart.TextureID` with no `SurfaceAppearance` is not an option, because it would show a built-in material's shine, which canon section 13 rules out.
+With no custom shaders, vertex colour cannot act as a mask. It is simply a colour multiplied over the texture. Where it is used, keep it between `#808080` and `#FFFFFF` so it only darkens gently. Under a `SurfaceAppearance` vertex colour does not show (measured in Mac Studio, spike S0-A3, F16), so **any mesh with a `SurfaceAppearance` carries its base colours in the colour map**. Environment meshes keep their `SurfaceAppearance`: depth darkening is a `SurfaceAppearance.Color` tint per chunk or module, and the other large gradients (moss, sand to rock blends, occlusion on kit pieces, variation between copies) are painted into the tiling textures or given by tint. A bare `MeshPart.TextureID` with no `SurfaceAppearance` is not an option for them, because it would show a built-in material's shine, which canon section 13 rules out.
 
 Creatures do not use vertex colour. Their texture is the whole look.
 
@@ -412,7 +415,7 @@ Density is measured at the authored size (body scale 1.0).
 | `old_scar`, Whale Fall skeleton | 1024 × 1024 | 24 |
 | Trait overlays | 256 × 256 per trait per family | — |
 | Trait kit pieces | One 256 × 256 atlas for all pieces | 40 |
-| Environment tiling (sand, rock, coral rock, slate) | 512 × 512, tiles every 32 studs | 16, plus vertex colour |
+| Environment tiling (sand, rock, coral rock, slate) | 512 × 512, tiles every 32 studs | 16, plus a `SurfaceAppearance.Color` tint (section 5.3) |
 | Environment kit pieces (coral, kelp, rocks) | One 512 × 512 atlas per zone | 24 |
 | Landmarks and set pieces | The zone atlas or a tiling texture by default. A 1024 × 1024 of its own only for the ones named in section 14.3 | 16 |
 | Cove kit and props | One 512 × 512 atlas | 24 |
@@ -463,7 +466,7 @@ Nothing exceeds 1024. All **(tune)**.
 
 ### 6.3 Triangle and bone budgets
 
-Triangles are counted after triangulation. "Shell" is the outline mesh (section 13.2).
+Triangles are counted after triangulation. "Shell" is the outline mesh (section 13.2). A prey `_LOD2_Shell` gets 80 triangles **(tune)**, or a quarter of its LOD0 shell where that is more. The tier-1 and LOD2 prey shell numbers sit above "about 40% of the body" because an outline of even width needs them: measured about 62 on `krill` and 76 on the `darter` LOD2 with the Sprint 0 shell tool (`spike/results/art-blender.md`, F26).
 
 | Asset class | Triangles, LOD0 | Shell | Bones | Scope |
 |---|---|---|---|---|
@@ -473,7 +476,7 @@ Triangles are counted after triangulation. "Shell" is the outline mesh (section 
 | `turtle` tucked mesh, juvenile / adult (`_Juv_Tucked`, `_Adult_Tucked`) | 900 / 2,000 | 40% | Same skeleton | [L] |
 | Leviathan crest | 150 | — | 0 (socketed) | per species |
 | `plankton` | 2 (billboard) | none | 0 | [MVP] |
-| Prey tier 1 (`krill`, `shrimp`) | 60 to 120 | 40 | 0 | [MVP] |
+| Prey tier 1 (`krill`, `shrimp`) | 60 to 120 | 64 **(tune)** | 0 | [MVP] |
 | Prey tier 2 (`sardine`) | 150 | 60 | 0 | [MVP] |
 | Prey tier 3 (`darter`) | 300 | 120 | 3 | [MVP] |
 | Prey tier 4 (`mackerel`) | 450 | 180 | 3 | [MVP] |
@@ -497,7 +500,7 @@ Triangles are counted after triangulation. "Shell" is the outline mesh (section 
 | Cove interior shell | 6,000 | — | 0 | [MVP] |
 | Cove prop or decoration | 100 to 800 | — | 0 | [MVP] / [L] |
 
-Skeletons by family. Sockets (section 8.4) are extra, weightless bones.
+Skeletons by family. Sockets (section 8.4) are extra, weightless bones in the Blender rig; the importer drops them, so the game rebuilds them from the socket table exported with each rig (section 8.4).
 
 | Family | Deform bones | List | Sockets |
 |---|---|---|---|
@@ -563,8 +566,9 @@ Rigs use `RIG_`, lighting presets `LGT_`, skies `SKY_` and store-art scenes `SCN
 | Axes | Forward −Z, Up Y |
 | Geometry | Apply modifiers; triangulate; smoothing "Normals Only"; no tangents |
 | Vertex colours | sRGB (measured in Sprint 0: a 128 grey reads 0.502 in Studio) |
-| Armature | Only deform bones **off** (sockets must export); Add Leaf Bones **off** |
-| Animation | One action per file [V]; 30 frames a second; key all bones; no simplification |
+| Armature | Only deform bones **off**; Add Leaf Bones **off**. Socket bones still export, but the importer drops them (section 8.4) |
+| Socket table | Written beside each rig's FBX by the export script: socket name, parent bone, offset CFrame. The game builds the sockets from it (section 8.4) |
+| Animation | One action per file [V]; 30 frames a second; key all bones; no simplification. Clips also go out as JSON for the clip route below |
 | Textures | Not embedded. Uploaded separately as .png. |
 
 | Roblox 3D Importer setting | Value |
@@ -578,7 +582,9 @@ Rigs use `RIG_`, lighting presets `LGT_`, skies `SKY_` and store-art scenes `SCN
 | Ignore Vertex Colors | Off |
 | Make Double Sided | Off, always. It costs more [V]. |
 
-After import, set `CollisionFidelity` to Box on small props and `CastShadow` to false on every creature, prey item, kelp leaf and small prop.
+After import, set `MeshPart.Color` to white (255, 255, 255) on every imported mesh: the importer leaves it at 163, 162, 165, which darkens the faces (spike S0-A2, F23; that white restores the painted colour is not verified). Set `CollisionFidelity` to Box on small props and `CastShadow` to false on every creature, prey item, kelp leaf and small prop.
+
+**Clip route, no click.** An Open Cloud Model upload drops the animation, and an Open Cloud Animation upload accepts only a binary `.rbxm`. So every clip goes: Blender action exported as JSON → a `KeyframeSequence` built against the imported skeleton (converter `spike/tools/anim_kfs.py`) → a binary `.rbxm` written by Lune → an Open Cloud Animation upload. Measured in Sprint 0: `A_Fish_Swim` arrived this way with every bone within 0.0001 studs of Blender and no owner click (spike S0-A2, F20).
 
 ---
 
@@ -656,13 +662,13 @@ Specimens in a cove are the trophy shelf, so they act.
 
 | Layer | Bones | Driven by |
 |---|---|---|
-| Swim sway | Spine, TailFin, Dorsal | Code on each client, every frame, for every creature at LOD0 or LOD1. Frequency follows speed, amplitude follows acceleration, and the spine bends toward the turn (up to 25° across the body at full turn rate). |
+| Swim sway | Spine, TailFin, Dorsal | Code on each client, every frame on `PreRender`, for every creature at LOD0 or LOD1. Frequency follows speed, amplitude follows acceleration, and the spine bends toward the turn (up to 25° across the body at full turn rate). |
 | Stretch | Spine spacing, Girth | Code: stretch follows forward acceleration, clamped to the limits in 7.1 |
 | Eyes and lids | Eye, Lid | Code: look target and expression (section 7.7) |
 | Actions | All bones | Keyframed clips: bite, dash pose, abilities, tier-up, gulped, bank, cove fidgets. While a clip plays, sway amplitude drops to 30%. |
 | Fins | Pec, flippers, arms | Keyframed loops |
 
-Bones are not replicated [V], so each client computes sway locally; nothing is sent over the network. The rig spike (section 18.2) measured it in Mac Studio (Sprint 0, `docs/spike-report.md`): the Animator resets every bone each frame, so a write survives only on `PreRender`, after the Animator; a `PreAnimation` write is lost. If code cannot layer over clips, sway bones are simply left out of every keyframed clip.
+Bones are not replicated [V], so each client computes sway locally; nothing is sent over the network. **Code-owned bones are written on `RunService.PreRender`.** The Animator resets every bone each frame, keyed or not, so a write survives only after it, on `PreRender`; a `PreAnimation` write is lost (measured in Mac Studio, spike S0-A2, F15). Every bone code drives (sway, stretch, jaw, eyes and lids) follows this rule. Written there, code layers over a playing clip, so the fallback (leaving the sway bones out of every keyframed clip) is not needed.
 
 Prey of tiers 3 to 6 use the same sway code on 3 or 4 bones. Smaller prey are rigid; the school's shared motion sells them.
 
@@ -708,7 +714,7 @@ A creature has three visual channels. Each trait owns one channel, so three trai
 | `spiny` | Uncommon | [MVP] | Form | Kit pieces | `#F2E6C9`, tips `#C2491D` | Back and flanks: 9 spines | Tail: 3 spines | 1 spine piece (20 triangles) |
 | `longfin` | Uncommon | [MVP] | Form | Kit pieces + trail | Species accent fading to `#FFFFFF` | Tail and dorsal fin tips | Pectoral tips | 2 ribbon pieces (80 triangles); a `Trail` from each tip while moving |
 | `ink` | Rare | [MVP] | Pattern | Overlay | `#2A1F3D` | Belly and rear half: blotches rising like smoke | Fins only | 256 overlay; `FX_InkCloud` on dash |
-| `spark` | Rare | [L] | Light | Overlay (emissive) + particles | `#5CF2FF`, core `#FFFFFF` | Zigzag lines from the head back | Dorsal edge | 256 overlay with 3 swap frames at 10 a second; `FX_SparkArc` |
+| `spark` | Rare | [L] | Light | Overlay (emissive) + particles | `#5CF2FF`, core `#FFFFFF` | Zigzag lines from the head back | Dorsal edge | 256 overlay with 3 swap frames at 10 a second, each a pre-made `SurfaceAppearance` swapped in (section 8.4); `FX_SparkArc` |
 | `camo` | Rare | [L] | Form | Kit pieces + overlay | `#6FA35A`, `#A8843D` | Leafy frills along back and fin edges | Chin and tail | 2 leaf pieces (40 triangles), swayed by the sway code |
 | `crystal` | Epic | [MVP] | Form | Kit pieces + overlay | `#FF9BE6`, `#9BD6FF`, `#FFFFFF` | A crown of shards on the back; faceted patches | Tail shards | 3 shard pieces (30 triangles each), hard-edged, `T_Shared_RghWet`; slow glint particle |
 | `ember` | Epic | [L] | Light | Overlay (emissive) + particles | `#FF7A1F`, core `#FFD23D` | Cracks across back and flank | Belly cracks | 256 overlay; rising ember motes, 4 a second |
@@ -731,15 +737,21 @@ The combination sheet (section 15.5) renders every species with the 12 hardest t
 
 ### 8.4 Sockets and overlays in the engine
 
-**Sockets.** Each fish and eel species carries ten weightless bones: `Sock_Back_01` to `03`, `Sock_Flank_L`, `Sock_Flank_R`, `Sock_Head`, `Sock_Tail`, `Sock_Crest`, `Sock_FinDorsal` and `Sock_FinTail`. Turtle and squid carry eight (no fin sockets). A socket's rest rotation points the piece outward. Kit pieces are small rigid meshes the client attaches to sockets. A placement table per species gives each piece a socket, an offset and a scale, so one socket can carry several pieces (five plates hang from three back sockets). So a new species needs only sockets, and a new trait needs only one to three pieces. Attaching a rigid part to a `Bone` so that it follows the animation is [U].
+**Sockets.** Each fish and eel species carries ten weightless bones: `Sock_Back_01` to `03`, `Sock_Flank_L`, `Sock_Flank_R`, `Sock_Head`, `Sock_Tail`, `Sock_Crest`, `Sock_FinDorsal` and `Sock_FinTail`. Turtle and squid carry eight (no fin sockets). Sockets stay weightless in Blender, and the validator keeps its "no weight on sockets" rule. A socket's rest rotation points the piece outward. Kit pieces are small rigid meshes the client attaches to sockets. A placement table per species gives each piece a socket, an offset and a scale, so one socket can carry several pieces (five plates hang from three back sockets). So a new species needs only sockets, and a new trait needs only one to three pieces.
 
-**Overlays**, in order of preference; the trait spike picks one:
+**Sockets are built by code.** The FBX importer drops every bone with no vertex weight of about 0.02 or more, so no socket survives import (spike S0-A2, F13). The export script therefore writes a **socket table** with each rig: socket name, parent bone, offset CFrame. When a rig template is built, code adds one `Bone` per row under its parent bone; the measured rig then had all 28 bones (18 deform, 10 sockets).
 
-| Option | How | Risk |
+**Rigid pieces attach by `RigidConstraint`.** A piece is a rigid `MeshPart` held to its socket bone by a `RigidConstraint`, which followed a playing clip with an error of 0.000 studs (spike S0-A2, F14). The `Motor6D` on the root part that the importer makes for a mesh parented to a socket is not used.
+
+**Skinned pieces are built into the template.** A skinned `MeshPart` cloned onto a live rig stays in its bind pose (IoU 0.645); one added to the template before the creature spawns deforms with it (IoU 0.994) (spike S0-A4, F19). So every skinned piece (overlay shells, gear shells and any other skinned piece added at run time) goes into the template before spawning.
+
+**Overlays.** The trait spike picked **option B** (spike S0-A4):
+
+| Option | How | Result |
 |---|---|---|
-| A. Decal layers | Each active overlay is a `Decal` on the body mesh, using the mesh UVs | Measured in Sprint 0: a decal is projected per face, not along the mesh UVs (Sprint 0, `docs/spike-report.md`) |
-| B. Overlay shell | A second skinned mesh 0.5% outside the body with the overlay as its `SurfaceAppearance`, `AlphaMode = Transparency` | Doubles the creature's triangles while any pattern trait is active |
-| C. Composite | Build one texture per creature on the client from base and overlays | Measured in Sprint 0: an `EditableImage` cannot be set as a `SurfaceAppearance` map by game scripts, only as `MeshPart.TextureContent` (no PBR) (Sprint 0, `docs/spike-report.md`) |
+| A. Decal layers (dropped) | A `Decal` on a skinned `MeshPart` is projected per face, not along the mesh UVs (spike S0-A4, F18). | Fail |
+| **B. Overlay shell** (chosen) | A second skinned mesh 0.5% outside the body with the overlay as its `SurfaceAppearance`, `AlphaMode = Transparency`, built into the template before spawning (above). Each overlay's `SurfaceAppearance` is made ahead of time and cloned; game scripts cannot set its maps (F17). | Pass, IoU 0.994. Doubles the creature's triangles while any pattern trait is active |
+| C. Composite | Build one texture per creature on the client from base and overlays, shown only through `MeshPart.TextureContent`, with no PBR maps: game scripts cannot set an `EditableImage` as a `SurfaceAppearance` map (spike S0-A4, F17) | Kept only as a fallback |
 
 ---
 
@@ -773,7 +785,7 @@ Counts are unique meshes. All [MVP] unless tagged.
 
 **The kelp forest.** Stalks stand 12 to 30 studs apart, in groves with clearings between. Plants within 80 studs of the camera, 24 at most, are 4-bone skinned plants swayed by the client; farther plants are static. The forest is dim, but clearings sit under canopy gaps where light shafts fall, so the player always has a bright place to aim for.
 
-**The Drop-off.** A cliff wall built from 64 × 96 stud modules, stepping down in ledges every 60 to 90 studs so depth is countable. The wall is darker and cooler with depth through vertex colour. Lone pale objects (a white sea whip, a tube-worm cluster) give scale against the dark.
+**The Drop-off.** A cliff wall built from 64 × 96 stud modules, stepping down in ledges every 60 to 90 studs so depth is countable. The wall is darker and cooler with depth through a `SurfaceAppearance.Color` tint per module (section 5.3). Lone pale objects (a white sea whip, a tube-worm cluster) give scale against the dark.
 
 **Coves.** Each cave mouth is a rounded opening 36 studs wide and 28 high, with a 25-stud throat behind it and warm lantern light spilling out: lantern amber `#FFC46B` from the player's own cove, lantern warm white `#FFF1DC` from everyone else's (section 4.5). The mouth carries the owner's name on the Name Shell and the best specimen in the Trophy Bubble beside it (canon section 6). Inside: an oval chamber 76 wide, 110 long and 44 high, with 40 specimen perches along both side walls (four rows of five per side; the top row is for the Bigger Cove pass) like a display shelf, and a sandy centre. Sizes are chapter 03's (sections 6.7 and 6.10). Warm stone, warm light: the only warm-lit places in the sea.
 
@@ -825,7 +837,7 @@ Landmark rules: one simple outer shape (arch, dome, pole, wedge, bowl); at least
 |---|---|---|
 | `LightingStyle` | Realistic | "Soft" is described as "a flat, retro-Roblox look" [V], which we must avoid. We flatten the light ourselves with strong ambient colour. A/B both in the lighting spike. |
 | `PrioritizeLightingQuality` | true **(tune)** | Fog already limits view distance, so spend the budget near the camera. With Realistic, this pair is what the old `Technology = Future` was: the most expensive lighting Roblox has (section 2.4). **Gate:** it must hold 30 fps on the low Android phone (chapter 15, section 8, test row 1) in the lighting spike. **Fallback:** `LightingStyle = Soft` with prioritise on (the old ShadowMap), with our ambient and painted light carrying the look. |
-| `Technology` | Not set | Retired by Roblox in favour of the two properties above (section 2.4). The setting is one value for the whole place; it cannot differ per device (chapter 15, section 3.0). |
+| `Technology` | Not set | Retired by Roblox in favour of the two properties above (section 2.4), and scripts cannot even read it (spike S0-A5, F22). The setting is one value for the whole place; it cannot differ per device (chapter 15, section 3.0). |
 | `GlobalShadows` | true | Only landmarks, cliffs and floor chunks cast. Creatures, prey, kelp and props have `CastShadow` off. Shadows vanish below quality level 4 [V] and are switched off on the Smooth tier (chapter 15), so nothing may depend on them. |
 | `ShadowSoftness` | 0.8 **(tune)** | Soft, toy-like |
 | `EnvironmentDiffuseScale`, `EnvironmentSpecularScale` | 0 and 0 | Ambient comes from our colours, and nothing reflects the sky |
@@ -834,11 +846,11 @@ Landmark rules: one simple outer shape (arch, dome, pole, wedge, bowl); at least
 | Sky | A custom painted skybox: a vertical gradient per the surface row in 4.2. No stars, no stock sun or moon textures. | |
 | `ColorGradingEffect.TonemapperPreset` | Default [V] | Vivid |
 
-All lighting changes are made on the client, per player, from the camera's zone and depth.
+`LightingStyle` and `PrioritizeLightingQuality` are set in the project file or by the build step, never by game scripts at run time (spike S0-A5, F22). All other lighting changes are made on the client, per player, from the camera's zone and depth.
 
 ### 10.2 Starting values per zone
 
-**Fog decision.** We use an `Atmosphere`, because it fades distant objects into the sky gradient and gives two colours (`Color` near the sun, `Decay` away from it). Fog start and end distances are not available with it [V], so each zone has a **target view distance**, calibrated by placing a white 8-stud ball and reading the distance where it disappears. If the Atmosphere cannot hit the targets, fall back to `FogStart`, `FogEnd` and `FogColor`, with `FogStart` at 25% of the target.
+**Fog decision.** We use the legacy fog: `FogStart`, `FogEnd` and `FogColor`, with `FogStart` at 25% of each zone's **target view distance** and `FogColor` the zone's fog colour (section 4.2, the same as the Atm. Color column below). It was planned as the fallback; the lighting spike measured that the Atmosphere presets below never hid a white 8-stud ball by 600 studs (Nursery contrast 0.04 at 600), while legacy fog hit its caps exactly (contrast 0.003 at 220 studs, 0.008 at 350) (spike S0-A5, F21). Fog properties are hidden while Lighting contains an `Atmosphere` [V], so the presets carry none while fog is in use. Until then, Atmosphere values given elsewhere in this chapter (sections 10.3 and 10.6) act on the fog: their `Color` becomes `FogColor`; their Density changes are set by eye as a shorter `FogEnd` **(tune)**. **Open:** isolate why Atmosphere Density 0.45 to 0.80 changed nothing. If a fixed Atmosphere hits the targets, it comes back for its two-colour fade into the sky gradient (`Color` near the sun, `Decay` away from it). The Atmosphere columns below are kept for that follow-up. A target view distance is calibrated by placing a white 8-stud ball and reading the distance where it disappears.
 
 Ranges for these properties are not on the documentation pages [U]. Values are first guesses to be set by eye in Studio: all **(tune)**.
 
@@ -874,7 +886,7 @@ Post-processing, the same in every zone unless an event changes it. These are th
 
 - The client keeps a **current preset** and blends toward the preset of the camera's zone over 1.5 seconds.
 - In the Drop-off, the blend between "upper" and "deep" follows camera depth: 0% at 150 studs down, 100% at 300.
-- Inside any zone, `Atmosphere.Color` moves toward the surface band colour when the camera is within 30 studs of the surface.
+- Inside any zone, the fog colour (`Atmosphere.Color` if the Atmosphere returns) moves toward the surface band colour when the camera is within 30 studs of the surface.
 - A local `PointLight` (range 40, brightness 0.6, colour `#CFE6FF`) follows the player's creature whenever the fog L\* is under 35, so the area around the player never goes black.
 - **Darkness floor:** no preset may bring `Ambient` below L\* 30. Dark zones are dark blue, not black.
 
@@ -896,12 +908,12 @@ The look is designed for the worst case, then improved.
 
 | Feature | Lowest quality | What carries the look instead |
 |---|---|---|
-| Shadows | Gone below level 4 [V] | Painted occlusion, vertex colour, contact blobs under cove specimens |
+| Shadows | Gone below level 4 [V] | Painted occlusion, tints, contact blobs under cove specimens |
 | Depth of field, sun rays | May not draw [V] | Not used for play |
 | Flipbooks | Turned off on low-memory phones [V] | Every effect must still read as a single frame |
 | Bloom | [U] | Signals are bright colours on their own; bloom only adds polish |
 | Outlines | Our own shells (section 13.2), not `Highlight` | Always present |
-| Fog, ambient, textures, vertex colour | Present | These are the style |
+| Fog, ambient, textures, tints | Present | These are the style |
 
 ### 10.6 Tide events
 
@@ -1112,7 +1124,7 @@ Outlines are **our own meshes**, not Roblox `Highlight`: a `Highlight`'s thickne
 | "Can eat you" | 1.5× thicker and pulsing to white. The thicker shell is a second export, `_ShellThick`, made for predators and for both forms of every player species, juvenile and adult: a tier 3 juvenile can eat a tier 2 player (canon sections 5.2 and 16) |
 | Target on screen | 2 to 3 points wide at normal play distance; never under 1.5 |
 | Material | The built-in `Neon`, so fog and darkness do not dim it **(tune)**. This is one of the two uses of `Neon` that canon section 13 allows (section 5.1). Fallback: a matte shell with `CastShadow` off and the colour brightened. |
-| Shell triangles | About 40% of the body's (section 6.3) |
+| Shell triangles | About 40% of the body's; tier-1 prey shells and prey LOD2 shells get more so the line stays even (section 6.3) |
 | Who gets a shell | Every creature with a tier of 1 or more. `plankton` has no shell and no outline, and neither does `hook` bait (canon section 5.2); the other hazards have none either (section 6.3). |
 | How many at once | Capped per graphics tier, nearest first: 12 on Smooth (8 edible, 4 dangerous). Chapter 15, section 3.0 owns the counts. |
 | Far away | Under 8 points the shell is replaced by a glint in the outline colour |
@@ -1253,12 +1265,12 @@ Every asset has a `build.py`. Running it produces everything from source: nothin
 | Step | What it does | Fails the build when |
 |---|---|---|
 | `build` | For generated assets (rocks, corals, kelp, kit pieces, shells, LODs): creates the mesh from parameters and a fixed random seed. For sculpted assets: loads the .blend. | — |
-| `validate` | Counts triangles and bones; checks 4 weights per vertex, no root weights, applied transforms, one material, one UV set inside 0 to 1, watertight, no thin faces, naming, origin, facing, size against section 6.2 | Any check fails |
+| `validate` | Counts triangles and bones; checks 4 weights per vertex, no root weights, no weights on sockets, applied transforms, one material, one UV set inside 0 to 1, watertight, no thin faces, naming, origin, facing, size against section 6.2 | Any check fails |
 | `palette` | Samples the texture; reports the three value blocks, their L\* and shares; checks the water contrast rule and the reserved colour bands | Reserved colour used, or contrast rule broken |
 | `shell` | Builds the outline shell at the right thickness and transfers weights; also builds the thick danger shell `_ShellThick` for predators and for the juvenile and adult form of every player species | — |
 | `lod` | Decimates to the LOD targets, keeping silhouette edges and UV seams | A level exceeds its budget |
 | `bake` | Occlusion and gradient bakes | — |
-| `export` | Writes `M_*.fbx`, one `A_*.fbx` per action, and `T_*.png` | — |
+| `export` | Writes `M_*.fbx`, one `A_*.fbx` and one clip JSON per action (section 6.7), the socket table of each rig (section 8.4), and `T_*.png` | — |
 | `preview` | Renders the contact sheet | — |
 
 An agent that makes or changes an asset edits `build.py` or the .blend, runs the steps, and hands back the validation report and the contact sheet path. The script, not the agent's memory, holds the rules, which is what keeps assets made months apart consistent.
@@ -1370,8 +1382,8 @@ Section 2.4 lists every engine fact with its mark and link. In short:
 | **Calibration** | Does `M_Prop_ScaleCube` arrive at 4 studs facing forward? Which FBX scale factor? Which vertex-colour space? | 6.1, 6.7 |
 | **Rig** | Does a flipped-face shell draw as an outline on a skinned mesh? Can code write `Bone.Transform` alongside a playing clip? Does bone spreading stretch cleanly? Can a rigid piece follow a socket bone? What does `Model:ScaleTo` cost? Is 32 bones accepted? | 7.5, 7.6, 8.4, 13.2 |
 | **Surface** | Does vertex colour multiply under a `SurfaceAppearance`? Does the flat roughness texture kill the plastic shine? Do emissive masks work on a game mesh? | 5.1, 5.3 |
-| **Trait** | Overlay option A, B or C? | 8.4 |
-| **Lighting** | **Gate:** does `LightingStyle = Realistic` with `PrioritizeLightingQuality = true` (the old Future) hold 30 fps on the low Android phone (chapter 15, section 8, test row 1)? If not, the game ships on Soft with prioritise on. Atmosphere or legacy fog for the view-distance targets? Do the Nursery, Reef and upper Drop-off looks hold at the 220-stud Smooth cap? Real ranges for every value in 10.2. Cost of beams and of swapped caustic frames on a phone. | 10 |
+| **Trait** | Overlay option A, B or C? Answered: B, built into the template (spike S0-A4) | 8.4 |
+| **Lighting** | **Gate:** does `LightingStyle = Realistic` with `PrioritizeLightingQuality = true` (the old Future) hold 30 fps on the low Android phone (chapter 15, section 8, test row 1)? If not, the game ships on Soft with prioritise on. Atmosphere or legacy fog for the view-distance targets? Answered for now: legacy fog (F21); why Atmosphere Density changed nothing is still open. Do the Nursery, Reef and upper Drop-off looks hold at the 220-stud Smooth cap? Real ranges for every value in 10.2. Cost of beams and of swapped caustic frames on a phone. | 10 |
 | **Phone** | Measure the busy frame of 14.2 on a low phone on Smooth and a mid phone on Balanced (chapter 15, section 8, test rows 1 and 3) | 14 |
 
 ### 18.3 Proposed canon changes

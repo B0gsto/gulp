@@ -135,11 +135,11 @@ All from document 06 unless noted. Each one that fails in the first-sprint tests
 
 - A mesh can have at most 20,000 triangles and a vertex can follow at most 4 bones. The largest single mesh planned here is 8,000 triangles (Old Scar); bigger set pieces are split into meshes of 6,000 or fewer.
 - Animations move and rotate bones but do not scale them. Squash and stretch is done by sliding the spine bones and four Girth bones. Extreme shapes (Pufferfish puffed, Sea Turtle tucked, the tier 4 form change) are **mesh swaps** hidden by a short effect.
-- **Swimming is driven by code**, not by clips: the spine sways with speed and bends into turns. So there are no turn clips, and each family has one reference swim cycle that the code is matched to (and that serves as the fallback if code and clips cannot be layered).
+- **Swimming is driven by code**, not by clips: the spine sways with speed and bends into turns. So there are no turn clips, and each family has one reference swim cycle that the code is matched to (and that serves as the fallback if code and clips cannot be layered; Sprint 0 measured that they can, when code writes the bones on `PreRender`, document 06, section 7.6).
 - Eyes and eyelids are bones moved by code. Expressions need no textures or clips.
 - **Outlines are our own shell meshes**, not an engine effect (the built-in `Neon` material is allowed on them, canon section 13). Every creature of tier 1 or more needs them: `_Shell` for the green outline, `_ShellThick` for the red one (section 1.2 says who has which). Plankton and hook bait have no outline.
 - Creatures ship three distance versions (full, `_LOD1`, `_LOD2`) plus a far-away dot (`FX_Glint`). Static scenery uses the engine's automatic versions.
-- Trait overlays are extra texture layers in the family UV layout. Document 06 lists three ways to draw them; the trait test picks one.
+- Trait overlays are extra texture layers in the family UV layout, drawn on an **overlay shell**: a second skinned mesh just outside the body, built into the creature's template before it spawns (document 06, section 8.4; the Sprint 0 trait test chose it and ruled out decals).
 - **The world is meshes, not Roblox terrain**, and the sea is fog and light, not a water volume.
 - One hand-painted colour texture per asset, plus three tiny shared roughness textures. No normal maps, no metal.
 - No texture here is larger than 1024 × 1024. Particle flipbooks are 512 × 512 in a 4×4 grid.
@@ -174,7 +174,7 @@ Every body mesh, including the puffed and tucked forms, gets two outline shells:
 | `M_Species_Base_Eel` | [MVP] | Family base mesh and the standard UV layout (document 06, section 5.4). Source only, not uploaded. Every `Eel` species starts from it | 1,500 tris | — | 3 | not started |
 | `M_Species_Base_Turtle` | [L] | Family base mesh and the standard UV layout (document 06, section 5.4). Source only, not uploaded. Every `Turtle` species starts from it | 1,500 tris | — | 3 | not started |
 | `M_Species_Base_Squid` | [L] | Family base mesh and the standard UV layout (document 06, section 5.4). Source only, not uploaded. Every `Squid` species starts from it | 1,500 tris | — | 3 | not started |
-| `RIG_Fish` | [MVP] | Family skeleton: Root, Spine 1 to 4, TailFin, Jaw, Dorsal, two Pec, two Eye, two Lid, four Girth; plus ten weightless socket bones for trait pieces and the crest | 18 bones + 10 sockets | M_Species_Base_Fish | 3 | not started |
+| `RIG_Fish` | [MVP] | Family skeleton: Root, Spine 1 to 4, TailFin, Jaw, Dorsal, two Pec, two Eye, two Lid, four Girth; plus ten weightless socket bones for trait pieces and the crest, exported as a socket table too (the importer drops weightless bones; the game builds the sockets from the table, document 06, section 8.4) | 18 bones + 10 sockets | M_Species_Base_Fish | 3 | not started |
 | `RIG_Eel` | [MVP] | Family skeleton: Spine 1 to 10, Jaw, Dorsal 1 to 2, eyes, lids, Girth; ten sockets | 22 bones + 10 sockets | M_Species_Base_Eel | 4 | not started |
 | `RIG_Turtle` | [L] | Family skeleton: Shell, Neck, Head, Jaw, four flippers, Tail, eyes, lids, Girth; eight sockets | 20 bones + 8 sockets | M_Species_Base_Turtle | 5 | not started |
 | `RIG_Squid` | [L] | Family skeleton: Mantle 1 to 3, two fins, six arms of two bones, eyes, lids, two Girth; eight sockets | 24 bones + 8 sockets | M_Species_Base_Squid | 6 | not started |
@@ -585,8 +585,8 @@ No prey has an authored clip. The motion of each one is a row of settings in the
 | (update) T_TraitPrey_03_Alb launch cells | [L] | Add Spark Eel, Leaf Drifter and Vent Snail | — | T_TraitPrey_03_Alb | 1.8 | not started |
 | `T_TraitPrey_04_Alb` | [L] | Three Marrow chunks; one cell spare | 256² | — | 0.8 | not started |
 | `T_TraitPrey_Emi` | [MVP] | Glow masks for Glowfry, Lunar Fry and Crystal Jelly; Spark Eel, Vent Snail and Marrow added at launch | 256² | trait prey atlases | 1.2 | not started |
-| `M_Prey_*_Shell` | [MVP] | Outline shells for the seven prey of tier 1 or more, by script. Prey only ever show the green "you can eat it" outline, so there is no thick shell. Plankton has none | 40 to 360 tris by tier | prey meshes | 1.5 | not started |
-| `M_Prey_*_LOD2` | [MVP] | Quarter-triangle rigid versions of Reef Darter, Mackerel, Bonito and Tuna | quarter | prey meshes | 1 | not started |
+| `M_Prey_*_Shell` | [MVP] | Outline shells for the seven prey of tier 1 or more, by script. Prey only ever show the green "you can eat it" outline, so there is no thick shell. Plankton has none | 64 to 360 tris by tier (document 06, section 6.3) | prey meshes | 1.5 | not started |
+| `M_Prey_*_LOD2` | [MVP] | Quarter-triangle rigid versions of Reef Darter, Mackerel, Bonito and Tuna, each with its `_LOD2_Shell` | quarter; shells 80 tris or a quarter of the full shell, whichever is more (tune) | prey meshes | 1 | not started |
 | `M_Prey_<trait prey>_Shell, _LOD2 (soft launch)` | [MVP] | Outline shells (green outline only) for the nine soft-launch trait prey; distance versions for the three of tier 3 | shell 40% of each body | trait prey meshes | 1.8 | not started |
 | `M_Prey_<trait prey>_Shell, _LOD2 (launch)` | [L] | Outline shells (green outline only) and distance versions for Spark Eel, Leaf Drifter and Vent Snail; shells for the three Marrow chunks | shell 40% of each body | trait prey meshes | 1.2 | not started |
 
@@ -824,7 +824,7 @@ Documents 03 and 06 both build the whole Drop-off at soft launch, including the 
 
 | Asset | Tag | Description | Qty | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|---|
-| `M_Env_DropOff_Cliff_01–08` | [MVP] | Cliff modules, 64 × 96 studs, that stack into the Wall from depth 100 to 430. Darker and cooler with depth by vertex colour | 8 | 2,500 tris each | T_Tile_Slate_Alb | 10 | not started |
+| `M_Env_DropOff_Cliff_01–08` | [MVP] | Cliff modules, 64 × 96 studs, that stack into the Wall from depth 100 to 430. Darker and cooler with depth by a `SurfaceAppearance` colour tint per module (document 06, section 5.3) | 8 | 2,500 tris each | T_Tile_Slate_Alb | 10 | not started |
 | `M_Env_DropOff_Ledge_01–04` | [MVP] | Ledges every 60 to 90 studs down the Wall so depth can be counted | 4 | 700 tris | T_Tile_Slate_Alb | 3 | not started |
 | `M_Env_DropOff_Overhang_01–03` | [MVP] | Overhangs | 3 | 1,000 tris | T_Tile_Slate_Alb | 3 | not started |
 | `M_Env_DropOff_FloorShelf_01–02` | [MVP] | Floor shelves for the sunny Ledge strip between the Rim and the cliff | 2 | 3,000 tris each | T_Tile_Rock_Alb | 2.5 | not started |
@@ -1533,14 +1533,14 @@ Scripts and routines that the hours in every other section rely on. Document 06 
 | (tool) Shell and distance-version script | [MVP] | Makes `_Shell`, `_ShellThick`, `_LOD1` and `_LOD2` from any finished creature mesh | — | — | 5 | not started |
 | (tool) UV layout and atlas tools | [MVP] | Keep the family UV layout identical across species; pack atlases; stamp placeholders | — | — | 4 | not started |
 | (tool) Trait overlay bake | [MVP] | Bake a trait master pattern onto any family layout, home and fallback zones | — | family base meshes | 5 | not started |
-| (tool) Clip tools | [MVP] | Copy clips between species on one family skeleton, batch export, strip sway bones from clips if code and clips cannot be layered | — | — | 3 | not started |
+| (tool) Clip tools | [MVP] | Copy clips between species on one family skeleton, batch export, strip sway bones from clips if code and clips cannot be layered, and the no-click clip route: clip JSON to KeyframeSequence to binary `.rbxm` (Lune) to Open Cloud Animation upload (document 06, section 6.7; the Sprint 0 converter `spike/tools/anim_kfs.py`) | — | — | 3 | not started |
 | (tool) Flipbook and frame-set render | [MVP] | Render or pack an effect sequence into a 4×4 sheet; render the caustic and surface frame sets | — | — | 4 | not started |
 | (tool) Placeholder generator | [MVP] | Reads this list and writes a stand-in for every row (section 16) | — | — | 5 | not started |
 | (tool) Audio batch | [MVP] | Trim, level, export to OGG, check loops | — | — | 2 | not started |
 | (tool) Upload and manifest routine | [MVP] | Upload a file, record its asset ID and status in `manifest.csv`, swap out the placeholder | — | — | 6 | not started |
 | (tool) Review contact sheets | [MVP] | Render any set of assets, and the trait combination sheet, onto one image for an art review | — | — | 3 | not started |
 | (test) Rig test and trait test | [MVP] | The two engine tests document 06 calls for before any creature is finished: outline shells and code sway on a skinned mesh, and the three ways to draw trait overlays | — | placeholder species | 8 | not started |
-| (import) Studio import and fixes, soft launch | [MVP] | Import every [MVP] file, set surfaces, collisions and sockets, fix what breaks | — | all MVP rows | 14 | not started |
+| (import) Studio import and fixes, soft launch | [MVP] | Import every [MVP] file, set `MeshPart.Color` to white, surfaces and collisions, check each rig's socket table, fix what breaks | — | all MVP rows | 14 | not started |
 | (import) Studio import and fixes, launch | [L] | The same for [L] files | — | all L rows | 8 | not started |
 
 ### 14.2 Rows and hours by category and scope tag
@@ -1629,7 +1629,7 @@ The hours in this list already assume the reuse below. If a reuse turns out not 
 | Rigid prey with a motion table | Plankton, Krill, Tiny Shrimp, Sardine, five trait prey | No bones, no clips | 12 |
 | Prey meshes | Zebra Darter from Reef Darter; Armor Shrimp from Tiny Shrimp; Lunar Fry from Glowfry | Edit, do not rebuild | 3 |
 | Six prey atlases | All 21 prey | Small cells in shared sheets, so schools batch | 8, plus frame rate |
-| Four tiling ground textures | Every floor, rock, cliff and Rim piece in every zone | Tint and vertex colour make silt, sandstone and deep slate | 30 |
+| Four tiling ground textures | Every floor, rock, cliff and Rim piece in every zone | Tints make silt, sandstone and deep slate | 30 |
 | Kit pieces at 80% to 125% with tints | Every zone | A dozen corals dress the whole Reef; night is a tint, not new meshes | 50 |
 | Vent chimneys | The Chimneys landmark at soft launch, the vent hazard at launch | Same meshes; launch adds a glow mask, a plume and a rumble warning | 6 |
 | One cove | All 24 coves | Same pieces; the lantern colour and the owner's specimens make them differ | 100 or more |
@@ -1760,8 +1760,8 @@ Document 06 marks these as unverified. Row "(test) Rig test and trait test" in 1
 | Test | If it fails |
 |---|---|
 | Flipped back faces draw on a skinned mesh, so outline shells work | Outlines become a ring sprite behind each creature. All `_Shell` and `_ShellThick` rows are dropped (about −25 hours) and one ring texture is added |
-| Code can move sway bones while a clip plays on the same skeleton | Sway bones are left out of every clip; the reference swim clips become unused. No extra hours |
-| Decal layers follow the UVs of a skinned mesh under a painted surface | Overlays move to a second shell mesh per creature (about +1 hour per species mesh and double the triangles while a trait shows) or are combined into one texture at run time |
+| Code can move sway bones while a clip plays on the same skeleton (passed on Mac in Sprint 0, writing on `PreRender`) | Sway bones are left out of every clip; the reference swim clips become unused. No extra hours |
+| Decal layers follow the UVs of a skinned mesh under a painted surface (**failed** in Sprint 0: decals project per face; the overlay shell was chosen, so this row's cost applies and is not yet in the rows above) | Overlays move to a second shell mesh per creature (about +1 hour per species mesh and double the triangles while a trait shows) or are combined into one texture at run time |
 | Part of a texture can glow from a mask on every target device | Glow traits, Moon Tide masks and eye rings use small `Neon` caps and brighter paint instead; a few more kit pieces, similar hours |
 | Sway code is fast enough for the creatures in view on a low-end phone | Fewer creatures sway; the rest use the reference swim clips |
 | Eight swapped surface frames and sixteen caustic frames hold frame rate and memory | Fewer frames, or two scrolling layers instead |
