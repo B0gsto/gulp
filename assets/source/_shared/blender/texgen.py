@@ -93,7 +93,7 @@ def _font(size):
         return ImageFont.load_default()
 
 
-def stamp(img, label=None):
+def stamp(img, label=None, centre=0.5):
     """The placeholder stamp of 07 section 16: a big "PH" across the middle, the name (or any
     label) under it, and a diagonal band, so no stand-in can ship by accident."""
     _, ImageDraw, _ = _pil()
@@ -105,7 +105,8 @@ def stamp(img, label=None):
     draw.line((0, h - 1, w - 1, 0), fill=paper, width=band)
     big = _font(max(8, h // 3))
     box = draw.textbbox((0, 0), "PH", font=big)
-    draw.text(((w - box[2]) // 2, (h - box[3]) // 2 - h // 10), "PH", font=big, fill=ink,
+    top = int(h * centre) - box[3] // 2 - h // 10     # `centre`: where the stamp sits, 0 top to 1 bottom
+    draw.text(((w - box[2]) // 2, top), "PH", font=big, fill=ink,
               stroke_width=max(1, w // 128), stroke_fill=paper)
     if label:
         size = max(8, h // 14)
@@ -114,17 +115,17 @@ def stamp(img, label=None):
             size -= 1
             small = _font(size)
         box = draw.textbbox((0, 0), label, font=small)
-        draw.text(((w - box[2]) // 2, int(h * 0.68)), label, font=small, fill=ink, stroke_width=1, stroke_fill=paper)
+        draw.text(((w - box[2]) // 2, min(h - box[3] - 2, top + int(h * 0.38))), label, font=small, fill=ink, stroke_width=1, stroke_fill=paper)
     return img
 
 
-def flat(size, hexcode, label=None, rgba=False):
+def flat(size, hexcode, label=None, rgba=False, centre=0.5):
     Image, _, _ = _pil()
     h = hexcode.lstrip("#")
     rgb = tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
     w, hh = (size, size) if isinstance(size, int) else size
     img = Image.new("RGBA", (w, hh), rgb + (255,))
-    return stamp(img, label) if label is not False else img
+    return stamp(img, label, centre) if label is not False else img
 
 
 def soft_dot(size):

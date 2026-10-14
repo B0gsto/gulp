@@ -111,7 +111,7 @@ def run(build_file, steps, builder=None):
     result["checks"] = report.rows
     result["meshes"] = [{"name": e["object"].name, "role": e["role"], "triangles": e.get("tris"),
                          "budget": e.get("tri_budget"), "lod": e.get("lod"), "thickness": e.get("thickness"),
-                         "self_intersections": e.get("self_intersections"), "texel_density": e.get("texel_density")}
+                         "self_intersections": e.get("self_intersections"), "texel_density": e.get("texel_density"), "width": e.get("width")}
                         for e in spec["meshes"]]
     result["bones"] = spec.get("bone_counts")
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss

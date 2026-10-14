@@ -109,6 +109,12 @@ def action_fcurves(action):
 
 # ---------------------------------------------------------------- meshes
 
+# Outline width, measured at shell corners and face centres, in multiples of the thickness:
+# nearest at least, mean between, farthest at most, and the spread (coefficient of variation).
+# Coarse shells (prey: 40 triangles) need corners up to 2x so their flat faces clear the body. (tune)
+SHELL_WIDTH = (0.4, 0.8, 1.5, 2.05, 0.35)
+
+
 def check_mesh(spec, entry, report):
     obj = entry["object"]
     mesh = obj.data
@@ -153,6 +159,17 @@ def check_mesh(spec, entry, report):
     volume = bm.calc_volume(signed=True)
     if role == "shell":
         add("faces flipped", volume < 0.0, "signed volume %.4f (a shell shows its back faces)" % volume)
+        if entry.get("body") is not None:
+            import versions
+            m = versions.shell_metrics(obj, entry["body"], entry["level_body"])
+            entry["width"] = m
+            d = entry["thickness"]
+            add("shell outside body", m["inside_points"] == 0,
+                "%d of %d shell points inside the body" % (m["inside_points"], m["points"]))
+            add("shell width even", m["min"] >= SHELL_WIDTH[0] * d and SHELL_WIDTH[1] * d <= m["mean"] <= SHELL_WIDTH[2] * d
+                and m["max"] <= SHELL_WIDTH[3] * d and m["cv"] <= SHELL_WIDTH[4],
+                "corners and face centres %.3f to %.3f studs from the body (mean %.3f, cv %.2f) for %.3f; "
+                "allowed min %.1fx, mean %.1fx to %.1fx, max %.1fx, cv %.2f" % ((m["min"], m["max"], m["mean"], m["cv"], d) + SHELL_WIDTH))
         if "self_intersections" in entry:
             add("no self-intersection", entry["self_intersections"] == 0,
                 "%d crossing face pairs inside a part; grown %.3f studs" % (entry["self_intersections"], entry["thickness"]))

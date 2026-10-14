@@ -7,10 +7,12 @@ docs/06-art-bible.md section 13.2 (outlines), 6.4 (levels of detail), 6.3 (budge
     lod    every body mesh -> <name>_LOD1 (half the triangles) and <name>_LOD2 (a quarter):
            collapse decimation, mirrored on X, then vertex colours snapped back to the source
            colours and weights cleaned to 4 per vertex. Fails when a level exceeds its budget.
-    shell  every body level -> <level>_Shell and/or <level>_ShellThick: the level is trimmed of
-           parts that sit inside the grown body, decimated to the shell budget (about 40%),
-           and each closed part is grown along its own normals (even thickness, so thin fins
-           grow as much as the body), then the faces are flipped. Same bones, same weights.
+    shell  one clean hull per shell kind: the voxel-remeshed union of every part, pushed out
+           along its smooth normals by the thickness and remeshed again (no inner fragments,
+           folds merged). Each level's _Shell/_ShellThick is decimated from the level above,
+           its corners snapped back to exactly the thickness from the body, faces that dip
+           towards the body pushed clear, weights taken from the nearest body point, faces
+           flipped. validate checks it lies outside the body and keeps an even width.
 
 Who gets what comes from the spec's category (07 section 1.2 and 06 section 6.4); a build may
 override it with spec["versions"] = {"lods": [...], "shells": [...], "outline": "player"|"prey"}.
@@ -84,37 +86,6 @@ def parts_of(bm):
     return out
 
 
-def offset_vectors(bm, distance):
-    """Even-thickness offset of every vertex along its angle-weighted normal: each face
-    next to the vertex moves out by `distance`. Parts are disconnected, so every part
-    grows along its own normals."""
-    bm.normal_update()
-    out = {}
-    for v in bm.verts:
-        n = Vector()
-        for loop in v.link_loops:
-            n += loop.face.normal * loop.calc_angle()
-        if n.length < 1e-9:
-            n = v.normal.copy()
-        n.normalize()
-        cos_min = min((n.dot(f.normal) for f in v.link_faces), default=1.0)
-        out[v.index] = n * (distance / max(cos_min, 0.35))
-    return out
-
-
-def relax(bm, vectors, rounds):
-    """Average each offset direction with its neighbours (length kept): unfolds concave spots."""
-    for _ in range(rounds):
-        new = {}
-        for v in bm.verts:
-            acc = vectors[v.index].copy()
-            for e in v.link_edges:
-                acc += vectors[e.other_vert(v).index]
-            new[v.index] = acc.normalized() * vectors[v.index].length
-        vectors = new
-    return vectors
-
-
 def self_intersections(bm):
     """Face pairs that cross inside one part (parts may overlap each other by design)."""
     bm.verts.ensure_lookup_table()
@@ -136,71 +107,175 @@ def self_intersections(bm):
     return bad
 
 
-def grow(mesh, distance):
-    """Grow every part of `mesh` by `distance` in place. Returns self-intersecting face pairs
-    left after up to three relax passes (0 is the goal)."""
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bm.verts.ensure_lookup_table()
-    base = [v.co.copy() for v in bm.verts]
-    vectors = offset_vectors(bm, distance)
-    bad = 0
-    for attempt in range(4):
-        if attempt:
-            vectors = relax(bm, vectors, 2)
-        for v in bm.verts:
-            v.co = base[v.index] + vectors[v.index]
-        bm.normal_update()
-        bad = self_intersections(bm)
-        if bad == 0:
-            break
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    return bad
+def remesh(obj, voxel):
+    """Voxel remesh in place: one closed surface around the union of every part; faces
+    inside other parts, and folds, are gone."""
+    for m in list(obj.modifiers):
+        obj.modifiers.remove(m)
+    mod = obj.modifiers.new("Remesh", 'REMESH')
+    mod.mode = 'VOXEL'
+    mod.voxel_size = voxel
+    mod.adaptivity = 0.0
+    dg = bpy.context.evaluated_depsgraph_get()
+    new = bpy.data.meshes.new_from_object(obj.evaluated_get(dg), depsgraph=dg)
+    obj.modifiers.remove(mod)
+    old = obj.data
+    obj.data = new
+    bpy.data.meshes.remove(old)
+    new.name = obj.name
 
 
-def hidden_parts(mesh, distance):
-    """Indices (lists of vertex indices) of parts that, once grown, sit wholly inside
-    another grown part: they would add triangles and draw nothing."""
+def keep_outer(mesh):
+    """Drop the closed cavities a remesh can leave inside (parts with negative volume)."""
     bm = bmesh.new()
     bm.from_mesh(mesh)
-    vectors = offset_vectors(bm, distance)
-    for v in bm.verts:
-        v.co = v.co + vectors[v.index]
-    bm.normal_update()
-    comps = parts_of(bm)
-    trees = []
-    for comp in comps:
-        idx = {v.index for v in comp}
+    drop = []
+    total = bm.calc_volume(signed=True)       # the outer surface sets the winding; cavities run the other way
+    for comp in parts_of(bm):
         faces = {f for v in comp for f in v.link_faces}
-        verts = [v.co.copy() for v in bm.verts]
-        trees.append(BVHTree.FromPolygons(verts, [[v.index for v in f.verts] for f in faces]) if idx else None)
-    hidden = []
-    for i, comp in enumerate(comps):
-        for j, tree in enumerate(trees):
-            if i == j:
-                continue
-            inside = True
-            for v in comp:
-                hit = tree.find_nearest(v.co)
-                if hit[0] is None or (hit[0] - v.co).dot(hit[1]) <= 0.0:
-                    inside = False
-                    break
-            if inside:
-                hidden.append([v.index for v in comp])
-                break
-    bm.free()
-    return hidden
-
-
-def delete_verts(mesh, indices):
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bm.verts.ensure_lookup_table()
-    bmesh.ops.delete(bm, geom=[bm.verts[i] for i in indices], context='VERTS')
+        vol = sum(f.verts[0].co.dot(f.verts[k].co.cross(f.verts[k + 1].co))
+                  for f in faces for k in range(1, len(f.verts) - 1))
+        if vol * total <= 0.0:
+            drop.extend(comp)
+    if drop:
+        bmesh.ops.delete(bm, geom=drop, context='VERTS')
     bm.to_mesh(mesh)
     bm.free()
+    return len(drop)
+
+
+def hull(src, name, distance):
+    """The outline hull of 06 section 13.2 as one clean closed surface at an even distance:
+    union of every part (voxel remesh), pushed out along its smooth normals, then
+    remeshed again so the folds in concave corners (fin roots, eye sockets) merge away.
+    Every level's shell is decimated from this one hull, so the width is the same at
+    every level."""
+    obj = copy_object(src, name, "SHELL")
+    obj.parent = None
+    obj.vertex_groups.clear()
+    dims = [max(v.co[i] for v in obj.data.vertices) - min(v.co[i] for v in obj.data.vertices) for i in range(3)]
+    size = max(dims) + 2.0 * distance
+    remesh(obj, max(size / 400.0, min(distance / 6.0, 0.015)))
+    before = volume(obj.data)
+    normals = [v.normal.copy() for v in obj.data.vertices]
+    sign = 1.0 if before > 0.0 else -1.0       # grow outward whatever way the remesh wound its faces
+    for v, n in zip(obj.data.vertices, normals):
+        v.co = v.co + n * distance * sign
+    remesh(obj, max(size / 300.0, distance / 5.0))
+    keep_outer(obj.data)
+    if volume(obj.data) < 0.0:
+        obj.data.flip_normals()
+    print("[shell] hull %s: body volume %.3f, hull volume %.3f, extent %s" % (
+        name, abs(before), volume(obj.data), ["%.2f" % (max(v.co[i] for v in obj.data.vertices) - min(v.co[i] for v in obj.data.vertices)) for i in range(3)]))
+    return obj
+
+
+def volume(mesh):
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    v = bm.calc_volume(signed=True)
+    bm.free()
+    return v
+
+
+def snap_to_offset(mesh, tree, distance):
+    """Put every vertex of a decimated hull back at exactly `distance` from the body, along
+    the line from its nearest body point: decimation moves vertices off the offset surface,
+    and this keeps the outline the same width at every level."""
+    for v in mesh.vertices:
+        loc = tree.find_nearest(v.co)[0]
+        if loc is None:
+            continue
+        out = v.co - loc
+        if out.length > 1e-9:
+            v.co = loc + out.normalized() * distance
+    mesh.update()
+    # A coarse level's flat faces cut chords into the body between vertices: push the corners
+    # of any face whose centre is closer than half the thickness out until it clears.
+    for _ in range(12):
+        push = {}
+        for p in mesh.polygons:
+            c = p.center
+            loc = tree.find_nearest(c)[0]
+            gap = (c - loc).length if loc is not None else distance
+            if gap < 0.5 * distance:
+                for vi in p.vertices:
+                    push[vi] = max(push.get(vi, 0.0), 0.5 * distance - gap + 0.05 * distance)
+        if not push:
+            break
+        for vi, amount in push.items():
+            v = mesh.vertices[vi]
+            near = tree.find_nearest(v.co)[0]
+            out = v.co - near
+            width = min(out.length + amount, 2.0 * distance)     # never more than twice the thickness
+            v.co = near + out.normalized() * width
+        mesh.update()
+
+
+def transfer_weights(obj, source):
+    """Each shell vertex takes the weights of the nearest point of the body (blended over
+    that face's corners), at most 4, normalised: same bones, same motion."""
+    sm = source.data
+    names = {g.index: g.name for g in source.vertex_groups}
+    if not names:
+        return
+    sw = [{names[g.group]: g.weight for g in v.groups if g.group in names} for v in sm.vertices]
+    tree = BVHTree.FromPolygons([v.co for v in sm.vertices], [list(p.vertices) for p in sm.polygons])
+    for n in names.values():
+        if n not in obj.vertex_groups:
+            obj.vertex_groups.new(name=n)
+    for v in obj.data.vertices:
+        loc, _, fi, _ = tree.find_nearest(v.co)
+        acc = {}
+        corners = sm.polygons[fi].vertices
+        for vi in corners:
+            k = 1.0 / ((sm.vertices[vi].co - loc).length + 1e-6)
+            for bone, w in sw[vi].items():
+                acc[bone] = acc.get(bone, 0.0) + w * k
+        for bone, w in meshgen.clean_weights(acc).items():
+            obj.vertex_groups[bone].add([v.index], w, 'REPLACE')
+
+
+def shell_metrics(shell, body, level_body):
+    """For validate: distance from every shell vertex to the full body (the outline width),
+    and shell points (vertices and face centres) that lie inside any part of the level's body."""
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    tree = BVHTree.FromBMesh(bm)
+    bm.free()
+    # The visible band lies between the corners and the flat faces between them: sample both.
+    dist = [tree.find_nearest(v.co)[3] for v in shell.data.vertices] + [tree.find_nearest(p.center)[3] for p in shell.data.polygons]
+    lb = bmesh.new()
+    lb.from_mesh(level_body.data)
+    lb.normal_update()
+    part_trees = []
+    for comp in parts_of(lb):
+        faces = list({f for v in comp for f in v.link_faces})
+        co = [v.co for v in comp]
+        box = [(min(c[i] for c in co), max(c[i] for c in co)) for i in range(3)]
+        part_trees.append((box, BVHTree.FromPolygons([v.co.copy() for v in lb.verts], [[v.index for v in f.verts] for f in faces])))
+    lb.free()
+    points = [v.co for v in shell.data.vertices] + [p.center for p in shell.data.polygons]
+    ray = Vector((0.5773, 0.5774, 0.5775)).normalized()     # odd direction: no grazing along axes
+    inside = 0
+    for p in points:
+        for box, t in part_trees:
+            if not all(box[i][0] <= p[i] <= box[i][1] for i in range(3)):
+                continue
+            hits, origin = 0, p.copy()
+            for _ in range(64):
+                loc = t.ray_cast(origin, ray)[0]
+                if loc is None:
+                    break
+                hits += 1
+                origin = loc + ray * 1e-5
+            if hits % 2 == 1:           # ray parity: an odd number of crossings means inside this closed part
+                inside += 1
+                break
+    mean = sum(dist) / len(dist)
+    sd = (sum((x - mean) ** 2 for x in dist) / len(dist)) ** 0.5
+    return {"min": round(min(dist), 4), "mean": round(mean, 4), "max": round(max(dist), 4),
+            "cv": round(sd / mean, 3), "inside_points": inside, "points": len(points)}
 
 
 def triangles(mesh):
@@ -222,26 +297,40 @@ def decimate(obj, target):
     """Collapse-decimate `obj` (mirrored on X) to at most `target` triangles, in place."""
     if triangles(obj.data) <= target:
         return
+    if triangles(obj.data) > 12 * target:      # big steps collapse small meshes to nothing: go down in stages
+        decimate(obj, 4 * target)
     saved = [(m.name, m.object) for m in obj.modifiers if m.type == 'ARMATURE']
     for m in list(obj.modifiers):
         obj.modifiers.remove(m)
     source = obj.data
     ratio = target / float(triangles(source))
-    for _ in range(8):
+    lo, hi, best, best_got = 0.0, 1.0, None, -1
+    for attempt in range(14):            # bisect the ratio: the most triangles at or under the target
         mod = obj.modifiers.new("Decimate", 'DECIMATE')
         mod.decimate_type = 'COLLAPSE'
         mod.ratio = ratio
         mod.use_collapse_triangulate = True
-        mod.use_symmetry = True
+        mod.use_symmetry = attempt < 10      # mirrored on X unless that cannot reach the target
         mod.symmetry_axis = 'X'
         dg = bpy.context.evaluated_depsgraph_get()
         new = bpy.data.meshes.new_from_object(obj.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
         obj.modifiers.remove(mod)
         got = triangles(new)
-        if got <= target:
+        if got <= target and got > best_got:
+            if best is not None:
+                bpy.data.meshes.remove(best)
+            best, best_got = new, got
+            lo = ratio
+        else:
+            bpy.data.meshes.remove(new)
+            if got > target:
+                hi = ratio
+        if best_got >= 0.95 * target:
             break
-        bpy.data.meshes.remove(new)
-        ratio *= 0.97 * target / got
+        ratio = (lo + hi) / 2.0 if best is not None or attempt else ratio * 0.97 * target / max(got, 1)
+        if best is None and hi < 1.0 and lo == 0.0:
+            ratio = min(ratio, hi * 0.97 * target / max(got, 1))
+    new = best if best is not None else bpy.data.meshes.new_from_object(obj)
     name = source.name
     obj.data = new
     bpy.data.meshes.remove(source)
@@ -384,41 +473,72 @@ def run_shell(spec):
     rest_pose(spec)
     p = plan(spec)
     made = []
-    levels = []
     for entry in _body_entries(spec):
-        levels.append((entry, entry["object"], None))
-        for e in spec["meshes"]:
-            if e.get("of") == entry["object"].name and e.get("lod") and e["role"] == "body":
-                levels.append((entry, e["object"], e["lod"]))
-    for entry, src, lod in levels:
-        lo, hi = meshgen_bounds_z(entry["object"])
-        height = spec.get("size", (0, 0, hi - lo))[2] if entry.get("primary") else hi - lo
+        body = entry["object"]
+        levels = [(body, None)] + [(e["object"], e["lod"]) for e in spec["meshes"]
+                                   if e.get("of") == body.name and e.get("lod") and e["role"] == "body"]
+        lo, hi = meshgen_bounds_z(body)
+        height = spec["size"][2] if entry.get("primary") and spec.get("size") else hi - lo
         budget = entry.get("budget", spec["budget"])
         for kind in p["shells"]:
             d = thickness(spec, height, thick=(kind == "ShellThick"))
-            name = "%s_%s" % (src.name, kind)
-            obj = copy_object(src, name, "SHELL")
-            hidden = sorted({i for part in hidden_parts(obj.data, d) for i in part})
-            if hidden:
-                delete_verts(obj.data, hidden)
-            target = budgets.tri_budget(budget, "shell", lod=lod, body_tris=spec.get("body_tris") or triangles(entry["object"].data))
-            target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))   # 06 13.2: about 40% of the level
-            decimate(obj, target)
-            tidy(obj, None, src)
-            crossings = grow(obj.data, d)
-            obj.data.flip_normals()
-            set_flat_colour(obj.data, common.colour(SHELL_COLOUR[kind]))
-            obj.data.materials.clear()
-            obj.data.materials.append(template.flat_material("MAT_" + name, common.colour(SHELL_COLOUR[kind]), culling=True))
-            obj.data.update()
-            new = {"object": obj, "role": "shell", "lod": lod, "of": src.name, "thickness": round(d, 4),
-                   "self_intersections": crossings, "parts_left_out": len(hidden)}
-            if "budget" in entry:
-                new["budget"] = entry["budget"]
-            _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") else []))
-            made.append(name)
-            print("[shell] %s %.3f studs, %d triangles (budget %s), %d hidden verts left out, %d crossings"
-                  % (name, d, triangles(obj.data), target, len(hidden), crossings))
+            outer = hull(body, "%s_%s_hull" % (body.name, kind), d)
+            prev, spare = outer, [outer]
+            bmb = bmesh.new()
+            bmb.from_mesh(body.data)
+            body_tree = BVHTree.FromBMesh(bmb)
+            bmb.free()
+            for src, lod in levels:
+                name = "%s_%s" % (src.name, kind)
+                target = budgets.tri_budget(budget, "shell", lod=lod, body_tris=spec.get("body_tris") or triangles(body.data))
+                target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))   # 06 13.2: about 40% of the level
+                # Each level is decimated from the level above (smoother than one big step). A coarse
+                # decimation can fold a face through another or cut into a thin fin: retry a little lower.
+                for attempt, share in enumerate((1.0, 0.97, 0.94, 0.91, 0.88, 0.85, 0.8, 0.75, 0.7)):
+                    obj = copy_object(prev, name, "SHELL")
+                    decimate(obj, int(target * share))
+                    snap_to_offset(obj.data, body_tree, d)
+                    bm = bmesh.new()
+                    bm.from_mesh(obj.data)
+                    folds = self_intersections(bm)
+                    bm.free()
+                    inside = shell_metrics(obj, body, src)["inside_points"] if folds == 0 else 1
+                    if (folds == 0 and inside == 0) or share == 0.7:
+                        break
+                    bpy.data.meshes.remove(obj.data)
+                prev = copy_object(obj, "%s_next" % name, "SHELL")
+                spare.append(prev)
+                mesh = obj.data
+                if not mesh.uv_layers:
+                    mesh.uv_layers.new(name=common.UV_NAME)
+                for c in list(mesh.color_attributes):
+                    mesh.color_attributes.remove(c)
+                mesh.color_attributes.new(common.COLOR_ATTR, 'BYTE_COLOR', 'CORNER')
+                mesh.attributes.active_color_name = common.COLOR_ATTR
+                set_flat_colour(mesh, common.colour(SHELL_COLOUR[kind]))
+                mesh.polygons.foreach_set("use_smooth", [True] * len(mesh.polygons))
+                if spec.get("armature"):
+                    obj.parent = spec["armature"]
+                    transfer_weights(obj, body)
+                    meshgen.skin(obj, spec["armature"])
+                mesh.flip_normals()
+                mesh.materials.clear()
+                mesh.materials.append(template.flat_material("MAT_" + name, common.colour(SHELL_COLOUR[kind]), culling=True))
+                mesh.update()
+                bm = bmesh.new()
+                bm.from_mesh(mesh)
+                crossings = self_intersections(bm)
+                bm.free()
+                new = {"object": obj, "role": "shell", "lod": lod, "of": src.name, "thickness": round(d, 4),
+                       "self_intersections": crossings, "body": body, "level_body": src}
+                if "budget" in entry:
+                    new["budget"] = entry["budget"]
+                _register(spec, new, [obj] + ([spec["armature"]] if spec.get("armature") else []))
+                made.append(name)
+                print("[shell] %s %.3f studs, %d triangles (budget %s), %d crossings"
+                      % (name, d, triangles(mesh), target, crossings))
+            for o in spare:
+                bpy.data.meshes.remove(o.data)
     return made
 
 
@@ -460,8 +580,9 @@ def review_sheet(spec, report, ok):
             preview.shot("Side", objs, path, frame=objs)
             tris = "; ".join("%d tris" % triangles(o.data) for o in objs[-1:])
             extra = by_name[objs[-1].name]
-            cap = [tris + ("" if extra["role"] != "shell" else ", %.3f studs, %d crossings, %d parts left out"
-                           % (extra["thickness"], extra["self_intersections"], extra["parts_left_out"]))]
+            w = extra.get("width") or {}
+            cap = [tris + ("" if extra["role"] != "shell" else ", %.3f studs; width %.3f to %.3f, %d inside"
+                           % (extra["thickness"], w.get("min", 0), w.get("max", 0), w.get("inside_points", -1)))]
             cells.append({"title": label, "image": path, "caption": cap})
     if spec.get("uv"):
         cells.append({"title": "UV layout", "uv": uvlayout.review_image(spec, None),

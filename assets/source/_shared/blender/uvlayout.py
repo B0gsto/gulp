@@ -95,3 +95,27 @@ def review_image(spec, out):
     layout = texgen.FAMILY_LAYOUTS.get(cfg.get("layout"), {})
     return {"layout": layout, "triangles": uv_triangles(body.data),
             "title": "%s UVs, %s layout (06 5.4), %s" % (body.name, cfg.get("layout", "none"), cfg.get("texture", ""))}
+
+
+def project(obj, rect, size, mode="side"):
+    """Placeholder unwrap (07 section 16: the PH stamp must show on the mesh): every corner
+    gets a UV inside `rect` (a layout region or an atlas cell), inside the bake margin.
+    side: projected from the creature's side (Y along U, Z along V; left and right mirrored).
+    box: each face from its main axis, so every face of a block shows the whole texture."""
+    u0, v0, u1, v1 = texgen.inner(rect, size)
+    mesh = obj.data
+    co = [v.co for v in mesh.vertices]
+    lo = [min(c[i] for c in co) for i in range(3)]
+    span = [max(max(c[i] for c in co) - lo[i], 1e-6) for i in range(3)]
+    uv = mesh.uv_layers.active.data
+    for poly in mesh.polygons:
+        n = poly.normal
+        if mode == "box":
+            axis = max(range(3), key=lambda i: abs(n[i]))
+            a, b = [(1, 2), (0, 2), (0, 1)][axis]
+        else:
+            a, b = 1, 2
+        for li in poly.loop_indices:
+            c = co[mesh.loops[li].vertex_index]
+            fu, fv = (c[a] - lo[a]) / span[a], (c[b] - lo[b]) / span[b]
+            uv[li].uv = (u0 + (u1 - u0) * fu, v0 + (v1 - v0) * fv)

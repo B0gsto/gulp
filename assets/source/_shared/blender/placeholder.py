@@ -178,10 +178,55 @@ def texture(name, row):
             hexcode = name_colour(name)                      # 07 16: a different flat tint per pattern
         if parts[1] == "Trait" and len(parts) > 3 and parts[2] != "Pieces":
             hexcode, label = name_colour(parts[2], ("rarity", "creatures")), parts[2].upper()   # trait name in big letters
-        img = texgen.flat(size, hexcode, label)
-        note = "flat %s, PH stamp" % hexcode
+        users = texture_users(name) if "atlas" in row.get("Description", "").lower() else []
+        if len(users) > 1:                   # a shared atlas: one stamped cell per mesh that uses it
+            n = math.ceil(math.sqrt(len(users)))
+            cell = size // n
+            rects = texgen.atlas_rects([(u, cell, cell) for u in users], size)
+            img = texgen.flat(size, "#9A9A9A", False)
+            for u in users:
+                r = rects[u]
+                img.paste(texgen.flat(cell, mesh_colour(u), u.split("_", 2)[-1]), (int(r[0] * size), int((1.0 - r[3]) * size)))
+            texgen.stamp(img, None)
+            write_json(path.replace(".png", ".atlas.json"), {"texture": name, "cells": rects})
+            note = "atlas of %d stamped %d px cells (texgen.atlas_rects)" % (len(users), cell)
+        else:
+            family = species in common.palette()["creatures"] and parts[1] != "Trait"
+            img = texgen.flat(size, hexcode, label, centre=0.25 if family else 0.5)   # family layout: stamp on the body region
+            note = "flat %s, PH stamp" % hexcode
     img.save(path)
     return path, "%dx%d, %s" % (size, size, note)
+
+
+def texture_users(tex):
+    """Mesh rows of 07 whose Depends on column names this texture."""
+    return [n for r in rows() if re.search(r"\b%s\b" % tex, r.get("Depends on", "")) for n in r["names"]
+            if n.startswith("M_") and "*" not in n and "<" not in n]
+
+
+def mesh_colour(name):
+    ident = pascal_to_id(name.split("_")[2]) if name.count("_") >= 2 else ""
+    try:
+        return common.colour("creatures.%s.mid" % ident)
+    except KeyError:
+        return name_colour(name)
+
+
+def texture_for(name, row):
+    """The texture a mesh row draws with: the first T_ name in its Depends on column, else
+    the species texture T_<Species>_<Juv|Adult>_Alb. Chapter 07 names it; none is invented."""
+    m = re.search(r"\b(T_\w+)", row.get("Depends on", ""))
+    if m:
+        return m.group(1)
+    parts = name.split("_")
+    if parts[1] == "Species" and len(parts) > 3:
+        cand = "T_%s_%s_Alb" % (parts[2], parts[3])
+        try:
+            find(cand)
+            return cand
+        except SystemExit:
+            return None
+    return None
 
 
 def soft_dot_texture():
@@ -404,8 +449,7 @@ def mesh_spec(name, row):
         L = SIZES.get(ident, (TIER_LENGTH.get(tier, 2.0),))[0]
         H = SIZES.get(ident, (0, None))[1] or (0.45 * L if cat == "Prey" else 0.35 * L)
         W = 0.3 * L if cat == "Prey" else 0.3 * L
-        colour = (common.colour("creatures.%s.mid" % ident) if cat == "Prey" and ident in common.palette()["creatures"]
-                  else name_colour(name) if cat == "Prey" else common.colour("ui.destructive"))
+        colour = mesh_colour(name) if cat == "Prey" else common.colour("ui.destructive")
         segs, rings = ((8, 4) if tier <= 1 else (12, 7) if tier <= 4 else (16, 9))
         if cat == "Prey":
             if ident == "plankton":
@@ -460,11 +504,19 @@ def mesh_spec(name, row):
         colour = (name_colour(name, ("rarity",)) if "_LM_" in name else
                   common.colour("water.%s.fog" % zone_key) if zone else "#9A9A9A")
         md.add_part(meshgen.box((-W / 2, -L / 2, 0.0), (W / 2, L / 2, H)), colour)
-        md.add_part(meshgen.box((-0.1 * W, -L / 2 - 0.05 * L, 0.0), (0.1 * W, -L / 2 + 0.02, 0.2 * H)), "#3D3D3D",
-                    tag=common.TAG_FRONT)
-        spec.update(budget="placeholder_block", origin="prop", facing={"kind": "tag"}, size=(W, L * 1.05, H))
+        md.add_part(meshgen.box((-0.1 * W, -0.5 * L, 0.98 * H), (0.1 * W, -0.35 * L, 1.05 * H)), "#3D3D3D",
+                    tag=common.TAG_FRONT)          # front marker on top, inside the footprint
+        spec.update(budget="placeholder_block", origin="prop", facing={"kind": "tag"}, size=(W, L, 1.05 * H))
 
     obj = md.to_object(name, "GEO")
+    import uvlayout
+    tex = TEXTURE or {}
+    rect = tuple(tex.get("rect") or ((0.0, 0.5, 1.0, 1.0) if cat == "Species" else (0.0, 0.0, 1.0, 1.0)))
+    uvlayout.project(obj, rect, tex.get("size", 256), "box" if cat in ("Env", "Cove", "Prop", "Trait") else "side")
+    if tex.get("path"):
+        obj.data.materials.clear()
+        obj.data.materials.append(textured_material("MAT_" + name, tex["path"]))
+    spec["texture_note"] = "%s, cell %s" % (tex.get("name"), ", ".join("%.3f" % x for x in rect)) if tex else "none in 07"
     if arm:
         meshgen.skin(obj, arm)
     lo = [min(v.co[i] for v in obj.data.vertices) for i in range(3)]
@@ -476,8 +528,27 @@ def mesh_spec(name, row):
                 exports=[{"file": os.path.join(root, "meshes", name + ".fbx"), "objects": objs}],
                 actions=[],
                 preview={"main": [obj], "lineup": [{"label": name, "objects": [obj]}], "lineup_caption": ["placeholder"],
-                         "extras": [], "texture": "none (placeholder flat colour)"})
+                         "extras": [], "texture": "placeholder " + spec["texture_note"]})
     return spec
+
+
+TEXTURE = None      # set by blender_main: {"name", "path", "size", "rect"}
+
+
+def textured_material(name, path):
+    """The placeholder's one material: its stamped texture through the mesh's one UV set."""
+    import bpy
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nt.nodes.new("ShaderNodeBsdfDiffuse")
+    img = nt.nodes.new("ShaderNodeTexImage")
+    img.image = bpy.data.images.load(path, check_existing=True)
+    nt.links.new(img.outputs["Color"], bsdf.inputs["Color"])
+    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    return mat
 
 
 def torus(rings):
@@ -492,8 +563,10 @@ def torus(rings):
     return verts, faces, [(0.0, 0.0)] * len(verts)
 
 
-def blender_main(name):
+def blender_main(name, texture_json=None):
+    global TEXTURE
     import run
+    TEXTURE = json.loads(texture_json) if texture_json else None
     row = find(name)
     ok = run.run(None, list(run.IMPLEMENTED), builder=lambda: mesh_spec(name, row))
     sys.exit(0 if ok else 1)
@@ -510,6 +583,14 @@ def make(name):
     if prefix == "M":
         cmd = [heavy_wrapper(), "--owner", "gulp-art", "--game", "Gulp", "--", BLENDER, "--background",
                "--python", os.path.abspath(__file__), "--", name]
+        tex = texture_for(name, row)
+        if tex:
+            path, note = texture(tex, find(tex))
+            print("[placeholder] %s -> %s (%s)" % (tex, os.path.relpath(path, common.REPO_DIR), note))
+            atlas = path.replace(".png", ".atlas.json")
+            rect = json.load(open(atlas))["cells"].get(name) if os.path.exists(atlas) else None
+            from PIL import Image
+            cmd.append(json.dumps({"name": tex, "path": path, "size": Image.open(path).size[0], "rect": rect}))
         log = os.path.join(OUT, "logs", name + ".log")
         os.makedirs(os.path.dirname(log), exist_ok=True)
         with open(log, "w") as f:
@@ -550,6 +631,6 @@ if __name__ == "__main__":
     except ImportError:
         IN_BLENDER = False
     if IN_BLENDER:
-        blender_main(sys.argv[sys.argv.index("--") + 1])
+        blender_main(*sys.argv[sys.argv.index("--") + 1:][:2])
     else:
         sys.exit(main(sys.argv[1:]))
