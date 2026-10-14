@@ -259,7 +259,7 @@ Light / mid / dark / accent. All **(tune)** in the first review round.
 | `squid` | [L] | `#FFD1E0` | `#FF6FA3` | `#B8336B` | `#FFF0A8` | Coral pink, cream spots |
 | `shark` | [L] | `#F2F7FA` | `#8FA9C4` | `#3D5878` | `#FFB38A` | Pale steel. Pink cheeks keep it a pup. |
 | `plankton` | [MVP] | `#FFFFFF` | `#D9FFE8` | — | — | A soft mote; drawn as a billboard |
-| `krill` | [MVP] | `#FFD9CC` | `#FF8C7A` | `#C24A4A` | — | |
+| `krill` | [MVP] | `#FFD9CC` | `#FF8C7A` | `#952028` | — | Dark was `#C24A4A` (L\* 48, over the dark block's 35); `#952028` is L\* 33 at the same hue and chroma (task S3-A1, as the Minnow's in F26) |
 | `shrimp` | [MVP] | `#FFE6D1` | `#FFB48A` | `#C2693D` | — | |
 | `sardine` | [MVP] | `#F2F8FC` | `#BFD9E8` | `#5C9AD9` | — | |
 | `darter` | [MVP] | `#FFF6C9` | `#FFD23D` | `#2F7F8C` | `#FF7A5C` | |
@@ -466,7 +466,7 @@ Nothing exceeds 1024. All **(tune)**.
 
 ### 6.3 Triangle and bone budgets
 
-Triangles are counted after triangulation. "Shell" is the outline mesh (section 13.2). A prey `_LOD2_Shell` gets 80 triangles **(tune)**, or a quarter of its LOD0 shell where that is more. The tier-1 and LOD2 prey shell numbers sit above "about 40% of the body" because an outline of even width needs them: measured about 62 on `krill` and 76 on the `darter` LOD2 with the Sprint 0 shell tool (`spike/results/art-blender.md`, F26).
+Triangles are counted after triangulation. "Shell" is the outline mesh (section 13.2). A prey `_LOD2_Shell` gets 80 triangles **(tune)**, or a quarter of its LOD0 shell where that is more. The tier-1 and LOD2 prey shell numbers sit above "about 40% of the body" because an outline of even width needs them: measured about 62 on `krill` and 76 on the `darter` LOD2 with the Sprint 0 shell tool (`spike/results/art-blender.md`, F26). The tier-1 number was raised from 64 to 80 in task S3-A1: the final `krill`'s even 0.033-stud shell does not hold its width at 64 (spread 0.31 against the 0.25 limit of the shell tool).
 
 | Asset class | Triangles, LOD0 | Shell | Bones | Scope |
 |---|---|---|---|---|
@@ -476,7 +476,7 @@ Triangles are counted after triangulation. "Shell" is the outline mesh (section 
 | `turtle` tucked mesh, juvenile / adult (`_Juv_Tucked`, `_Adult_Tucked`) | 900 / 2,000 | 40% | Same skeleton | [L] |
 | Leviathan crest | 150 | — | 0 (socketed) | per species |
 | `plankton` | 2 (billboard) | none | 0 | [MVP] |
-| Prey tier 1 (`krill`, `shrimp`) | 60 to 120 | 64 **(tune)** | 0 | [MVP] |
+| Prey tier 1 (`krill`, `shrimp`) | 60 to 120 | 80 **(tune)** | 0 | [MVP] |
 | Prey tier 2 (`sardine`) | 150 | 60 | 0 | [MVP] |
 | Prey tier 3 (`darter`) | 300 | 120 | 3 | [MVP] |
 | Prey tier 4 (`mackerel`) | 450 | 180 | 3 | [MVP] |

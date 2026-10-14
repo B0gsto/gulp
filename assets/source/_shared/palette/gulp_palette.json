@@ -19,7 +19,7 @@
     "squid": {"light": "#FFD1E0", "mid": "#FF6FA3", "dark": "#B8336B", "accent": "#FFF0A8"},
     "shark": {"light": "#F2F7FA", "mid": "#8FA9C4", "dark": "#3D5878", "accent": "#FFB38A"},
     "plankton": {"light": "#FFFFFF", "mid": "#D9FFE8"},
-    "krill": {"light": "#FFD9CC", "mid": "#FF8C7A", "dark": "#C24A4A"},
+    "krill": {"light": "#FFD9CC", "mid": "#FF8C7A", "dark": "#952028"},
     "shrimp": {"light": "#FFE6D1", "mid": "#FFB48A", "dark": "#C2693D"},
     "sardine": {"light": "#F2F8FC", "mid": "#BFD9E8", "dark": "#5C9AD9"},
     "darter": {"light": "#FFF6C9", "mid": "#FFD23D", "dark": "#2F7F8C", "accent": "#FF7A5C"},
