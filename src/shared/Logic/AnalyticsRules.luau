@@ -455,6 +455,83 @@ function AnalyticsRules.cohort(sessions: number, createdAt: number, now: number)
 	return "d7p"
 end
 
+--- A time in seconds as an event value: tenths, never below 0 (T, J).
+function AnalyticsRules.seconds(t: number): number
+	return math.round(math.max(t, 0) * 10) / 10
+end
+
+-- 10 §4.2 `ftue_milestone`: the upper bounds of each milestone's buckets, in seconds of T.
+local MILESTONE_BOUNDS: { [string]: { number } } = {
+	bite = { 5, 10, 20 },
+	tier2 = { 30, 45, 60 },
+	trait = { 45, 60, 90 },
+	bank = { 90, 120, 180 },
+}
+
+--- 10 §4.2 `ftue_milestone` ctx for milestone `id` ("bite", "tier2", "trait", "bank") at T = `t`:
+--- `<id>_le<n>` for the first bound `t` is at or under, `<id>_gt<last>` past them all. Nil for an
+--- unknown `id`.
+function AnalyticsRules.milestoneCtx(id: string, t: number): string?
+	local bounds = MILESTONE_BOUNDS[id]
+	if not bounds then
+		return nil
+	end
+	for _, bound in bounds do
+		if t <= bound then
+			return `{id}_le{bound}`
+		end
+	end
+	return `{id}_gt{bounds[#bounds]}`
+end
+
+--- 10 §3.3 `fs_time_mark`: each mark's ctx and the T in seconds it fires at, in order.
+AnalyticsRules.TIME_MARKS = table.freeze({
+	table.freeze({ ctx = "s60", at = 60 }),
+	table.freeze({ ctx = "s180", at = 180 }),
+	table.freeze({ ctx = "m5", at = 300 }),
+	table.freeze({ ctx = "m10", at = 600 }),
+	table.freeze({ ctx = "m15", at = 900 }),
+	table.freeze({ ctx = "m25", at = 1500 }),
+})
+
+--- The first-time events that fire once per account (10 §4.2: each `ftue_failsafe` ctx, each
+--- `ftue_milestone`, `ftue_bite_assist`), kept across sessions as the bits of the profile's
+--- `ftue.logged` (09 §12.2): entry k is bit k - 1. Append only: never reorder or reuse an entry
+--- (09 §12.3), or saved profiles would read wrongly.
+AnalyticsRules.ONCE = table.freeze({
+	"failsafe_load_partial",
+	"failsafe_load_minimal",
+	"failsafe_grow_homing",
+	"failsafe_grow_burst",
+	"failsafe_trait_homing",
+	"failsafe_afk_hold",
+	"failsafe_run2_homing",
+	"failsafe_home_lure",
+	"failsafe_home_push",
+	"milestone_bite",
+	"milestone_tier2",
+	"milestone_trait",
+	"milestone_bank",
+	"bite_assist",
+})
+
+local ONCE_BIT: { [string]: number } = {}
+for k, key in AnalyticsRules.ONCE do
+	ONCE_BIT[key] = k - 1
+end
+
+--- Whether once-per-account event `key` (an `ONCE` entry) is in `logged`. An unknown key is never.
+function AnalyticsRules.isLogged(logged: number, key: string): boolean
+	local bit = ONCE_BIT[key]
+	return bit ~= nil and bit32.btest(logged, bit32.lshift(1, bit))
+end
+
+--- `logged` with `key` added; unchanged for an unknown key.
+function AnalyticsRules.withLogged(logged: number, key: string): number
+	local bit = ONCE_BIT[key]
+	return if bit then bit32.bor(logged, bit32.lshift(1, bit)) else logged
+end
+
 --- An empty memory of funnel steps for one player.
 function AnalyticsRules.newStepMemory(): StepMemory
 	return {}

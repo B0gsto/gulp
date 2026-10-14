@@ -49,9 +49,20 @@
 --          reveal and effect being presented, then play the rest), hatch, giveControl, hold,
 --          prompt, hud, pulse, music, openFog, openCurtain, predatorShadow, startChase, autoDash,
 --          startCurrent, reformCurrent, pull, bankSequence, coveItem, exitTrail, feedNearest.
--- Hooks    `onStep(player, step, ctx)` and `onFailsafe(player, kind)` for every onboarding step
---          and `ftue_failsafe` the rules emit. TODO(S6-C6): Analytics (10 §3.1, §4.2), with
---          `ftue_milestone`, `ftue_bite_assist` and `ftue_chase_result`.
+-- Analytics (task S6-C6; 10 §3.1, §4.2) every analytics action of the rules goes to Analytics:
+--          `step` through the `onStep(player, step, ctx)` hook (`Analytics.step`, the onboarding
+--          funnel: no session ID); `failsafe` through `onFailsafe(player, kind, value)`
+--          (`ftue_failsafe`, value T); `milestone` as `ftue_milestone` (value T, ctx bucketed by
+--          AnalyticsRules.milestoneCtx), `biteAssist` as `ftue_bite_assist` (T), `chaseResult` as
+--          `ftue_chase_result` (manual dashes). Once per account: FtueRules fires each of these once
+--          a session; the profile's `ftue.logged` (AnalyticsRules.ONCE bits, saved like the stage)
+--          keeps a fail-safe, a milestone or the bite assist from being sent again after a rejoin
+--          or a restart. The load fail-safes come from `ClientReady`'s load mode
+--          (PlayerLifecycle.loadMode): `load_partial` or `load_minimal` at the session's start,
+--          for an account in the FTUE, with value J at `ClientReady` (T is not running yet; 10
+--          §4.2). Step 02 is the client's `TutorialStep` 2 (Client/Main, from the loading screen's
+--          `LoadShown`), counted on the account's first start only. Steps 14 and 15 (specimen
+--          placed, first tick paid) are CoveService's and EconomyService's: TODO(S7-C3).
 -- Later    TODO(S7-C1, S7-C2) CHASE_PASS_THROUGH: until the chase exists, S6 ends at once with
 --          `chaseSkipped` into S7 (a warn each time; the batch carries no `startChase`), so a
 --          player past the Gap is never left in it. S7 needs none: the player swims freely, and
@@ -65,14 +76,17 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local AnalyticsRules = require(ReplicatedStorage.Shared.Logic.AnalyticsRules)
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local FtueConfig = require(ReplicatedStorage.Shared.Config.FtueConfig)
 local FtuePlan = require(ReplicatedStorage.Shared.Logic.FtuePlan)
 local FtueRules = require(ReplicatedStorage.Shared.Logic.FtueRules)
+local LoadTime = require(ReplicatedStorage.Shared.Logic.LoadTime)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local PreySim = require(ReplicatedStorage.Shared.Sim.PreySim)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local Analytics = require("./Analytics")
 local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
 local PlayerLifecycle = require("./PlayerLifecycle")
@@ -131,6 +145,8 @@ type Group = {
 type Session = {
 	slot: Slot,
 	player: Player?, -- nil for the engine spec's stand-in
+	reporter: Player?, -- who Analytics hears about: the player, or the spec's stand-in
+	logged: number, -- the profile's `ftue.logged` (AnalyticsRules.ONCE bits)
 	cfg: Config, -- FtueConfig with the slot's `arms.traitCount` (see the header)
 	state: State,
 	saved: number, -- the stage last saved
@@ -165,6 +181,8 @@ local lookup: (Slot) -> CreatureState? = CreatureService.get
 local sink: ((kind: string, path: string, value: any) -> ())? = nil
 -- The hooks' record, for the engine spec: { kind = "step" | "failsafe", value = ... }.
 local hookLog: { { kind: string, value: any } } = {}
+-- The engine spec's stand-in player, which its stand-in sessions report to Analytics as.
+local standIn: Player? = nil
 
 local hx, hy, hz = FtuePlan.routePoint(0)
 local HATCH = Vector3.new(hx, hy, hz)
@@ -177,19 +195,21 @@ end
 
 -- Hooks ---------------------------------------------------------------------------------------
 
---- An onboarding funnel step (10 §3.1) the script reached. TODO(S6-C6): Analytics.step.
+--- An onboarding funnel step (10 §3.1) the script reached: `Analytics.step` on the one-time
+--- onboarding funnel (no session ID; Analytics drops a step at or below the highest sent).
 function TutorialService.onStep(player: Player?, step: number, ctx: string?)
 	table.insert(hookLog, { kind = "step", value = step })
 	if player then
-		Log.info(TAG, `onboarding step {step} for {player.UserId}{if ctx then " " .. ctx else ""}`)
+		Analytics.step(player, "onboarding", nil, step, ctx)
 	end
 end
 
---- An `ftue_failsafe` (04 §3.6, §3.7; 10 §4.2). TODO(S6-C6): Analytics.event.
-function TutorialService.onFailsafe(player: Player?, kind: string)
+--- An `ftue_failsafe` (04 §2.4, §3.6, §3.7; 10 §4.2) that starts for the first time on the
+--- account: `value` is T (J for the load fail-safes).
+function TutorialService.onFailsafe(player: Player?, kind: string, value: number)
 	table.insert(hookLog, { kind = "failsafe", value = kind })
 	if player then
-		Log.info(TAG, `ftue_failsafe {kind} for {player.UserId}`)
+		Analytics.event(player, "ftue_failsafe", value, kind)
 	end
 end
 
@@ -249,6 +269,65 @@ local function sendCues(session: Session, cues: { Action })
 		Server.send(player, "State", "ftue.cue", value)
 	elseif sink then
 		sink("cue", "ftue.cue", value)
+	end
+end
+
+-- Analytics ----------------------------------------------------------------------------------
+
+-- 10 §4.2 "once per account": false when the profile already holds `key` (an AnalyticsRules.ONCE
+-- entry); otherwise it is marked and saved, and true.
+local function firstOnAccount(session: Session, key: string): boolean
+	if AnalyticsRules.isLogged(session.logged, key) then
+		return false
+	end
+	session.logged = AnalyticsRules.withLogged(session.logged, key)
+	save(session, "ftue.logged", session.logged)
+	return true
+end
+
+local function failsafe(session: Session, ctx: string, value: number)
+	if firstOnAccount(session, "failsafe_" .. ctx) then
+		TutorialService.onFailsafe(session.reporter, ctx, value)
+	end
+end
+
+local function sendEvent(session: Session, name: string, value: number, ctx: string?)
+	local reporter = session.reporter
+	if reporter then
+		Analytics.event(reporter, name, value, ctx)
+	end
+end
+
+-- The rules' analytics actions (see the header); any other action is ignored.
+local function report(session: Session, a: Action)
+	local kind = a.kind
+	local t = AnalyticsRules.seconds(session.state.t)
+	if kind == "step" then
+		TutorialService.onStep(session.reporter, a.step :: number, nil)
+	elseif kind == "failsafe" then
+		failsafe(session, a.ctx :: string, t)
+	elseif kind == "milestone" then
+		local id = a.id :: string
+		if firstOnAccount(session, "milestone_" .. id) then
+			local at = a.t or session.state.t
+			sendEvent(
+				session,
+				"ftue_milestone",
+				AnalyticsRules.seconds(at),
+				AnalyticsRules.milestoneCtx(id, at)
+			)
+		end
+	elseif kind == "biteAssist" then
+		if firstOnAccount(session, "bite_assist") then
+			sendEvent(
+				session,
+				"ftue_bite_assist",
+				AnalyticsRules.seconds(a.t or session.state.t),
+				nil
+			)
+		end
+	elseif kind == "chaseResult" then
+		sendEvent(session, "ftue_chase_result", a.value or 0, a.result)
 	end
 end
 
@@ -455,12 +534,9 @@ local function perform(session: Session, a: Action, queue: { Event }, cues: { Ac
 		PreyService.clearScripted(slot)
 		table.clear(session.groups)
 		session.keep = nil
-	elseif kind == "step" then
-		TutorialService.onStep(session.player, a.step :: number, nil)
-	elseif kind == "failsafe" then
-		TutorialService.onFailsafe(session.player, a.ctx :: string)
+	else
+		report(session, a)
 	end
-	-- TODO(S6-C6): milestone, biteAssist and chaseResult to Analytics.
 	-- TODO(S7-C3, S7-C6): spawnLure and denseKrill (see the header).
 end
 
@@ -529,7 +605,8 @@ local function begin(
 	player: Player?,
 	join: FtueRules.Join,
 	manual: boolean,
-	again: boolean?
+	again: boolean?,
+	logged: number?
 ): Session?
 	local old = bySlot[slot]
 	if old then
@@ -545,6 +622,8 @@ local function begin(
 	local session: Session = {
 		slot = slot,
 		player = player,
+		reporter = player or (if manual then standIn else nil),
+		logged = logged or 0,
 		cfg = sessionCfg,
 		state = state,
 		-- A DONE at join saves no stage (the profile keeps what it has).
@@ -675,7 +754,7 @@ local function signal(session: Session, code: number)
 	if code == C.LOADING_SHOWN then
 		if session.fresh and not session.shown then
 			session.shown = true
-			TutorialService.onStep(session.player, 2, nil)
+			TutorialService.onStep(session.reporter, 2, nil)
 		end
 		return
 	end
@@ -715,7 +794,13 @@ local function onReady(player: Player, slot: Slot)
 		attempts = data.ftue.attempts,
 		banked = data.stats.banks > 0,
 		run = nil, -- TODO(B19, S12-C4): the resumed run (see the header)
-	}, false)
+	}, false, nil, data.ftue.logged)
+	-- 04 §2.4's load fail-safes, for an account in the FTUE (see the header).
+	local code, j = PlayerLifecycle.loadMode(player)
+	local loadCtx = if code then LoadTime.failsafe(code) else nil
+	if session and loadCtx and not data.ftue.completed then
+		failsafe(session, loadCtx, AnalyticsRules.seconds(j or 0))
+	end
 	if session and e then
 		if e.shown then
 			signal(session, C.LOADING_SHOWN)
@@ -796,6 +881,7 @@ function TutorialService.reset(player: Player): (boolean, string?)
 		completed = false,
 		version = data.ftue.version,
 		attempts = 0,
+		logged = 0, -- the once-per-account events count again, as for a new account
 	})
 	TraitService.reset(slot)
 	CreatureService.addMass(slot, -creature.mass)
@@ -806,7 +892,7 @@ function TutorialService.reset(player: Player): (boolean, string?)
 		attempts = 0,
 		banked = false,
 		run = nil,
-	}, false, true)
+	}, false, true, 0)
 	if session then
 		signal(session, C.LOADED) -- the loading screen is long gone
 	end
@@ -860,9 +946,15 @@ TutorialService._test = table.freeze({
 		sink = out
 	end,
 	--- Starts a stand-in session in `slot` from `join`; false when the account never enters it.
-	--- `again`: as after `/ftue reset` (the first cue is `reset`).
-	begin = function(slot: Slot, join: FtueRules.Join, again: boolean?): boolean
-		return begin(slot, nil, join, true, again) ~= nil
+	--- `again`: as after `/ftue reset` (the first cue is `reset`); `logged`: the profile's
+	--- `ftue.logged` (0 when nil).
+	begin = function(slot: Slot, join: FtueRules.Join, again: boolean?, logged: number?): boolean
+		return begin(slot, nil, join, true, again, logged) ~= nil
+	end,
+	--- The stand-in player the sessions begun here report to Analytics as (nil: none, so
+	--- nothing reaches Analytics). A table with `UserId` is enough.
+	reporter = function(player: any?)
+		standIn = player
 	end,
 	--- Feeds one FtueRules event to the stand-in in `slot` (events the spec cannot cause).
 	feed = function(slot: Slot, event: Event)
