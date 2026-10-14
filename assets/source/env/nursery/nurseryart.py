@@ -67,9 +67,6 @@ RIM_TRIS = 1000               # 07 6.2
 NURSERY = {"sun": "#FFF3C4", "brightness": 2.2, "ambient": "#8FD3D6", "outdoor": "#B8ECEC", "fog": "#4CCFD2",
            "surface": "#9FF0E6", "deep": "#2FAFC0", "view": 450.0}
 FOG = {"nursery": "#4CCFD2", "reef": "#1E9FD0", "kelp": "#238A72", "dropoff_upper": "#1B6FBF"}
-# SurfaceAppearance.Color per copy of a rim piece (06 5.3: variation by tint; value and hue shift only slightly,
-# leaning warm under the Nursery's warm light)
-RIM_TINTS = ("#FFFFFF", "#FBF2EA", "#FFF7EF", "#F2EAE4", "#FAEFE6")   # small value and warmth steps between copies
 
 
 def smooth(e0, e1, x):
@@ -360,28 +357,53 @@ def floor_checks(objs):
 
 
 # ================================================================ rim pieces
+# Independent review loop 3 (06 16.1 lines 1, 4, 5, 9, 18). Every piece is built on one cross-section, a broad low
+# dome; its crest line rises from the joint crest by smooth bumps that fade to nothing within BAND of each joint,
+# so every joint is the same profile and the two pieces still differ in silhouette. The mesh is a structured grid:
+# columns across the bank, and rows that run along the bank's level lines, so the three value blocks end on edge
+# loops (smooth, level boundaries, no jagged blotches) and a piece's ends take exactly the colours of its middle.
 
 RIMS = {
-    # radius and span at the waterline (d 0); the toe, 32 studs into the pool, follows the oval: radius 142 on its long
-    # sides, 66 at its ends (03 6.2: 220 x 170). Independent review loop 1 (06 16.1 lines 1 and 18): each piece has its
-    # own uneven crest, a tall rounded dome and a low saddle at different places, and rock masses of its own on both
-    # faces; within BAND of each joint both pieces take the one shared joint profile, so a ring is one bank.
-    #   crest: (s as a share of the span, rise over the joint crest, half-width in studs)
-    #   masses: (s share, d, half-length along s, half-width across, height)
-    "M_Env_Nursery_Rim_01": {"seed": 611, "radius": 172.0, "span": 64.0, "target": 940,
-                             "crest": [(-0.15, 4.4, 11.0), (0.22, -2.7, 7.5)],
-                             "crest_shift": [(-0.12, -2.5, 12.0), (0.25, 2.0, 9.0)],
-                             "masses": [(0.08, -13.0, 12.0, 8.0, 3.0), (-0.32, -21.0, 8.0, 6.0, 2.0),
-                                        (-0.05, 33.0, 14.0, 11.0, 4.0), (0.28, 29.0, 9.0, 9.0, 3.0)],
-                             "title": "gentle arc", "caption": "the oval's long sides: toe radius 140, waterline 172, 64 studs"},
-    "M_Env_Nursery_Rim_02": {"seed": 622, "radius": 96.0, "span": 50.0, "target": 940,
-                             "crest": [(-0.17, -2.9, 6.5), (0.13, 4.5, 8.0)],
-                             "crest_shift": [(0.12, -2.0, 9.0)],
-                             "masses": [(-0.14, -17.0, 9.0, 7.0, 2.6), (0.30, -9.0, 6.0, 5.0, 1.8),
-                                        (0.06, 31.0, 12.0, 12.0, 3.6)],
-                             "title": "tight arc", "caption": "the oval's ends: toe radius 64, waterline 96, 50 studs"},
+    # radius and span at the waterline (d 0); cols: columns over the span (each nose adds NOSE_X). crest: (s as a
+    # share of the span, rise over the joint crest (a dip if negative), half-width in studs, lean); a lean widens
+    # the bump's -s side and steepens its +s side by that share.
+    "M_Env_Nursery_Rim_01": {"radius": 172.0, "span": 64.0, "cols": 11,
+                             "crest": [(-0.25, -1.2, 10.0, 0.0), (0.12, 2.6, 14.0, 0.0)],
+                             "title": "long low swell", "caption": "gentle arc: waterline radius 172, 64 studs"},
+    "M_Env_Nursery_Rim_02": {"radius": 96.0, "span": 50.0, "cols": 9,
+                             "crest": [(-0.24, -1.6, 7.0, 0.0), (0.12, 5.2, 10.0, 0.3)],
+                             "title": "fuller hump, leaning", "caption": "tight arc: waterline radius 96, 50 studs"},
 }
 RIM_NAMES = tuple(RIMS)
+
+TOE, UNDER, OUTER = -32.0, -46.0, 104.0   # unbent d: the buried toe, where the bank meets the base on each side
+TOE_Z = -30.0                 # the toe, buried 4 below the sand
+DC = 18.0                     # the crest's d
+POOL_M = 1.9                  # the pool face: 1 - (1 - t)^m, convex all the way, flat at the crest
+OUTER_Q = 1.7                 # the outer face: crest - drop * u^q, convex, flat at the crest
+JOINT_CREST = 6.0             # the crest at every joint, above the surface ...
+JOINT_FALL = 0.12             # ... falling this much a stud toward +s across it (rim_crest)
+BAND = 5.0                    # within BAND of a joint every piece is exactly the joint profile
+RAMP = 11.0                   # a piece's own crest then grows in over RAMP studs
+END = 30.0                    # a piece runs this far past each joint, under its neighbour
+HOLD = 0.3                    # over the first 30% of that it keeps the joint profile, sunk by SINK x^2 ...
+SINK = 6.0
+NOSE_X = (0.15, 0.3, 0.475, 0.65, 0.825, 1.0)    # ... then it dives to the base (a rounded nose on a lone piece)
+SAND_Z = -SAND_DEPTH          # the pool face shows above the sand ...
+OUTER_FLOOR_Z = -66.0         # ... and the outer face above the Reef, Kelp and Ledge floors beside the bulge (60 to 70)
+RIM_TOP = 12.0                # 03 6.1: the Rim's own top above the surface
+NOTCH_MAX = 0.25              # the visible crest may dip this little at a joint ...
+NOTCH_WIN = 8.0               # ... measured within this of it
+POKE_MAX = 0.05               # a nose may rise this little above the neighbour it runs under
+CREST_VARY = 0.25             # independent review loop 1: the crest varies by at least 25% of its peak along a piece
+POOL_DARK = 2.5               # value blocks on the pool face (what the game camera sees): a thin dark toe band from
+POOL_LIGHT = -3.5             # the sand line, the light cap from 3.5 under the surface; the outer face's two
+                              # boundaries are solved for 06 4.1's shares (rim_rows)
+
+
+def abs_(x):
+    import numpy as np
+    return np.abs(np.asarray(x, dtype=float))
 
 
 def bend(p, Rf):
@@ -398,97 +420,75 @@ def unbend(co, Rf):
     return math.atan2(co[0], co[1] + Rf) * Rf, r - Rf, co[2]
 
 
-def smax(a, b, k):
-    """Soft maximum: the larger surface wins, with a rounded crease `k` studs wide where two masses meet."""
-    import numpy as np
-    hh = np.clip(0.5 + 0.5 * (a - b) / k, 0.0, 1.0)
-    return b + (a - b) * hh + k * hh * (1.0 - hh)
-
-
-TOE, OUTER = -32.0, 60.0      # unbent d: the sand toe, the outer foot
-UNDER = -46.0                 # under the sand the bank rounds down from the toe to the base here (no cut wall)
-TOE_Z = -31.0                 # the toe, buried 5 below the sand
-JOINT_CREST = 7.0             # the shared joint profile: its crest height above the surface ...
-JOINT_AT = 14.0               # ... and its unbent d (the waterline then falls at d 0)
-POOL_K = 2.3                  # the pool face: 1 - (1 - t)^k (1 + k t), soft at the foot, a round dome at the top
-OUTER_Q = 1.7                 # the outer face: crest - drop * u^q, a round shoulder over a steep buried foot
-BAND = 5.0                    # within BAND of a joint both neighbours are exactly the joint profile
-RAMP = 11.0                   # a piece's own shape then grows in over RAMP studs
-END = 12.0                    # a piece runs this far past each joint, diving under its neighbour
-SAND_Z = -SAND_DEPTH          # the pool face shows above the sand ...
-OUTER_FLOOR_Z = -66.0         # ... and the outer face above the Reef, Kelp and Ledge floors beside the bulge (60 to 70)
-MASS_K = 1.6                  # the rounded crease where a mass meets the bank
-RIM_TOP = 12.0                # 03 6.1: the Rim's own top above the surface
-NOTCH_MAX = 0.75              # a saddle at a joint shallower than this is no notch
-CREST_VARY = 0.25             # independent review loop 1: the crest varies by at least 25% of its peak along a piece
-
-
 def rim_weight(name, S):
-    """1 where the piece shows its own shape, 0 within BAND of a joint (and past it), smooth in between."""
+    """1 where the piece shows its own crest, 0 within BAND of a joint (and past it), smooth in between."""
     h = RIMS[name]["span"] / 2.0
     return smooth(h - BAND, h - BAND - RAMP, abs_(S))
 
 
-def abs_(x):
-    import numpy as np
-    return np.abs(np.asarray(x, dtype=float))
-
-
-def _gauss(S, items, L):
-    import numpy as np
-    out = np.zeros_like(np.asarray(S, dtype=float))
-    for frac, amp, wid in items:
-        out = out + amp * np.exp(-((S - frac * L) / wid) ** 2)
-    return out
-
-
 def rim_crest(name, S):
-    """(crest height above the surface, crest d) along the piece: the joint profile's, plus the piece's own domes
-    and saddles, faded to nothing within BAND of each joint."""
+    """Crest height above the surface along the piece. Near every joint it is the joint line: JOINT_CREST at the
+    joint, falling JOINT_FALL a stud toward +s, so a joint sits on the flank of a roll, never at a dip or a peak (a
+    ring of pieces reads as one rolling bank, not a row of humps); inside, the piece's own dip and swell."""
+    import numpy as np
     cfg = RIMS[name]
     L = cfg["span"]
+    h = L / 2.0
+    S = np.asarray(S, dtype=float)
+    own = np.zeros_like(S)
+    for frac, amp, wid, lean in cfg["crest"]:
+        c = frac * L
+        w = np.where(S < c, wid * (1.0 + lean), wid * (1.0 - lean))
+        own = own + amp * np.exp(-((S - c) / w) ** 2)
+    line = JOINT_CREST - JOINT_FALL * (S - np.sign(S) * h)
     w = rim_weight(name, S)
-    return JOINT_CREST + w * _gauss(S, cfg["crest"], L), JOINT_AT + w * _gauss(S, cfg["crest_shift"], L)
+    return (1.0 - w) * line + w * (JOINT_CREST + own)
 
 
-def rim_profile(D, C, dc):
-    """The bank across, no kink and no cut wall: from the base under the sand, round up to the flat buried toe, up the
-    pool face (steepest 52 degrees, a third of the way up) into a round dome at (dc, C), then a round shoulder over the
-    outer face down to the buried base."""
+def rim_profile(D, C):
+    """The bank across: from the base, up under the sand to the buried toe, up the convex pool face into a round
+    dome at (DC, C), then down the convex outer face to the base. No flat top and no vertical wall."""
     import numpy as np
-    t = np.clip((D - TOE) / (dc - TOE), 0.0, 1.0)
+    D = np.asarray(D, dtype=float)
+    t = np.clip((D - TOE) / (DC - TOE), 0.0, 1.0)
+    pool = TOE_Z + (C - TOE_Z) * (1.0 - (1.0 - t) ** POOL_M)
     under = np.clip((TOE - D) / (TOE - UNDER), 0.0, 1.0)
-    pool = TOE_Z + (C - TOE_Z) * (1.0 - (1.0 - t) ** POOL_K * (1.0 + POOL_K * t)) - (TOE_Z - BOTTOM) * under ** 1.7
-    u = np.clip((D - dc) / (OUTER - dc), 0.0, 1.0)
+    pool = pool - (TOE_Z - BOTTOM) * (1.0 - np.cos(0.5 * math.pi * under))
+    u = np.clip((D - DC) / (OUTER - DC), 0.0, 1.0)
     outer = C - (C - BOTTOM) * u ** OUTER_Q
-    return np.where(D < dc, pool, outer)
+    return np.where(D < DC, pool, outer)
+
+
+def pool_d(z, C):
+    """d on the pool face where the bank is at height z (TOE_Z <= z <= C)."""
+    import numpy as np
+    g = np.clip((z - TOE_Z) / (C - TOE_Z), 0.0, 1.0)
+    return TOE + (DC - TOE) * (1.0 - (1.0 - g) ** (1.0 / POOL_M))
+
+
+def outer_d(z, C):
+    import numpy as np
+    g = np.clip((C - z) / (C - BOTTOM), 0.0, 1.0)
+    return DC + (OUTER - DC) * g ** (1.0 / OUTER_Q)
+
+
+def nose(name, S, Z):
+    """Past each joint: the joint profile sunk by SINK x^2 (x the share of END), then a dive to the base."""
+    import numpy as np
+    h = RIMS[name]["span"] / 2.0
+    x = np.clip((abs_(S) - h) / END, 0.0, 1.0)
+    Z = Z - SINK * x ** 2
+    y = np.clip((x - HOLD) / (1.0 - HOLD), 0.0, 1.0)
+    dv = np.where(y <= 0.75, 0.4 * (y / 0.75) ** 2, 0.4 + 0.6 * (y - 0.75) / 0.25)
+    return Z - (Z - (BOTTOM + 2.0)) * dv
 
 
 def rim_height(name, S, D):
     """Height of the bank (z, the surface at 0) over unbent (s, d)."""
     import numpy as np
-    cfg = RIMS[name]
-    L = cfg["span"]
-    h = L / 2.0
-    C, dc = rim_crest(name, S)
-    B = rim_profile(D, C, dc)
-    w = rim_weight(name, S)
-    rng = random.Random(cfg["seed"] + 7)
-    # slow irregularity along the span (piece-own, so it fades at the joints too)
-    B = B + w * sum(rng.uniform(0.4, 0.8) * np.sin(2 * math.pi * S / rng.uniform(22, 40) + rng.uniform(0, 6.3))
-                    * np.sin(2 * math.pi * D / rng.uniform(30, 60) + rng.uniform(0, 6.3)) for _ in range(3))
-    f = B
-    for frac, dm, rs, rd, hgt in cfg["masses"]:
-        r2 = ((S - frac * L) / rs) ** 2 + ((D - dm) / rd) ** 2
-        # a dome of `hgt` (plus the crease) at full weight; with no weight it sits more than the crease below the
-        # bank, so the soft maximum leaves the joint profile exactly as it is
-        cap = w * (hgt + 1.01 * MASS_K) * 1.6 * np.sqrt(np.clip(1.0 - r2, 0.0, 1.0)) - 0.6 * hgt * w - 1.01 * MASS_K
-        f = smax(f, B + cap, MASS_K)
-    # past each joint the piece runs on END studs and dives, a rounded nose sinking to the base under its neighbour
-    # (which is exactly the joint profile over the first BAND studs and its own shape after that): no cut end wall
-    x = np.clip((np.abs(S) - h) / END, 0.0, 1.0)
-    f = f - (f - BOTTOM) * (1.0 - np.cos(0.5 * math.pi * x)) ** 1.5
-    return np.maximum(f, BOTTOM + 1.0)
+    S, D = np.broadcast_arrays(np.asarray(S, dtype=float), np.asarray(D, dtype=float))
+    Z = nose(name, S, rim_profile(D, rim_crest(name, S)))
+    return np.where((D <= UNDER) | (D >= OUTER), BOTTOM, np.maximum(Z, BOTTOM))
 
 
 def crest_line(name, ss, step=0.25):
@@ -499,246 +499,240 @@ def crest_line(name, ss, step=0.25):
     return rim_height(name, S, D).max(axis=1)
 
 
-def joint_report():
-    """Every neighbour pair (A's +s end on B's -s end), unbent at scale 1: the visible bank is max(A, B). Returns
-    [(pair, notch, gap)]: notch, how far the visible crest within BAND + RAMP / 2 of the joint dips below the lower of
-    its two ends there (a notch is a dip lower than both sides); gap, how far the visible surface falls below the
-    joint profile within BAND of the joint."""
+def rim_columns(name):
     import numpy as np
-    out = []
-    ds = np.arange(TOE, OUTER + 1e-6, 0.5)
-    win = BAND + RAMP / 2.0
-    for a in RIM_NAMES:
-        for b in RIM_NAMES:
-            ha, hb = RIMS[a]["span"] / 2.0, RIMS[b]["span"] / 2.0
-            ss = np.arange(ha - win, ha + win + 1e-6, 0.25)                # A's frame; B's s = s - ha - hb
-            S, D = np.meshgrid(ss, ds, indexing="ij")
-            vis = np.maximum(rim_height(a, S, D), rim_height(b, S - ha - hb, D))
-            crest = vis.max(axis=1)
-            notch = float(max(0.0, min(crest[0], crest[-1]) - crest.min()))
-            band = np.abs(ss - ha) <= BAND
-            gap = float(max(0.0, (rim_profile(D, JOINT_CREST, JOINT_AT)[band] - vis[band]).max()))
-            out.append(("%s>%s" % (a[-2:], b[-2:]), notch, gap))
-    return out
+    cfg = RIMS[name]
+    h = cfg["span"] / 2.0
+    mid = np.linspace(-h, h, cfg["cols"] + 1)
+    nx = np.array(NOSE_X) * END
+    return np.concatenate([-(h + nx[::-1]), mid, h + nx])
+
+
+# the rows across the bank: (row kind, value block of the quad above it); see rim_rows
+ROW_BLOCKS = ("buried", "buried", "dark", "mid", "mid", "mid", "mid", "light", "light", "light", "light", "light",
+              "light", "mid", "mid", "mid", "mid", "dark", "buried")
+
+
+def rim_rows(name, outer_dark, outer_light):
+    """(S, D, Z, Z0, frac) for the grid, columns x rows: rows 0 to 19 run base, toe, sand line, pool dark top,
+    three mid rows, the pool light line, two light rows, the crest, two light rows, the outer light line, three mid
+    rows, the outer dark top, the outer floors' line, base. Z0 is the height before the nose; frac the place of a
+    vertex in its face's mid block (0 at the dark top, 1 at the light line), for the mid gradient. outer_dark: the
+    outer dark top's height above the floors' line; outer_light: the outer light line's depth under the crest."""
+    import numpy as np
+    ss = rim_columns(name)
+    C = rim_crest(name, ss)
+    lerp = lambda a, b, k: a + (b - a) * k
+    p_sand, p_dark, p_light = pool_d(SAND_Z, C), pool_d(SAND_Z + POOL_DARK, C), pool_d(POOL_LIGHT, C)
+    o_light, o_dark, o_floor = outer_d(C - outer_light, C), outer_d(OUTER_FLOOR_Z + outer_dark, C), outer_d(OUTER_FLOOR_Z, C)
+    cols = [np.full_like(C, UNDER), np.full_like(C, TOE), p_sand, p_dark]
+    cols += [lerp(p_dark, p_light, k / 4.0) for k in (1, 2, 3)]
+    cols += [p_light] + [lerp(p_light, np.full_like(C, DC), k / 3.0) for k in (1, 2)] + [np.full_like(C, DC)]
+    cols += [lerp(np.full_like(C, DC), o_light, k / 3.0) for k in (1, 2)] + [o_light]
+    cols += [lerp(o_light, o_dark, k / 4.0) for k in (1, 2, 3)] + [o_dark, o_floor, np.full_like(C, OUTER)]
+    D = np.stack(cols, axis=1)
+    S = np.repeat(ss[:, None], D.shape[1], axis=1)
+    Z0 = rim_profile(D, C[:, None])
+    Z0[:, 0] = Z0[:, -1] = BOTTOM
+    Z = np.maximum(nose(name, S, Z0), BOTTOM)
+    Z[:, 0] = Z[:, -1] = BOTTOM
+    fp = (Z0 - (SAND_Z + POOL_DARK)) / (POOL_LIGHT - (SAND_Z + POOL_DARK))
+    fo = (Z0 - (OUTER_FLOOR_Z + outer_dark)) / (C[:, None] - outer_light - (OUTER_FLOOR_Z + outer_dark))
+    frac = np.clip(np.where(D < DC, fp, fo), 0.0, 1.0)
+    return S, D, Z, Z0, frac
+
+
+def _bend_np(name, S, D):
+    import numpy as np
+    R = RIMS[name]["radius"]
+    return (R + D) * np.sin(S / R), (R + D) * np.cos(S / R) - R
+
+
+def rim_shares(name, outer_dark, outer_light):
+    """Area shares of the dark, mid and light blocks over every face that is not buried, as validate measures
+    them on the painted texture."""
+    import numpy as np
+    S, D, Z, _, _ = rim_rows(name, outer_dark, outer_light)
+    X, Y = _bend_np(name, S, D)
+    P = np.stack([X, Y, Z], axis=-1)
+    a, b, c, d = P[:-1, :-1], P[1:, :-1], P[1:, 1:], P[:-1, 1:]
+    area = 0.5 * (np.linalg.norm(np.cross(b - a, c - a), axis=-1) + np.linalg.norm(np.cross(c - a, d - a), axis=-1))
+    acc = {"dark": 0.0, "mid": 0.0, "light": 0.0}
+    for j, blk in enumerate(ROW_BLOCKS):
+        if blk in acc:
+            acc[blk] += float(area[:, j].sum())
+    tot = sum(acc.values())
+    return {k: v / tot for k, v in acc.items()}
+
+
+def solve_bands(name):
+    """The outer face's dark top (above the floors' line) and light line (under the crest), by bisection, for 06
+    4.1's shares (RIM_SHARE): the pool face's two lines are fixed by eye (POOL_DARK, POOL_LIGHT)."""
+    od, ol = 10.0, 10.0
+    for _ in range(4):
+        lo, hi = 0.5, 50.0
+        for _ in range(40):
+            od = 0.5 * (lo + hi)
+            lo, hi = (od, hi) if rim_shares(name, od, ol)["dark"] < RIM_SHARE["dark"] else (lo, od)
+        lo, hi = 0.5, 40.0
+        for _ in range(40):
+            ol = 0.5 * (lo + hi)
+            lo, hi = (ol, hi) if rim_shares(name, od, ol)["light"] < RIM_SHARE["light"] else (lo, ol)
+    return od, ol
 
 
 def build_rim(name, target=None):
-    """One rim piece (review loops 2 to 4): a closed slab whose top is the bank's height field over the unbent (s, d)
-    plan, s from -(L/2 + END) to L/2 + END, d from the buried toe to the outer foot, bent onto the piece's arc; its
-    walls and base are buried or hidden by the neighbours; decimated to budget."""
+    """One rim piece: the structured grid of rim_rows bent onto the piece's arc, closed by a flat base strip and
+    two end walls (both buried: the noses end 2 studs above the base); the value blocks go on by rows."""
     import numpy as np
     import rimart as ra
-    cfg = RIMS[name]
-    Rf, L = cfg["radius"], cfg["span"]
-    h = L / 2.0 + END
-    target = target or cfg["target"]
-    ns, nd = int(2 * h / 0.8), int((OUTER - UNDER) / 0.8)
-    ss = np.linspace(-h, h, ns + 1)
-    ds = np.linspace(UNDER, OUTER, nd + 1)
-    S, D = np.meshgrid(ss, ds, indexing="ij")
-    Z = rim_height(name, S, D)
-    verts, faces = [], []
-
-    def vid(i, j, top):
-        return (i * (nd + 1) + j) * 2 + (0 if top else 1)
-    for i in range(ns + 1):
-        for j in range(nd + 1):
-            verts.append(bend((ss[i], ds[j], float(Z[i, j])), Rf))
-            verts.append(bend((ss[i], ds[j], BOTTOM), Rf))
-    for i in range(ns):
-        for j in range(nd):
-            faces.append((vid(i, j, True), vid(i + 1, j, True), vid(i + 1, j + 1, True), vid(i, j + 1, True)))
-            faces.append((vid(i, j, False), vid(i, j + 1, False), vid(i + 1, j + 1, False), vid(i + 1, j, False)))
-    for i in range(ns):                               # the toe and outer walls
-        for j in (0, nd):
-            faces.append((vid(i, j, True), vid(i, j, False), vid(i + 1, j, False), vid(i + 1, j, True)))
-    for j in range(nd):                               # the end walls
-        for i in (0, ns):
-            faces.append((vid(i, j, True), vid(i, j + 1, True), vid(i, j + 1, False), vid(i, j, False)))
+    Rf = RIMS[name]["radius"]
+    od, ol = solve_bands(name)
+    S, D, Z, Z0, frac = rim_rows(name, od, ol)
+    X, Y = _bend_np(name, S, D)
+    nc, nr = S.shape
+    verts = [(float(X[i, j]), float(Y[i, j]), float(Z[i, j])) for i in range(nc) for j in range(nr)]
+    vid = lambda i, j: i * nr + j
+    faces, blocks = [], []
+    for i in range(nc - 1):
+        for j in range(nr - 1):
+            faces.append((vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)))
+            blocks.append(ROW_BLOCKS[j])
+    for i in range(nc - 1):                                     # the base strip
+        faces.append((vid(i, 0), vid(i, nr - 1), vid(i + 1, nr - 1), vid(i + 1, 0)))
+        blocks.append("buried")
+    faces.append(tuple(vid(0, j) for j in range(nr))[::-1])     # the end walls
+    faces.append(tuple(vid(nc - 1, j) for j in range(nr)))
+    blocks += ["buried", "buried"]
     ob = ra.mesh_object(name, verts, faces)
-    ra.tidy(ob, triangulate=False)
-    target -= CUT_TRIS
-    for _ in range(6):
-        ra.apply_mod(ob, 'DECIMATE', decimate_type='COLLAPSE', ratio=min(1.0, target / float(max(1, ra.tri_count(ob)))),
-                     use_collapse_triangulate=True)
-        if ra.tri_count(ob) <= RIM_TRIS - 10 - CUT_TRIS:
-            break
-        target -= 30
-    cut_value_lines(ob, Rf)
+    me = ob.data
+    me.uv_layers.new(name=common.UV_NAME)
+    uvl = me.uv_layers[0].data
+    B = RIM_BANDS
+    fl = frac.reshape(-1)
+    px = ATLAS_CELLS[RIM_CELL][2] / 2.0
+    for poly, blk in zip(me.polygons, blocks):
+        for li in poly.loop_indices:
+            k = me.loops[li].vertex_index
+            if blk == "mid":
+                b = B["dark"] + 0.5 + (B["mid"] - B["dark"] - 1.0) * fl[k]
+            else:
+                b = {"buried": 0.5 * (B["inset"] + B["buried"]), "dark": 0.5 * (B["buried"] + B["dark"]),
+                     "light": 0.5 * (B["mid"] + B["top"])}[blk]
+            uvl[li].uv = rim_cell_uv(px, b)
     ra.tidy(ob)
-    drop_loose(ob)
-    flatten_base(ob)
-    ob.data.materials.clear()
-    for p in ob.data.polygons:
-        p.material_index = 0
-    rim_uvs(ob, Rf, name)
+    sh = rim_shares(name, od, ol)
+    ob["rim_value_shares"] = [round(100 * sh[k], 1) for k in ("dark", "mid", "light")]
+    ob["rim_outer_lines"] = [round(OUTER_FLOOR_Z + od, 2), round(ol, 2)]
+    print("[nursery] %s: outer dark top z %.1f, outer light line %.1f under the crest: dark %.1f%%, mid %.1f%%, light %.1f%%"
+          % (name, OUTER_FLOOR_Z + od, ol, 100 * sh["dark"], 100 * sh["mid"], 100 * sh["light"]))
     ra.finish(ob, front_fn=lambda co: unbend(co, Rf)[1] < -4.0 and co.z > -60.0)    # the pool face and the toe under it
     return ob
 
 
-CUT_TRIS = 110                # triangles kept back for the two cuts below
+# ---------------------------------------------------------------- joints and chains
+
+def pose_point(pose, X, Y):
+    th, tx, ty = pose
+    c, s = math.cos(th), math.sin(th)
+    return c * X - s * Y + tx, s * X + c * Y + ty
 
 
-def cut_value_lines(ob, Rf):
-    """An edge loop along the sand line on the pool face (z -26) and along the neighbouring floors' level on the
-    outer face (z -66): the value map's buried band meets the dark block exactly there, so the dark foot keeps one
-    width whatever the triangles (a triangle across the line would stretch it). Vertices within 0.5 of a line are
-    moved onto it first, so the cut leaves no sliver."""
-    import bmesh
-    bm = bmesh.new()
-    bm.from_mesh(ob.data)
-    for z0, side in ((SAND_Z, -1), (OUTER_FLOOR_Z, 1)):
-        on_side = [v for v in bm.verts if (unbend(v.co, Rf)[1] - JOINT_AT) * side > 0 and v.co.z > BOTTOM + 0.5]
-        for v in on_side:
-            if abs(v.co.z - z0) < 0.5:
-                v.co.z = z0
-        faces = [f for f in bm.faces if all((unbend(v.co, Rf)[1] - JOINT_AT) * side > 0 for v in f.verts)]
-        geom = list({e for f in faces for e in f.edges}) + faces + list({v for f in faces for v in f.verts})
-        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-4, plane_co=(0.0, 0.0, z0), plane_no=(0.0, 0.0, 1.0))
-    bm.to_mesh(ob.data)
-    bm.free()
-    ob.data.update()
+def pose_local(pose, X, Y):
+    th, tx, ty = pose
+    c, s = math.cos(th), math.sin(th)
+    X, Y = X - tx, Y - ty
+    return c * X + s * Y, -s * X + c * Y
 
 
-def drop_loose(ob):
-    """The decimation can leave a vertex with no face: delete it (06 6.5: no loose geometry)."""
-    import bmesh
-    bm = bmesh.new()
-    bm.from_mesh(ob.data)
-    loose = [v for v in bm.verts if not v.link_faces]
-    if loose:
-        bmesh.ops.delete(bm, geom=loose, context='VERTS')
-    bm.to_mesh(ob.data)
-    bm.free()
-    ob.data.update()
+def next_pose(pose, a, b):
+    """The pose (turn, x, y) of piece b's frame when its -s joint meets piece a's +s joint at the waterline with
+    the tangents matched (a G1 chain of arcs: every row line runs on across the joint)."""
+    ha, Ra = RIMS[a]["span"] / 2.0, RIMS[a]["radius"]
+    hb, Rb = RIMS[b]["span"] / 2.0, RIMS[b]["radius"]
+    thb = pose[0] - ha / Ra - hb / Rb
+    qx, qy = pose_point(pose, *bend((ha, 0.0, 0.0), Ra)[:2])
+    px, py = pose_point((thb, 0.0, 0.0), *bend((-hb, 0.0, 0.0), Rb)[:2])
+    return (thb, qx - px, qy - py)
 
 
-def flatten_base(ob):
-    """The decimation may lift a base vertex a hair off the cut plane: put the base back on it."""
-    for v in ob.data.vertices:
-        if v.co.z < BOTTOM + 0.05:
-            v.co.z = BOTTOM
-    ob.data.update()
+def ring_poses(seq, reps):
+    """A closed ring: the chain `seq` repeated `reps` times round a centre (the origin). Within a unit the joints
+    are exact; between units the tangents differ by the unit's turn short of 2 pi / reps (a fraction of a degree)."""
+    import numpy as np
+    poses = [(0.0, 0.0, 0.0)]
+    for a, b in zip(seq, seq[1:]):
+        poses.append(next_pose(poses[-1], a, b))
+    nxt = next_pose(poses[-1], seq[-1], seq[0])
+    h0, R0 = RIMS[seq[0]]["span"] / 2.0, RIMS[seq[0]]["radius"]
+    sx, sy = bend((-h0, 0.0, 0.0), R0)[:2]
+    ex, ey = pose_point(nxt, sx, sy)
+    al = -2.0 * math.pi / reps
+    Ra = np.array([[math.cos(al), -math.sin(al)], [math.sin(al), math.cos(al)]])
+    O = np.linalg.solve(np.eye(2) - Ra, np.array([ex, ey]) - Ra @ np.array([sx, sy]))
+    out = []
+    for m in range(reps):
+        c, s = math.cos(m * al), math.sin(m * al)
+        for name, (th, tx, ty) in zip(seq, poses):
+            x, y = tx - O[0], ty - O[1]
+            out.append((name, th + m * al, c * x - s * y, s * x + c * y))
+    return out
+
+
+def _height_or_none(name, S, D):
+    import numpy as np
+    h = RIMS[name]["span"] / 2.0
+    z = rim_height(name, S, D)
+    return np.where((abs_(S) <= h + END) & (D >= UNDER) & (D <= OUTER), z, -1e9)
+
+
+def joint_report():
+    """Every neighbour pair (a's +s joint on b's -s joint, chained as next_pose places them), on the real plan: the
+    visible bank is the higher of the two. Returns [(pair, notch, poke)]: notch, how far the visible crest within
+    NOTCH_WIN of the joint dips under the straight line between its ends there (a V at the joint); poke, how far either piece rises above the other on the other's
+    side (more than a stud past the joint, above the floors), which would show as a seam."""
+    import numpy as np
+    out = []
+    win = BAND + RAMP
+    ds = np.arange(UNDER, OUTER + 1e-6, 0.5)
+    for a in RIM_NAMES:
+        for b in RIM_NAMES:
+            ha, Ra = RIMS[a]["span"] / 2.0, RIMS[a]["radius"]
+            pb = next_pose((0.0, 0.0, 0.0), a, b)
+            ss = np.arange(ha - win, ha + win + 1e-6, 0.25)
+            S, D = np.meshgrid(ss, ds, indexing="ij")
+            za = _height_or_none(a, S, D)
+            X, Y = _bend_np(a, S, D)
+            Xb, Yb = pose_local(pb, X, Y)
+            Rb = RIMS[b]["radius"]
+            Sb, Db = np.arctan2(Xb, Yb + Rb) * Rb, np.hypot(Xb, Yb + Rb) - Rb
+            zb = _height_or_none(b, Sb, Db)
+            vis = np.maximum(za, zb)
+            crest = vis.max(axis=1)
+            near = np.abs(ss - ha) <= NOTCH_WIN
+            cn, sn = crest[near], ss[near]
+            chord = cn[0] + (cn[-1] - cn[0]) * (sn - sn[0]) / (sn[-1] - sn[0])
+            notch = float(max(0.0, (chord - cn).max()))
+            floor = np.where(D < DC, SAND_Z, OUTER_FLOOR_Z)
+            past, before = S > ha + 1.0, S < ha - 1.0
+            pa = np.where(past & (za > floor), za - zb, 0.0).max()
+            pbk = np.where(before & (zb > floor), zb - za, 0.0).max()
+            out.append(("%s>%s" % (a[-2:], b[-2:]), notch, float(max(0.0, pa, pbk))))
+    return out
 
 
 RIM_CELL = "rim_bank"
-# the rim cell's bands, in pixels from the cell's bottom (64 x 256 cell, value up the cell; independent review loop 1:
-# three flat pastel coral blocks and two broad gradients, no pits, no seams). Rows below 16 are the buried band
-# (outside the value count): faces under the sand, under the neighbouring floors, the walls and the base. It fades
-# from the dark block at the line to the mid block's foot colour, so on a review sheet the hidden bulk does not read
-# as a dark block and the foot has no hard lower edge.
+# the rim cell's bands, in pixels from the cell's bottom (64 x 256 cell; independent review loop 3: three flat
+# blocks, the mid with one broad gradient up the bank). Rows below 16 are the buried band (outside the value count):
+# faces under the sand, under the neighbouring floors, the end walls and the base, painted the mid's foot colour.
 RIM_BANDS = {"inset": 8, "buried": 16, "dark": 42, "mid": 192, "top": 248}
-RIM_SHARE = {"dark": 0.115, "light": 0.26}   # 06 4.1: dark 10-15%, light 20-30% of the visible bank (the noses add dark)
+RIM_SHARE = {"dark": 0.115, "light": 0.25}   # 06 4.1: dark 10-15%, light 20-30% of the bank above the floors
 
 
 def rim_cell_uv(px, b):
     """Cell pixel (px from its left, b from its bottom) -> atlas UV (Blender, v up)."""
     x0, y0, w, h = ATLAS_CELLS[RIM_CELL]
     return (x0 + px) / float(N), 1.0 - (y0 + h - b) / float(N)
-
-
-def rim_exposure(name, s, d, z, nz):
-    """How lit a point of the bank is: 0 at the sand line on the pool face and at the neighbouring floors' level on
-    the outer face, rising with height (the pool face is measured against the water surface, so its light block starts
-    just under the waterline, where a player sees it), plus a little for faces turned up to the sun. Below 0: buried."""
-    import numpy as np
-    C, dc = rim_crest(name, np.asarray(s, dtype=float))
-    top = (C - SAND_Z) / (0.0 - SAND_Z)                       # the pool side's value at the crest
-    pool = (z - SAND_Z) / (0.0 - SAND_Z)
-    outer = (z - OUTER_FLOOR_Z) / (C - OUTER_FLOOR_Z) * top
-    k = smooth(dc - 3.0, dc + 3.0, d)                         # the two agree at the crest; blend across it
-    e = pool * (1.0 - k) + outer * k
-    return np.where(e < 0.0, e, e + 0.15 * (nz - 0.7) * smooth(0.0, 0.15, e))
-
-
-def rim_hue(name, s, d):
-    """The second broad gradient, across the cell: peach (0) to rose (1), slow along the bank and up it."""
-    import numpy as np
-    rng = random.Random(RIMS[name]["seed"] + 31)
-    n = 0.65 * np.sin(2 * math.pi * s / rng.uniform(34, 44) + rng.uniform(0, 6.3)) \
-        + 0.35 * np.sin(2 * math.pi * d / rng.uniform(44, 60) + rng.uniform(0, 6.3))
-    return 0.5 + 0.45 * np.tanh(1.6 * n)
-
-
-def rim_uvs(ob, Rf, name):
-    """Independent review loop 1 (06 16.1 lines 5, 8, 9, 15): the bank is painted from T_EnvNursery_Alb's rim cell,
-    a gradient map, not a tiling rock texture. v runs up the cell with each vertex's exposure: the least lit 12% of
-    the visible bank (its foot at the sand, the outer face low down) takes the dark band, the best lit 25% (the crest,
-    the upper pool face just under the waterline, the top of the outer face) the light band, and the rest the mid band,
-    in rank order, so each block's own gradient runs up the bank; u takes the slow peach-to-rose drift. Buried faces,
-    walls and base go to the buried band. Every UV stays 8 px inside the cell, so no cell edge crosses a face. The
-    band edges are set by measuring the shares as validate does (seven samples a triangle) and correcting."""
-    import numpy as np
-    me = ob.data
-    while me.uv_layers:
-        me.uv_layers.remove(me.uv_layers[0])
-    uvl = me.uv_layers.new(name=common.UV_NAME).data
-    vs = me.vertices
-    nv = len(vs)
-    sdz = np.array([unbend(v.co, Rf) for v in vs])
-    nz = np.array([v.normal.z for v in vs])
-    e = rim_exposure(name, sdz[:, 0], sdz[:, 1], sdz[:, 2], nz)
-    hue = rim_hue(name, sdz[:, 0], sdz[:, 1])
-    top_poly = []
-    for poly in me.polygons:
-        pts = [sdz[i] for i in poly.vertices]
-        top_poly.append(all(p[2] > BOTTOM + 0.5 for p in pts) and all(
-            abs(p[2] - float(rim_height(name, np.array(p[0]), np.array(p[1])))) < 0.6 for p in pts))
-    area = np.zeros(nv)
-    for poly, top in zip(me.polygons, top_poly):
-        if top:
-            for i in poly.vertices:
-                area[i] += poly.area / len(poly.vertices)
-    vis = (area > 0) & (e >= 0.0)
-    order = np.argsort(e[vis])
-    cum = np.cumsum(area[vis][order])
-    rank = np.zeros(nv)
-    idx = np.nonzero(vis)[0][order]
-    rank[idx] = (cum - 0.5 * area[vis][order]) / cum[-1]
-    B = RIM_BANDS
-    me.calc_loop_triangles()
-    # the shares are set on what a ring shows: past BAND beyond a joint a piece is under its neighbour
-    h_vis = RIMS[name]["span"] / 2.0 + BAND
-    tris = [(t.vertices[:], t.area) for t in me.loop_triangles
-            if top_poly[t.polygon_index] and abs(sum(sdz[i][0] for i in t.vertices) / 3.0) <= h_vis]
-    import validate
-    samples = validate._SAMPLES
-
-    def vpx(qd, ql):
-        out = np.where(rank < qd, B["buried"] + (B["dark"] - B["buried"] - 0.5) * rank / qd,
-                       np.where(rank < ql, B["dark"] + 0.5 + (B["mid"] - B["dark"] - 1.0) * (rank - qd) / (ql - qd),
-                                B["mid"] + 0.5 + (B["top"] - B["mid"] - 0.5) * (rank - ql) / (1.0 - ql)))
-        bur = B["inset"] + (B["buried"] - B["inset"]) * np.clip(1.0 + e / 0.25, 0.0, 1.0)
-        return np.where(vis, out, np.where(area > 0, bur, B["inset"] + 0.5))
-
-    def shares(v):
-        acc = {"dark": 0.0, "mid": 0.0, "light": 0.0}
-        for (a, b_, c), ar in tris:
-            for w in samples:
-                x = w[0] * v[a] + w[1] * v[b_] + w[2] * v[c]
-                if x < B["buried"]:
-                    continue
-                acc["dark" if x < B["dark"] else "mid" if x < B["mid"] else "light"] += ar
-        tot = sum(acc.values()) or 1.0
-        return {k: x / tot for k, x in acc.items()}
-    qd, ql = RIM_SHARE["dark"], 1.0 - RIM_SHARE["light"]
-    for _ in range(12):
-        sh = shares(vpx(qd, ql))
-        qd = min(0.3, max(0.02, qd + 0.9 * (RIM_SHARE["dark"] - sh["dark"])))
-        ql = min(0.95, max(qd + 0.2, ql - 0.9 * (RIM_SHARE["light"] - sh["light"])))
-    v = vpx(qd, ql)
-    print("[nursery] %s value bands at ranks %.3f / %.3f: dark %.1f%%, mid %.1f%%, light %.1f%%"
-          % (name, qd, ql, 100 * sh["dark"], 100 * sh["mid"], 100 * sh["light"]))
-    ob["rim_value_shares"] = [round(100 * x, 1) for x in (sh["dark"], sh["mid"], sh["light"])]
-    w = ATLAS_CELLS[RIM_CELL][2]
-    pu = B["inset"] + 0.5 + (w - 2 * B["inset"] - 1.0) * hue
-    for poly, top in zip(me.polygons, top_poly):
-        for li in poly.loop_indices:
-            i = me.loops[li].vertex_index
-            if top:
-                uvl[li].uv = rim_cell_uv(pu[i], v[i])
-            else:
-                uvl[li].uv = rim_cell_uv(w / 2.0, B["inset"] + 0.5)
 
 
 def rim_sampler(img):
@@ -793,29 +787,26 @@ def surface_samples(ob, off, Rf, per=12):
 
 def rim_checks(objs, offs):
     """Encloses the pool: the crest stays above the surface over the whole span (and 4 above it away from the
-    joints), the pool face reaches below the sand everywhere (no gap at the foot), and the face and crest run out
-    to the joints, where neighbours overlap."""
+    joints), the pool face reaches below the sand everywhere (no gap at the foot), the face and crest run out
+    past the joints, where neighbours overlap; the slopes stay under 65 degrees above the floors (no wall)."""
     def check(spec, report):
+        import numpy as np
         for ob in objs:
             cfg = RIMS[ob.name]
             Rf, L = cfg["radius"], cfg["span"]
             h = L / 2.0
             pts = surface_samples(ob, offs[ob.name], Rf)
             bins = 2 * int(L / 4.0)
-            crest, foot, mids = [], [], []
+            mids, foot = [], []
             for k in range(bins):
-                s0 = -h - END + (L + 2 * END) * k / bins
-                s1 = s0 + (L + 2 * END) / bins
+                s0 = -h + L * k / bins
+                s1 = s0 + L / bins
                 col = [p for p in pts if s0 <= p[0] < s1]
-                top = max((p[2] for p in col), default=-999.0)
-                crest.append(top)
-                if abs(s0) <= h and abs(s1) <= h:
-                    mids.append(top)
-                if abs(s0) <= h and abs(s1) <= h:
-                    foot.append(min((p[2] for p in col if p[1] < 6.0), default=999.0))
+                mids.append(max((p[2] for p in col), default=-999.0))
+                foot.append(min((p[2] for p in col if p[1] < 6.0), default=999.0))
             report.add(ob.name, "crest above the surface", min(mids) >= CREST_MIN,
-                       "crest %.1f to %.1f studs above the surface between the overlaps (at least %.0f; the Rim's own top is 12); "
-                       "past each joint the piece dives under its neighbour" % (min(mids), max(mids), CREST_MIN))
+                       "crest %.1f to %.1f studs above the surface between the joints (at least %.0f; the Rim's own top is 12); "
+                       "past each joint the piece runs %.0f studs under its neighbour" % (min(mids), max(mids), CREST_MIN, END))
             report.add(ob.name, "pool face buried", max(foot) <= -(SAND_DEPTH + 3.0),
                        "the pool face reaches depth %.1f or lower all along (sand level %.0f, relief to 30)" % (-max(foot), SAND_DEPTH))
             ext = [p[0] for p in pts if p[2] > -26.0 and p[1] < 20.0]
@@ -823,18 +814,29 @@ def rim_checks(objs, offs):
                        "pool face and crest run from s %.1f to %.1f of +-%.1f (neighbours overlap there)" % (min(ext), max(ext), h))
             vary = (max(mids) - min(mids)) / max(mids)
             report.add(ob.name, "uneven crest", vary >= CREST_VARY and max(mids) <= RIM_TOP,
-                       "the crest rises and falls by %.0f%% of its peak along the piece (at least %.0f%%; a dome to %.1f, a "
-                       "saddle at %.1f; never above the Rim's top, %.0f)" % (100 * vary, 100 * CREST_VARY, max(mids), min(mids), RIM_TOP))
+                       "the crest rises and falls by %.0f%% of its peak along the piece (at least %.0f%%; %.1f at its lowest, "
+                       "%.1f at its top; never above the Rim's top, %.0f)" % (100 * vary, 100 * CREST_VARY, min(mids), max(mids), RIM_TOP))
+            ss = np.linspace(-h, h, 33)
+            ds = np.arange(UNDER, OUTER + 1e-6, 0.25)
+            S, D = np.meshgrid(ss, ds, indexing="ij")
+            Z = rim_height(ob.name, S, D)
+            slope = np.degrees(np.arctan(np.abs(np.gradient(Z, 0.25, axis=1))))
+            shown = Z > np.where(D < DC, SAND_Z, OUTER_FLOOR_Z)
+            steep = float(slope[shown].max())
+            report.add(ob.name, "sloped sides, no wall", steep <= 65.0,
+                       "steepest %.0f degrees across the bank above the sand and the outer floors (limit 65); a convex dome "
+                       "flat at its crest" % steep)
         rows = joint_report()
-        worst_notch, worst_gap = max(r[1] for r in rows), max(r[2] for r in rows)
-        report.add(objs[0].name, "joints: one bank", worst_notch <= NOTCH_MAX and worst_gap <= 0.05,
-                   "every neighbour pair (%s): the visible crest dips at most %.2f below both sides of a joint (limit %.2f), "
-                   "the visible bank at most %.2f under the shared joint profile" % (
-                       ", ".join(r[0] for r in rows), worst_notch, NOTCH_MAX, worst_gap))
+        worst_notch, worst_poke = max(r[1] for r in rows), max(r[2] for r in rows)
+        report.add(objs[0].name, "joints: one bank", worst_notch <= NOTCH_MAX and worst_poke <= POKE_MAX,
+                   "every neighbour pair (%s), chained tangent to tangent: the visible crest dips at most %.2f at a joint "
+                   "(limit %.2f); a nose rises at most %.3f above the piece it runs under (limit %.2f)" % (
+                       ", ".join(r[0] for r in rows), worst_notch, NOTCH_MAX, worst_poke, POKE_MAX))
         for ob in objs:
             d_, m_, l_ = ob.get("rim_value_shares", (0, 0, 0))
             report.add(ob.name, "three values on the bank", 10 <= d_ <= 15 and 55 <= m_ <= 65 and 20 <= l_ <= 30,
-                       "dark %.1f%%, mid %.1f%%, light %.1f%% of the visible bank (06 4.1)" % (d_, m_, l_))
+                       "dark %.1f%%, mid %.1f%%, light %.1f%% of the bank above the floors (06 4.1); its block lines run "
+                       "level along edge loops" % (d_, m_, l_))
     return check
 
 
@@ -857,7 +859,7 @@ CELL_USE = {
     "coral_bubble": "M_Env_Nursery_Coral_01 (pink bubble coral)", "coral_knob": "M_Env_Nursery_Coral_02 (peach knob coral)",
     "coral_brain": "M_Env_Nursery_Coral_03 (lilac brain coral)", "buoy": "M_Env_Nursery_GlowBuoy (float; glow by cap)",
     "arch_coral": "M_Env_Nursery_LM_LittleArch (pink coral, wraps both ways)",
-    "rim_bank": "M_Env_Nursery_Rim_01-02 (gradient map: value up the cell, peach to rose across)", "grass_gold": "M_Env_Nursery_GrassTuft_01",
+    "rim_bank": "M_Env_Nursery_Rim_01-02 (gradient map: three blocks up the cell, by mesh rows)", "grass_gold": "M_Env_Nursery_GrassTuft_01",
     "grass_olive": "M_Env_Nursery_GrassTuft_02", "ring_coral": "M_Env_Nursery_LM_ThreeRings (wraps across)",
     "shell_lights": "Little Arch shell lights", "coral_crust": "Little Arch tunnel and coral feet (shaded crust)",
     "clam_shell": "M_Env_Nursery_LM_SleepyClam shell", "clam_mantle": "Sleepy Clam mantle",
@@ -874,13 +876,14 @@ LIGHTS = {     # pale warm lights (L* 85 or more), each at least 0.06 from every
     "pink": "#FFD9CC", "peach": "#FFE0BF", "lilac": "#EBDDFC", "cream": "#F6E6C2", "gold": "#F2E6A6",
     "mint": "#C8F4E6", "sand": "#F3E0B4",
 }
-# the rim cell (independent review loop 1, 06 16.1 line 8: pastel coral, not muddy brown): the 06 9.3 coral hues
-# (#FF7F9F pink, #FFA35C orange, #B48CFF violet) taken pastel. Mid 66 to 77 L*, light 87 to 90, dark 33; the sand
-# (#F6E3B4) is 91, so the bank's largest block sits 14 to 25 L* under it, and its dark foot meets it.
+# the rim cell (independent review loops 1 and 3, 06 16.1 lines 5, 8, 9): the 06 9.3 coral hues (#FF7F9F pink,
+# #FFA35C orange, #B48CFF violet) taken pastel, as three flat blocks: a soft violet toe band (L* 33), a mid body
+# with one broad gradient up the bank (rose at its foot, peach under the cap: L* 70 to 74) and a pale peach cap
+# (L* 88). The sand (#F6E3B4) is 91, so the body sits 17 to 21 L* under it, and the toe band meets it.
 RIM_PAINT = {
-    "dark": "#54427F",                                         # soft violet, L* 33
-    "mid": (("#DC8D86", "#F5AE98"), ("#D6899A", "#F1A8A9")),   # (low, high): peach column, rose column
-    "light": (("#FAD0C1", "#FFDACA"), ("#F7CEC9", "#FCD7D1")),
+    "dark": "#54427F",                     # soft violet, L* 33
+    "mid": ("#E5979A", "#ECA596"),         # (foot, top)
+    "light": "#FDD5C7",
 }
 RIM_BLOCKS = {"dark": "#54427F", "mid": "#E89D93", "light": "#FDD5C7"}   # each block's middle, for validate (L* 33, 72, 88)
 SHARE = {"dark": 0.11, "light": 0.26}      # 06 4.1: dark 10-15%, light 20-30% (review loop 3: darks toward the low end)
@@ -1111,30 +1114,21 @@ def _grain(w, h, name, rng):
 
 
 def paint_rim_cell(w, h):
-    """The rim's gradient map (64 x 256): bands up the cell (RIM_BANDS) from the buried band and the dark block
-    (one flat soft violet) through the mid block (rose-mauve at its foot to peach at its top, 11 L*) to the light
-    block (87 to 90 L*); across the cell, the peach column to the rose column at the same lightness. Brush-soft band
-    edges (3 px); no marks, so nothing reads as pits, cells or seams."""
+    """The rim's gradient map (64 x 256): bands up the cell (RIM_BANDS): the buried band (the mid's foot colour),
+    the dark block (one flat soft violet), the mid block (one broad gradient, rose at its foot to peach at its top)
+    and the light block (one flat pale peach). Flat across the cell; no marks and no blur across the band edges, so
+    a block ends exactly on the mesh's edge loop."""
     import numpy as np
     import tilegen
     B = RIM_BANDS
     b = (h - 1 - np.arange(h) + 0.5)[:, None] * np.ones((1, w))          # pixels from the bottom
-    t = np.clip((np.arange(w)[None, :] + 0.5 - B["inset"]) / (w - 2.0 * B["inset"]), 0.0, 1.0) * np.ones((h, 1))
-
-    def col(pair_a, pair_b, g):
-        lo = tilegen.mix(_hex(pair_a[0]), _hex(pair_b[0]), t)
-        hi = tilegen.mix(_hex(pair_a[1]), _hex(pair_b[1]), t)
-        return tilegen.mix(lo, hi, np.clip(g, 0.0, 1.0))
-    mid = col(RIM_PAINT["mid"][0], RIM_PAINT["mid"][1], (b - B["dark"]) / (B["mid"] - B["dark"]))
-    light = col(RIM_PAINT["light"][0], RIM_PAINT["light"][1], (b - B["mid"]) / (B["top"] - B["mid"]))
+    g = np.clip((b - B["dark"] - 0.5) / (B["mid"] - B["dark"] - 1.0), 0.0, 1.0)
+    mid = tilegen.mix(np.broadcast_to(_hex(RIM_PAINT["mid"][0]), (h, w, 3)), np.broadcast_to(_hex(RIM_PAINT["mid"][1]), (h, w, 3)), g)
     dark = np.broadcast_to(_hex(RIM_PAINT["dark"]), (h, w, 3))
-    buried = tilegen.mix(col(RIM_PAINT["mid"][0], RIM_PAINT["mid"][1], np.zeros((h, w))), dark,
-                         smooth(B["inset"], B["buried"], b))       # the dark foot fades out under the sand
-    img = np.where((b < B["buried"])[..., None], buried, np.where((b < B["dark"])[..., None], dark,
-                                                                  np.where((b < B["mid"])[..., None], mid, light)))
-    for c in range(3):
-        img[..., c] = _blur(img[..., c], 1, wrap=False)
-    return img
+    light = np.broadcast_to(_hex(RIM_PAINT["light"]), (h, w, 3))
+    buried = np.broadcast_to(_hex(RIM_PAINT["mid"][0]), (h, w, 3))
+    return np.where((b < B["buried"])[..., None], buried, np.where((b < B["dark"])[..., None], dark,
+                                                                   np.where((b < B["mid"])[..., None], mid, light)))
 
 
 def paint_atlas(seed=71):

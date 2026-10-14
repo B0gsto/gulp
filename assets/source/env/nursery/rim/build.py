@@ -4,22 +4,24 @@ M_Env_Nursery_Rim_01-02, 1,000 tris each; docs/03-content-catalog.md 6.1 and 6.2
 
     Blender --background --python assets/source/env/nursery/rim/build.py
 
-Low rounded rim pieces that enclose the pool (nurseryart: a closed slab whose top is a height field over the arc's
-plan, a bank from a toe buried in the sand 32 studs into the pool up into a round, uneven dome 4 to 12 above the
-surface, a few broad rock masses fused on both faces, the outer face down to a flat base at depth 86;
-decimated to budget; painted from the rim cell of T_EnvNursery_Alb, a gradient map: three flat pastel coral value
-blocks and two broad gradients, mapped by each vertex's exposure). Each is an arc concave toward the pool, its front
-(-Y); radius and span are measured at the waterline:
+Low rounded rim pieces that enclose the pool (nurseryart, independent review loop 3): a closed slab whose top is a
+structured grid over the arc's plan, one cross-section for both pieces, a broad convex dome from a toe buried in
+the sand 32 studs into the pool up to a crest 4 to 12 above the surface and down the outer face to a flat base at
+depth 86, with no flat top and no wall (under 65 degrees above the floors). The grid's rows run along the bank's
+level lines, so the three value blocks of the rim cell of T_EnvNursery_Alb (a soft violet toe band, a mid body with
+one broad gradient, a pale peach cap) end on edge loops. Each is an arc concave toward the pool, its front (-Y);
+radius and span are measured at the waterline:
 
-  _01  gentle arc, radius 172 (its toe follows the oval's long sides at 140), 64 studs
-  _02  tight arc, radius 96 (its toe follows the oval's ends at 64), 50 studs
+  _01  long low swell: radius 172, 64 studs (crest 4.9 to 8.6)
+  _02  fuller hump, leaning: radius 96, 50 studs (crest 4.9 to 11.2)
 
-Within 5 studs of each joint both neighbours take one shared joint profile (crest 7 above the surface); each piece
-runs 12 studs past its joints and dives there under its neighbour, so a ring is one bank with no notch at a joint and
-a lone piece ends in rounded noses. Copies take 80 to 125% scale (06 9.1) to follow the oval, and a
-SurfaceAppearance.Color tint each (nurseryart.RIM_TINTS) so neighbours differ (MeshParts cannot be mirrored).
-Origin: the centre of the flat base (06 6.1); the arc frame (centre, radius, surface and sand level relative to the
-origin) goes to assets/export/meshes/M_Env_Nursery_Rim.kit.json.
+At every joint the crest is 6 above the surface, falling 0.12 a stud toward +s, and within 5 studs of it both
+neighbours are exactly that profile; each piece runs 30 studs past its joints under its neighbour (the joint profile
+sunk by 6 x^2 over the first 9, then a dive to the base), so a ring is one rolling bank and a lone piece ends in
+rounded noses. Copies chain end to end at scale 1, tangent to tangent at the waterline (nurseryart.next_pose), one
+tint for all (a scaled copy or a tint per copy would break the joint). Origin: the centre of the flat base (06 6.1);
+the arc frame (centre, radius, surface and sand level relative to the origin) goes to
+assets/export/meshes/M_Env_Nursery_Rim.kit.json.
 """
 import json
 import math
@@ -111,28 +113,33 @@ def build():
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             json.dump({"note": "Blender frame (Z up, -Y the pool side). Every value is relative to the piece's origin (the centre of its flat "
-                               "base). Place a copy so its arc centre sits on the pool's local centre of curvature; scale 0.8 to 1.25 "
-                               "moves the face to R = arc_radius x scale (06 9.1). Tints: nurseryart.RIM_TINTS. Assembly is S7-A2.",
-                       "tints": list(na.RIM_TINTS), "pieces": frames}, f, indent=1)
+                               "base). Chain copies end to end at scale 1 and one tint: each piece's +s joint (the pool face's waterline at "
+                               "s = +span/2) on the next piece's -s joint, tangents matched (nurseryart.next_pose and ring_poses); each runs "
+                               "%.0f studs past its joints under its neighbour. Assembly is S7-A2." % na.END,
+                       "pieces": frames}, f, indent=1)
         report.add(PRIMARY, "kit frame table", True, os.path.relpath(path, common.REPO_DIR))
 
-    # previews: three _01 along a gentle curve; an end of the oval: _01, _02, _02, _01
+    # previews: _01, _02, _01 chained as a ring places them (the middle piece at its own frame)
     rim1, rim2 = objs["M_Env_Nursery_Rim_01"], objs["M_Env_Nursery_Rim_02"]
-    run1 = []
-    for i, deg in enumerate((-21.3, 0.0, 21.3)):
-        m = Matrix.Rotation(math.radians(-deg), 4, 'Z') @ Matrix.Translation((0.0, na.RIMS[PRIMARY]["radius"], 0.0)) @ Matrix.Translation(offs[PRIMARY])
-        run1.append(copy_at(rim1, Matrix.Translation((0.0, -na.RIMS[PRIMARY]["radius"], 0.0)) @ m, "S%d" % i))
-    end = []
-    R2 = na.RIMS["M_Env_Nursery_Rim_02"]["radius"]
-    for i, deg in enumerate((-14.9, 14.9)):
-        m = Matrix.Rotation(math.radians(-deg), 4, 'Z') @ Matrix.Translation((0.0, R2, 0.0)) @ Matrix.Translation(offs["M_Env_Nursery_Rim_02"])
-        end.append(copy_at(rim2, Matrix.Translation((0.0, -R2, 0.0)) @ m, "E%d" % i))
+    seq = ["M_Env_Nursery_Rim_01", "M_Env_Nursery_Rim_02", "M_Env_Nursery_Rim_01"]
+    poses = [(0.0, 0.0, 0.0)]
+    for a, b in zip(seq, seq[1:]):
+        poses.append(na.next_pose(poses[-1], a, b))
+    mid = poses[1]
+    run = []
+    for i, (name, pose) in enumerate(zip(seq, poses)):
+        th = pose[0] - mid[0]
+        x, y = na.pose_local(mid, pose[1], pose[2])
+        m = Matrix.Translation((x, y, 0.0)) @ Matrix.Rotation(th, 4, 'Z') @ Matrix.Translation(offs[name])
+        run.append(copy_at(objs[name], m, "C%d" % i))
     solo = copy_at(rim1, Matrix.Translation(offs[PRIMARY]), "Solo")
-    # the Nursery sand (06 4.2, #F6E3B4) on the pool side at depth 26, the Reef floor (#F2D9A0) beyond the outer face
-    R1 = na.RIMS[PRIMARY]["radius"]
-    sand1 = ground("Sand_01", (0.0, -R1), 0.0, R1 - 21.0, na.SAND_Z, "#F6E3B4")
-    sand2 = ground("Sand_02", (0.0, -R2), 0.0, R2 - 21.0, na.SAND_Z, "#F6E3B4")
-    floor1 = ground("Floor_01", (0.0, -R1), R1 + 40.0, R1 + 400.0, na.OUTER_FLOOR_Z, "#F2D9A0")
+    # the Nursery sand (06 4.2, #F6E3B4) on the pool side at depth 26 (it runs on under the bank, hidden), the Reef
+    # floor (#F2D9A0) beyond the outer face
+    R1, R2 = na.RIMS[PRIMARY]["radius"], na.RIMS["M_Env_Nursery_Rim_02"]["radius"]
+    sand1 = ground("Sand_01", (0.0, -R1), 0.0, R1 + 30.0, na.SAND_Z, "#F6E3B4")
+    sand2 = ground("Sand_02", (0.0, -R2), 0.0, R2 + 30.0, na.SAND_Z, "#F6E3B4")
+    floor1 = ground("Floor_01", (0.0, -R1), R1 + 60.0, R1 + 400.0, na.OUTER_FLOOR_Z, "#F2D9A0")
+    jx, jy = na.bend((na.RIMS["M_Env_Nursery_Rim_02"]["span"] / 2.0, 0.0, 0.0), R2)[:2]
     lo, hi = ra.bounds(rim1)
     size = tuple(hi[i] - lo[i] for i in range(3))
     return {
@@ -154,26 +161,26 @@ def build():
         "preview": {
             "main": [rim1],
             "blocks": {"mid": na.RIM_BLOCKS["mid"], "light": na.RIM_BLOCKS["light"], "dark": na.RIM_BLOCKS["dark"]},
-            "view_captions": {"Side": ["pool side left; a round dome 4 to 12 above the surface,", "base buried at depth 86"],
+            "view_captions": {"Side": ["pool side left; a broad convex dome, crest 4.9 to 8.6", "above the surface; base buried at depth 86"],
                               "Top": ["waterline radius 172, 64 studs; toe 32 into the pool"]},
-            "lineup": [{"label": "Rim_01 gentle arc", "objects": [rim1]}, {"label": "Rim_02 tight arc", "objects": [rim2]},
+            "lineup": [{"label": "Rim_01 long low swell", "objects": [rim1]}, {"label": "Rim_02 fuller hump, leaning", "objects": [rim2]},
                        {"label": "tier-7 Minnow", "objects": [bpy.data.objects["REF_Minnow_T7"]]}],
-            "lineup_caption": ["T_EnvNursery_Alb rim cell: soft violet dark, rose-to-peach mid, pale peach light"],
+            "lineup_caption": ["T_EnvNursery_Alb rim cell: soft violet toe band, rose-to-peach mid, pale peach cap"],
             "extras": [
-                {"title": "Three Rim_01 along a long side, from the pool", "objects": run1 + [sand1],
-                 "camera": {"location": (0.0, -95.0, -16.0), "look_at": (0.0, 0.0, -14.0), "lens": 20.0},
-                 "caption": ["one shared profile at each joint, then each piece dives under the next", "crest above the surface (z 0)"]},
-                {"title": "Two Rim_02 round an end, from the pool", "objects": end + [sand2],
-                 "camera": {"location": (0.0, -75.0, -12.0), "look_at": (0.0, 0.0, -10.0), "lens": 18.0},
-                 "caption": ["toe radius 64: the oval's ends"]},
+                {"title": "Rim_01, Rim_02, Rim_01 chained, from the pool", "objects": run + [sand2],
+                 "camera": {"location": (0.0, -120.0, -14.0), "look_at": (0.0, 0.0, -10.0), "lens": 18.0},
+                 "caption": ["scale 1, one tint, tangent to tangent: one rolling bank", "crest above the surface (z 0)"]},
+                {"title": "A joint up close (Rim_02 into Rim_01)", "objects": run + [sand2],
+                 "camera": {"location": (jx - 14.0, jy - 46.0, -16.0), "look_at": (jx, jy, -8.0), "lens": 24.0},
+                 "caption": ["the joint is mid-frame: the same profile and colours", "on both sides, no notch, no seam"]},
                 {"title": "Pool face, low, on the sand", "objects": [solo, sand1],
-                 "camera": {"location": (-24.0, -48.0, -22.0), "look_at": (0.0, 0.0, -16.0), "lens": 24.0},
-                 "caption": ["a dark foot at the sand, a light band", "just under the waterline"]},
+                 "camera": {"location": (-24.0, -60.0, -22.0), "look_at": (0.0, 0.0, -14.0), "lens": 24.0},
+                 "caption": ["a thin violet toe band at the sand, the pale cap", "from 3.5 under the waterline"]},
                 {"title": "Outer face, on the Reef floor (depth 66)", "objects": [solo, floor1],
-                 "camera": {"location": (30.0, 120.0, -30.0), "look_at": (0.0, 20.0, -40.0), "lens": 24.0},
+                 "camera": {"location": (30.0, 170.0, -30.0), "look_at": (0.0, 30.0, -40.0), "lens": 24.0},
                  "caption": ["runs down to the Kelp, Reef and Ledge floors"]},
             ],
-            "texture": "T_EnvNursery_Alb 512 x 512, rim cell 64 x 256 (a gradient map), tint per copy",
+            "texture": "T_EnvNursery_Alb 512 x 512, rim cell 64 x 256 (a gradient map), one tint",
         },
     }
 

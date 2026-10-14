@@ -8,9 +8,9 @@ the 450-stud view distance to 450, and once at the 220-stud Smooth cap, 15 3.0).
     python3 assets/source/env/nursery/kit/build.py sheet      # the 1536 x 1536 sheet and its 768 preview
 
 The vignette is a review scene, not the Nursery's assembly (S7-A2): the four floor chunks on the 128 grid at sand
-level depth 26, and rim pieces walked round an oval 220 x 170 (03 6.2), closed (Little Arch, S7-A1, replaces one
-span in the assembly). Each copy is chosen by the oval's curvature (Rim_02 at the ends, Rim_01 on the
-sides), scaled 80 to 125% to it (06 9.1) and tinted from nurseryart.RIM_TINTS.
+level depth 26, and a closed ring of 14 rim pieces, Rim_01 and Rim_02 alternating, chained end to end at scale 1
+and one tint, tangent to tangent at the waterline (nurseryart.ring_poses: about 190 across at the toe, near the
+220 x 170 oval of 03 6.2; Little Arch, S7-A1, replaces one span in the assembly).
 
 Writes assets/export/textures/T_EnvNursery_Alb.png, assets/review/T_EnvNursery_Alb/atlas_report.json,
 assets/review/M_Env_Nursery_Kit/renders/*.png and assets/review/M_Env_Nursery_Kit/<date>_kit_sheet.png (+ _768).
@@ -33,9 +33,7 @@ REVIEW = common.review_dir("M_Env_Nursery_Kit")
 RENDERS = os.path.join(REVIEW, "renders")
 SHEET = 1536
 CELL_W, CELL_H = 496, 424
-OVAL = (110.0, 85.0)            # 03 6.2: 220 x 170
-GAP = 0.0                       # review loop 1: the ring is closed in the vignette; Little Arch takes a span in S7
-OVERLAP = 0.0                   # pieces step by their nominal span; each runs nurseryart.END past the joint
+RING = (("M_Env_Nursery_Rim_01", "M_Env_Nursery_Rim_02"), 7)    # review loop 3: 14 pieces, alternating
 SHOW_FLOORS = {"M_Env_Nursery_Floor_03": (-64.0, 64.0), "M_Env_Nursery_Floor_04": (64.0, 64.0),
                "M_Env_Nursery_Floor_02": (-64.0, -64.0), "M_Env_Nursery_Floor_01": (64.0, -64.0)}
 SHOWCASE = (1400.0, 0.0)        # the pieces alone, far out of every vignette shot
@@ -44,7 +42,7 @@ FLOORCASE = (0.0, 1400.0)
 # (file, fog end or None, camera, look at, lens or ('ortho', scale), hide surface, caption)
 SHOTS = [
     ("pool_game", 450.0, (80.0, 18.0, -14.0), (-125.0, -4.0, -14.0), 18.0, False,
-     "In the pool, toward the west end: Rim_02 round the end, Rim_01 on the sides"),
+     "Game camera in the pool, west: the ring, Rim_01 and Rim_02 alternating"),
     ("pool_smooth", 220.0, (80.0, 18.0, -14.0), (-125.0, -4.0, -14.0), 18.0, False,
      "The same at the Smooth cap (fog 55 to 220, 15 3.0): judged first"),
     ("bowl", 450.0, (-8.0, 14.0, -19.0), (-78.0, 82.0, -27.0), 20.0, False,
@@ -52,10 +50,10 @@ SHOTS = [
     ("crest", 450.0, (-70.0, -18.0, -5.0), (-140.0, -30.0, 1.5), 20.0, False,
      "Just under the surface: the crest breaks it 4 to 12 high"),
     ("plan", None, (0.0, 0.0, 600.0), (0.0, 0.0, 0.0), ("ortho", 400.0), True,
-     "Plan, no fog: chunks 03 04 / 02 01 on the 128 grid, rim walked round the oval"),
+     "Plan, no fog: chunks 03 04 / 02 01 on the 128 grid, a ring of 14 rim pieces"),
     ("overview", None, (250.0, -280.0, 185.0), (-10.0, 10.0, -22.0), 24.0, True,
      "From above, no fog (surface hidden): the low rim round the pale pool"),
-    ("pieces", 450.0, (SHOWCASE[0], SHOWCASE[1] - 120.0, -12.0), (SHOWCASE[0], SHOWCASE[1], -10.0), 22.0, False,
+    ("pieces", 450.0, (SHOWCASE[0], SHOWCASE[1] - 160.0, -12.0), (SHOWCASE[0], SHOWCASE[1], -10.0), 22.0, False,
      "Rim_01 (left) and Rim_02 (right) alone, pool face, Nursery fog"),
     ("floors", None, (FLOORCASE[0], FLOORCASE[1] - 330.0, 95.0), (FLOORCASE[0], FLOORCASE[1] + 20.0, -32.0), 28.0, True,
      "Floor_01 to _04 apart (left to right), no fog: the relief"),
@@ -89,49 +87,10 @@ def paint():
     return ok
 
 
-# ---------------------------------------------------------------- the oval walk
-def ellipse(t):
-    a, b = OVAL
-    p = (a * math.cos(t), b * math.sin(t))
-    tan = (-a * math.sin(t), b * math.cos(t))
-    n = math.hypot(*tan)
-    tan = (tan[0] / n, tan[1] / n)
-    out = (tan[1], -tan[0])                        # counter-clockwise walk: the outward normal is on the right
-    rho = (a * a * math.sin(t) ** 2 + b * b * math.cos(t) ** 2) ** 1.5 / (a * b)
-    return p, out, rho
-
-
-def walk():
-    """[(name, waterline point (x, y), outward normal, scale, tint)] round the oval, counter-clockwise from its east
-    end: each piece's toe (30 studs inside its waterline) lies on the oval, the sand floor's outline."""
-    import bisect
-    ts = [2 * math.pi * k / 4000 for k in range(4001)]
-    arc = [0.0]
-    for t0, t1 in zip(ts, ts[1:]):
-        p0, p1 = ellipse(t0)[0], ellipse(t1)[0]
-        arc.append(arc[-1] + math.hypot(p1[0] - p0[0], p1[1] - p0[1]))
-    total = arc[-1]
-
-    def at(s):
-        s %= total
-        i = min(len(ts) - 2, bisect.bisect_left(arc, s))
-        return ts[i]
-    out, s, k = [], GAP / 2.0, 0
-    end = total - GAP / 2.0
-    while s < end - 10.0:
-        rho = ellipse(at(s + 18.0))[2]                 # the toe follows the oval: toe radius = rho
-        name = "M_Env_Nursery_Rim_02" if rho < 100.0 else "M_Env_Nursery_Rim_01"
-        cfg = na.RIMS[name]
-        toe_r = cfg["radius"] + na.TOE
-        scale = min(1.25, max(0.8, rho / toe_r))
-        half = rho * cfg["span"] / cfg["radius"] / 2.0     # the piece's arc measured along its toe
-        c = s + half
-        p, n, _ = ellipse(at(c))
-        w = (p[0] - na.TOE * scale * n[0], p[1] - na.TOE * scale * n[1])   # its waterline point, outside the toe
-        out.append((name, w, n, scale, na.RIM_TINTS[k % len(na.RIM_TINTS)]))
-        s = c + half - OVERLAP
-        k += 1
-    return out
+# ---------------------------------------------------------------- the ring
+def ring():
+    """[(name, turn, x, y)]: each piece frame's pose (the pool face's waterline at s 0 on its origin)."""
+    return na.ring_poses(*RING)
 
 
 # ---------------------------------------------------------------- render (inside Blender)
@@ -171,7 +130,7 @@ def render():
         nt.links.new(mix.outputs[0], out.inputs["Surface"])
         fog_nodes.append((rng, emi))
 
-    def lit(name, image, tint, per_copy=False):
+    def lit(name, image, tint):
         mat = bpy.data.materials.new(name)
         mat.use_nodes = True
         nt = mat.node_tree
@@ -185,21 +144,13 @@ def render():
         dif = nt.nodes.new("ShaderNodeBsdfDiffuse")
         nt.nodes.new("ShaderNodeOutputMaterial")
         nt.links.new(tex.outputs["Color"], mul.inputs[0])
-        if per_copy:                                  # SurfaceAppearance.Color per placement
-            info = nt.nodes.new("ShaderNodeObjectInfo")
-            mul2 = nt.nodes.new("ShaderNodeVectorMath")
-            mul2.operation = 'MULTIPLY'
-            nt.links.new(mul.outputs["Vector"], mul2.inputs[0])
-            nt.links.new(info.outputs["Color"], mul2.inputs[1])
-            nt.links.new(mul2.outputs["Vector"], dif.inputs["Color"])
-        else:
-            nt.links.new(mul.outputs["Vector"], dif.inputs["Color"])
+        nt.links.new(mul.outputs["Vector"], dif.inputs["Color"])
         fogged(mat, dif.outputs[0])
         return mat
 
     tex_dir = os.path.join(common.EXPORT_DIR, "textures")
     sand_tex = os.path.join(tex_dir, na.SAND + ".png")
-    rock = lit("Rock", na.atlas_path(), (1.0, 1.0, 1.0), per_copy=True)     # the rim cell of T_EnvNursery_Alb
+    rock = lit("Rock", na.atlas_path(), (1.0, 1.0, 1.0))     # the rim cell of T_EnvNursery_Alb, one tint
     sand = lit("SandNursery", sand_tex, tilegen.tints(na.SAND)["nursery"][2])
     silt = lit("SandOuter", sand_tex, tilegen.tints(na.SAND)["kelp"][2])
 
@@ -213,26 +164,21 @@ def render():
         ob.data.materials.append(rock)
         rims[name] = ob
 
-    def inst(src, matrix, colour=None):
+    def inst(src, matrix):
         c = src.copy()
         sc.collection.objects.link(c)
         c.matrix_world = matrix
-        if colour:
-            k = [int(colour[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
-            c.color = (k[0], k[1], k[2], 1.0)
         return c
 
     base_z = -(na.SAND_DEPTH + na.SLAB)
     for name, (x, y) in SHOW_FLOORS.items():
         inst(floors[name], Matrix.Translation((x, y, base_z)))
-    placed = walk()
-    for name, p, n, scale, tint in placed:
-        theta = math.atan2(-n[0], n[1])
-        m = Matrix.Translation((p[0], p[1], 0.0)) @ Matrix.Rotation(theta, 4, 'Z') @ Matrix.Diagonal((scale, scale, 1.0, 1.0))
-        inst(rims[name], m, tint)
+    placed = ring()
+    for name, th, x, y in placed:
+        inst(rims[name], Matrix.Translation((x, y, 0.0)) @ Matrix.Rotation(th, 4, 'Z'))
     # the pieces alone, and the four chunks apart
-    inst(rims["M_Env_Nursery_Rim_01"], Matrix.Translation((SHOWCASE[0] - 44.0, SHOWCASE[1], 0.0)))
-    inst(rims["M_Env_Nursery_Rim_02"], Matrix.Translation((SHOWCASE[0] + 44.0, SHOWCASE[1], 0.0)), na.RIM_TINTS[1])
+    inst(rims["M_Env_Nursery_Rim_01"], Matrix.Translation((SHOWCASE[0] - 64.0, SHOWCASE[1], 0.0)))
+    inst(rims["M_Env_Nursery_Rim_02"], Matrix.Translation((SHOWCASE[0] + 64.0, SHOWCASE[1], 0.0)))
     inst(floors["M_Env_Nursery_Floor_01"], Matrix.Translation((SHOWCASE[0] - 64.0, SHOWCASE[1] - 100.0, base_z)))
     inst(floors["M_Env_Nursery_Floor_02"], Matrix.Translation((SHOWCASE[0] + 64.0, SHOWCASE[1] - 100.0, base_z)))
     for i, name in enumerate(na.FLOOR_NAMES):
@@ -314,7 +260,8 @@ def render():
         bpy.ops.render.render(write_still=True)
         print("rendered", fname, flush=True)
     meta = {"tris": {n: ra.tri_count(o) for n, o in list(floors.items()) + list(rims.items())},
-            "placements": [{"mesh": n, "scale": round(s, 3), "tint": t} for n, _, _, s, t in placed]}
+            "placements": [{"mesh": n, "turn_deg": round(math.degrees(th), 3), "x": round(x, 3), "y": round(y, 3), "scale": 1.0}
+                           for n, th, x, y in placed]}
     with open(os.path.join(RENDERS, "meta.json"), "w") as f:
         json.dump(meta, f, indent=1)
 
@@ -370,7 +317,7 @@ def sheet():
     t = meta["tris"]
     foot1 = "Triangles: " + ", ".join("%s %d" % (k.replace("M_Env_Nursery_", ""), v) for k, v in sorted(t.items())) + \
         "  (06 6.3 / 07 6.2: floor chunk 3,000; rim 1,000)"
-    foot2 = "Textures: T_Tile_Sand_Alb 512 (Nursery tint), T_EnvNursery_Alb 512 (rims: its rim cell, tint per copy; 06 5.6: 512 tiling / zone atlas)" \
+    foot2 = "Textures: T_Tile_Sand_Alb 512 (Nursery tint), T_EnvNursery_Alb 512 (rims: its rim cell, one tint; 06 5.6: 512 tiling / zone atlas)" \
         "    %s    commit %s" % (common.today(), common.git_commit())
     d.text((12, SHEET - 44), foot1, fill=(200, 200, 200), font=f14)
     d.text((12, SHEET - 24), foot2, fill=(200, 200, 200), font=f14)
