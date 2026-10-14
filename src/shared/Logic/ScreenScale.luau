@@ -43,6 +43,9 @@ export type Layout = {
 	-- The safe frame less its margins (docs/08 section 1.3), in rpx: the content box children of
 	-- a `DeviceSafeInsets` root are laid out in.
 	contentSize: Size,
+	-- The top left of the content box in rpx of the full screen (a `None` layer's root), so the
+	-- markers of the full-screen `GulpWorld` layer can be clamped into the safe frame.
+	contentOrigin: { x: number, y: number },
 	-- The occupied parts of the Roblox top bar in rpx, clipped to the safe frame and measured from
 	-- the top left of the content box (so a rect may start at a negative x or y, inside the
 	-- margin). Nothing persistent may overlap them (docs/08 section 1.3; spike F11).
@@ -263,6 +266,10 @@ function ScreenScale.compute(
 		contentSize = {
 			width = frame.width / scale - 2 * ScreenScale.MARGIN_SIDE,
 			height = frame.height / scale - ScreenScale.MARGIN_TOP - ScreenScale.MARGIN_BOTTOM,
+		},
+		contentOrigin = {
+			x = (safeArea.x + frame.x) / scale + ScreenScale.MARGIN_SIDE,
+			y = (safeArea.y + frame.y) / scale + ScreenScale.MARGIN_TOP,
 		},
 		fullSize = { width = screen.width / scale, height = screen.height / scale },
 		keepOut = keepOut,

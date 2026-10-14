@@ -206,6 +206,18 @@ function MovementController.velocity(): Vector3
 	return Vector3.new(SwimModel.velocity(s))
 end
 
+--- For `HUD.Dash` (08 §3.7): the share of the dash cooldown still to run (1 just after a dash
+--- starts, 0 when ready) and whether a status blocks the dash (stunned, tucked in Shell).
+function MovementController.dashState(): (number, boolean)
+	local s = state
+	if s == nil then
+		return 0, false
+	end
+	local cooldown = s.dashCooldown
+	local left = if cooldown > 0 then math.clamp(1 - s.dashAge / cooldown, 0, 1) else 0
+	return left, s.mods.dashBlocked
+end
+
 function MovementController.init() end
 
 function MovementController.start()

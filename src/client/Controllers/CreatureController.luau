@@ -304,7 +304,7 @@ local function selectOutlines()
 		pickShown
 	)
 	for i, e in entries do
-		local show = pickShown[i] == true
+		local show = pickShown[i] == true and Outlines.visible() -- HUD.Outlines (08 §3.11)
 		local kind: OutlineRules.Kind = if show then e.kind else "none"
 		e.shown = show
 		CreatureRig.setOutline(e.rig, kind, Outlines.colour(kind))

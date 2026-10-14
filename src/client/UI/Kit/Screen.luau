@@ -73,6 +73,9 @@ local interfaceSize = ScreenScale.INTERFACE_SIZE_DEFAULT
 local layers: { [LayerName]: Layer } = {}
 local pending = 0
 local cameraConnection: RBXScriptConnection? = nil
+-- Studio only (`Screen.simulate`): a device to lay out for instead of the real one.
+export type Simulated = { reading: Reading, screen: Size, safeArea: Rect, topbar: Rect }
+local simulated: Simulated? = nil
 
 local function displaySize(): ScreenScale.DisplaySize
 	local value = GuiService.ViewportDisplaySize
@@ -91,6 +94,10 @@ end
 -- Reads the device. Before the first frame is drawn the probes can still be zero sized; the
 -- camera viewport (or, before even that, the reference canvas) stands in until they are measured.
 local function measure(): (Reading, Size, Rect, Rect)
+	local sim = simulated
+	if sim then
+		return sim.reading, sim.screen, sim.safeArea, sim.topbar
+	end
 	local camera = workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else Vector2.zero
 	if viewport.X <= 1 or viewport.Y <= 1 then
@@ -124,11 +131,18 @@ end
 
 local function applyLayer(layer: Layer, layout: Layout)
 	layer.uiScale.Scale = layout.scale
+	local sim = simulated
 	if layer.safe then
 		local frame = layout.safeFrame
+		-- A simulated device sits at the top left of the real screen (no real insets in Studio).
+		local ox = if sim then sim.safeArea.x else 0
+		local oy = if sim then sim.safeArea.y else 0
 		layer.root.Position =
-			UDim2.fromOffset(frame.x + frame.width / 2, frame.y + frame.height / 2)
+			UDim2.fromOffset(ox + frame.x + frame.width / 2, oy + frame.y + frame.height / 2)
 		layer.root.Size = UDim2.fromOffset(layout.safeSize.width, layout.safeSize.height)
+	elseif sim then
+		layer.root.Position = UDim2.fromOffset(sim.screen.width / 2, sim.screen.height / 2)
+		layer.root.Size = UDim2.fromOffset(layout.fullSize.width, layout.fullSize.height)
 	else
 		layer.root.Position = UDim2.fromScale(0.5, 0.5)
 		layer.root.Size = UDim2.fromOffset(layout.fullSize.width, layout.fullSize.height)
@@ -235,6 +249,18 @@ local function requireLayout(): Layout
 		error("Kit/Screen: call Screen.start() first")
 	end
 	return layout
+end
+
+--- Studio only: lays every layer out for a simulated device drawn at the top left of the real
+--- screen (the HUD screenshots of task S4-C5), or for the real device again with nil.
+function Screen.simulate(device: Simulated?)
+	if device and not game:GetService("RunService"):IsStudio() then
+		return
+	end
+	simulated = device
+	if started then
+		Screen.recompute()
+	end
 end
 
 --- The current layout: class, scale, safe frame, keep-out rects.

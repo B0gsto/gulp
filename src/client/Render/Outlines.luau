@@ -23,9 +23,22 @@ local colourBlind = {
 	dangerous = Color3.fromHex(OutlineRules.COLOURS_COLOURBLIND.dangerous),
 }
 local palette = normal
+-- `HUD.Outlines` (docs/08 sections 3.3 and 3.11): chapter 04 shows and hides every outline at
+-- once through `HUD.setVisible("HUD.Outlines", on)`. The renderers read it when they pick shells.
+local visible = true
 
 function Outlines.setColourBlind(on: boolean)
 	palette = if on then colourBlind else normal
+end
+
+--- `HUD.Outlines`: false hides every edible and danger outline until it is shown again.
+function Outlines.setVisible(on: boolean)
+	visible = on
+end
+
+--- True unless `HUD.Outlines` is hidden.
+function Outlines.visible(): boolean
+	return visible
 end
 
 --- The steady colour of `kind` ("none" reads as white and is never drawn).

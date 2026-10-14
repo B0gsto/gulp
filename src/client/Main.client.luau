@@ -29,6 +29,7 @@ local InputController = require(script.Parent.Controllers.InputController)
 local MovementController = require(script.Parent.Controllers.MovementController)
 local PreyRenderer = require(script.Parent.Render.PreyRenderer)
 local TideController = require(script.Parent.Controllers.TideController)
+local UIController = require(script.Parent.Controllers.UIController)
 
 -- Controllers have the shape of services (section 4.2), so the two loaders treat them alike.
 type Controller = Types.Service
@@ -45,6 +46,7 @@ local loaded: { Controller } = {
 	MovementController,
 	PreyRenderer,
 	TideController,
+	UIController,
 }
 
 for _, controller in loaded do
@@ -57,6 +59,7 @@ end
 -- Studio only: the PreyRenderer bench (tools/studio/prey_bench.py; task S3-C4).
 if game:GetService("RunService"):IsStudio() then
 	require(script.Parent.Dev.PreyHarness).bind(script.Parent)
+	require(script.Parent.Dev.HudHarness).bind(script.Parent)
 end
 
 do
