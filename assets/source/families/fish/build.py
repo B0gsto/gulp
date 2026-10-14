@@ -42,6 +42,7 @@ RES = {
 
 LIGHT, MID, DARK, ACCENT = (common.colour("creatures.minnow." + k) for k in ("light", "mid", "dark", "accent"))
 EYE_WHITE, PUPIL = "#FFFFFF", common.colour("ui.ink")
+MOUTH = PUPIL               # mouth interior: the darkest value, so the gape reads at 48 px
 
 
 def on_flank(y, z, inset):
@@ -93,10 +94,10 @@ def crest_part():
 # ---------------------------------------------------------------- colours and the standard UV layout (06 section 5.4)
 
 def body_colour(p, q):
-    """Mid back and flank, light belly, and a dark mouth line (mouth interior, 06 section 4.1)
+    """Mid back and flank, light belly, and a navy mouth line (mouth interior, dark block of 06 section 4.1)
     along the lip, where the sharp jaw weights split; it widens as the jaw opens."""
     if p.y < MOUTH_Y and -0.12 <= p.z <= 0.01:
-        return DARK
+        return MOUTH
     return LIGHT if p.z / max(half_h(p.y), 1e-6) < -0.5 else MID
 
 
@@ -190,6 +191,9 @@ def build():
                 {"label": "capsule fish silhouette, 3 studs", "objects": [bpy.data.objects["REF_Minnow_T1"]]},
             ],
             "lineup_caption": ["no look-alike species exist yet"],
+            "view_captions": {v: ["the thin dark line is the back and tail fins seen edge-on (0.04 studs thick)",
+                                  "rendered: body and crest only (see the report's rendered_objects)"]
+                              for v in ("Game", "Top")},
             "extras": [{"title": title, "view": view, "pose": pose} for title, view, pose in rigs.fish_poses()],
             "texture": "none (vertex colour; capsule stand-in)",
         },

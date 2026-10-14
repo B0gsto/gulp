@@ -68,9 +68,23 @@ def render(path):
     return os.path.basename(path)
 
 
+RENDERED = {}   # image -> objects that could appear in it, for the report
+
+
+def show_helpers(visible):
+    """Only meshes render; everything else (armature, cameras, lights, empties) is kept out of
+    the frame explicitly, so no helper can leak into a preview."""
+    for obj in bpy.context.scene.objects:
+        if obj.type not in ('MESH', 'LIGHT', 'CAMERA'):
+            obj.hide_render = not visible
+
+
 def shot(view, objs, path, frame=None):
     show_only(objs)
+    show_helpers(False)
     bpy.context.view_layer.update()
+    RENDERED[os.path.basename(path)] = sorted(o.name for o in bpy.context.scene.objects
+                                             if not o.hide_render and o.type not in ('LIGHT', 'CAMERA'))
     fit_camera(view, frame or objs)
     return render(path)
 
@@ -107,7 +121,8 @@ def run(spec, report, validation_ok):
     cells = []
     try:
         for title, view in (("Side", "Side"), ("Three-quarter", "ThreeQuarter"), ("Game camera", "Game"), ("Top", "Top")):
-            cells.append({"title": title, "kind": "view", "image": shot(view, main, os.path.join(tmp, view + ".png"))})
+            cells.append({"title": title, "kind": "view", "image": shot(view, main, os.path.join(tmp, view + ".png")),
+                          "caption": pv.get("view_captions", {}).get(view, [])})
         cells.append({"title": "Silhouettes: side, game camera", "kind": "silhouette", "images": ["Side.png", "Game.png"]})
         cells.append({"title": "Phone sizes", "kind": "phone", "image": "Side.png",
                       "caption": ["96, 48, 20 and 8 pixels long", "top: Sunlit Reef fog, bottom: deep Drop-off fog"]})
@@ -190,4 +205,4 @@ def run(spec, report, validation_ok):
         raise RuntimeError("sheet.py failed (needs Pillow in the system python3):\n" + done.stdout + done.stderr)
     shutil.rmtree(tmp, ignore_errors=True)
     print("[preview] contact sheet", out)
-    return {"sheet": out, "blocks": blocks}
+    return {"sheet": out, "blocks": blocks, "rendered_objects": dict(RENDERED)}

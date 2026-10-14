@@ -152,11 +152,11 @@ def bake_clip(armature, name, frames, pose_at):
 
 def fish_poses(k=1.0):
     """Key poses for the contact sheet, cells 10 to 12 (06 section 15.5), as
-    (title, view, pose). Bite: jaw open and the head lunging 12% of body length, reaching
+    (title, view, pose). Bite: jaw wide open (52 degrees) and the head lunging 12% of body length, reaching
     the 115% stretch of 06 section 7.2. Dash: stretched to 125% (07, A_Fish_Dash)."""
     return [
         ("Bite", "Side", {
-            "Jaw": {"rot": (38.0, 0.0, 0.0)},
+            "Jaw": {"rot": (52.0, 0.0, 0.0)},
             "Spine1": {"loc": (0.0, -0.36 * k, 0.0)},
             "TailFin": {"loc": (0.0, 0.09 * k, 0.0)},
             "Girth_L": {"loc": (0.04, 0.0, 0.0)}, "Girth_R": {"loc": (-0.04, 0.0, 0.0)},
