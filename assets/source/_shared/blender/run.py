@@ -6,9 +6,10 @@
 Folders follow docs/07-asset-list.md section 1.3; contact sheets and reports go to
 assets/review/<asset>/ (06 section 15.2; chapter 07 names no review folder).
 
-Steps: build, lod, shell, validate, export, preview (versions.py makes the distance versions
+Steps: build, lod, shell, validate, export, preview, clips (versions.py makes the distance versions
 and outline shells of any body mesh; uvlayout.py checks the family UV layout and texel
-density inside validate). Steps always run in that order, whatever order they are listed in:
+density inside validate; clips.py checks every clip inside validate, and the clips step renders
+each clip's strip of key poses and 2-second preview). Steps always run in that order, whatever order they are listed in:
 validate runs after lod and shell so it checks what they made. The bible's palette and bake
 are not separate steps yet; asking for one prints a note and carries on.
 Nothing in assets/export/ is written when validation fails. Exit status 1 on any failure.
@@ -27,6 +28,7 @@ if LIB_DIR not in sys.path:
 
 import bpy  # noqa: E402
 
+import clips  # noqa: E402
 import common  # noqa: E402
 import export  # noqa: E402
 import preview  # noqa: E402
@@ -34,9 +36,9 @@ import template  # noqa: E402
 import validate  # noqa: E402
 import versions  # noqa: E402
 
-STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview")
-IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview")
-DEFAULT_STEPS = "build,lod,shell,validate,export,preview"
+STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview", "clips")
+IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview", "clips")
+DEFAULT_STEPS = "build,lod,shell,validate,export,preview,clips"
 
 
 def parse_args(build_file):
@@ -102,6 +104,8 @@ def run(build_file, steps, builder=None):
         result["preview"] = preview.run(spec, report, ok)
         if True:   # every asset: its versions, or the 07 1.2 reason it has none
             result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
+    if "clips" in steps and spec.get("actions"):
+        result["clips"] = clips.preview(spec, report, ok)
     if "build" in steps and asset_dir:
         blend = os.path.join(asset_dir, asset_id + ".blend")
         bpy.ops.wm.save_as_mainfile(filepath=blend, check_existing=False, copy=True)
