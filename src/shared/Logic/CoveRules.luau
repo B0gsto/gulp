@@ -11,6 +11,7 @@
 local CoveIncome = require("./CoveIncome")
 local CoveMouths = require("../Data/Generated/CoveMouths")
 local Defaults = require("../Config/Defaults")
+local Index = require("../Data/Index")
 local Types = require("../Types")
 
 type SpecimenRecord = Types.SpecimenRecord
@@ -66,7 +67,8 @@ CoveRules.Op = table.freeze({
 CoveRules.OP_MAX = 4
 
 CoveRules.FREE_SLOTS = Defaults.save.coveSlots
-CoveRules.MAX_SLOTS = C.maxSlots
+-- 05 §4.2 data:SlotPrices: the last slot sold for Pearls (30).
+CoveRules.MAX_SLOTS = Index.SlotPrices.list[#Index.SlotPrices.list].slot
 CoveRules.BIGGER_COVE_SLOTS = C.biggerCoveSlots
 CoveRules.MIN_TIER = Defaults.bank.specimenTier
 CoveRules.MAX_TIER = 7
@@ -92,15 +94,15 @@ function CoveRules.slotSku(slot: number): string?
 	return nil
 end
 
---- The next slot for a cove with `slots` bought slots: its number, price and SKU (05 §4.2), or
---- nil once all 30 are bought.
+--- The next slot for a cove with `slots` bought slots: its number, price (05 §4.2
+--- data:SlotPrices) and SKU, or nil once all 30 are bought.
 function CoveRules.nextSlot(slots: number): (number?, number?, string?)
 	local slot = slots + 1
-	local price = C.slotPrices[slot]
-	if price == nil then
+	local def = Index.SlotPrices.bySlot[slot]
+	if def == nil then
 		return nil, nil, nil
 	end
-	return slot, price, CoveRules.slotSku(slot)
+	return slot, def.price, CoveRules.slotSku(slot)
 end
 
 --- Brings the pile up to `now` at the cove's current rate (09 §13.2, `CoveIncome.accrue`).

@@ -1,0 +1,61 @@
+--!strict
+-- GENERATED, do not edit. Change the source table in the bible, then run
+-- `lune run tools/gen/content` (docs/09, section 3.2).
+-- Source: docs/05-economy-and-monetization.md data:ReefRanks.
+-- Build: full.
+local Types = require("../../Types")
+
+local ReefRanks: { Types.ReefRankDef } = {
+	{ rank = 1, threshold = 0, reward = 0 },
+	{ rank = 2, threshold = 100, reward = 50 },
+	{ rank = 3, threshold = 460, reward = 75 },
+	{ rank = 4, threshold = 1100, reward = 100 },
+	{ rank = 5, threshold = 2100, reward = 125 },
+	{ rank = 6, threshold = 3450, reward = 150 },
+	{ rank = 7, threshold = 5150, reward = 175 },
+	{ rank = 8, threshold = 7250, reward = 200 },
+	{ rank = 9, threshold = 9700, reward = 225 },
+	{ rank = 10, threshold = 12500, reward = 250 },
+	{ rank = 11, threshold = 16000, reward = 275 },
+	{ rank = 12, threshold = 19500, reward = 300 },
+	{ rank = 13, threshold = 23500, reward = 325 },
+	{ rank = 14, threshold = 28000, reward = 350 },
+	{ rank = 15, threshold = 33000, reward = 375 },
+	{ rank = 16, threshold = 38500, reward = 400 },
+	{ rank = 17, threshold = 44500, reward = 425 },
+	{ rank = 18, threshold = 51000, reward = 450 },
+	{ rank = 19, threshold = 58000, reward = 475 },
+	{ rank = 20, threshold = 65000, reward = 500 },
+	{ rank = 21, threshold = 73000, reward = 525 },
+	{ rank = 22, threshold = 81000, reward = 550 },
+	{ rank = 23, threshold = 90000, reward = 575 },
+	{ rank = 24, threshold = 99000, reward = 600 },
+	{ rank = 25, threshold = 109000, reward = 625 },
+	{ rank = 26, threshold = 119000, reward = 650 },
+	{ rank = 27, threshold = 130000, reward = 675 },
+	{ rank = 28, threshold = 141000, reward = 700 },
+	{ rank = 29, threshold = 153000, reward = 725 },
+	{ rank = 30, threshold = 165000, reward = 750 },
+	{ rank = 31, threshold = 178000, reward = 775 },
+	{ rank = 32, threshold = 191000, reward = 800 },
+	{ rank = 33, threshold = 205000, reward = 825 },
+	{ rank = 34, threshold = 219000, reward = 850 },
+	{ rank = 35, threshold = 234000, reward = 875 },
+	{ rank = 36, threshold = 249000, reward = 900 },
+	{ rank = 37, threshold = 265000, reward = 925 },
+	{ rank = 38, threshold = 282000, reward = 950 },
+	{ rank = 39, threshold = 299000, reward = 975 },
+	{ rank = 40, threshold = 316000, reward = 1000 },
+	{ rank = 41, threshold = 335000, reward = 1025 },
+	{ rank = 42, threshold = 353000, reward = 1050 },
+	{ rank = 43, threshold = 373000, reward = 1075 },
+	{ rank = 44, threshold = 392000, reward = 1100 },
+	{ rank = 45, threshold = 413000, reward = 1125 },
+	{ rank = 46, threshold = 434000, reward = 1150 },
+	{ rank = 47, threshold = 455000, reward = 1175 },
+	{ rank = 48, threshold = 477000, reward = 1200 },
+	{ rank = 49, threshold = 500000, reward = 1225 },
+	{ rank = 50, threshold = 523000, reward = 1250 },
+}
+
+return table.freeze(ReefRanks)

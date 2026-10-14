@@ -182,7 +182,9 @@ Defaults.input = table.freeze({
 
 -- The rule numbers of shared/Logic (task S4-C3) that the bible gives in prose or formulas, not in
 -- a data table. Table values are generated instead: cove base income per tier (05 §3.3
--- data:CoveIncome, in Tiers) and reward bands (05 §3.12 data:RewardBands). All (tune).
+-- data:CoveIncome, in Tiers), reward bands (05 §3.12 data:RewardBands), banking bands (canon 5.4
+-- data:BankRates), scraps shares (canon 5.5 data:Scraps) and slot prices (05 §4.2
+-- data:SlotPrices). All (tune).
 
 -- Logic/BiteRules: canon 5.2; 02 §4.2, §4.4, §6.1, §6.6.
 Defaults.bite = table.freeze({
@@ -207,16 +209,10 @@ Defaults.traits = table.freeze({
 	spinyDefence = 1, -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
 })
 
--- Logic/BankMath: canon 5.4, 5.5; 02 §0.7, §11.4; 05 §3.1, §3.2.
+-- Logic/BankMath: 02 §0.7, §11.4; 05 §3.1. The mass bands and rates (canon 5.4 data:BankRates)
+-- and the scraps shares (canon 5.5 data:Scraps) are generated, not here.
 Defaults.bank = table.freeze({
-	fullRateMass = 1200, -- 05 §3.1: 3 Pearls per mass up to here
-	ceilingMass = 3000, -- 05 §3.1: 1 Pearl per mass from 1,200 to here, nothing above
-	fullRate = 3, -- 05 §3.1
-	lowRate = 1, -- 05 §3.1
 	deepPockets = 2, -- 05 §3.1: ×2 with the Deep Pockets pass
-	scrapsRate = 0.10, -- canon 5.5, 05 §3.2
-	scrapsRateEarly = 0.50, -- canon 5.5: for the first three deaths on the account
-	earlyDeaths = 3, -- canon 5.5
 	armedMass = 1, -- 02 §0.7: a run is armed for banking once mass ≥ 1
 	specimenTier = 2, -- canon 5.4, 02 §11.4
 })
@@ -229,38 +225,9 @@ Defaults.cove = table.freeze({
 	refundMin = 5, -- 05 §3.10: release refund floor
 	awayMinSeconds = 600, -- 02 §13.3: "While you were away" card after 10 minutes away
 	awayMinPearls = 10, -- 02 §13.3: and 10 Pearls earned
-	maxSlots = 30, -- 05 §4.2: slots bought with Pearls stop at 30
 	biggerCoveSlots = 10, -- 05 §4.2: Bigger Cove adds 10 on top, at read time (09 §12.2)
 	gap = table.freeze({ -290, 290 }), -- 03 §6.2: Little Arch, "the Gap" (X, Z); 04 §5.5 measures from it
 	returningPool = 20, -- 04 §5.5, 09 §13.1: a returning player's cove is among the 20 nearest the Gap
-	-- 05 §4.2: the price of each slot after the six free ones, by slot number. The table has no
-	-- data: block in chapter 05, so it is copied here until one is added (then generated).
-	slotPrices = table.freeze({
-		[7] = 1200,
-		[8] = 1500,
-		[9] = 1900,
-		[10] = 2400,
-		[11] = 3000,
-		[12] = 3750,
-		[13] = 4500,
-		[14] = 5750,
-		[15] = 7250,
-		[16] = 9000,
-		[17] = 11000,
-		[18] = 14000,
-		[19] = 17500,
-		[20] = 22000,
-		[21] = 27500,
-		[22] = 34000,
-		[23] = 43000,
-		[24] = 54000,
-		[25] = 67000,
-		[26] = 84000,
-		[27] = 105000,
-		[28] = 130000,
-		[29] = 165000,
-		[30] = 205000,
-	}),
 })
 
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.

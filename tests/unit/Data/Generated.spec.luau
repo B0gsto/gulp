@@ -2,8 +2,10 @@
 -- Invariants on the committed (full) build of src/shared/Data/Generated and on Data/Index.
 local fs = require("@lune/fs")
 
+local BankRates = require("../../../src/shared/Data/Generated/BankRates")
 local Codex = require("../../../src/shared/Data/Generated/Codex")
 local CoveMouths = require("../../../src/shared/Data/Generated/CoveMouths")
+local Defaults = require("../../../src/shared/Config/Defaults")
 local Goals = require("../../../src/shared/Data/Generated/Goals")
 local Hazards = require("../../../src/shared/Data/Generated/Hazards")
 local Index = require("../../../src/shared/Data/Index")
@@ -14,6 +16,8 @@ local PreySpawnMath = require("../../../src/shared/Logic/PreySpawnMath")
 local PreySpawns = require("../../../src/shared/Data/Generated/PreySpawns")
 local Products = require("../../../src/shared/Data/Generated/Products")
 local RevivePoints = require("../../../src/shared/Data/Generated/RevivePoints")
+local Scraps = require("../../../src/shared/Data/Generated/Scraps")
+local SlotPrices = require("../../../src/shared/Data/Generated/SlotPrices")
 local Species = require("../../../src/shared/Data/Generated/Species")
 local TestKit = require("../../../src/shared/Util/TestKit")
 local Tides = require("../../../src/shared/Data/Generated/Tides")
@@ -276,5 +280,41 @@ describe("Data/Index", function()
 	it("finds tiers by number", function()
 		expect(Index.Tiers.byTier[7].name).toBe("Leviathan")
 		expect(Index.Tiers.list).toBe(Tiers)
+	end)
+
+	it("bands banking as canon 5.4 does: ×3 to 1,200 mass, ×1 to 3,000, nothing above", function()
+		expect(#BankRates).toBe(3)
+		expect(BankRates[1].from).toBe(0)
+		for i = 2, #BankRates do
+			expect(BankRates[i].from).toBe(BankRates[i - 1].upTo)
+		end
+		expect(BankRates[#BankRates].upTo).toBe(nil)
+		expect(BankRates[#BankRates].pearlsPerMass).toBe(0)
+		expect(Index.BankRates.list).toBe(BankRates)
+	end)
+
+	it("pays scraps by death number as canon 5.5 does", function()
+		expect(#Scraps).toBe(2)
+		expect(Scraps[1].fromDeath).toBe(1)
+		expect(Scraps[1].share).toBe(0.5)
+		expect(Scraps[2].fromDeath).toBe(4)
+		expect(Scraps[2].share).toBe(0.1)
+		expect(Index.Scraps.list).toBe(Scraps)
+	end)
+
+	it("prices slots 7 to 30 after the free ones, 1,019,250 in all (05 §4.2, canon 11)", function()
+		expect(SlotPrices[1].slot).toBe(Defaults.save.coveSlots + 1)
+		expect(SlotPrices[#SlotPrices].slot).toBe(30)
+		local total = 0
+		for i, def in SlotPrices do
+			expect(def.slot).toBe(SlotPrices[1].slot + i - 1)
+			if i > 1 then
+				expect(def.price > SlotPrices[i - 1].price).toBe(true)
+			end
+			total += def.price
+		end
+		expect(total).toBe(1019250)
+		expect(Index.SlotPrices.bySlot[7].price).toBe(1200)
+		expect(Index.SlotPrices.bySlot[6]).toBe(nil)
 	end)
 end)
