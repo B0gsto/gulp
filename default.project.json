@@ -1,0 +1,21 @@
+// Rojo: code into the world place (docs/09-technical-architecture.md, section 3.1).
+// The world place is partially managed: Rojo owns code and data modules; Studio owns the world,
+// the imported assets and the place settings, so every container keeps unknown instances.
+{
+  "name": "gulp",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedFirst": { "$ignoreUnknownInstances": true, "Boot": { "$path": "src/first" } },
+    "ReplicatedStorage": {
+      "$ignoreUnknownInstances": true, // keeps ReplicatedStorage.Assets (Studio-owned)
+      "Shared": { "$path": "src/shared" }
+      // "Packages": { "$path": "Packages" } // add with the first Wally dependency
+    },
+    "ServerScriptService": { "$ignoreUnknownInstances": true, "Server": { "$path": "src/server" } },
+    "StarterPlayer": {
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": { "$ignoreUnknownInstances": true, "Client": { "$path": "src/client" } }
+    },
+    "Players": { "$properties": { "CharacterAutoLoads": false } }
+  }
+}

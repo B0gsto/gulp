@@ -74,6 +74,9 @@ New species, new traits, new tide events and limited-time tides on a fixed updat
 
 Mass is the in-run size number. It resets every run.
 
+<!-- data:Tiers -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
 | Tier | Name | Mass needed | Body scale | Swim speed (studs/s) | Turn rate (°/s) |
 |---|---|---|---|---|---|
 | 1 | Fry | 0 | 1.0 | 26 | 360 |
@@ -83,6 +86,8 @@ Mass is the in-run size number. It resets every run.
 | 5 | Brute | 200 | 3.2 | 34 | 200 |
 | 6 | Titan | 500 | 4.5 | 36 | 170 |
 | 7 | Leviathan | 1,200 | 6.5 | 38 | 140 |
+
+<!-- /data -->
 
 All values **(tune)**. Bigger creatures are faster in a straight line and worse at turning, so a small creature escapes by turning.
 
@@ -135,14 +140,19 @@ Target time to reach each tier for an average player: tier 2 in 30 seconds, tier
 
 One shared map per server: a disc of water with a radius of about 1,000 studs and up to 600 studs deep **(tune)**. The Sunlit Reef is a basin in the centre, ringed by a wall of rock (the Rim) that holds all 24 coves. The sea surface is at height 0 and is a custom surface, not Roblox Terrain water. Chapter 03 has the map with coordinates.
 
-| Zone | Where | Prey tiers | Danger | Purpose |
-|---|---|---|---|---|
-| **Nursery Lagoon** | Sheltered pool beside the reef | 0 to 1 | None. No player can be eaten here. | First two minutes for new players; safe start for every Fry |
-| **Sunlit Reef** | Shallow centre, bright | 0 to 3 | Gulls at the surface, a Barracuda on the east side away from cove mouths | Early growth, common traits |
-| **Kelp Forest** | West and north ring, dim green | 1 to 4 | Morays in holes, jelly blooms | Mid growth, uncommon traits, hiding places |
-| **The Drop-off** | East and south wall into deep water, dark | 3 to 6 | Groupers, vents, Old Scar | Late growth, rare and epic traits, Whale Fall site |
-| **The Trench** | Below the Drop-off | 5 to 6 | Everything | Opens only during a tide event. [P2] |
-| **Coves** | 24 cave mouths around the reef rim, one per player | None | None | Banking, specimens, visitors |
+<!-- data:Zones -->
+Soft-launch slice (chapter 13, section 3.2): `nursery`, `reef`, `kelp`, `cove`.
+
+| ID | Zone | Where | Prey tiers | Danger | Purpose | Tag | Lighting preset (chapter 06, section 10.2) |
+|---|---|---|---|---|---|---|---|
+| `nursery` | **Nursery Lagoon** | Sheltered pool beside the reef | 0 to 1 | None. No player can be eaten here. | First two minutes for new players; safe start for every Fry | [MVP] | Nursery Lagoon |
+| `reef` | **Sunlit Reef** | Shallow centre, bright | 0 to 3 | Gulls at the surface, a Barracuda on the east side away from cove mouths | Early growth, common traits | [MVP] | Sunlit Reef |
+| `kelp` | **Kelp Forest** | West and north ring, dim green | 1 to 4 | Morays in holes, jelly blooms | Mid growth, uncommon traits, hiding places | [MVP] | Kelp Forest |
+| `dropoff` | **The Drop-off** | East and south wall into deep water, dark | 3 to 6 | Groupers, vents, Old Scar | Late growth, rare and epic traits, Whale Fall site | [MVP] | Drop-off, upper; blends to Drop-off, deep from 150 to 300 studs down (chapter 06, section 10.3) |
+| `trench` | **The Trench** | Below the Drop-off | 5 to 6 | Everything | Opens only during a tide event. [P2] | [P2] | The Trench |
+| `cove` | **Coves** | 24 cave mouths around the reef rim, one per player | None | None | Banking, specimens, visitors | [MVP] | Cove interior |
+
+<!-- /data -->
 
 The surface is playable: creatures can breach and splash. Gulls dive on tier 1 and 2 creatures that linger at the surface in the Sunlit Reef.
 
@@ -210,7 +220,7 @@ Eat five of the same trait prey in one run to gain that trait.
 
 | ID | Name | Tier | Where | Behaviour |
 |---|---|---|---|---|
-| `gull` | Gull | Eats tiers 1 to 2 | Reef surface | Shadow appears, then dives after 1.5 s |
+| `gull` | Gull | Acts as tier 3 (chapter 02, section 9.4); eats tiers 1 to 2 | Reef surface | Shadow appears, then dives after 1.5 s |
 | `moray` | Moray | 4 | Kelp holes | Lunges from a hole when a creature of tier 3 or lower passes |
 | `barracuda` | Barracuda | 4 | Reef edge, Kelp | Patrols, chases in straight lines, gives up after 6 s |
 | `grouper` | Grouper | 5 | Drop-off | Slow; sucks nearby smaller creatures toward its mouth |
@@ -249,11 +259,16 @@ A creature holds up to three traits. When all three slots are full, trait prey g
 - Each lasts 4 minutes, with a 60-second warning.
 - The rotation is fixed so players can learn it: **:00 Feeding Frenzy, :15 Moon Tide, :30 Feeding Frenzy, :45 Whale Fall.**
 
-| ID | Event | What happens | Reward |
-|---|---|---|---|
-| `frenzy` | Feeding Frenzy | Prey spawns at three times the normal rate everywhere | Fast growth |
-| `moon_tide` | Moon Tide | The sea goes dark and glows; Lunar Fry appear | Moonlit trait |
-| `whale_fall` | Whale Fall | A clean whale skeleton sinks into the Drop-off; Marrow chunks; Old Scar and Groupers gather | Bonefed trait, huge mass |
+<!-- data:Tides -->
+Soft-launch slice (chapter 13, section 3.2): `frenzy`.
+
+| ID | Event | What happens | Reward | Tag | Prey spawn rate | Fallback | Event prey |
+|---|---|---|---|---|---|---|---|
+| `frenzy` | Feeding Frenzy | Prey spawns at three times the normal rate everywhere | Fast growth | [MVP] | ×3 | None | None |
+| `moon_tide` | Moon Tide | The sea goes dark and glows; Lunar Fry appear | Moonlit trait | [MVP] | ×1 **(tune)** | None | `lunar_fry` |
+| `whale_fall` | Whale Fall | A clean whale skeleton sinks into the Drop-off; Marrow chunks; Old Scar and Groupers gather | Bonefed trait, huge mass | [L] | ×1 **(tune)** | `moon_tide` | `marrow` |
+
+<!-- /data -->
 
 Until Whale Fall ships at launch, the :45 slot in the MVP runs a second Moon Tide. After launch, the :30 slot is the flexible one: limited-time and new tides replace its Feeding Frenzy.
 

@@ -55,7 +55,7 @@ Example: a Fry at mass 8 has scale `1.0 + 0.3 × 8 / 10 = 1.24`. Body length, co
 | 7 | 6.5 | 19.5 | 5.85 | 7.80 |
 
 - **Centre:** the root part position. Every "inside a volume" test uses the centre point only.
-- **Collision body:** one sphere at the centre, radius `0.9 × bodyScale × species.hitboxMult`.
+- **Collision body:** one sphere at the centre, radius `0.9 × bodyScale × species.radiusMult` (the Collision radius column of document 03, section 1.1).
 - **Nose:** `centre + facing × (length × species.lengthMult / 2)`.
 
 ### 0.3 Tier is derived from mass

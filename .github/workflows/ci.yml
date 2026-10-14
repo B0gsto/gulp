@@ -1,0 +1,165 @@
+# CI for GULP (docs/09-technical-architecture.md, section 16.6; README, "Development").
+# Every pull request, every push to main and every manual run: one job per step of the headless
+# gate (tools/check.luau). On main the `engine` job then publishes the CI place through Open Cloud
+# and runs the engine specs there. A green run for a pull request lets automerge.yml merge it,
+# and automerge.yml dispatches this workflow on main so `engine` runs for the merge.
+#
+# The world place is never published from here: it is published by hand from Studio (section 17.2).
+# No job reads a binary under assets/ yet, so checkout leaves Git LFS files as pointers; add
+# `with: { lfs: true }` to the checkout of the first job that needs one.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels its running check. Runs on main are never cancelled.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Format, lint and dependency rules
+        run: lune run tools/check -- lint
+
+  types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Sourcemap and strict type check
+        run: lune run tools/check -- types
+
+  gen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Regenerate the content modules
+        run: lune run tools/check -- gen
+
+      - name: Generated modules match the commit
+        run: git diff --exit-code -- src/shared/Data/Generated
+
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Unit tests
+        run: lune run tools/check -- unit
+
+  sim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Simulation tests
+        run: lune run tools/check -- sim
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Build the CI place
+        run: lune run tools/check -- build
+
+      - name: Upload the CI place
+        # A convenience copy: a full artifact quota must not fail the checks.
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-place-${{ github.sha }}
+          path: build/ci.rbxl
+          retention-days: 14
+          if-no-files-found: error
+
+  engine:
+    # main only, after every check passed: a pull request never publishes anything.
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    needs: [lint, types, gen, unit, sim, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One at a time: two runs must not publish to the CI place and test it at once. A newer run
+    # waits for the running one instead of cancelling it.
+    concurrency:
+      group: engine
+      cancel-in-progress: false
+    env:
+      # 'true' or 'false' only: lets the job fail fast without handing the key to any step but the
+      # two Open Cloud steps.
+      HAS_KEY: ${{ secrets.ROBLOX_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Require the ROBLOX_API_KEY secret
+        run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::error title=Missing secret::Repository secret ROBLOX_API_KEY is not set. Add it with: gh secret set ROBLOX_API_KEY --repo ${{ github.repository }} < ~/RobloxProjects/.roblox-api-key"
+            exit 1
+          fi
+
+      - name: Build the CI place
+        run: lune run tools/check -- build
+
+      - name: Publish the CI place
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+        run: lune run tools/cloud/publish_ci
+
+      - name: Run the engine tests
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+        run: lune run tools/cloud/run_engine_tests

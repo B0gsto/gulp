@@ -40,10 +40,47 @@ Background research that led to this concept is in [`docs/research/`](docs/resea
 
 ## Status
 
-Pre-production. No code yet.
+Pre-production. The repository scaffold, the headless gate and CI are in place (sprint tasks S1-C1 to S1-C3); there is no game code yet.
 
 - **Next step:** Sprint 0, a one-week spike starting 19 October 2026 that proves the no-avatar character and the Blender-to-Roblox pipeline in Roblox Studio, ending in a go, change or stop decision.
 - **Decisions needed first:** weekly hours available, cash budget, acceptance of the reduced soft-launch build, who owns the game on Roblox (a personal account or a group, which is hard to change later), and how the publishing requirement is met. See [chapter 14](docs/14-risks-and-open-questions.md).
 - **Schedule:** depends on those hours. [Chapter 13](docs/13-sprint-plan.md) gives dates for 15, 30 and 45 hours a week.
 
 Nothing here has been tested in Roblox Studio yet. Platform facts are marked verified or unverified in each chapter, and chapter 14 collects the unverified ones.
+
+## Development
+
+The toolchain is pinned in `rokit.toml` ([chapter 09](docs/09-technical-architecture.md), section 2). Install it once, then run the headless gate before every commit:
+
+```sh
+curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
+fish_add_path -p ~/.rokit/bin     # Rokit's shims must come first in PATH
+rokit install                     # Rojo, Wally, luau-lsp, Selene, StyLua, Lune
+
+lune run tools/check              # the gate: lint, types, gen, unit, sim, build
+lune run tools/check -- unit      # one step (or several: -- lint types)
+```
+
+The gate needs no Studio. It stops at the first failing step and exits non-zero. `rojo serve default.project.json` syncs `src/` into the world place in Studio.
+
+### CI/CD
+
+GitHub Actions on `B0gsto/gulp`:
+
+| Trigger | Workflow | What runs |
+|---|---|---|
+| Pull request; push to `main`; Actions > CI > **Run workflow** | `ci.yml` (CI) | One job per gate step: `lint`, `types`, `gen`, `unit`, `sim`, `build`. `build` uploads `build/ci.rbxl` as artifact `ci-place-<sha>` (14 days). A newer push to a pull request cancels its running check. |
+| The same, on `main` only, after those jobs pass | `ci.yml`, job `engine` | `tools/cloud/publish_ci` publishes `build/ci.rbxl` to the GULP CI place through Open Cloud, then `tools/cloud/run_engine_tests` runs `Tests/RunAll` there. One at a time. |
+| CI finished green for a pull request | `automerge.yml` (Auto-merge) | Merges the PR into `main` with a merge commit (`Merge pull request #N: <title>`) and dispatches CI on `main`, because a merge made by the Actions token does not fire the push trigger. Leaves drafts, PRs with conflicts, PRs not based on `main`, PRs from forks and PRs whose head moved on since the checked commit. |
+
+- Every pull request merges itself once CI is green. To hold one back, open it as a draft.
+- **The world place is never published by CI.** It is published by hand from Studio (chapter 09, section 17.2); Open Cloud publishing is for the CI place only.
+- The GULP CI experience does not exist yet: `tools/cloud/target.json` holds `0` for both IDs, and until they are filled in the `engine` job prints "GULP CI place not configured yet" and passes.
+
+### The one secret
+
+```sh
+gh secret set ROBLOX_API_KEY --repo B0gsto/gulp < ~/RobloxProjects/.roblox-api-key
+```
+
+The key needs `universe-places` write and `universe.place.luau-execution-session:write` on the GULP CI experience. It reaches only the two Open Cloud steps of the `engine` job, as the environment variable `ROBLOX_API_KEY`; the tools never print it. Without the secret the `engine` job fails with "Repository secret ROBLOX_API_KEY is not set"; the other jobs do not need it.

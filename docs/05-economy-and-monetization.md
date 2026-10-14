@@ -250,6 +250,9 @@ covePearlsPerHour     = sum over all specimens in slots
 
 The base rises about 1.67 times per tier (close to 6 × 1.68^(tier − 2)). The table is the authority, not the formula.
 
+<!-- data:TraitIncome -->
+Soft-launch slice (chapter 13, section 3.2): `Common`, `Uncommon`.
+
 | Trait rarity | Traits | Bonus per trait | First-draft canon anchor |
 |---|---|---|---|
 | Common | Glow, Stripes, Spots | +10% | +25% |
@@ -257,6 +260,8 @@ The base rises about 1.67 times per tier (close to 6 × 1.68^(tier − 2)). The 
 | Rare | Ink, Spark, Camo | +35% | +100% |
 | Epic | Crystal, Ember | +60% | +200% |
 | Mythic | Moonlit, Bonefed | +100% | +400% |
+
+<!-- /data -->
 
 Examples:
 
@@ -410,6 +415,9 @@ Decoration price bands D1 to D4 are in section 4.3.
 
 ### 4.1 Species
 
+<!-- data:SpeciesPrices -->
+Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
+
 | ID | Species | Price (Pearls) | Tag | Changed from canon? |
 |---|---|---|---|---|
 | `minnow` | Minnow | Free | [MVP] | No |
@@ -419,6 +427,8 @@ Decoration price bands D1 to D4 are in section 4.3.
 | `squid` | Squid | 45,000 | [L] | No |
 | `shark` | Shark Pup | 250,000 (or the game pass) | [L] | No |
 | | **All five** | **310,500** | | |
+
+<!-- /data -->
 
 The canon's species prices fit the pacing targets once cove income is retuned (section 5), so none of them changed.
 
@@ -951,13 +961,20 @@ All prices must be read at run time with `MarketplaceService:GetProductInfo`, ne
 
 ### 8.2 Game passes
 
-| ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair |
-|---|---|---|---|---|---|---|---|
-| `pass_deep_pockets` | [MVP] | Every bank and every scraps payout pays ×2, applied after Crystal. No effect on cove income, Reef Rank, mass or leaderboards. | 299 | 209 R$, $0.80 | The first draft of the canon said 399. The model gives +31% Pearls over a regular player's first 10 days and +20% over 30, the smallest long-run gain of the three income passes. It is the easiest pass to understand and the first one shown, so it should not carry the highest price. | One line on the bank summary from the third bank onward: "With Deep Pockets: 1,200". Once per session at most. One small non-blocking card, once, after the tenth bank on the account: it sits at the edge of the cove screen, never covers a menu, and the pass panel opens only if the player taps it (chapter 08, rule O-R8). Always in the shop. | Reef Rank ignores it. It changes nothing in a run. |
-| `pass_bigger_cove` | [MVP] | +10 cove slots at once, on top of Pearl slots. Maximum 40. Pearl slot prices do not change. | 349 | 244 R$, $0.93 | The first draft of the canon said 249. The model gives +39% Pearls over a regular player's 30 days, and unlike Deep Pockets the gain does not fade: at the 30-slot ceiling it is still +33%. It is the strongest permanent pass, so it sits above Deep Pockets. | A button in the "cove is full" dialog, and beside the next-slot button. One small non-blocking card, once, the third time the cove is full: the pass panel opens only if the player taps the card (chapter 08, rule O-R8). Always in the shop. | The extra slots only hold specimens the player banked. No effect in a run. |
-| `pass_tide_watcher` | [L] | Uncollected income cap 24 hours instead of 8. An in-game tide board that shows the next three tides, and a marker that points to the event while a tide runs (canon section 12). Everything is inside the game: the pass sends no push notifications. | 249 | 174 R$, $0.66 | The first draft of the canon said 299. It is worth +123% to a one-session player and nothing to a three-session player, and it does not raise the 24-hour ceiling any free player can reach. A convenience pass belongs below the two passes that add something new. | One line on the welcome-back panel when the cap was hit: "Your cove was full for 6 hours." Once a day at most. Always in the shop. | It only removes the need to log in three times a day. |
-| `pass_keen_nose` | [L] | A trait is gained after 4 of its trait prey instead of 5. | 199 | 139 R$, $0.53 | The first draft of the canon said 349. The effect is a 20% shorter hunt and no Pearls. It is the smallest effect of the five, so it is the entry price. | A small button on the trait bar tooltip in the cove, and in the shop. Never shown during a run. | Every trait stays reachable without it. It grants no trait by itself. |
-| `pass_shark_pup` | [L] | Unlocks the `shark` species at once. | 499 | 349 R$, $1.33 | Canon anchor kept. The Pearl route is 250,000 Pearls, which would cost about 3,840 R$ in Pearl packs, so the pass is the clear way to pay. It is the top of the pass ladder. | On the Shark Pup card in the species screen, beside the Pearl price. Hidden once the species is owned either way. | The species is free at about day 30. Its tier 2 start means it never has the tier 1 protection from other players (canon section 7). |
+The **Grant** column uses chapter 09's vocabulary (section 3.2, `ProductDef.grant`): `flag` (a pass the server reads), `token` (one use kept on the profile), `pearls`, `pattern`, `decoration`, or `bundle` (several of these, listed in the cell).
+
+<!-- data:Passes -->
+Soft-launch slice (chapter 13, section 3.2): `pass_deep_pockets`, `pass_bigger_cove`.
+
+| ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair | Grant |
+|---|---|---|---|---|---|---|---|---|
+| `pass_deep_pockets` | [MVP] | Every bank and every scraps payout pays ×2, applied after Crystal. No effect on cove income, Reef Rank, mass or leaderboards. | 299 | 209 R$, $0.80 | The first draft of the canon said 399. The model gives +31% Pearls over a regular player's first 10 days and +20% over 30, the smallest long-run gain of the three income passes. It is the easiest pass to understand and the first one shown, so it should not carry the highest price. | One line on the bank summary from the third bank onward: "With Deep Pockets: 1,200". Once per session at most. One small non-blocking card, once, after the tenth bank on the account: it sits at the edge of the cove screen, never covers a menu, and the pass panel opens only if the player taps it (chapter 08, rule O-R8). Always in the shop. | Reef Rank ignores it. It changes nothing in a run. | `flag` |
+| `pass_bigger_cove` | [MVP] | +10 cove slots at once, on top of Pearl slots. Maximum 40. Pearl slot prices do not change. | 349 | 244 R$, $0.93 | The first draft of the canon said 249. The model gives +39% Pearls over a regular player's 30 days, and unlike Deep Pockets the gain does not fade: at the 30-slot ceiling it is still +33%. It is the strongest permanent pass, so it sits above Deep Pockets. | A button in the "cove is full" dialog, and beside the next-slot button. One small non-blocking card, once, the third time the cove is full: the pass panel opens only if the player taps the card (chapter 08, rule O-R8). Always in the shop. | The extra slots only hold specimens the player banked. No effect in a run. | `flag` |
+| `pass_tide_watcher` | [L] | Uncollected income cap 24 hours instead of 8. An in-game tide board that shows the next three tides, and a marker that points to the event while a tide runs (canon section 12). Everything is inside the game: the pass sends no push notifications. | 249 | 174 R$, $0.66 | The first draft of the canon said 299. It is worth +123% to a one-session player and nothing to a three-session player, and it does not raise the 24-hour ceiling any free player can reach. A convenience pass belongs below the two passes that add something new. | One line on the welcome-back panel when the cap was hit: "Your cove was full for 6 hours." Once a day at most. Always in the shop. | It only removes the need to log in three times a day. | `flag` |
+| `pass_keen_nose` | [L] | A trait is gained after 4 of its trait prey instead of 5. | 199 | 139 R$, $0.53 | The first draft of the canon said 349. The effect is a 20% shorter hunt and no Pearls. It is the smallest effect of the five, so it is the entry price. | A small button on the trait bar tooltip in the cove, and in the shop. Never shown during a run. | Every trait stays reachable without it. It grants no trait by itself. | `flag` |
+| `pass_shark_pup` | [L] | Unlocks the `shark` species at once. | 499 | 349 R$, $1.33 | Canon anchor kept. The Pearl route is 250,000 Pearls, which would cost about 3,840 R$ in Pearl packs, so the pass is the clear way to pay. It is the top of the pass ladder. | On the Shark Pup card in the species screen, beside the Pearl price. Hidden once the species is owned either way. | The species is free at about day 30. Its tier 2 start means it never has the tier 1 protection from other players (canon section 7). | `flag` |
+
+<!-- /data -->
 
 All five passes together cost 1,595 R$ and earn the developer 4.24 US dollars.
 
@@ -983,23 +1000,33 @@ What the three income passes do in the model (pass owned from day 1, nothing els
 
 ### 8.3 Developer products
 
-| ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair |
-|---|---|---|---|---|---|---|---|
-| `prod_revive` | [MVP] | The gulped creature returns where it died with all traits, 70% of its mass and 3 seconds of protection. | 25 | 17.5 R$, $0.07 | Canon anchor kept. A tier 5 run holds about 600 Pearls and a specimen; 25 R$ is small enough to be an impulse and is the lowest price that still earns something after the platform share. | A button on the gulped screen. The screen has no countdown: it stays until the player picks Revive, Trait Lock or "Swim again". Offered only when the creature had 30 mass or more (tier 3), never on an account's first death, and never in the first two minutes of the first session (canon 5.5). | Once per run. The price never rises. The eater keeps what they gained. A free route exists by rewarded video for eligible players. |
-| `prod_trait_lock` | [L] | The player's next run starts with the traits the gulped creature held. One use. | 19 | 13.3 R$, $0.05 | The first draft of the canon said 35. Revive at 25 R$ returns the traits and 70% of the mass. Trait Lock returns the traits only, so it must cost less or nobody should pick it. | A second button on the gulped screen (canon section 12), only when the creature held an Uncommon or better trait. This chapter owns that condition (chapter 02, section 8.3 leaves "when the button is shown" to it; chapter 08, offer O3 copies it). It is the only paid option when the run's revive is already used. | Returns only what the player earned. No mass. |
-| `prod_call_tide` | [L] | Gives one Tide token. The token starts a 4-minute Feeding Frenzy for the whole server after a 10-second warning that names the buyer. It never interrupts a scheduled tide: if a tide or its warning is running, or the next warning is too close for a full Frenzy to fit, the token is held and starts when that tide ends (canon section 10). | 99 | 69 R$, $0.26 | The first draft of the canon said 149. For the buyer alone a Frenzy is worth about 100 extra mass, a few hundred Pearls; 149 R$ buys 7,000 Pearls as a pack. This is a gift to the server, bought to be seen, and 99 R$ is the price a young player will pay for that. | A button on the tide clock. When the token would be held, the button says so before the purchase. | Everyone on the server benefits. One called tide per gap between scheduled tides per server; a player can hold up to three tokens; one starts at a time, when no tide is running, and tokens are used in the order they were bought. Chapter 02 owns the exact timing. |
-| `prod_starter_pack` | [L] | Once per account: the `pat_minnow_sunrise` pattern, the Golden Chest decoration (`deco_buy_gold_chest`, chapter 03) and 5,000 Pearls. | 99 | 69 R$, $0.26 | Canon anchor kept. The pattern and the Pearls are worth about 185 R$ at catalogue prices (a 79 R$ pattern plus 5,000 Pearls at the medium pack's rate of 47 per R$), before counting the decoration, so it is the best deal in the game and a first purchase. 5,000 Pearls buys the Eel and slot 7 on day 2 and nothing a free player lacks on day 3. | One small non-blocking card after the first bank of a session, once the bank sequence has finished. The pack's purchase panel opens only if the player taps the card (section 9; chapter 08, rule O-R8). Only from the second session on and once the account has two banks. Never at login, during a run or on the gulped screen. The card appears in at most three sessions, then the pack lives only in the shop (chapter 04, section 8.3). | One per account. No timer. It never expires. |
-| `prod_cove_boost` | [L] | Pays 2 hours of the cove's current income at once, straight to the player's Pearls: `floor(2 × covePearlsPerHour)`. It does not touch the income pile or Reef Rank. The button shows the exact number, for example "+2,190 Pearls". | 29 | 20.3 R$, $0.08 | New in the canon, priced here. Two hours of income is about 900 Pearls for a regular player on day 10 and 2,190 on day 30. At the small pack's rate 29 R$ buys 1,184 Pearls, so the boost is the worse deal until the cove earns about 590 Pearls/h (about day 15 for a regular player) and the better one after that. That is accepted because it is one a day and cannot stack. | A button beside the Pearl clam in the cove and on the welcome-back panel. Hidden in a player's first session and while the boost would pay under 200 Pearls (a cove earning under 100 Pearls/h). Where a rewarded video is available, the video button comes first. | One per account per UTC day, whether bought or earned by video. The amount is the player's own cove income, so it gives nothing a cove would not earn in two more hours. |
-| `prod_goal_reroll` | [L] | Swaps one unfinished daily goal for another of the same difficulty. The new goal starts at 0. | 19 | 13.3 R$, $0.05 | New in the canon, priced here at the lowest price in the catalogue. A reroll is worth at most one goal's Pearls (175 × the rank multiplier, about 500 at rank 20). It is a convenience, and it exists as a product because Roblox requires a video reward to be one. | A button on the daily goals panel, shown only after the day's free reroll is used. Where a rewarded video is available, the video button comes first. | Every player keeps one free reroll a day. At most three paid rerolls and one video reroll per account per UTC day. No goal needs a reroll to be finished. |
+<!-- data:Products -->
+Soft-launch slice (chapter 13, section 3.2): `prod_revive`.
+
+| ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair | Grant |
+|---|---|---|---|---|---|---|---|---|
+| `prod_revive` | [MVP] | The gulped creature returns where it died with all traits, 70% of its mass and 3 seconds of protection. | 25 | 17.5 R$, $0.07 | Canon anchor kept. A tier 5 run holds about 600 Pearls and a specimen; 25 R$ is small enough to be an impulse and is the lowest price that still earns something after the platform share. | A button on the gulped screen. The screen has no countdown: it stays until the player picks Revive, Trait Lock or "Swim again". Offered only when the creature had 30 mass or more (tier 3), never on an account's first death, and never in the first two minutes of the first session (canon 5.5). | Once per run. The price never rises. The eater keeps what they gained. A free route exists by rewarded video for eligible players. | `token` |
+| `prod_trait_lock` | [L] | The player's next run starts with the traits the gulped creature held. One use. | 19 | 13.3 R$, $0.05 | The first draft of the canon said 35. Revive at 25 R$ returns the traits and 70% of the mass. Trait Lock returns the traits only, so it must cost less or nobody should pick it. | A second button on the gulped screen (canon section 12), only when the creature held an Uncommon or better trait. This chapter owns that condition (chapter 02, section 8.3 leaves "when the button is shown" to it; chapter 08, offer O3 copies it). It is the only paid option when the run's revive is already used. | Returns only what the player earned. No mass. | `token` |
+| `prod_call_tide` | [L] | Gives one Tide token. The token starts a 4-minute Feeding Frenzy for the whole server after a 10-second warning that names the buyer. It never interrupts a scheduled tide: if a tide or its warning is running, or the next warning is too close for a full Frenzy to fit, the token is held and starts when that tide ends (canon section 10). | 99 | 69 R$, $0.26 | The first draft of the canon said 149. For the buyer alone a Frenzy is worth about 100 extra mass, a few hundred Pearls; 149 R$ buys 7,000 Pearls as a pack. This is a gift to the server, bought to be seen, and 99 R$ is the price a young player will pay for that. | A button on the tide clock. When the token would be held, the button says so before the purchase. | Everyone on the server benefits. One called tide per gap between scheduled tides per server; a player can hold up to three tokens; one starts at a time, when no tide is running, and tokens are used in the order they were bought. Chapter 02 owns the exact timing. | `token` |
+| `prod_starter_pack` | [L] | Once per account: the `pat_minnow_sunrise` pattern, the Golden Chest decoration (`deco_buy_gold_chest`, chapter 03) and 5,000 Pearls. | 99 | 69 R$, $0.26 | Canon anchor kept. The pattern and the Pearls are worth about 185 R$ at catalogue prices (a 79 R$ pattern plus 5,000 Pearls at the medium pack's rate of 47 per R$), before counting the decoration, so it is the best deal in the game and a first purchase. 5,000 Pearls buys the Eel and slot 7 on day 2 and nothing a free player lacks on day 3. | One small non-blocking card after the first bank of a session, once the bank sequence has finished. The pack's purchase panel opens only if the player taps the card (section 9; chapter 08, rule O-R8). Only from the second session on and once the account has two banks. Never at login, during a run or on the gulped screen. The card appears in at most three sessions, then the pack lives only in the shop (chapter 04, section 8.3). | One per account. No timer. It never expires. | `bundle`: 5,000 Pearls, `pat_minnow_sunrise`, `deco_buy_gold_chest` |
+| `prod_cove_boost` | [L] | Pays 2 hours of the cove's current income at once, straight to the player's Pearls: `floor(2 × covePearlsPerHour)`. It does not touch the income pile or Reef Rank. The button shows the exact number, for example "+2,190 Pearls". | 29 | 20.3 R$, $0.08 | New in the canon, priced here. Two hours of income is about 900 Pearls for a regular player on day 10 and 2,190 on day 30. At the small pack's rate 29 R$ buys 1,184 Pearls, so the boost is the worse deal until the cove earns about 590 Pearls/h (about day 15 for a regular player) and the better one after that. That is accepted because it is one a day and cannot stack. | A button beside the Pearl clam in the cove and on the welcome-back panel. Hidden in a player's first session and while the boost would pay under 200 Pearls (a cove earning under 100 Pearls/h). Where a rewarded video is available, the video button comes first. | One per account per UTC day, whether bought or earned by video. The amount is the player's own cove income, so it gives nothing a cove would not earn in two more hours. | `pearls` |
+| `prod_goal_reroll` | [L] | Swaps one unfinished daily goal for another of the same difficulty. The new goal starts at 0. | 19 | 13.3 R$, $0.05 | New in the canon, priced here at the lowest price in the catalogue. A reroll is worth at most one goal's Pearls (175 × the rank multiplier, about 500 at rank 20). It is a convenience, and it exists as a product because Roblox requires a video reward to be one. | A button on the daily goals panel, shown only after the day's free reroll is used. Where a rewarded video is available, the video button comes first. | Every player keeps one free reroll a day. At most three paid rerolls and one video reroll per account per UTC day. No goal needs a reroll to be finished. | `token` |
+
+<!-- /data -->
 
 ### 8.4 Pearl packs **[MVP]**
 
-| ID | Price (R$) | Pearls | Pearls per R$ | Bonus over the small pack | Earned per sale | Days of a regular player's income: day 5 / day 10 / day 30 |
-|---|---|---|---|---|---|---|
-| `prod_pearls_s` | 49 | 2,000 | 40.8 | — | 34 R$, $0.13 | 0.3 / 0.2 / 0.1 |
-| `prod_pearls_m` | 149 | 7,000 | 47.0 | +15% | 104 R$, $0.40 | 1.0 / 0.6 / 0.3 |
-| `prod_pearls_l` | 399 | 22,000 | 55.1 | +35% | 279 R$, $1.06 | 3.2 / 2.0 / 1.0 |
-| `prod_pearls_xl` | 999 | 65,000 | 65.1 | +60% | 699 R$, $2.66 | 9.5 / 6.0 / 3.0 |
+<!-- data:PearlPacks -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| ID | Price (R$) | Pearls | Pearls per R$ | Bonus over the small pack | Earned per sale | Days of a regular player's income: day 5 / day 10 / day 30 | Tag | Grant |
+|---|---|---|---|---|---|---|---|---|
+| `prod_pearls_s` | 49 | 2,000 | 40.8 | — | 34 R$, $0.13 | 0.3 / 0.2 / 0.1 | [MVP] | `pearls` |
+| `prod_pearls_m` | 149 | 7,000 | 47.0 | +15% | 104 R$, $0.40 | 1.0 / 0.6 / 0.3 | [MVP] | `pearls` |
+| `prod_pearls_l` | 399 | 22,000 | 55.1 | +35% | 279 R$, $1.06 | 3.2 / 2.0 / 1.0 | [MVP] | `pearls` |
+| `prod_pearls_xl` | 999 | 65,000 | 65.1 | +60% | 699 R$, $2.66 | 9.5 / 6.0 / 3.0 | [MVP] | `pearls` |
+
+<!-- /data -->
 
 - **Why these amounts:** prices are the canon anchors. The small pack buys the Pufferfish four times over; the medium pack buys the Eel twice; the large pack buys about half a Squid; the extra-large pack buys the Squid with 20,000 to spare. Buying the Shark Pup this way takes about 3,840 R$ against 499 R$ for the pass, which is deliberate: passes are the good deal, packs are for impatience.
 - **Where and when:** in the shop, and as one "Get Pearls" button on a species or slot card when the player is short. Never as a panel that opens by itself.
