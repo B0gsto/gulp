@@ -102,7 +102,9 @@ local function rootSpringTarget(dt: number, out: FollowSample): boolean
 		springRoot, springPos, springVel = root, p, v
 	else
 		local tau = CameraMath.TAU_OWN_RIG
-		local lag = 2 * tau
+		-- 09 §6.7: 2τ cancels the continuous spring's trail; the exact step toward a target sampled
+		-- at the frame's end already leads by v·dt/2, so the per-frame lead is 2τ − dt/2 (as RigMath).
+		local lag = math.max(0, 2 * tau - 0.5 * dt)
 		local x, vx = CameraMath.spring(
 			springPos.X,
 			springVel.X,
