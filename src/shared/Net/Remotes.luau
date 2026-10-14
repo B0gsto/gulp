@@ -103,8 +103,19 @@ Remotes.list = {
 		32
 	),
 	c2s("GoalAction", "Reliable", "scalars", "op + index", 2, 4, "MVP"),
-	c2s("SettingsSet", "Reliable", "buffer", "key + value", 2, 4, "MVP"),
-	c2s("TutorialStep", "Reliable", "buffer", "step number", 2, 4, "MVP"),
+	withString(
+		c2s(
+			"SettingsSet",
+			"Reliable",
+			"scalars",
+			"key (settings list, <= 32 chars) + value (number or boolean)",
+			2,
+			4,
+			"MVP"
+		),
+		32
+	),
+	c2s("TutorialStep", "Reliable", "scalars", "step number (integer)", 2, 4, "MVP"),
 	c2s("EmoteAction", "Reliable", "scalars", "emote index 1 to 6", 1 / 3, 1, "L"), -- 1 per 3 s
 	sized(
 		c2s(
@@ -128,12 +139,12 @@ Remotes.list = {
 	s2c(
 		"CreatureEvent",
 		"Reliable",
-		"buffer",
+		"scalars",
 		"gulped, revived, status, tier change, bite absorbed, emote [L]"
 	),
 	sized(s2c("PredatorEvent", "Reliable", "buffer", "14 bytes"), 14, 14),
-	s2c("TideEvent", "Reliable", "buffer", "override start and end only"),
-	s2c("CoveView", "Reliable", "buffer", "specimen list of one cove"),
+	s2c("TideEvent", "Reliable", "scalars", "override start and end only"),
+	s2c("CoveView", "Reliable", "scalars", "specimen list of one cove"),
 	sized(s2c("PreyState", "Unreliable", "buffer", "<= 900 bytes, 10 Hz"), nil, 900),
 	sized(s2c("PredatorState", "Unreliable", "buffer", "<= 400 bytes, 10 Hz"), nil, 400),
 } :: { RemoteDef }

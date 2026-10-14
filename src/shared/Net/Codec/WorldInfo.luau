@@ -25,8 +25,8 @@ export type Reason = "version" | "type" | "size" | "range"
 
 local WorldInfo = {}
 
---- Bounds `decode` holds the table to, well above a full map (section 9.1 lists a few hundred
---- volumes at most), so a malformed table cannot make a client loop or allocate without end.
+--- Bounds `decode` holds the table to, so a malformed table cannot make a client loop or
+--- allocate without end. (tune) — not in 09: starting values, well above a full map.
 WorldInfo.MAX_VOLUMES = 1024
 WorldInfo.MAX_ATTRIBUTES = 16
 WorldInfo.MAX_STRING = 256
