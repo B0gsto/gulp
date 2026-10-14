@@ -42,7 +42,7 @@ Canon section 16 gives the prefixes, the mesh categories and the mesh suffixes, 
 | Animation | `A_<Rig>_<Action>` | `A_Fish_Bite`, `A_Minnow_Dart`, `A_Moray_Lunge` |
 | Effect | `FX_[<Group>_]<Name>[_<Variant>]` | `FX_BiteChomp`, `FX_GullDiveSplash`, `FX_Amb_KelpBits`, `FX_TierUp_T4` |
 | Sound | `SFX_[<Group>_]<Name>[_<Variant>]` | `SFX_Gulp`, `SFX_UI_Tap`, `SFX_Amb_Reef`, `SFX_Bite_Small`, `SFX_TideHorn_MoonTide` |
-| Music | `MUS_<Name>`, `MUS_Event_<Event>`, `MUS_Sting_<Name>` | `MUS_Reef`, `MUS_Chase`, `MUS_Event_Frenzy`, `MUS_Sting_Gulped` |
+| Music | `MUS_<Name>`, `MUS_Event_<Event>`, `MUS_Sting_<Name>`; one stem of a track adds `_Stem<n>`, numbered in the order the stems join (section 12) | `MUS_Reef`, `MUS_Chase`, `MUS_Event_Frenzy`, `MUS_Sting_Gulped`, `MUS_Reef_Stem1` (base), `MUS_Reef_Stem2` (rhythm) |
 | Lighting preset | `LGT_<Name>`, `LGT_Event_<Event>` | `LGT_Kelp`, `LGT_Event_MoonTide` |
 | Skybox | `SKY_<Name>` | `SKY_Day` |
 | Store-art scene | `SCN_<Kind>_<Name>` | `SCN_Icon_A_BehindYou`, `SCN_Thumb_T1_Chase` |
@@ -965,9 +965,9 @@ The sea is fog and light; only the surface is a model (document 06, sections 9.4
 | `T_Sky_Sun_Alb` | [MVP] | Painted sun disc; replaces the default sun image | 256² | — | 0.5 | not started |
 | `T_Sky_Moon_Alb` | [MVP] | Painted full moon, oversized so it shows through the surface in a Moon Tide; replaces the default moon image | 256² | — | 0.5 | not started |
 | `M_Env_HorizonIsland_01–03` | [MVP] | Far island cut-outs on the horizon so a breach has something to look at | 100 tris each | T_Tile_Rock_Alb | 1.5 | not started |
-| `M_Env_CausticShell_*` | [MVP] | Thin shell lying 0.1 studs above each Nursery and Reef sand chunk and the flat reef tops, with top-down UVs tiling every 32 studs. Made by script from the floor meshes. Shown only above 60 studs depth | as the floor chunks | Nursery and Reef floor chunks | 2 | not started |
+| `M_Env_CausticShell_*` | [MVP] | Thin shell lying 0.1 studs above each Nursery and Reef sand chunk and the flat reef tops, with top-down UVs tiling every 32 studs. Made by script from the floor meshes, one file per source mesh, named after it: `M_Env_CausticShell_<source name without M_Env_>` (for example `M_Env_CausticShell_ReefFloor_03`). Shown only above 60 studs depth | as the floor chunks | Nursery and Reef floor chunks | 2 | not started |
 | `T_Caustics_01–16_Mask` | [MVP] | Caustics: a white web of light in 16 looping frames, rendered in Blender, swapped 12 times a second | 256² each | — | 3 | not started |
-| `T_FX_GodRay_Mask` | [MVP] | Soft streak for the light-shaft beams (`FX_GodRay`); tinted silver for moon shafts | 64 × 256 | — | 0.4 | not started |
+| `T_FX_GodRay_Mask` | [MVP] | Soft streak for the light-shaft beams (`FX_GodRay`); tinted silver for moon shafts. A placeholder may be square | 64 × 256 | — | 0.4 | not started |
 | (test) Surface, caustics and fog on a phone | [MVP] | Prove the frame-swapped surface, the caustic shells and the depth fog on a low-end phone before the kits are textured; cut frames or reach if needed | — | rows above, LGT_Reef | 4 | not started |
 
 ## 8. Tide event assets
@@ -1203,7 +1203,7 @@ A preset is one settings file: light direction and colours, fog colour and dista
 | `LGT_DropOff` | [MVP] | Deep blue falling to near black. Two depth steps blended by how deep the player is; the view shortens on the way down | see document 06 | document 06, section 10.2 | 3 | not started |
 | `LGT_Cove` | [MVP] | Warm, lantern-like interior. Specimens lit clearly from the front | no fog | document 06, section 10.2 | 2.5 | not started |
 | `LGT_Surface` | [MVP] | Above the waterline during a breach: open sky, no fog | no fog | SKY_Day | 1.5 | not started |
-| `LGT_Gulped` | [MVP] | Half-second dim and desaturate when the player is gulped, then back | 0.5 s | — | 0.5 | not started |
+| `LGT_Gulped` | [MVP] | Half-second dim and desaturate when the player is gulped, then back. Values in document 06, section 10.6 | 0.5 s | — | 0.5 | not started |
 | `LGT_Event_Frenzy` | [MVP] | The current zone pushed warmer and more saturated | — | zone presets | 1 | not started |
 | `LGT_Event_MoonTide` | [MVP] | Night: dark blue ambient, silver shafts, glow masks at full strength, bloom up. Outlines must stay readable | view 220 studs in every zone | SKY_MoonTide, glow masks | 3 | not started |
 | (variant) Low-end device variants | [MVP] | Every MVP preset with bloom, depth blur, caustics and shafts reduced or off | — | MVP presets | 2 | not started |

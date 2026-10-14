@@ -123,6 +123,8 @@ widthScale  = safeFrameWidth / 1280
 scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 ```
 
+`safeFrameWidth` is the width of the device safe area after the TV margins (5% of the screen on each side, TV only, section 3.5) and the ultrawide cap (2.34 × the height, section 5.2), and before the 16 and 28 rpx margins of document 08, section 1.3, which are in rpx and so come after the scale.
+
 `interfaceSize` is a new setting [L]: 0.8 to 1.3, default 1.0. It covers a PC plugged into a TV, weak eyesight and handhelds without more detection rules. The width term guarantees that 1,280 rpx always fit, which the height-only formula in document 08 does not (a narrow desktop window breaks it).
 
 **Input mode** decides the control scheme, the hints and the assist strength. It is `UserInputService.PreferredInput`, re-read on every change (section 5). Values: `Touch`, `Keys`, `Pad`.
@@ -378,7 +380,7 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 |---|---|---|---|
 | 4:3 | iPad 1,024 × 768 | 79° | 95° |
 | 1.44 | iPad 1,180 × 820 | 74° | 95° |
-| 16:10 | Android tablets, many laptops | 70° | 97° |
+| 16:10 | Android tablets, many laptops | 70° | 96.5° |
 | 16:9 | Phones, monitors, TVs | 70° | 102° |
 | 19.5:9 | Large phones | 70° | 113° |
 | 21:9 | Ultrawide monitors | 70° | 117° |

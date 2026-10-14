@@ -62,6 +62,8 @@ export type SpeciesDef = {
 	passId: string?,
 	speedMult: number,
 	turnMult: number,
+	accelMult: number, -- 03 §1.1 Acceleration: multiplies 02 §1.3's accel, coast, brake and grip
+	dashMult: number, -- 03 §1.1 Dash speed: dashSpeed = topSpeed × dashMult (02 §1.2)
 	radiusMult: number,
 	dashCooldown: number,
 	dashDurationMult: number,

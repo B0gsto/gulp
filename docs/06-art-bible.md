@@ -145,7 +145,7 @@ Measured on the side view. Body length excludes the tail fin.
 | Body depth as a share of body length (fish family) | 45 to 55%, as the species' size row in section 6.2 allows | 42% | 45% | 25 to 35% |
 | Smallest radius on any outside corner | 6% of body height | 5% | 6% | 1% (sharp is allowed) |
 
-All values **(tune)** after the first three species are reviewed side by side. Where a proportion here and a size in section 6.2 disagree, the size wins: the Minnow juvenile's 3.0 × 1.1 studs, with chapter 03's short round tail, cannot reach 55% depth (spike S0-A7, F26).
+All values **(tune)** after the first three species are reviewed side by side. Where a proportion here and a size in section 6.2 disagree, the size wins. The Minnow juvenile was 3.0 × 1.1 studs, which with chapter 03's short round tail could not reach this depth (spike S0-A7, F26); on 14 October 2026 its height became 1.365 studs, the reviewed S2-A1 mesh, whose body depth is 47% of its body length.
 
 ### 3.4 How danger reads in shape
 
@@ -445,7 +445,7 @@ Nothing exceeds 1024. All **(tune)**.
 
 | Creature | Length in studs | Note |
 |---|---|---|
-| `minnow` | 3.0 long, 1.1 tall, 0.7 wide | Tier 7 is 19.5 |
+| `minnow` | 3.0 long, 1.365 tall, 0.7 wide | Tier 7 is 19.5. Height raised from 1.1 on 14 Oct 2026 (chapter 03, section 1.1); no gameplay rule reads it |
 | `puffer` | 2.4 long, 2.0 tall and across | Puffed mesh is a ball 3.0 across (1.5 times the normal height) |
 | `eel` | 5.0 long, 0.8 tall, 0.6 wide | Eel tunnels are 7 studs across (chapter 03, section 6.9); art supplies the ring (section 9.3) |
 | `turtle` | 3.0 long, shell 2.6 wide | |
@@ -924,6 +924,8 @@ Events blend in over 3 seconds. During the 60-second warning, the event look is 
 | **Feeding Frenzy** (`frenzy`) | [MVP] | Brightness +0.2. Fog colour moves 15% toward `#6FDDEE`. ColorCorrection Saturation 0.25, TintColor `#FFF1CC`. Bloom Intensity 0.8. Plankton motes sparkle gold-white. Light shafts double in number. Feels like midday at a fairground. |
 | **Moon Tide** (`moon_tide`) | [MVP] | See below |
 | **Whale Fall** (`whale_fall`) | [L] | Within 300 studs of the whale skeleton only: Atmosphere Density +0.06, Color `#25566B`, Saturation 0.00, a single wide pale shaft over the skeleton, heavy `FX_MarineSnow`. The skeleton is clean bone-white and cream; the Marrow chunks are cream-white with a soft white glow (chapter 03, section 7.3). No flesh, no red, no pink. |
+
+**The gulped look (`LGT_Gulped`).** Over the zone preset, on the gulped player's screen only, starting at the gulp: ColorCorrection Saturation −0.6 (from the zone's 0.12), Brightness −0.08, TintColor `#D6DCE8`; bloom, fog and lighting unchanged **(tune)**. It blends in over 0.3 s, matching the 300 ms in which the gulped panel's screen edges lose colour (08 §4.4), and back to the zone preset over 0.2 s: chapter 07's half second in all. Derived from 08 §4.4's colour loss and the "dim and desaturate" of chapter 07; the Whale Fall's Saturation 0.00 above is the nearest existing grey look, and the gulped one goes further so it reads as a moment, not a place.
 
 **The night look for Moon Tide.** "The sea goes dark and glows."
 

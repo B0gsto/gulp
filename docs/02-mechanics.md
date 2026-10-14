@@ -171,7 +171,7 @@ if speed < 0.5 and throttle = 0: speed = 0
 | 6 | 5.0 | 1.8 | 5.4 | 7 | 0.46 | 20.0 |
 | 7 | 4.0 | 1.6 | 4.8 | 6 | 0.58 | 23.8 |
 
-All values (tune), multiplied by `species.accelMult`. Low grip at high tiers makes big creatures slide wide in turns. There is no reverse thrust; braking only stops.
+All values (tune), multiplied by `species.accelMult` (document 03, section 1.1, Acceleration column; 1.0 for every launch species, the default for any species that does not set it). Low grip at high tiers makes big creatures slide wide in turns. There is no reverse thrust; braking only stops.
 
 ### 1.4 Turning and pitch
 
@@ -249,7 +249,7 @@ All schemes feed the model in section 1.1. Screen measurements are in Roblox off
 |---|---|
 | Swim touch | The first touch that does not start on a button. Later non-button touches are ignored until it lifts. |
 | Origin | The touch-down point (floating origin, anywhere on screen) |
-| Dead zone | 14 px radius. Inside it: throttle 0, no turn. |
+| Dead zone | 14 rpx radius (document 08's unit, its section 1.2). Inside it: throttle 0, no turn. |
 | Full deflection | 80 px from origin |
 | Clamp | 100 px. Past this the origin trails the finger so reversing direction is instant. |
 | Sensitivity setting | 0.5 to 1.5, divides the 80 px full-deflection distance. Default 1.0. |
@@ -276,7 +276,7 @@ pitchTarget = 70° × curve(y)             (position control: hold up to climb, 
 
 | Zone | Control |
 |---|---|
-| Left 40% of the screen | Floating stick, dead zone 14 px, full at 70 px. Up = throttle. Down = brake. Left/right = strafe. |
+| Left 40% of the screen | Floating stick, dead zone 14 rpx, full at 70 px. Up = throttle. Down = brake. Left/right = strafe. |
 | Right 60% (not on a button) | Look drag: 0.35° per px × sensitivity, yaw and pitch. The creature turns to face where the camera looks. |
 
 No auto-level in this scheme. Buttons are the same as 2.1.
@@ -380,11 +380,11 @@ All smoothing is exponential: `value += (target − value) × (1 − e^(−dt / 
 
 ### 3.3 Tier-up pull-back
 
-Starts at T+0.10 of the tier-up sequence. Distance eases to 115% of the current follow distance by T+0.70, then settles to 100% by T+1.20. Tier-down eases straight to the new distance over 0.4 s.
+Starts at T+0.10 of the tier-up sequence. Distance eases to 115% of the current follow distance by T+0.70, then settles to 100% by T+1.20. Tier-down eases straight to the new distance over 0.4 s. Both use smoothstep, `3u² − 2u³` over the segment's time `u` from 0 to 1 (tune), so the camera neither jumps at the start nor bumps at the end.
 
 ### 3.4 Dash kick
 
-FOV +10° over 0.08 s, held for the dash, back over 0.35 s. No screen shake on dash. A bite shakes the camera 0.15 studs for 0.10 s; a tier-up shakes 0.5 studs for 0.25 s. A "camera shake" setting turns all shake off.
+FOV +10° over 0.08 s, held for the dash, back over 0.35 s. No screen shake on dash. A bite shakes the camera 0.15 studs for 0.10 s; a tier-up shakes 0.5 studs for 0.25 s. A "camera shake" setting turns all shake off. Shake shape (tune): every frame the camera is offset by a random vector inside a sphere of the shake's size, scaled down linearly from full to zero over the shake's time; shakes do not stack (a new one replaces a weaker one).
 
 ### 3.5 Obstacles, kelp and caves
 
@@ -394,7 +394,7 @@ FOV +10° over 0.08 s, held for the dash, back over 0.35 s. No screen shake on d
 | Minimum distance | `1.2 × collision radius + 2` studs |
 | Camera closer than 60% of the desired distance | The player's own creature fades to 40% opacity (local only) so the view ahead stays clear |
 | Kelp fronds and soft plants | Tagged `CameraIgnore`: never block the camera. Fronds within 6 studs of the camera-to-creature line fade to 30% opacity locally. |
-| Tight-space mode (caves, dense kelp) | Enter when the clear distance is under 60% of desired for 0.3 s. Height drops to `0.05 × distance`, FOV +5°. Exit when the clear distance is above 85% for 0.5 s. |
+| Tight-space mode (caves, dense kelp) | Enter when the clear distance is under 60% of desired for 0.3 s. Height drops to `0.05 × distance`, FOV +5°. Exit when the clear distance is above 85% for 0.5 s. Height and FOV move to the new values and back with τ = 0.25 s (3.2) (tune). |
 | Surface | The camera stays below `Y = 0` unless the creature is `Airborne`; then it follows the creature's height with τ = 0.30 s. |
 | Eel hole transit | Camera rides the spline 6 studs behind the eel, FOV 60°. |
 

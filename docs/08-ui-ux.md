@@ -41,6 +41,8 @@ widthScale  = safeFrameWidth / 1280
 scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 ```
 
+`safeFrameWidth` is the width of the device safe area after the TV margins (5% of the screen on each side, TV only) and the ultrawide cap (chapter 15), and before the 16 and 28 rpx margins of 1.3, which are in rpx and so come after the scale.
+
 `interfaceSize` is the Interface size setting [L] (6.7): 0.8 to 1.3, default 1.0. The width term guarantees that 1280 rpx always fit, even in a narrow desktop window.
 
 Chapter 15, section 2.2 owns the screen classes, the order of the detection tests and the device factors. The summary below is for reading this chapter; if it differs from chapter 15, chapter 15 wins.
@@ -115,7 +117,7 @@ All ScreenGuis: `ResetOnSpawn = false`, `ZIndexBehavior = Sibling`.
 
 | ScreenGui | DisplayOrder | Holds |
 |---|---|---|
-| `GulpWorld` | 5 | Screen-space markers that track world positions (threats, home, trait prey, mass pops) |
+| `GulpWorld` | 5 | Screen-space markers that track world positions (threats, home, trait prey, mass pops). `ScreenInsets = None`, so a marker sits exactly over its world position; edge arrows are clamped into the safe frame by code |
 | `GulpHUD` | 10 | Run HUD, cove HUD, visit HUD, decoration HUD |
 | `GulpMoments` | 20 | Moment slot, gulped panel, bank summary, cove-full choice |
 | `GulpMenus` | 30 | Dock menus, settings, popovers, confirm dialog |
@@ -512,7 +514,7 @@ A centred row of 48 rpx icons, each with a ring that drains over the effect's le
 
 | Element | Tag | Behaviour |
 |---|---|---|
-| `HUD.DragRing` | [MVP] | A touch that starts anywhere except on a button shows `UI_HUD_DragRing` at 35% opacity at the touch point (fade in 80 ms) and `UI_HUD_DragKnob` under the thumb, held within 84 rpx of the centre. Dead zone 12 rpx. A touch near an edge nudges the ring fully on screen. A second finger can press dash or ability at the same time. |
+| `HUD.DragRing` | [MVP] | A touch that starts anywhere except on a button shows `UI_HUD_DragRing` at 35% opacity at the touch point (fade in 80 ms) and `UI_HUD_DragKnob` under the thumb, held within 84 rpx of the centre. Dead zone 14 rpx (chapter 02, section 2.1). A touch near an edge nudges the ring fully on screen. A second finger can press dash or ability at the same time. |
 | `HUD.SafeBadge` | [MVP] | `UI_HUD_SafeBadge` fades in (200 ms) in the Nursery and inside any cove; on first show per session a chip with `hud.safe` appears for 2 s |
 | `HUD.MassPops` | [MVP] | "+4" rises 48 rpx from the mouth and fades over 500 ms. At most 4 at once; fast bites merge into one number. |
 | `HUD.Settings` | [MVP] | Opens S31. In open water the panel is the 360 rpx side panel only. |

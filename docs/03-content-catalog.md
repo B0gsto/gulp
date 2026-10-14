@@ -30,18 +30,20 @@ All values are percent of the canon tier table or of the canon dash (2.2× speed
 <!-- data:Species -->
 Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
 
-| ID | Tag | Swim speed | Turn rate | Dash speed | Dash time | Dash cooldown | Mouth size | Start tier | Body at scale 1.0 (L × H × W) | Collision radius | Ability |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `minnow` | [MVP] | 100% | 100% | 2.2× | 0.35 s | 2.0 s (Dart) | 100% | 1 | 3.0 × 1.1 × 0.7 | 100% **(tune)** | `dart` |
-| `puffer` | [MVP] | 88% | 105% | 2.2× | 0.35 s | 2.5 s | 95% | 1 | 2.4 × 2.0 × 2.0 | 100% **(tune)** | `puff` |
-| `eel` | [MVP] | 106% | 125% | 2.2× | 0.455 s (Slip) | 2.5 s | 80% | 1 | 5.0 × 0.8 × 0.6 | 100% **(tune)** | `slip` |
-| `turtle` | [L] | 85% | 85% | 2.0× | 0.35 s | 3.0 s | 105% | 1 | 3.0 × 1.2 × 2.6 | 100% **(tune)** | `shell` |
-| `squid` | [L] | 96% | 75% | 2.6× | 0.35 s | 2.5 s | 90% | 1 | 3.6 × 1.0 × 1.0 | 100% **(tune)** | `jet` |
-| `shark` | [L] | 104% | 90% | 2.2× | 0.35 s | 2.5 s | 120% | 2 (mass 10) | 3.4 × 1.3 × 0.9 | 100% **(tune)** | `rampage` |
+| ID | Tag | Swim speed | Turn rate | Acceleration | Dash speed | Dash time | Dash cooldown | Mouth size | Start tier | Body at scale 1.0 (L × H × W) | Collision radius | Ability |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `minnow` | [MVP] | 100% | 100% | 100% | 2.2× | 0.35 s | 2.0 s (Dart) | 100% | 1 | 3.0 × 1.365 × 0.7 | 100% **(tune)** | `dart` |
+| `puffer` | [MVP] | 88% | 105% | 100% | 2.2× | 0.35 s | 2.5 s | 95% | 1 | 2.4 × 2.0 × 2.0 | 100% **(tune)** | `puff` |
+| `eel` | [MVP] | 106% | 125% | 100% | 2.2× | 0.455 s (Slip) | 2.5 s | 80% | 1 | 5.0 × 0.8 × 0.6 | 100% **(tune)** | `slip` |
+| `turtle` | [L] | 85% | 85% | 100% | 2.0× | 0.35 s | 3.0 s | 105% | 1 | 3.0 × 1.2 × 2.6 | 100% **(tune)** | `shell` |
+| `squid` | [L] | 96% | 75% | 100% | 2.6× | 0.35 s | 2.5 s | 90% | 1 | 3.6 × 1.0 × 1.0 | 100% **(tune)** | `jet` |
+| `shark` | [L] | 104% | 90% | 100% | 2.2× | 0.35 s | 2.5 s | 120% | 2 (mass 10) | 3.4 × 1.3 × 0.9 | 100% **(tune)** | `rampage` |
 
 <!-- /data -->
 
 Mouth size scales the bite zone at the front of the body. Document 02 defines the base bite zone; this chapter only gives the multiplier.
+
+Acceleration multiplies the tier's accel, coast, brake and grip rates of document 02, section 1.3 (`accelMult`); every launch species has 100%. The Minnow's body is 1.365 studs tall (raised from 1.1 on 14 October 2026 to the reviewed S2-A1 mesh, whose body depth is 47% of its body length); no gameplay rule reads the height, since collision uses the radius (document 02, section 0.2).
 
 The dash columns describe the dash only. Pressed abilities (Puff, Shell, Jet) have their own numbers in the sheets below: Jet is 3.0× speed for 0.5 s, separate from the Squid's 2.6× dash.
 

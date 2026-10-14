@@ -49,14 +49,14 @@ The owner's weekly hours are not confirmed (chapter 14, decision D1). The base c
 | Work | WH | OH |
 |---|---|---|
 | Sprint 0 spikes (all of Sprint 0, including its 18 WH of art spikes) | — | 30 |
-| Art and audio in the slice (chapter 07 hours), Sprints 1 to 22 | 566 | 273 |
+| Art and audio in the slice (chapter 07 hours), Sprints 1 to 22 | 569 | 274 |
 | Interface images in the slice (no hours in chapter 08; estimated here at 0.4 WH a drawing for about 110 drawings) | 45 | 17 |
 | Code in the slice (sum of task sizes in section 5; OH is 0.30 × WH plus the device tuning named in the tasks) | about 535 | 171 |
 | Design, data and tuning | — | 35 |
 | Device, multi-client and playtest work beyond the Friday slot | — | 30 |
 | Marketing and operations before `S` | — | 47 |
 | Weekly rhythm, 22 sprints × 4 (Sprint 0 is all spikes) | — | 88 |
-| **Total to soft launch** | | **about 690 OH (691), 23 sprints** |
+| **Total to soft launch** | | **about 690 OH (692), 23 sprints** |
 
 The code, art, rhythm and total figures are the sums of the "Hours" lines of Sprints 1 to 22 in section 5 (code 171, art and audio with interface images 290, other 112, rhythm 88), plus the 30 OH of Sprint 0. The split of the 112 "other" hours into the three rows above is an estimate.
 
@@ -190,7 +190,7 @@ The canon's go/no-go is day-1 retention and session time at or above the median 
 | Screens | 24 of the 28 [MVP] screens: S01 to S04, S07 to S16, S18, S19, S22, S25, S27, S28, S31, S33, S35, S36 | S05 tide popover, S17 specimen detail, S23 and S24 Codex |
 | Platforms | Phone, tablet, PC and Mac with keys (15 §9, soft-launch stage) | Nothing |
 | Analytics | Funnels 1 to 7 of 10 §3, the first-session and return funnels, economy events, the guard rules of 10 §9.2 | Events for content that is not in the slice |
-| Audio | About 90 of the 132 [MVP] sound rows. All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
+| Audio | 107 of the 132 [MVP] sound rows (counted row by row against the slice on 14 Oct 2026; the earlier "about 90" was an estimate). All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
 | Store page | Icon A, thumbnails T1, T2, T3 and T5, description, no video at `S`. Store art shows only what is in the build: in these soft-launch versions the threat in icon A and in T3 is the Barracuda (as it already is in T1), and T5 shows Minnow and Pufferfish specimens only. | Icon D, T4 (its soft-launch version, five sizes), T6, the page-cut video (all return during soft launch); the public-launch versions of icon A and T3 (with Old Scar), of T4 (seven sizes, with the Leviathan and its crest) and of T5 (with the Eel), which are [L] rows in chapter 07 and are made in Sprint 61, after Old Scar ships in Sprint 40 |
 
 ### 3.3 The deferral list, with hours
@@ -201,7 +201,7 @@ Hours are first-pass WH from chapter 07, section 14.2, split row by row for this
 |---|---|---|---|---|
 | Species (2) | 114 | 70 | 44 | The Eel, `M_Species_Base_Eel`, `RIG_Eel`, the 13 `A_Eel_*` clips, Eel ability clips (43); the three Leviathan crests (2) |
 | Traits (3) | 38 | 20 | 18 | Eel overlays and placement (8); Longfin pieces, Ink, Crystal and Moonlit overlays, Crystal shards (10) |
-| Prey (4) | 44 | 28 | 16 | Bonito, Tuna (4); Ribbonfish, Inklet, Crystal Jelly, Lunar Fry (6); `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_02_Alb`, `_03_Alb`, their shells (6) |
+| Prey (4) | 44 | 31 | 13 | Bonito, Tuna (4); Ribbonfish, Inklet, Crystal Jelly, Lunar Fry (6); `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_03_Alb`, their shells (3.5). `T_TraitPrey_02_Alb` (2.5) is in the slice: it holds the Armor Shrimp and the Urchin Puff (moved 14 Oct 2026) |
 | Predators and hazards (5) | 75 | 19 | 56 | Old Scar (22), Moray (16), Gull (9), cold vents (5), hook set (4) |
 | Environment (6) | 337 | 173 | 164 | The Drop-off (90); 13 landmarks (42); a third of the kit variants and the matching assembly time (25); eel holes (4); Codex stone, perch net, trophy rock (4) |
 | Water and sky (7) | 26 | 23 | 3 | `SKY_MoonTide`, `T_Sky_Moon_Alb` |
@@ -213,7 +213,7 @@ Hours are first-pass WH from chapter 07, section 14.2, split row by row for this
 | Store-page source art (13) | 54 | 37 | 17 | `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_FiveSizes`, `SCN_Thumb_T6_MoonTide`, `SCN_Thumb_T7_PickYourCreature_3`, `SCN_Brand_Banner`, part of the pose set (the Eel poses) and the capture set-ups |
 | Placeholders (16) | 26 | 18 | 8 | Stand-ins for rows no slice code loads |
 | Pipeline (14.1) | 65 | 59 | 6 | The part of the soft-launch import pass that belongs to deferred rows |
-| **Total** | **1,016** | **566** | **450** | |
+| **Total** | **1,016** | **569** | **447** | |
 
 The same deferrals as choices, largest first:
 
@@ -227,12 +227,12 @@ The same deferrals as choices, largest first:
 | 6 | Old Scar | 22 | No computer predator threatens tiers 4 to 6. Bank rate for big creatures will be high. Watched in the weekly review (section 5, Sprint 27). | Sprint 40, or earlier if the watch triggers |
 | 7 | Moray, Gull, hook, cold vents | 34 | Less variety of danger. The Barracuda and jelly blooms carry it. | Gull in Sprint 29; the rest in Sprints 36 and 41 |
 | 8 | Moon Tide and Moonlit | 10 + 3 + 3 + about 8 | One event type at `S`. The tide-pull measure (10 §7) is still testable. | Soft launch, Sprints 27 and 28 |
-| 9 | Longfin, Ink, Crystal; Bonito, Tuna | 20 | Five traits instead of nine | Sprints 36 and 42 |
+| 9 | Longfin, Ink, Crystal; Bonito, Tuna | 18 | Five traits instead of nine | Sprints 36 and 42 |
 | 10 | Other sounds and effects for deferred content | 24 | None | With their content |
 | 11 | Store art: icon D, T4, T6, T7 (three species), banner | 17 | No icon test until 100 daily users, which is when chapter 11 starts it anyway | Soft launch, Sprint 31 |
 | 12 | Codex screens and stone, small cove pieces, crests | 6 + interface work | Discoveries are recorded but not shown | Codex in Sprint 30; the rest in Sprint 44 |
 | 13 | Pipeline and placeholders for deferred rows | 14 | None | With their content |
-| | **Total** | **about 450** | | |
+| | **Total** | **about 447** | | |
 
 ### 3.4 The soft-launch top-up queue
 
