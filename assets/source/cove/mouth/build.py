@@ -5,7 +5,7 @@
 
 A rounded cave opening 36 wide and 28 high in the inner face of the Rim, with the 25-stud throat
 behind it. It has to read as "home" from out in the Reef, so it is framed like a front door:
-a ring of nine rounded warm sandstone stones (a wide keystone on top, where the Name Shell
+a ring of seven big rounded warm sandstone stones (a wide keystone on top, where the Name Shell
 hangs) and a flat three-slab doorstep that runs the throat's sand floor out over the sill. The
 warm stone stands out of the cooler, rougher Rim rock (T_Tile_Rock_Alb) by colour and by shape;
 the lantern light spilling out (FX_CoveBeacon, LGT_Cove) does the rest.
@@ -34,11 +34,11 @@ import template  # noqa: E402
 
 NAME = "M_Cove_Mouth"
 # Arch stones, degrees round the opening (0 = the right side, 90 = top); the sill takes the rest.
-ARCH = (-20.0, 6.0, 30.0, 52.0, 74.0, 106.0, 128.0, 150.0, 174.0, 200.0)
-STONE_JITTER = (0.3, -0.4, 0.5, -0.2, 0.0, -0.3, 0.4, -0.5, 0.2)
+ARCH = (-20.0, 12.0, 42.0, 72.0, 108.0, 138.0, 168.0, 200.0)
+STONE_JITTER = (0.4, -0.5, 0.3, 0.0, -0.3, 0.5, -0.4)
 SILL = (200.0, 340.0)
-PER_STONE = 5               # a groove sample and four across the stone
-SILL_SAMPLES = 15
+PER_STONE = 6               # a groove sample and five across the stone
+SILL_SAMPLES = 18
 T = (0.0, 0.07, 0.18, 0.33, 0.5, 0.67, 0.82, 0.93, 1.0)
 SILL_Y = (-4.5, -5.0, -5.2, -5.2, -5.0, -4.6, -3.8, -2.2, 0.0)
 TUNNEL_Y = (ca.THROAT, 18.5, 12.0, 5.5, 1.5)
@@ -69,10 +69,10 @@ def stone_size(deg, stone, m):
     if stone == "sill":
         return 7.0, 1.0
     top = max(0.0, s) ** 2
-    ws = 9.0 + 3.5 * top + STONE_JITTER[stone] + (1.2 if stone == 4 else 0.0)
-    fs = 3.0 + 0.6 * top + 0.6 * STONE_JITTER[stone] + (0.6 if stone == 4 else 0.0)
+    ws = 11.0 + 4.0 * top + STONE_JITTER[stone] + (1.5 if stone == 3 else 0.0)
+    fs = 3.8 + 0.8 * top + 0.6 * STONE_JITTER[stone] + (0.6 if stone == 3 else 0.0)
     k = math.sin(math.pi * m / PER_STONE)
-    return (ws - 1.6) + 1.6 * k ** 0.5, 0.9 + (fs - 0.9) * k ** 0.6
+    return (ws - 2.0) + 2.0 * k ** 0.5, 1.2 + (fs - 1.2) * k ** 0.6
 
 
 def section(deg, stone, m):
@@ -81,7 +81,7 @@ def section(deg, stone, m):
     sb = sill_weight(deg)
     pts = [(0.0, y) for y in TUNNEL_Y]
     for t, sy in zip(T, SILL_Y):
-        arch_y = -f * math.sin(math.pi * t) ** 0.55
+        arch_y = -f * math.sin(math.pi * t) ** 0.4      # 0.4: a fat rounded lip
         pts.append((t * w, (1.0 - sb) * arch_y + sb * sy))
     pts += [(w, 1.2), (0.6 * w, 2.2), (SKIN, 3.5), (SKIN, 14.0), (SKIN, ca.THROAT)]
     return pts
@@ -110,17 +110,23 @@ def build_mesh(mat):
                 uv.append(ca.cell_uv("stone", mm / PER_STONE, (j - 5 + dj) / 8.0))
             elif j == 4 and sill_weight(deg) > 0.5:       # the doorstep: the throat's sand run out over the sill
                 uv.append(ca.cell_uv("sand", ((r % 3) + dr) / 3.0, dj))
-            elif j <= 4:
-                cell = "sand" if floor else "wall"
-                uv.append(ca.cell_uv(cell, ((r % 3) + dr) / 3.0, ((j % 2) + dj) / 2.0))
+            elif j <= 4 and floor:
+                uv.append(ca.cell_uv("sand", ((r % 3) + dr) / 3.0, ((j % 2) + dj) / 2.0))
+            elif j <= 4:                                  # the throat: cool, darker stone (painted occlusion)
+                uv.append(ca.cell_uv("throat_deep" if j == 0 else "throat", float(dr), float(dj)))
             else:
-                uv.append(ca.cell_uv("wall", ((r % 2) + dr) / 2.0, ((j % 2) + dj) / 2.0))
+                uv.append(ca.cell_uv("warm", ((r % 2) + dr) / 2.0, float(dj)))
         uvs.append(uv)
         hidden.append(j >= 13)
     front = [r * n + j for r in range(len(rings)) for j in range(5, 14)]
     part = ca.Part()
     part.add(verts, faces, uvs, hidden, front)
-    return part.to_object(NAME, mat), rings
+    kinds = []
+    for idx, (kind, r, j) in faces:
+        deg = info[r][0]
+        throat = j <= 3 and math.sin(math.radians(deg + 360.0 / len(smp) / 2.0)) >= -0.8
+        kinds.append("throat" if throat else ("frame" if 5 <= j <= 12 and sill_weight(deg) < 0.5 else None))
+    return part.to_object(NAME, mat), rings, kinds
 
 
 # ---------------------------------------------------------------- preview helpers
@@ -177,6 +183,35 @@ def opening_checks(rings, off):
     return check
 
 
+RIM_ROCK = "#C9A98F"        # 06 4.2 Sunlit Reef rock: what the Rim face around the mouth is painted in
+
+
+def distance_read(mouth, kinds, sample):
+    """Checklist 14 for a place: from far out the opening must read darker than its frame, and the
+    frame apart from the Rim. Area-weighted mean L* of the painted throat walls, the arch stones'
+    fronts and the Rim rock colour; the 20 and 8 px cells of the sheet show the same thing."""
+    def check(spec, report):
+        mesh = mouth.data
+        uvl = mesh.uv_layers[common.UV_NAME].data
+        acc = {"throat": [0.0, 0.0], "frame": [0.0, 0.0]}
+        for poly in mesh.polygons:
+            k = kinds[poly.index]
+            if not k:
+                continue
+            us = [uvl[li].uv for li in poly.loop_indices]
+            for w in ((0.25, 0.25), (0.5, 0.5), (0.75, 0.75), (0.25, 0.75), (0.75, 0.25)):
+                u = sum(c[0] for c in us) / len(us) * 0.5 + (us[0][0] * w[0] + us[2][0] * (1 - w[0])) * 0.5
+                v = sum(c[1] for c in us) / len(us) * 0.5 + (us[0][1] * w[1] + us[2][1] * (1 - w[1])) * 0.5
+                acc[k][0] += common.lstar_from_srgb(sample(u, v)[1]) * poly.area
+                acc[k][1] += poly.area
+        throat, frame = (acc[k][0] / acc[k][1] for k in ("throat", "frame"))
+        rim = common.lstar(RIM_ROCK)
+        report.add(NAME, "distance read", frame - throat >= 8.0,
+                   "painted throat L* %.1f, arch stones L* %.1f (%.1f lighter; at least 8), Rim rock L* %.1f; "
+                   "in game the lantern light and the dark chamber deepen it" % (throat, frame, frame - throat, rim))
+    return check
+
+
 def table_writer(mouth, off, anchors):
     def write(spec, report):
         if not report.ok:
@@ -194,7 +229,7 @@ def table_writer(mouth, off, anchors):
 def build():
     img, block, work = ca.texture(NAME)
     mat = ca.material("MAT_" + NAME, work)
-    mouth, rings = build_mesh(mat)
+    mouth, rings, kinds = build_mesh(mat)
     # Anchors on the frame, in the cove frame before the origin moves.
     top = [p for r in rings for p in r[5:14] if abs(p[0]) < 3.0 and p[2] > 0]
     key_front = min(p[1] for p in top)
@@ -224,7 +259,8 @@ def build():
         "size_tol": 0.001,
         "facing": {"kind": "tag"},
         "meshes": [{"object": mouth, "role": "body", "primary": True}],
-        "extra_checks": [ca.surface_checks([mouth], NAME, sample), opening_checks(rings, off), table_writer(mouth, off, anchors)],
+        "extra_checks": [ca.surface_checks([mouth], NAME, sample), opening_checks(rings, off),
+                         distance_read(mouth, kinds, sample), table_writer(mouth, off, anchors)],
         "exports": [{"file": "meshes/%s.fbx" % NAME, "objects": [mouth]}],
         "textures": [{"file": "textures/%s.png" % ca.ALBEDO, "write": lambda path: __import__("preyart").save_rgba(path, img), "max": 512}],
         "preview": {

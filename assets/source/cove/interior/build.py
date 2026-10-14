@@ -39,7 +39,9 @@ NAME = "M_Cove_Interior"
 SHELL, TERRACES = NAME + "_01", NAME + "_02"
 M = 40                         # points round a ring, evenly spaced; 0 is the floor centre, M/2 the crown
 WALL = 3.0                     # shell thickness
-CRACK_Y = (45.0, 122.0)
+CRACKS = ((52.0, 70.0), (85.0, 103.0))   # two wide light cracks along the crown, one face row each side
+VAULT_Z = 8.0                  # walls warm below, vault and throat cool above (painted occlusion)
+NICHE = (124.0, 12.0, 8.0)     # back-wall faces from y 124, |x| < 12, z < 8: the lit Trophy niche
 INNER_Y = [ca.CH_Y0 + 3.0 * i for i in range(37)] + [134.4]
 OUTER_Y = [25.0, 31.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 128.0, 133.0, 134.4]
 TERRACE_STATIONS = [ca.TERRACE_Y[0] + (ca.TERRACE_Y[1] - ca.TERRACE_Y[0]) * i / 24.0 for i in range(25)]
@@ -59,7 +61,7 @@ def inner_ring(y, crack=True):
         hole = ca.hole_ring(M)
         cham = [((1 - b) * h[0] + b * c[0], (1 - b) * h[1] + b * c[1]) for h, c in zip(hole, cham)]
     pts = [[x, y, z] for x, z in cham]
-    if crack and CRACK_Y[0] <= y <= CRACK_Y[1]:
+    if crack and any(a <= y <= b for a, b in CRACKS):
         pts[M // 2][2] += 1.4
         pts[M // 2 - 1][2] += 0.4
         pts[M // 2 + 1][2] += 0.4
@@ -89,12 +91,13 @@ def shell_part():
     for idx, meta in faces:
         if meta[0] != "q":
             j = meta[1]
-            uvs.append([ca.cell_uv("wall", (j % 2) / 2.0, 0.0)] + [ca.cell_uv("wall", ((j % 2) + d) / 2.0, 1.0) for d in (1, 0)][:len(idx) - 1])
+            cell = "niche" if meta[0] == "p1" else "warm"
+            uvs.append([ca.cell_uv(cell, 0.5, 0.5), ca.cell_uv(cell, 0.3, 0.2), ca.cell_uv(cell, 0.7, 0.2)])
             hidden.append(meta[0] == "p0")
             continue
         _, r, j = meta
         if r < no:                       # outside of the shell and the front annulus: in the rock
-            uvs.append([ca.cell_uv("wall", ((r % 2) + dr) / 2.0, ((j % 2) + dj) / 2.0) for dr, dj in ((0, 0), (0, 1), (1, 1), (1, 0))])
+            uvs.append([ca.cell_uv("warm", ((r % 2) + dr) / 2.0, float(dj)) for dr, dj in ((0, 0), (0, 1), (1, 1), (1, 0))])
             hidden.append(True)
             continue
         i = r - no
@@ -102,13 +105,29 @@ def shell_part():
         zs = [verts[v][2] for v in idx]
         floor_z = min(p[2] for p in inner[i])
         uv = []
+        xs = [verts[v][0] for v in idx]
+        crack = next((c for c in CRACKS if c[0] <= y < c[1]), None)
+        niche = y >= NICHE[0] and max(abs(x) for x in xs) < NICHE[1] and max(zs) < NICHE[2]
+        lower_j = 0 if verts[idx[0]][2] <= verts[idx[1]][2] else 1     # which point of the face is lower
         for dr, dj in ((0, 0), (0, 1), (1, 1), (1, 0)):
+            p = verts[idx[[(0, 0), (0, 1), (1, 1), (1, 0)].index((dr, dj))]]
             if max(zs) < floor_z + 0.6:
                 uv.append(ca.cell_uv("sand", ((i % 2) + dr) / 2.0, float(dj)))
-            elif M // 2 - 2 <= j <= M // 2 + 1 and CRACK_Y[0] <= y < CRACK_Y[1]:
-                uv.append(ca.cell_uv("crack", ((i % 3) + dr) / 3.0, (j - (M // 2 - 2) + dj) / 4.0))
+            elif crack and M // 2 - 2 <= j <= M // 2 + 1:
+                n_st = round((crack[1] - crack[0]) / 3.0)
+                uv.append(ca.cell_uv("crack", ((y - crack[0]) / 3.0 + dr) / n_st, (j - (M // 2 - 2) + dj) / 4.0))
+            elif niche:
+                uv.append(ca.cell_uv("niche", (p[0] + NICHE[1]) / (2 * NICHE[1]), (p[2] - floor_z) / (NICHE[2] - floor_z)))
+            elif y < 37.0:
+                uv.append(ca.cell_uv("cool", ((i % 3) + dr) / 3.0, float(dj)))
+            elif y < 40.0 and max(zs) < VAULT_Z:
+                uv.append(ca.cell_uv("blend_u", float(dr), float(dj)))
+            elif max(zs) <= VAULT_Z:
+                uv.append(ca.cell_uv("warm", ((i % 3) + dr) / 3.0, float(dj)))
+            elif min(zs) >= VAULT_Z:
+                uv.append(ca.cell_uv("cool", ((i % 3) + dr) / 3.0, float(dj)))
             else:
-                uv.append(ca.cell_uv("wall", ((i % 3) + dr) / 3.0, ((j % 2) + dj) / 2.0))
+                uv.append(ca.cell_uv("blend", ((i % 3) + dr) / 3.0, float(dj != lower_j)))
         uvs.append(uv)
         hidden.append(False)
     part = ca.Part()
@@ -121,10 +140,11 @@ def terrace_section(y):
     tp = 0.08 + 0.92 * tau
     e = [(4 - k) * ca.TREAD * tp - HIDE * (1.0 - tau) for k in range(5)]
     c = 0.7 * min(1.0, 2.0 * tp)
-    pts = [(e[0], -23.0)]
+    uc = 0.7 * tau                 # each riser leans back under its lip: a shaded underside
+    pts = [(e[0] - uc, -23.0)]
     for k in range(1, 5):
         z = ca.ROW_Z[k - 1]
-        pts += [(e[k - 1], z - c), (e[k - 1] - c, z), (e[k], z)]
+        pts += [(e[k - 1], z - c), (e[k - 1] - c, z), (e[k] - (uc if k < 4 else 0.0), z)]
     pts += [(BACK, ca.ROW_Z[3]), (BACK, -23.0)]
     return pts
 
@@ -147,7 +167,7 @@ def terraces_part():
         for idx, meta in faces:
             if meta[0] != "q" or meta[2] >= 12:
                 j = meta[-1]
-                uv = [ca.cell_uv("wall", ((j % 2) + d) / 2.0, d) for d in (0, 1, 1, 0)][:len(idx)]
+                uv = [ca.cell_uv("warm", ((j % 2) + d) / 2.0, d) for d in (0, 1, 1, 0)][:len(idx)]
                 uvs.append(uv)
                 hidden.append(True)
                 continue
@@ -229,6 +249,13 @@ def points():
         "TrophyRock": ca.point((0.0, 121.0, floor_at(121.0)), note="centre back"),
         "SpeciesWall": ca.point(tuple(sw), normal=ca.point(tuple(swn)), note="back wall, left of the Trophy Rock"),
         "TideClock": ca.point(tuple(tc), normal=ca.point(tuple(tcn)), note="back wall, right of the Trophy Rock"),
+        "LightMounts": [
+            ca.point((0.0, (a + b) / 2.0, ca.CEIL_Z + 1.0), kind="crack", note="light falling through a ceiling crack, %d studs long" % (b - a))
+            for a, b in CRACKS] + [
+            ca.point((0.0, 129.0, 0.0), kind="niche", note="the lit niche behind the Trophy Rock: the room's focal light"),
+            ca.point((0.0, home[1], ca.FLOOR_Z + 10.0), kind="pool", note="warm pool over the Home Stone")] + [
+            ca.point((sx * (ca.plan_half_width(y) - 1.5), y, 12.0), kind="sconce", note="warm lantern between perch columns, above row 4")
+            for y in (59.5, 89.5) for sx in (1.0, -1.0)],
     }
 
 

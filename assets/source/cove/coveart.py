@@ -14,8 +14,8 @@ swimming in. Roblox axes are (-x, z, y) (animrbx.A): the mouth's LookVector poin
 Texturing (06 5.1, 5.3, 5.6): one 512 atlas for the whole cove kit, base colours in the colour
 map (a SurfaceAppearance hides vertex colour, spike F16). The two structure meshes are far larger
 than the atlas can cover at 24 px/stud, so they use tileable cells (stone, sand, terrace step, ceiling
-crack, arch stone) that faces share: overlapping UV islands, each face inside one cell. The bottom
-of the atlas (rows 320 to 511) is left for the cove props of the later rows of 07 6.6.
+crack, arch stone) that faces share: overlapping UV islands, each face inside one cell. Free atlas
+space (RESERVED) is left for the cove props of the later rows of 07 6.6.
 """
 import json
 import math
@@ -48,22 +48,30 @@ DEPTH = 30.0                        # depth of the cove frame origin
 
 # ---------------------------------------------------------------- palette (06 4.1, 4.2 cove row, 4.5)
 STONE = "#D9B48F"         # 06 4.2: cove interior warm stone (mid, L* 76)
-STONE_LIGHT = "#E6C9A5"   # sun side of a stone, same block (+6 L*)
-STONE_SHADE = "#C59F8E"   # shade side: hue toward violet, not black (06 4.1), same block (-7 L*)
+WARM_A = "#DDB993"        # warm stone, lit end of its gradient (mid)
+WARM_B = "#D0AA8C"        # warm stone, other end (mid; 7 L* below)
+COOL_A = "#C9A695"        # throat and ceiling: darker, hue toward violet (06 4.1), still mid
+COOL_B = "#BC9C93"        # (mid; 66 L*, 10 below WARM_A: inside the 12-point gradient rule)
 SAND = "#F6E3B4"          # 06 4.2 Nursery sand: the soft sand floor (light, L* 90)
-SAND_SHADE = "#EDD6A4"    # ripple troughs, still light (L* 86)
+SAND_SHADE = "#EFDAA9"    # broad ripple troughs, still light
 LIP = "#F8E8C6"           # worn lips and step edges catching the warm light (light)
-GLOW = "#FCEFCB"          # light falling through the ceiling cracks (light; not the reserved #FFF1DC)
+GLOW = "#FCF1D2"          # light through the ceiling cracks and the Trophy niche (light; not the reserved #FFF1DC)
 DARK = "#5E4058"          # crevices and creases: violet-brown, never black (dark, L* 31)
 
 CELLS = {   # pixels (x0, y0, x1, y1), y from the top of the image
-    "wall": (0, 0, 256, 256),
+    "warm": (0, 0, 256, 128),        # lower walls
+    "cool": (0, 128, 256, 256),      # ceiling and throat
+    "blend": (0, 256, 256, 320),     # warm (fv 0) to cool (fv 1), the row where the wall turns into the vault
+    "blend_u": (0, 384, 256, 512),   # warm (fu 1) to cool (fu 0), where the throat's funnel meets the room
+    "crack": (0, 320, 256, 384),     # one whole ceiling crack, tapered ends
     "terrace": (256, 0, 512, 192),
     "sand": (256, 192, 384, 320),
     "stone": (384, 192, 512, 320),
-    "crack": (0, 256, 256, 320),
+    "niche": (256, 320, 384, 448),   # the lit back wall behind the Trophy Rock
+    "throat": (384, 320, 512, 448),  # the mouth's throat: flat cool shade, no joints, so the opening reads dark
+    "throat_deep": (256, 448, 384, 512),   # the throat's last 6.5 studs: its deep half in shadow (fv 0 is the deep end)
 }
-RESERVED = (0, 320, 512, 512)       # cove props (07 6.6), not painted by this task
+RESERVED = "x 384-511 of rows 448-511"   # cove props (07 6.6), not painted here
 INSET = 2                           # pixels kept from a cell's edge (bilinear bleed)
 BLOCKS = {0: "mid", 1: "light", 2: "dark", 3: "accent"}
 
@@ -104,96 +112,117 @@ def _base(w, h, colour):
     return np.ones((h, w, 3), np.float32) * _rgb(colour)
 
 
-def paint_wall(w, h):
-    """Tileable sandstone: soft strata along fu (horizontal on the walls), sun and shade patches,
-    a few dark strata gaps. Periodic in both directions."""
+def paint_wall(w, h, a=WARM_A, b=WARM_B):
+    """Tileable sandstone: two broad flat blocks split by one large wavy joint, a short upright
+    joint in the lower one; each block a single soft gradient (06 5.2: at most two per block).
+    Periodic in both directions, so it repeats face to face without a seam."""
     U, V = _grid(w, h)
     tau = 2.0 * math.pi
-    img = _base(w, h, STONE)
-    patch = 0.5 * np.sin(tau * (U + 0.18 * np.sin(tau * V))) + 0.5 * np.cos(tau * (2 * V + 0.15 * np.sin(tau * U)))
-    img = _mix(img, STONE_SHADE, 0.85 * _sm(0.15, 0.75, -patch))
-    img = _mix(img, STONE_LIGHT, 0.8 * _sm(0.2, 0.8, patch))
-    strata = V + 0.035 * np.sin(tau * U) + 0.02 * np.sin(tau * 2 * U + 1.3)
-    band = np.abs(((strata * 3.0) % 1.0) - 0.5)          # three bands per tile
-    img = _mix(img, STONE_LIGHT, 0.7 * _sm(0.06, 0.0, np.abs(band - 0.33)))
-    gap = np.abs(((strata * 3.0 + 0.5) % 1.0) - 0.5)
-    run = _sm(0.15, 0.45, np.sin(tau * (U + 0.35 * np.floor(strata * 3.0))))
-    dark = (gap < 0.1) & (run > 0.3)
-    img = _mix(img, STONE_SHADE, 0.6 * _sm(0.12, 0.05, gap) * run)
+    joint = 0.55 + 0.12 * np.sin(tau * U)
+    upper = V > joint
+    img = np.where(upper[..., None], _mix(_base(w, h, a), b, _sm(0.0, 1.0, (V - joint) / (1.0 - joint + 1e-3))),
+                   _mix(_base(w, h, b), a, 0.8 * _sm(0.0, 1.0, np.abs(np.sin(math.pi * U)))))
+    d1 = np.abs(V - joint) * h
+    d2 = np.abs(U - 0.3 - 0.03 * np.sin(tau * V)) * w
+    dark = (d1 < 5.5) | ((d2 < 5.5) & (V < joint - 0.02) & (V > 0.12))
     img[dark] = _rgb(DARK)
-    block = np.where(dark, 2, 0)
-    return img, block
+    return img, np.where(dark, 2, 0)
+
+
+def paint_cool(w, h):
+    return paint_wall(w, h, COOL_A, COOL_B)
+
+
+def paint_blend(w, h, along_u=False):
+    warm, blk = paint_wall(w, h)
+    cool, _ = paint_cool(w, h)
+    U, V = _grid(w, h)
+    t = _sm(0.0, 1.0, (1.0 - U) if along_u else V)[..., None]
+    return warm * (1.0 - t) + cool * t, blk
 
 
 def paint_sand(w, h):
     U, V = _grid(w, h)
     tau = 2.0 * math.pi
     img = _base(w, h, SAND)
-    ripple = np.sin(tau * (3 * V + 0.22 * np.sin(tau * U) + 0.1 * np.sin(tau * 2 * U + 0.7)))
-    img = _mix(img, SAND_SHADE, 0.9 * _sm(0.35, 0.9, ripple))
-    img = _mix(img, LIP, 0.6 * _sm(0.6, 0.95, -ripple))
+    ripple = np.sin(tau * (2 * V + 0.15 * np.sin(tau * U)))
+    img = _mix(img, SAND_SHADE, 0.8 * _sm(0.2, 0.9, ripple))
     return img, np.ones((h, w), np.int32)
 
 
 def paint_terrace(w, h):
-    """One step, bottom to top: dark crease at the riser's foot, stone riser, worn light lip
-    (the chamfer), sand-dusted tread. Periodic along fu."""
+    """One shelf, bottom to top: cool foot, stone riser, the dark underside of the ledge above
+    (the riser leans back under its lip), the worn light lip, the sand-dusted tread. Periodic along fu."""
     U, V = _grid(w, h)
-    tau = 2.0 * math.pi
-    img = _base(w, h, STONE)
-    wob = 0.012 * np.sin(tau * 2 * U) + 0.008 * np.sin(tau * 5 * U + 2.0)
-    patch = np.sin(tau * (U + 0.1 * np.sin(tau * V * 2)))
-    img = _mix(img, STONE_LIGHT, 0.7 * _sm(0.3, 0.9, patch) * _sm(0.2, 0.5, V))
-    img = _mix(img, STONE_SHADE, _sm(0.38, 0.22, V + wob))
-    crease = V + wob < 0.2
-    img[crease] = _rgb(DARK)
-    lip = (V + wob >= 0.55)
+    img = _mix(_base(w, h, WARM_A), COOL_B, _sm(0.3, 0.0, V))
+    under = (V >= 0.40) & (V < 0.55)
+    lip = (V >= 0.55) & (V < 0.66)
+    tread = V >= 0.66
+    img[under] = _rgb(DARK)
     img[lip] = _rgb(LIP)
-    tread = V + wob >= 0.66
     sand, _ = paint_sand(w, h)
     img[tread] = sand[tread]
-    img = np.where(tread[..., None], _mix(img, LIP, 0.5 * _sm(0.75, 0.66, V + wob)), img)
-    block = np.where(crease, 2, np.where(lip, 1, 0))
+    block = np.where(under, 2, np.where(lip | tread, 1, 0))
     return img, block
 
 
 def paint_crack(w, h):
-    """Ceiling crack along fu: warm light core, dark rims, stone shading into it."""
+    """One whole ceiling crack along fu on cool stone: a wide light core, thin dark rims, tapered ends."""
     U, V = _grid(w, h)
     tau = 2.0 * math.pi
-    wall, _ = paint_wall(w, w)
-    img = wall[:h].copy()
-    c = 0.5 + 0.09 * np.sin(tau * 2 * U) + 0.05 * np.sin(tau * 5 * U + 1.0)
-    width = 0.07 + 0.025 * np.sin(tau * 3 * U + 0.4)
+    img = _base(w, h, COOL_A)
+    c = 0.5 + 0.08 * np.sin(tau * U * 0.8 + 0.6)
+    taper = _sm(0.0, 0.25, U) * _sm(1.0, 0.75, U)
+    width = 0.17 * taper
     d = np.abs(V - c)
-    img = _mix(img, STONE_SHADE, _sm(0.32, 0.16, d))
-    rim = d < width + 0.13
-    core = d < width
+    img = _mix(img, COOL_B, _sm(0.45, 0.2, d))
+    rim = (d < width + 0.045) & (taper > 0.05)
+    core = d < width - 0.005
     img[rim] = _rgb(DARK)
     img[core] = _rgb(GLOW)
-    img = np.where(core[..., None], _mix(img, LIP, _sm(0.0, 1.0, d / np.maximum(width, 1e-3))), img)
     block = np.where(core, 1, np.where(rim, 2, 0))
     return img, block
 
 
 def paint_stone(w, h):
     """One arch stone: fu across it (grooves at both edges), fv from the lip (0) to where it meets
-    the Rim wall (1). A rounded pillow: lit top-left, shade toward the grooves."""
+    the Rim wall (1). One soft gradient from the lit lip side; a wide worn light lip."""
     U, V = _grid(w, h)
-    img = _base(w, h, STONE)
-    r = np.sqrt(((U - 0.42) / 0.5) ** 2 + ((V - 0.45) / 0.55) ** 2)
-    img = _mix(img, STONE_LIGHT, _sm(0.9, 0.2, r))
+    img = _mix(_base(w, h, WARM_A), WARM_B, _sm(0.2, 0.9, V))
     edge = np.minimum(U, 1.0 - U)
-    img = _mix(img, STONE_SHADE, _sm(0.2, 0.08, edge) + _sm(0.7, 0.9, V) * 0.8)
-    groove = (edge < 0.1) | (V > 0.86)
-    lip = (V < 0.12) & ~groove
+    groove = (edge < 0.05) | (V > 0.87)
+    lip = (V < 0.33) & ~groove      # the inner half catches the light spilling out of the cove
     img[groove] = _rgb(DARK)
     img[lip] = _rgb(LIP)
     block = np.where(groove, 2, np.where(lip, 1, 0))
     return img, block
 
 
-PAINTERS = {"wall": paint_wall, "sand": paint_sand, "terrace": paint_terrace, "crack": paint_crack, "stone": paint_stone}
+def paint_niche(w, h):
+    """The lit niche behind the Trophy Rock: light falling on the back wall, brightest in the middle."""
+    U, V = _grid(w, h)
+    r = np.sqrt((U - 0.5) ** 2 + (V - 0.5) ** 2)
+    img = _mix(_base(w, h, SAND), GLOW, _sm(0.5, 0.1, r))
+    return img, np.ones((h, w), np.int32)
+
+
+def paint_throat(w, h):
+    U, V = _grid(w, h)
+    img = _mix(_base(w, h, COOL_B), COOL_A, 0.12 + 0.12 * np.sin(2.0 * math.pi * U))
+    return img, np.zeros((h, w), np.int32)
+
+
+def paint_throat_deep(w, h):
+    img, _ = paint_throat(w, h)
+    U, V = _grid(w, h)
+    deep = V < 0.55
+    img[deep] = _rgb(DARK)
+    return img, np.where(deep, 2, 0)
+
+
+PAINTERS = {"throat": paint_throat, "throat_deep": paint_throat_deep, "warm": paint_wall, "cool": paint_cool, "blend": paint_blend,
+            "blend_u": lambda w, h: paint_blend(w, h, along_u=True), "crack": paint_crack,
+            "terrace": paint_terrace, "sand": paint_sand, "stone": paint_stone, "niche": paint_niche}
 
 
 def atlas():
