@@ -3,6 +3,7 @@
 -- `local Types = require("./Types")`. Each block below is copied from the section named above
 -- it; change the bible first, then this file. No fields are invented here: a type the bible names
 -- without defining (SwimInput, CreatureState, RunPhase, ...) is added by the module that owns it.
+local ScreenScale = require("./Logic/ScreenScale")
 local Signal = require("./Util/Signal")
 
 -- Section 5.1: a number 1 to 24 assigned at join. It is the player's index in every buffer and
@@ -35,6 +36,10 @@ export type SwimInput = {
 	pitchTarget: number, -- −70 to +70, positive points the nose up
 	dash: boolean, -- a dash press this frame; true every frame while a held dash is held (02 §2.1)
 }
+
+-- Section 5.2: `QualityController.screenClass()`; the classes and their tests are chapter 15,
+-- section 2.2, worked out in `Logic/ScreenScale`.
+export type ScreenClass = ScreenScale.ScreenClass
 
 -- Section 3.2: content data. `wire` is the row's 1-based position in the canon table.
 export type Scope = "MVP" | "L" | "P1" | "P2"
