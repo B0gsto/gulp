@@ -10,7 +10,9 @@ real family skeleton: 18 deform bones and 10 sockets with the bible's names. It 
   M_Species_Base_Fish_LOD1, _LOD2                       half and a quarter of the triangles
   M_Species_Base_Fish[_LOD1|_LOD2]_Shell, _ShellThick   flipped-face outline shells
   M_Species_Base_Fish_Crest   a rigid piece parented to the socket bone Sock_Crest
-  A_Fish_Swim                 a 16-frame looping swim clip keyed on every bone
+  A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite
+                              the first five family clips (13, S2-A3) as procedural stand-ins
+                              at the lengths chapter 07 gives (clips.py, poses in rigs.py)
   M_Species_Base_Fish_RigTest all of the above in one file, for the Studio rig tests
 Everything is vertex-coloured in the Minnow palette; there is no texture yet, but the UVs are
 laid out by the family layout tool (uvlayout.py / texgen.py, 06 section 5.4) for a 256 texture.
@@ -24,6 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
+import clips  # noqa: E402
 import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
@@ -152,7 +155,8 @@ def build():
     crest_md = meshgen.MeshData().add_part(crest_part(), ACCENT, uv=lambda p, q: UV["crest"](*q))
     crest = meshgen.attach_to_bone(crest_md.to_object(NAME + "_Crest", "SOCKETS"), arm, "Sock_Crest")
 
-    swim = rigs.bake_clip(arm, "A_Fish_Swim", 16, rigs.fish_swim_pose)
+    actions = clips.bake_family(arm, rigs.FISH_CLIPS)
+    swim = actions[0]
 
     return {
         "name": NAME,
@@ -175,11 +179,11 @@ def build():
             {"object": body, "role": "body", "primary": True},
             {"object": crest, "role": "piece", "budget": "crest", "socket": "Sock_Crest"},
         ],
-        "actions": [swim],
+        "actions": actions,
         "exports": [
             {"file": "meshes/%s.fbx" % NAME, "objects": [body, arm]},
             {"file": "meshes/%s_Crest.fbx" % NAME, "objects": [crest], "at_origin": True},
-            {"file": "animations/A_Fish_Swim.fbx", "objects": [body, arm], "clip": swim},
+            *[clips.export_entry(clip, [body, arm]) for clip in actions],
             {"file": "meshes/%s_RigTest.fbx" % NAME, "objects": [body, crest, arm], "clip": swim, "all_versions": True},
         ],
         "preview": {
