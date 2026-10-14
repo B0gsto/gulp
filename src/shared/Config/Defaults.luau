@@ -241,6 +241,16 @@ Defaults.cove = table.freeze({
 	returningPool = 20, -- 04 §5.5, 09 §13.1: a returning player's cove is among the 20 nearest the Gap
 })
 
+-- Logic/NurseryRoute: the first-run route and its volumes (03 §6.2 data:NurseryPath; 04 §3.5).
+Defaults.nursery = table.freeze({
+	arcRadius = 140, -- 03 §6.2: inside the Nursery the route is one arc of radius 140
+	arcTurn = 45, -- 03 §6.2: turning 45° to the left (degrees), from facing east at the Hatch Bed
+	archWidth = 50, -- 03 §6.2: Little Arch's opening is 50 wide (the Gap and its kelp curtain)
+	channelWidth = 36, -- 04 §3.5: the channel (the Elbow) is 36 wide
+	curtainThickness = 2, -- 03 §6.2 (tune): the kelp curtain volume, across the arch's Nursery end
+	markerSize = 4, -- 03 §6.2 (tune): a point's Ball, and the trail's cross-section
+})
+
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.
 Defaults.tides = table.freeze({
 	slot = 900, -- canon 10: an event every 15 minutes on the UTC quarter hour

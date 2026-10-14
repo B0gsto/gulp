@@ -17,6 +17,7 @@ local CoveMouths = require(ReplicatedStorage.Shared.Data.Generated.CoveMouths)
 local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
 local HeightFieldMath = require(ReplicatedStorage.Shared.Logic.HeightFieldMath)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
+local NurseryRoute = require(ReplicatedStorage.Shared.Logic.NurseryRoute)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 
 local CollisionGroups = require("../World/CollisionGroups")
@@ -136,6 +137,22 @@ for _, def in CoveMouths do
 	end
 end
 
+-- The first-run route of ci.project.json at its data:NurseryPath places (03 §6.2), as
+-- NurseryRoute.volumes lays it out; the arena keeps its own test HatchBed above.
+local SHAPES: { [string]: Enum.PartType } =
+	{ Block = Enum.PartType.Block, Ball = Enum.PartType.Ball, Cylinder = Enum.PartType.Cylinder }
+for _, v in NurseryRoute.volumes() do
+	if v.kind == NurseryRoute.KIND then
+		table.insert(VOLUMES, {
+			name = v.name,
+			shape = SHAPES[v.shape],
+			cf = CFrame.new(table.unpack(v.frame)),
+			size = Vector3.new(v.size[1], v.size[2], v.size[3]),
+			attrs = { Kind = v.kind, PointId = v.pointId :: string },
+		})
+	end
+end
+
 -- Authors the arena's volumes and revive points again when Main has already read them, then
 -- initialises this VM's WorldIndex from them.
 local function initArena()
@@ -209,6 +226,7 @@ return function()
 			expect(#WorldIndex.volumesOf("Current")).toBe(0)
 			expect(#WorldIndex.volumesOf("RevivePoint")).toBe(0) -- kept apart, never sent
 			expect(#WorldIndex.volumesOf("HatchBed")).toBe(1)
+			expect(#WorldIndex.volumesOf("NurseryPath")).toBe(#Index.NurseryPath.list - 1)
 		end)
 
 		it("answers hatchBed with the centre and the look vector (9.1)", function()
@@ -246,6 +264,21 @@ return function()
 			expect(WorldIndex.coveMouthAt(c16.x + ox, -30, c16.z + oz)).toBe(16)
 			expect(WorldIndex.coveMouthAt(c16.x - ox, -30, c16.z - oz)).toBe(nil)
 			expect(WorldIndex.isSafe(c16.x + ox * 80, -30, c16.z + oz * 80)).toBe(true) -- chamber
+		end)
+
+		it("answers nurseryPathAt along the first-run route (03 §6.2, 04 §3.5)", function()
+			local gx, gz = NurseryRoute.pointAt(122)
+			expect(WorldIndex.nurseryPathAt(gx, -17, gz)).toBe("little_arch") -- the Gap
+			expect(WorldIndex.nurseryPathAt(-299, -17, 299)).toBe("kelp_curtain")
+			local ax, az = NurseryRoute.pointAt(185)
+			expect(WorldIndex.nurseryPathAt(ax, -40, az)).toBe("elbow_leg_1") -- across the Gap
+			expect(WorldIndex.nurseryPathAt(-210, -28, 210)).toBe("elbow_bend")
+			local bx, bz = NurseryRoute.pointAt(300)
+			expect(WorldIndex.nurseryPathAt(bx, -40, bz)).toBe("elbow_leg_2")
+			expect(WorldIndex.nurseryPathAt(-384, -18, 339)).toBe("swarm_a")
+			expect(WorldIndex.nurseryPathAt(-322, -18, 301)).toBe("glow_grotto")
+			expect(WorldIndex.nurseryPathAt(gx, -4, gz)).toBe(nil) -- above the arch's opening
+			expect(WorldIndex.nurseryPathAt(0, -50, 0)).toBe(nil)
 		end)
 
 		it("answers floorY over the floor, the rock and open map", function()

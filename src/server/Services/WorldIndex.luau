@@ -34,6 +34,7 @@ WorldIndex.name = "WorldIndex"
 local byKind: { [string]: { Volume } } = {} -- keyed by VolumeKind
 local safeVolumes: { Volume } = {}
 local zones: { Volume } = {} -- smallest first (VolumeMath.sortZones)
+local nursery: { Volume } = {} -- NurseryPath volumes, smallest first (VolumeMath.sortBySize)
 local points: { RevivePoint } = {}
 local field: HeightField.Field
 local rayParams: RaycastParams
@@ -42,7 +43,7 @@ local fallbackZone: ZoneId = Index.Zones.list[1].id
 local infoVersion, infoEpoch, infoVolumes = 0, 0, nil :: { Volume }?
 
 function WorldIndex.init()
-	byKind, safeVolumes, zones, points = {}, {}, {}, {} -- a second init starts clean
+	byKind, safeVolumes, zones, nursery, points = {}, {}, {}, {}, {} -- a second init starts clean
 	CollisionGroups.register()
 	local shell = workspace:FindFirstChild("Collision")
 	if shell then
@@ -68,6 +69,8 @@ function WorldIndex.init()
 	end
 	zones = table.clone(byKind.Zone)
 	VolumeMath.sortZones(zones)
+	nursery = table.clone(byKind.NurseryPath)
+	VolumeMath.sortBySize(nursery, "PointId")
 	for kind, list in byKind do
 		byKind[kind] = table.freeze(list)
 	end
@@ -121,6 +124,15 @@ end
 function WorldIndex.coveMouthAt(x: number, y: number, z: number): Slot?
 	local v = VolumeMath.firstContaining(byKind.CoveMouth, x, y, z)
 	return if v then v.attrs.CoveIndex :: number else nil -- safe: validate() checked CoveIndex
+end
+
+--- The first-run route place that holds the point (9.1 `NurseryPath`; 03 §6.2 data:NurseryPath;
+--- 04 §3.5): the `PointId` of the smallest route volume holding it (the kelp curtain before
+--- Little Arch, the Elbow's bend before its legs), or nil off the route volumes. Crossing the Gap
+--- is leaving `little_arch` into `elbow_leg_1`.
+function WorldIndex.nurseryPathAt(x: number, y: number, z: number): string?
+	local v = VolumeMath.firstContaining(nursery, x, y, z)
+	return if v then v.attrs.PointId :: string else nil -- safe: validate() checked PointId
 end
 
 --- Every volume of a kind (frozen; do not change). Revive points are kept apart: see

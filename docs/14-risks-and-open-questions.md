@@ -222,6 +222,7 @@ The content generator (09 §3.2) needs these numbers and no chapter gave them. E
 | Goal Reroll grant | 05 data:Products | `token` (kept on the profile until used) | 05 says only that it swaps one goal; 09 §12.6 grants it as a token and 09 §12.2 saves `tokens.goal_reroll`. Copied from 09, not stated in 05: for the owner to confirm |
 | Prey acceleration (added 14 Oct 2026) | 09 §8.4, step 3 | `fleeSpeed × turnRate` (rad/s); a turn rate of 0 counts as 2π rad/s; `drift` kinds 1 stud/s² | The sideways acceleration that turns a group at its 03 §2.1 turn rate at flee speed; neither 02 nor 03 gives an acceleration |
 | WorldInfo decoder bounds (added 14 Oct 2026) | 09 §5.3 | At most 1,024 volumes, 16 attributes per volume, 256 characters per string | Well above a full map (09 §9.1); they stop a malformed table from making a client loop or allocate without end |
+| First-run route volumes (added 14 Oct 2026, task S6-D1) | 03 §6.2, authoring the route | Kelp curtain volume 2 studs thick; route point markers Balls 4 across, the plankton trail a 4 × 4 Block | 03 gives the curtain as a plane and the points as positions; 4 is the size of the other marker parts (`HatchBed`, `RevivePoint`) in the CI arena. Only the centres and the curtain's plane matter to the script |
 
 ## 6. Stop conditions
 

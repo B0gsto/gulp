@@ -56,7 +56,7 @@ local KINDS = {
 	PredatorNode = true,
 	HatchBed = true,
 	RevivePoint = true,
-	HatchBed = true,
+	NurseryPath = true, -- 03 §6.2 data:NurseryPath (task S6-D1)
 }
 
 local COVES = 24
