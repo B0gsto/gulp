@@ -1,0 +1,178 @@
+{
+ "mode": "run",
+ "pidsBefore": [
+  11479,
+  90636
+ ],
+ "rssBeforeMb": 1399,
+ "args": "2, {}",
+ "call": [
+  true,
+  "spawned"
+ ],
+ "timeline": [
+  {
+   "t": 3,
+   "studios": [
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110
+   ],
+   "rssAllMb": 1841
+  },
+  {
+   "t": 6,
+   "studios": [
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2394
+  },
+  {
+   "t": 9,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2976
+  },
+  {
+   "t": 12,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2281
+  },
+  {
+   "t": 15,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2430
+  },
+  {
+   "t": 18,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2509
+  },
+  {
+   "t": 21,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 2966
+  },
+  {
+   "t": 24,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 3178
+  },
+  {
+   "t": 27,
+   "studios": [
+    null,
+    null,
+    null,
+    "TestBench-gulp-spike.rbxl",
+    "TestBench-playtest.rbxl"
+   ],
+   "state": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+   "newPids": [
+    35110,
+    35302,
+    35316
+   ],
+   "rssAllMb": 3260
+  }
+ ],
+ "playersSeenByServer": [
+  false,
+  "Server datamodel is not available in Edit mode"
+ ],
+ "stateAfter": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit",
+ "leftoverPidsAfterStop": [
+  35110,
+  35302,
+  35316
+ ],
+ "killedLeftover": [
+  35110,
+  35302,
+  35316
+ ],
+ "consoleTail": [],
+ "finalState": "- Current Studio Mode: Edit ; - Available DataModels: Edit ; - Focused DataModel in the viewport: Edit"
+}

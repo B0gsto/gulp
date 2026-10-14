@@ -1,0 +1,627 @@
+[
+ {
+  "cycle": 1,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.62,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.002790375001495704,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.0005967499891994521,
+   "sameModel": true,
+   "helloAfterJoin": 0.03573891667474527,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.5582112500123912,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.010015791660407558,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.002790375001495704,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.03571508332970552
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "s15": {
+   "serverLuau": [
+    true,
+    "server players=1 creatures=1 isServer=true"
+   ],
+   "clientLuau": [
+    true,
+    "client char=Creature_11718681576 cam=Enum.CameraType.Scriptable isClient=true"
+   ],
+   "screenshot": [
+    true,
+    ""
+   ],
+   "loopComplete": true
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 5.37
+ },
+ {
+  "cycle": 2,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.86,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.01304849999723956,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00039958333945833147,
+   "sameModel": true,
+   "helloAfterJoin": 0.046052708334173076,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.912173458331381,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.011194166669156402,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.01304849999723956,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04600120833492838
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "s15": {
+   "serverLuau": [
+    true,
+    "server players=1 creatures=1 isServer=true"
+   ],
+   "clientLuau": [
+    true,
+    "client char=Creature_11718681576 cam=Enum.CameraType.Scriptable isClient=true"
+   ],
+   "screenshot": [
+    true,
+    ""
+   ],
+   "loopComplete": true
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 5.61
+ },
+ {
+  "cycle": 3,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.6,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.01493116666097194,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00022766666370444,
+   "sameModel": true,
+   "helloAfterJoin": 0.048312958329916,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.6377574999933131,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.0033624166680965573,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.01493116666097194,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04801583332300652
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "s15": {
+   "serverLuau": [
+    true,
+    "server players=1 creatures=1 isServer=true"
+   ],
+   "clientLuau": [
+    true,
+    "client char=Creature_11718681576 cam=Enum.CameraType.Scriptable isClient=true"
+   ],
+   "screenshot": [
+    true,
+    ""
+   ],
+   "loopComplete": true
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 5.35
+ },
+ {
+  "cycle": 4,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.56,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.013212749996455386,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00029675000405404717,
+   "sameModel": true,
+   "helloAfterJoin": 0.04607808332366403,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.6562663333315868,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.011201416666153818,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.013212749996455386,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04605066665681079
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.68
+ },
+ {
+  "cycle": 5,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.62,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.009196166676701978,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.0002186666679335758,
+   "sameModel": true,
+   "helloAfterJoin": 0.041654666667454876,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.5923829583334737,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.0025457500014454126,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.009196166676701978,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04150720834149979
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.74
+ },
+ {
+  "cycle": 6,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.58,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.006265333329793066,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00023879166110418737,
+   "sameModel": true,
+   "helloAfterJoin": 0.057132083325996064,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.6778327916690614,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.01577579166041687,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.006265333329793066,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.057091041657258756
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.69
+ },
+ {
+  "cycle": 7,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.54,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.012748374996590428,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.0003254166658734903,
+   "sameModel": true,
+   "helloAfterJoin": 0.045592875001602806,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.5385523750010179,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.009825125001952983,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.012748374996590428,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04555837500083726
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.66
+ },
+ {
+  "cycle": 8,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.58,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.013760375004494563,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.0022017083392711356,
+   "sameModel": true,
+   "helloAfterJoin": 0.046249041668488644,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.549038291661418,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.011221833337913267,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.013760375004494563,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04616962499858346
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.7
+ },
+ {
+  "cycle": 9,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.61,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.01290645833068993,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00037233333569020033,
+   "sameModel": true,
+   "helloAfterJoin": 0.04633470832777675,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.6168824583292007,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.002620250001200475,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.01290645833068993,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.0459909583296394
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.03,
+  "cycleS": 4.73
+ },
+ {
+  "cycle": 10,
+  "startOk": true,
+  "startText": "Game Started",
+  "readyAfterStartS": 3.58,
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.013561500003561378,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.0003539166646078229,
+   "sameModel": true,
+   "helloAfterJoin": 0.04621149999729823,
+   "characterAdded": true
+  },
+  "S1_client": {
+   "dtFromHello": 0.6285267916682642,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.010196958333835937,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.013561500003561378,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04614833333471324
+    }
+   ]
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "consoleOk": true,
+  "consoleLines": 5,
+  "consoleSuspect": [],
+  "stopOk": true,
+  "backToEdit": true,
+  "stopS": 0.04,
+  "cycleS": 4.68
+ }
+]

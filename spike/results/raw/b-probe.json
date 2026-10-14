@@ -1,0 +1,26 @@
+{
+ "state": "- Current Studio Mode: Edit\n- Available DataModels: Edit\n- Focused DataModel in the viewport: Edit",
+ "edit": {
+  "stats.DataSendKbps": "0",
+  "bulkMoveTo": "function",
+  "ws.PhysicsSteppingMethod": "ERR PhysicsSteppingMethod is not a valid member of Workspace \"Workspace\"",
+  "ws.AuthorityMode": "ERR The current thread cannot read 'AuthorityMode' (lacking capability RobloxScript)",
+  "net.class": "NetworkSettings",
+  "rs.BindToSimulation": "function",
+  "ure": "UnreliableRemoteEvent",
+  "stats.DataReceiveKbps": "0",
+  "net.IncomingReplicationLag": "0"
+ },
+ "memIdle": {
+  "11479": {
+   "rssMb": 1388,
+   "footprint": "3.1G",
+   "footprintPeak": "3.8G"
+  },
+  "90636": {
+   "rssMb": 915,
+   "footprint": "4.2G",
+   "footprintPeak": "4.2G"
+  }
+ }
+}

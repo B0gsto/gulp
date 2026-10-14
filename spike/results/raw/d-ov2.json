@@ -1,0 +1,1 @@
+{"Overlay_T": {"iou": 0.9943, "px": 56115, "bodyNotCovered": 9}, "Overlay_L": {"iou": 0.6482, "px": 81058, "bodyNotCovered": 1984}, "Overlay_LS": {"iou": 0.6445, "px": 81547, "bodyNotCovered": 1982}, "M_Species_Base_Fish_Shell": {"iou": 0.4517, "px": 123553, "bodyNotCovered": 0}, "bodyPx": 55814}

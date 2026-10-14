@@ -64,38 +64,40 @@ Gathered from the "not verified" lists of chapters 05, 06, 08, 09, 10, 11, 12 an
 
 ### 2.1 Settled by the Sprint 0 spikes
 
+Rows marked **Settled** were answered by measurement on the Mac in Sprint 0 (`docs/spike-report.md`, 14 October 2026). They stay here, marked, until the owner signs the Sprint 0 decision and the answer is written into the chapter that owns it; then the row is deleted. Phone-dependent parts stay open.
+
 | Ref | Fact | Why it matters | How to verify | Settle by |
 |---|---|---|---|---|
-| 09 U1 | A `Player.Character` model with no Humanoid causes no core-script errors; a stub `PlayerModule` stops default controls | The whole character design | Spikes S1, S9 | Sprint 0 |
-| 09 U2 | `buffer` values travel as remote arguments; their size on the wire; the cost of the engine's own creature replication | The prey byte budget | Spikes S6, S7 | Sprint 0 |
-| 09 U3 | A server `CFrame` write on a client-owned part moves it on the owner | Movement correction | Spike S4 | Sprint 0 |
-| 09 U4 | Server Authority works with a custom controller and no Humanoid; its release status | The fallback for movement cheating | Spike S12 | Sprint 0 |
-| 09 U6 | Chat bubbles on a model with no Humanoid | The launch chat plan (D7) | Spike S16 | Sprint 0 |
-| 09 U9 | Luau execution concurrency: 10 per place or 2 per universe | CI engine job | Spike S17 | Sprint 0 |
-| 09 U10 | Relative string requires resolve the same way in Roblox, Lune and luau-lsp | One code base, three runtimes | Spike S11 | Sprint 0 |
-| 09 U13 | MCP can start a multi-client test; the Rojo plugin reconnects without a click | How much testing the owner does by hand | Spike S15 | Sprint 0 |
-| 09 U15 | Studio and Blender memory use on this Mac | The two-heavy-jobs rule | Activity Monitor | Sprint 0 |
-| 09 U18 | Two skinned MeshParts on one skeleton; `PauseOutsideLoadedArea` with a non-Humanoid character | Juvenile and adult meshes; streaming | Spikes S8, S5 | Sprint 0 |
-| 09 U19, 08 E5 | Which core interface cannot be removed (the Roblox menu button is expected) | HUD keep-out box | Spike S10 | Sprint 0 |
-| 06 §18.2 | A flipped-face shell draws as an outline on a skinned mesh | Outlines | Rig spike | Sprint 0 |
-| 06 §18.2 | Code can write `Bone.Transform` beside a playing clip; bone spreading stretches cleanly; a rigid piece follows a socket bone; 32 bones are accepted; any bone-count limit | Sway, squash and stretch, trait pieces | Rig spike | Sprint 0 |
-| 06 §2.4 | Vertex colour multiplies under a `SurfaceAppearance`; a flat roughness texture removes the plastic shine; emissive masks work on a game mesh on every target device | The texturing method; Glow and Moonlit | Surface spike | Sprint 0 |
-| 06 §8.4 | Which of overlay options A, B or C works for traits | Every overlay row in chapter 07 | Trait spike | Sprint 0 |
-| 06 §10, 15 PF26 | Atmosphere or legacy fog; whether `Lighting.Technology` is still editable; whether Realistic lighting holds 30 fps on a low phone; real ranges for Atmosphere and post-processing values | Every lighting preset | Lighting spike | Sprint 0 |
-| 06 §14 | No official phone budget exists; the busy frame of 06 §14.2 on a low and a mid phone | All art budgets | Phone spike | Sprint 0 |
-| 06 §6.7 | FBX scale factor and vertex-colour space on import | The export script | Calibration spike | Sprint 0 |
+| 09 U1 | A `Player.Character` model with no Humanoid causes no core-script errors; a stub `PlayerModule` stops default controls | The whole character design | Spikes S1, S9 | Sprint 0. **Mac half settled 14 Oct 2026** (S1, S9: 10/10 joins, no core-script errors; a stub `PlayerModule` stops default controls; spike report). Open: phone, device row 1 |
+| 09 U2 | `buffer` values travel as remote arguments; their size on the wire; the cost of the engine's own creature replication | The prey byte budget | Spikes S6, S7 | Sprint 0. **Partly settled 14 Oct 2026** (S7: buffers arrive intact; about 930–980 bytes on the wire per 900-byte payload; 999 bytes and more are dropped silently). Open: Wi-Fi loss; the engine's own creature replication cost |
+| 09 U3 | A server `CFrame` write on a client-owned part moves it on the owner | Movement correction | Spike S4 | **Settled 14 Oct 2026** (S4, Mac Studio: the owner arrives in 0.02–0.27 s at 0–200 ms lag; spike report) |
+| 09 U4 | Server Authority works with a custom controller and no Humanoid; its release status | The fallback for movement cheating | Spike S12 | Sprint 0. Open: S12 failed inconclusively (spike report) |
+| 09 U6 | Chat bubbles on a model with no Humanoid | The launch chat plan (D7) | Spike S16 | **Settled 14 Oct 2026** (S16: the bubble draws with `ChatVersion = TextChatService`; nothing draws under legacy chat; spike report) |
+| 09 U9 | Luau execution concurrency: 10 per place or 2 per universe | CI engine job | Spike S17 | Sprint 0. Open: S17 not run (needs GULP CI, task S0-M1) |
+| 09 U10 | Relative string requires resolve the same way in Roblox, Lune and luau-lsp | One code base, three runtimes | Spike S11 | **Settled 14 Oct 2026** (S11: same results in Roblox, Lune 0.10.5 and luau-lsp 1.70.1 strict; spike report) |
+| 09 U13 | MCP can start a multi-client test; the Rojo plugin reconnects without a click | How much testing the owner does by hand | Spike S15 | Sprint 0. **Multi-client half settled 14 Oct 2026** (S15: yes through `StudioTestService:ExecuteMultiplayerTestAsync`, not through `start_stop_play`). Open: Rojo plugin reconnect |
+| 09 U15 | Studio and Blender memory use on this Mac | The two-heavy-jobs rule | Activity Monitor | **Settled 14 Oct 2026** (Studio idle 3.1 GB, play test 3.6–3.9 GB, two-client test about 9.3 GB physical footprint; Blender 385–392 MB; spike report §3) |
+| 09 U18 | Two skinned MeshParts on one skeleton; `PauseOutsideLoadedArea` with a non-Humanoid character | Juvenile and adult meshes; streaming | Spikes S8, S5 | **Settled 14 Oct 2026** (S8: body, LOD1 and shell deform on one skeleton; S5: the pause freezes the root without anchoring it, harmless; spike report) |
+| 09 U19, 08 E5 | Which core interface cannot be removed (the Roblox menu button is expected) | HUD keep-out box | Spike S10 | Sprint 0. Open: Mac Studio shows no menu button with all core GUI off, but `TopbarInset` still reserves 120 × 58 px; a real client and a phone are needed |
+| 06 §18.2 | A flipped-face shell draws as an outline on a skinned mesh | Outlines | Rig spike | **Settled 14 Oct 2026** (Mac Studio: the shell draws as a rim on the animated skinned body; spike report) |
+| 06 §18.2 | Code can write `Bone.Transform` beside a playing clip; bone spreading stretches cleanly; a rigid piece follows a socket bone; 32 bones are accepted; any bone-count limit | Sway, squash and stretch, trait pieces | Rig spike | Sprint 0. **Mostly settled 14 Oct 2026** (writes hold on `PreRender` only; spreading stretches cleanly; a rigid piece follows a socket through `RigidConstraint`; 28 bones accepted, and sockets survive import only with a weight of 0.02 or more; spike report). Open: 32 bones and any limit |
+| 06 §2.4 | Vertex colour multiplies under a `SurfaceAppearance`; a flat roughness texture removes the plastic shine; emissive masks work on a game mesh on every target device | The texturing method; Glow and Moonlit | Surface spike | Sprint 0. **Mac half settled 14 Oct 2026**: vertex colour does **not** show under a `SurfaceAppearance`; flat roughness removes the shine; emissive masks work in Studio (spike report). Open: emissive on target phones |
+| 06 §8.4 | Which of overlay options A, B or C works for traits | Every overlay row in chapter 07 | Trait spike | **Settled 14 Oct 2026** (Mac Studio: B works when built into the template; A projects per face; C is refused to game scripts; spike report) |
+| 06 §10, 15 PF26 | Atmosphere or legacy fog; whether `Lighting.Technology` is still editable; whether Realistic lighting holds 30 fps on a low phone; real ranges for Atmosphere and post-processing values | Every lighting preset | Lighting spike | Sprint 0. **Partly settled 14 Oct 2026**: `Lighting.Technology` is unreadable by scripts; legacy fog meets the 220 and 350 caps; the Atmosphere presets did not (spike report). Open: Realistic on device row 1; the real ranges |
+| 06 §14 | No official phone budget exists; the busy frame of 06 §14.2 on a low and a mid phone | All art budgets | Phone spike | Sprint 0. Open: S0-A6 not run (device rows 1 and 3) |
+| 06 §6.7 | FBX scale factor and vertex-colour space on import | The export script | Calibration spike | **Settled 14 Oct 2026** (scale factor 0.01 gives 4 studs facing Front; vertex colours are read as sRGB; spike report) |
 
 ### 2.2 Settled during the build
 
 | Ref | Fact | Why it matters | How to verify | Settle by |
 |---|---|---|---|---|
-| 09 U16 | StyLua and Selene config keys; whether `luau-lsp analyze` loads Roblox definitions unaided; Rojo's default port | The headless gate | First run of `tools/check` | Sprint 1 |
+| 09 U16 | StyLua and Selene config keys; whether `luau-lsp analyze` loads Roblox definitions unaided; Rojo's default port | The headless gate | First run of `tools/check` | Sprint 1. **Partly settled 14 Oct 2026** (S11: `luau-lsp analyze` does not load Roblox definitions unaided; it needs `--definitions`). Open: StyLua and Selene keys; Rojo's port |
 | 09 U17 | `rojo build` can write non-scriptable Workspace properties into the CI place | CI place settings | Task S1-C1 | Sprint 1 |
 | 09 U7, 06 §2.4, 08 E14 | Maximum texture size (the page says 4,096 and 1,024); images above 1,024 px are scaled down on upload | Atlas plan and texture sizes | Upload a 2,048 px test image and read it back | Sprint 1 |
 | 07 §1.4, 12 | Audio upload quota (2,000 files per 30 days for an ID-verified account) and mesh upload fees | The upload calendar; cost | Read the audio assets page; upload one mesh | Sprint 1 |
 | 15 PF21 | Default screen orientation (two pages disagree) | Landscape lock | Set it explicitly; check on device row 1 | Sprint 2 |
 | 08 E15, 15 PF22 | Phone viewports are reported in device-independent pixels | The scale formula | Print `Camera.ViewportSize` on device rows 1 and 2 | Sprint 2 |
-| 08 E6, E7 | The top bar is 58 px tall; `DeviceSafeInsets` does not cover the iOS home bar | Keep-out box; the 40 rpx bottom rule | Read `GuiService.TopbarInset` at run time; look at device row 2 | Sprint 4 |
+| 08 E6, E7 | The top bar is 58 px tall; `DeviceSafeInsets` does not cover the iOS home bar | Keep-out box; the 40 rpx bottom rule | Read `GuiService.TopbarInset` at run time; look at device row 2 | Sprint 4. **Top-bar half measured 14 Oct 2026** on Mac Studio (`TopbarInset` height 58 px). Open: device row 2 |
 | 08 E12 | `ReplicatedFirst:RemoveDefaultLoadingScreen()` and `TeleportService:SetTeleportGui()` behave as remembered | Loading screen | Task S6-C1 | Sprint 6 |
 | 15 §6 | The exact `Stats` call for client memory; no reliable way to read the quality level under Automatic (PF25) | Quality scaling | Task S8-C5 | Sprint 8 |
 | 09 U11, 15 PF28 | `BindToClose` time limit, server memory ceiling, the memory at which phones close the client | Shutdown settlement; memory budgets | Soak and phone runs | Sprint 18 |

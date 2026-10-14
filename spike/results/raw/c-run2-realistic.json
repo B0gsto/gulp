@@ -1,0 +1,330 @@
+{
+ "edit": {
+  "styleAfter": "Enum.LightingStyle.Realistic",
+  "cubeExtentsSize": "4, 4.000000476837158, 4.100000381469727",
+  "prioAfter": true,
+  "saProps": {
+   "ColorMapContent": true,
+   "AlphaMode": true,
+   "RoughnessMapContent": true,
+   "EmissiveTint": true,
+   "EmissiveMaskContent": true,
+   "EmissiveStrength": true,
+   "Color": true
+  },
+  "cubeColor": "0.639216, 0.635294, 0.647059",
+  "prioWrite": true,
+  "rigParts": {
+   "M_Species_Base_Fish_Crest": {
+    "dbl": false,
+    "size": "0.044984109699726105, 0.27868393063545227, 0.46040651202201843",
+    "skinned": false
+   },
+   "M_Species_Base_Fish_Shell": {
+    "dbl": false,
+    "size": "0.812638521194458, 1.340000033378601, 3.2400002479553223",
+    "skinned": true
+   },
+   "M_Species_Base_Fish": {
+    "dbl": false,
+    "size": "0.699999988079071, 1.100000023841858, 3",
+    "skinned": true
+   },
+   "M_Species_Base_Fish_LOD1": {
+    "dbl": false,
+    "size": "0.699999988079071, 1.100000023841858, 3",
+    "skinned": true
+   }
+  },
+  "cubeMeshBounds": [
+   -2,
+   2,
+   -2.000000238418579,
+   2.000000476837158,
+   -2.0500001907348633,
+   2.0500001907348633
+  ],
+  "cubeSize": "4, 4.000000953674316, 4.100000381469727",
+  "rigBones": 18,
+  "cubeCF": "0, 2, -0.0499994755, 1, 0, 0, 0, 1, 0, 0, 0, 1",
+  "prioBefore": false,
+  "styleBefore": "Enum.LightingStyle.Realistic",
+  "styleWrite": true,
+  "cubeColors": [
+   {
+    "color": "0.502,0.502,0.502",
+    "z": "2.05..2.05",
+    "mean": "0.00,-0.00,2.05",
+    "n": 6
+   },
+   {
+    "color": "0.000,0.000,1.000",
+    "z": "-1.95..2.05",
+    "mean": "0.00,2.00,0.05",
+    "n": 6
+   },
+   {
+    "color": "1.000,0.604,0.239",
+    "z": "-1.95..-1.95",
+    "mean": "0.00,0.00,-1.95",
+    "n": 6
+   },
+   {
+    "color": "0.000,1.000,0.000",
+    "z": "-1.95..2.05",
+    "mean": "2.00,0.00,0.05",
+    "n": 6
+   },
+   {
+    "color": "0.078,0.129,0.239",
+    "z": "-2.05..-1.93",
+    "mean": "-0.17,-0.17,-1.99",
+    "n": 96
+   },
+   {
+    "color": "1.000,1.000,1.000",
+    "z": "-1.95..2.05",
+    "mean": "0.00,-2.00,0.05",
+    "n": 6
+   },
+   {
+    "color": "1.000,0.000,0.000",
+    "z": "-1.95..2.05",
+    "mean": "-2.00,0.00,0.05",
+    "n": 6
+   }
+  ]
+ },
+ "realistic_clientReady": true,
+ "cube": {
+  "color": "0.639216, 0.635294, 0.647059",
+  "orient": "0, 0, 0",
+  "pos": "0, 2, -0.04999947547912598",
+  "size": "4, 4.000000953674316, 4.100000381469727"
+ },
+ "shot_cube": [
+  true,
+  ""
+ ],
+ "rigs": {
+  "crestConstraint": {
+   "crestMove": 0.04205416515469551,
+   "spine4MaxAngle": 0.25611674785614014,
+   "maxErr": 0,
+   "timePos": 0.25416672229766846,
+   "sockMove": 0.04205416515469551
+  },
+  "boneCode": {
+   "jawAtPreAnim": 0.5999999642372131,
+   "spine3AfterAnimMin": 0.00960566010326147,
+   "girthLRest": 0.3962584435939789,
+   "spine3Written": 0.5,
+   "jawAfterAnim": 0,
+   "girthL": 0.11887754499912262,
+   "spine3AfterAnimMax": 0.15933920443058014,
+   "preAnimN": 92,
+   "jawWritten": 0.5999999642372131,
+   "n": 92
+  },
+  "importedBones": 18,
+  "boneCount": 28,
+  "trackPlaying": true,
+  "variants": [],
+  "sa": {
+   "SA+emissive": {
+    "ColorMapContent": true,
+    "RoughnessMapContent": true,
+    "EmissiveTint": true,
+    "EmissiveMaskContent": true,
+    "EmissiveStrength": true,
+    "MetalnessMapContent": true
+   },
+   "SA white+rough": {
+    "MetalnessMapContent": true,
+    "ColorMapContent": true,
+    "RoughnessMapContent": true
+   }
+  },
+  "socketParent": "Spine1",
+  "clipLength": 0.5333333611488342,
+  "shellDoubleSided": false,
+  "overlayB": {
+   "ok": true
+  },
+  "shellColor": "0.639216, 0.635294, 0.647059",
+  "overlayC": {
+   "ok": true
+  },
+  "overlayA": {
+   "ok": true
+  }
+ },
+ "shot_rigs": [
+  true,
+  ""
+ ],
+ "crestCode": {
+  "maxErr": 0.005929758306592703,
+  "crestMove": 0.024602171033620834
+ },
+ "scale": {
+  "ok": true,
+  "scaleMs": 0.47091666783671826,
+  "scale": 6.5,
+  "spine4Ang65": 0.25611674785614014,
+  "crestErr": 0,
+  "tailSwing1": 0.23499290645122528,
+  "crestMove": 0.21402935683727264,
+  "size0": "0.699999988079071, 1.100000023841858, 3",
+  "size1": "4.549999713897705, 7.150000095367432, 19.5",
+  "spine4Ang1": 0.2558017373085022,
+  "timePos": 0.06666672974824905,
+  "tailSwing65": 2.636455535888672,
+  "spine4Pos": "6.409494854920721e-31, 3.575000047683716, 6.350475700855895e-14",
+  "playing": true
+ },
+ "shot_scale": [
+  true,
+  ""
+ ],
+ "realistic_light_atm032": {
+  "density": 0.32,
+  "mode": "atm"
+ },
+ "realistic_scene_atm032": {
+  "p50": 16.681917011737823,
+  "prio": true,
+  "style": "Enum.LightingStyle.Realistic",
+  "balls": {
+   "150": [
+    578.3773803710938,
+    349.2315979003906
+   ],
+   "300": [
+    701.6226196289062,
+    349.2315979003906
+   ],
+   "450": [
+    763.2452392578125,
+    349.2315979003906
+   ],
+   "100": [
+    516.7547607421875,
+    349.2315368652344
+   ],
+   "220": [
+    640,
+    349.2315673828125
+   ]
+  },
+  "p99": 18.558332696557045,
+  "vp": [
+   1280,
+   719
+  ],
+  "max": 25.90250037610531,
+  "meanMs": 16.667100490691762
+ },
+ "realistic_shot_atm032": [
+  true,
+  ""
+ ],
+ "realistic_light_atm050": {
+  "density": 0.5,
+  "mode": "atm"
+ },
+ "realistic_scene_atm050": {
+  "p50": 16.690000891685486,
+  "prio": true,
+  "style": "Enum.LightingStyle.Realistic",
+  "balls": {
+   "150": [
+    578.3773803710938,
+    349.2315979003906
+   ],
+   "300": [
+    701.6226196289062,
+    349.2315979003906
+   ],
+   "450": [
+    763.2452392578125,
+    349.2315979003906
+   ],
+   "100": [
+    516.7547607421875,
+    349.2315368652344
+   ],
+   "220": [
+    640,
+    349.2315673828125
+   ]
+  },
+  "p99": 18.69429089128971,
+  "vp": [
+   1280,
+   719
+  ],
+  "max": 49.362290650606155,
+  "meanMs": 16.72268107921506
+ },
+ "realistic_shot_atm050": [
+  true,
+  ""
+ ],
+ "realistic_light_fog220": {
+  "mode": "fog",
+  "fogEnd": 220
+ },
+ "realistic_scene_fog220": {
+  "p50": 16.691166907548904,
+  "prio": true,
+  "style": "Enum.LightingStyle.Realistic",
+  "balls": {
+   "150": [
+    578.3773803710938,
+    349.2315979003906
+   ],
+   "300": [
+    701.6226196289062,
+    349.2315979003906
+   ],
+   "450": [
+    763.2452392578125,
+    349.2315979003906
+   ],
+   "100": [
+    516.7547607421875,
+    349.2315368652344
+   ],
+   "220": [
+    640,
+    349.2315673828125
+   ]
+  },
+  "p99": 18.76845769584179,
+  "vp": [
+   1280,
+   719
+  ],
+  "max": 25.27533285319805,
+  "meanMs": 16.66838734721144
+ },
+ "realistic_shot_fog220": [
+  true,
+  ""
+ ],
+ "realistic_mem": {
+  "rssMb": 2382,
+  "footprint": "3.9G",
+  "footprintPeak": "3.9G"
+ },
+ "realistic_console": {
+  "lines": 5,
+  "suspect": []
+ },
+ "realistic_edit": true,
+ "restore": [
+  true,
+  "Enum.LightingStyle.Soft false"
+ ]
+}

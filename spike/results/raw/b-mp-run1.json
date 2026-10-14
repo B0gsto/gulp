@@ -1,0 +1,551 @@
+{
+ "memBefore": {
+  "11479": {
+   "rssMb": 1288,
+   "footprint": "3.2G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 2836,
+   "footprint": "2.6G",
+   "footprintPeak": "3.0G"
+  }
+ },
+ "editLagBefore": "0",
+ "roles": {
+  "Player1": "e5c549ad-ad80-4e0a-a99b-1788971cbd23",
+  "Player2": "ebc74027-2bfc-4c38-87f4-51aa39cb0d7f",
+  "server": "f6b8f83e-6700-4ddf-801a-0a613a0ef468"
+ },
+ "startS": 14.5,
+ "newPids": [
+  "52740",
+  "52745",
+  "52748"
+ ],
+ "windows": {
+  "52740": "Server - Roblox Studio",
+  "52745": "Place1 - Roblox Studio",
+  "52748": "Place1 - Roblox Studio"
+ },
+ "memMp": {
+  "11479": {
+   "rssMb": 492,
+   "footprint": "3.2G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 480,
+   "footprint": "2.6G",
+   "footprintPeak": "3.0G"
+  },
+  "52740": {
+   "rssMb": 439,
+   "footprint": "2.0G",
+   "footprintPeak": "2.1G"
+  },
+  "52745": {
+   "rssMb": 819,
+   "footprint": "2.1G",
+   "footprintPeak": "2.1G"
+  },
+  "52748": {
+   "rssMb": 1334,
+   "footprint": "2.1G",
+   "footprintPeak": "2.2G"
+  }
+ },
+ "lag_0": {
+  "set": {
+   "server": "true nil now=0",
+   "p1": "true nil now=0",
+   "p2": "true nil now=0"
+  },
+  "rttP1": {
+   "p50": 0.033,
+   "max": 0.049,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.033,
+   "max": 0.049,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.005,
+    "rigLagMax": 0.237,
+    "maxRawSpeed": 4.928,
+    "rawPopMax": 0.042,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.005,
+    "frames": 7,
+    "rawPopP99": 0.042
+   },
+   "frameMsP50": 16.656,
+   "tau": 0.08,
+   "frameMsMax": 19.816,
+   "dash": {
+    "rigPopMax": 0.055,
+    "rigLagMax": 1.891,
+    "maxRawSpeed": 115.213,
+    "rawPopMax": 1.928,
+    "rawStallFrames": 42,
+    "rigPopP99": 0.055,
+    "frames": 48,
+    "rawPopP99": 1.928
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "delay": 0.058,
+    "msgDelay": 0.04
+   },
+   {
+    "delay": "not seen",
+    "msgDelay": 0.024
+   },
+   {
+    "delay": 0.041,
+    "msgDelay": 0.024
+   },
+   {
+    "delay": 0.058,
+    "msgDelay": 0.024
+   },
+   {
+    "delay": "not seen",
+    "msgDelay": 0.024
+   },
+   {
+    "delay": 0.041,
+    "msgDelay": 0.025
+   }
+  ]
+ },
+ "lag_01": {
+  "set": {
+   "server": "true nil now=0.1",
+   "p1": "true nil now=0.1",
+   "p2": "true nil now=0.1"
+  },
+  "rttP1": {
+   "p50": 0.233,
+   "max": 0.25,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.233,
+   "max": 0.266,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.028,
+    "rigLagMax": 6.088,
+    "maxRawSpeed": 51.683,
+    "rawPopMax": 0.665,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.009,
+    "frames": 642,
+    "rawPopP99": 0.188
+   },
+   "frameMsP50": 16.664,
+   "tau": 0.08,
+   "frameMsMax": 36.957,
+   "dash": {
+    "rigPopMax": 0.204,
+    "rigLagMax": 12.754,
+    "maxRawSpeed": 458.827,
+    "rawPopMax": 5.176,
+    "rawStallFrames": 9,
+    "rigPopP99": 0.063,
+    "frames": 543,
+    "rawPopP99": 2.34
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "delay": 0.173,
+    "msgDelay": 0.139
+   },
+   {
+    "delay": 0.125,
+    "msgDelay": 0.108
+   },
+   {
+    "delay": 0.158,
+    "msgDelay": 0.123
+   },
+   {
+    "delay": 0.108,
+    "msgDelay": 0.108
+   },
+   {
+    "delay": 0.123,
+    "msgDelay": 0.122
+   },
+   {
+    "delay": 0.155,
+    "msgDelay": 0.121
+   }
+  ]
+ },
+ "lag_02": {
+  "set": {
+   "server": "true nil now=0.2",
+   "p1": "true nil now=0.2",
+   "p2": "true nil now=0.2"
+  },
+  "rttP1": {
+   "p50": 0.433,
+   "max": 0.45,
+   "n": 12
+  },
+  "rttP2": {
+   "p50": 0.433,
+   "max": 0.449,
+   "n": 12
+  },
+  "S3": {
+   "cruise": {
+    "rigPopMax": 0.035,
+    "rigLagMax": 6.074,
+    "maxRawSpeed": 52.96,
+    "rawPopMax": 0.704,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.022,
+    "frames": 544,
+    "rawPopP99": 0.414
+   },
+   "frameMsP50": 16.687,
+   "tau": 0.08,
+   "frameMsMax": 34.227,
+   "dash": {
+    "rigPopMax": 0.07,
+    "rigLagMax": 12.983,
+    "maxRawSpeed": 560.181,
+    "rawPopMax": 7.25,
+    "rawStallFrames": 0,
+    "rigPopP99": 0.062,
+    "frames": 620,
+    "rawPopP99": 0.99
+   }
+  },
+  "S4server": {
+   "freezeDriftStuds": 0,
+   "writes": 6
+  },
+  "S4err": null,
+  "S4client": [
+   {
+    "delay": 0.272,
+    "msgDelay": 0.252
+   },
+   {
+    "delay": 0.226,
+    "msgDelay": 0.225
+   },
+   {
+    "delay": 0.259,
+    "msgDelay": 0.225
+   },
+   {
+    "delay": "not seen",
+    "msgDelay": 0.226
+   },
+   {
+    "delay": 0.242,
+    "msgDelay": 0.225
+   },
+   {
+    "delay": "not seen",
+    "msgDelay": 0.208
+   }
+  ]
+ },
+ "S7sweep_server": [
+  {
+   "seconds": 2.499,
+   "size": 950,
+   "phase": 11,
+   "sent": 10,
+   "serverDataSendKbps": [
+    4.896789073944092,
+    7.517793655395508,
+    3.9139010906219482,
+    2.357781171798706
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.483,
+   "size": 970,
+   "phase": 12,
+   "sent": 10,
+   "serverDataSendKbps": [
+    5.243558406829834,
+    8.180037498474121,
+    4.152040958404541,
+    2.4390602111816406
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.484,
+   "size": 980,
+   "phase": 13,
+   "sent": 10,
+   "serverDataSendKbps": [
+    5.287484169006348,
+    8.11601734161377,
+    4.402710914611816,
+    2.433675765991211
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.5,
+   "size": 985,
+   "phase": 14,
+   "sent": 10,
+   "serverDataSendKbps": [
+    5.30412483215332,
+    7.850398063659668,
+    4.320877552032471,
+    2.6651532649993896
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.516,
+   "size": 990,
+   "phase": 15,
+   "sent": 10,
+   "serverDataSendKbps": [
+    4.277571201324463,
+    8.319477081298828,
+    4.549931049346924,
+    2.5715267658233643
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.5,
+   "size": 995,
+   "phase": 16,
+   "sent": 10,
+   "serverDataSendKbps": [
+    5.522067070007324,
+    7.945355415344238,
+    4.400186538696289,
+    2.596489429473877
+   ],
+   "rateHz": 10
+  },
+  {
+   "seconds": 2.5,
+   "size": 999,
+   "phase": 17,
+   "sent": 10,
+   "serverDataSendKbps": [
+    0.65379798412323,
+    0.5582950115203857,
+    0.5036495923995972,
+    0.46849289536476135
+   ],
+   "rateHz": 10
+  }
+ ],
+ "S7sweep_client": [
+  {
+   "corrupt": 0,
+   "phase": 11,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 950
+  },
+  {
+   "corrupt": 0,
+   "phase": 12,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 970
+  },
+  {
+   "corrupt": 0,
+   "phase": 13,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 980
+  },
+  {
+   "corrupt": 0,
+   "phase": 14,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 985
+  },
+  {
+   "corrupt": 0,
+   "phase": 15,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 990
+  },
+  {
+   "corrupt": 0,
+   "phase": 16,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 0,
+   "intact": 10,
+   "expected": 10,
+   "dup": 0,
+   "size": 995
+  },
+  {
+   "corrupt": 0,
+   "phase": 17,
+   "clientDataReceiveKbps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reordered": 0,
+   "wrongType": 0,
+   "lossPct": 100,
+   "intact": 0,
+   "expected": 10,
+   "dup": 0,
+   "size": 999
+  }
+ ],
+ "lagReset": {
+  "server": "true nil now=0",
+  "p1": "true nil now=0",
+  "p2": "true nil now=0"
+ },
+ "end": "sabuiltin_Assistant.rbxm.Assistant.Packages._Index.AssistantUI.AssistantUI.Tools.ExecuteLuauTool:86: sabuiltin_Assistant.rbxm.Assistant.Packages._Index.AssistantUI.AssistantUI.Util.CommandExecution:54: Argument 1 missing or nil",
+ "leftover": [
+  "52740",
+  "52745",
+  "52748"
+ ],
+ "editLagAfter": "0",
+ "memAfter": {
+  "11479": {
+   "rssMb": 610,
+   "footprint": "3.1G",
+   "footprintPeak": "3.9G"
+  },
+  "52405": {
+   "rssMb": 384,
+   "footprint": "2.5G",
+   "footprintPeak": "3.0G"
+  },
+  "52740": {
+   "rssMb": 384,
+   "footprint": "2.0G",
+   "footprintPeak": "2.1G"
+  },
+  "52745": {
+   "rssMb": 615,
+   "footprint": "2.1G",
+   "footprintPeak": "2.1G"
+  },
+  "52748": {
+   "rssMb": 681,
+   "footprint": "2.1G",
+   "footprintPeak": "2.2G"
+  }
+ }
+}
