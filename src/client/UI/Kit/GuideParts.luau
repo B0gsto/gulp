@@ -602,7 +602,10 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		"UISizeConstraint",
 		{ MaxSize = Vector2.new(textMax, 2000), Parent = label }
 	) :: UISizeConstraint
-	Draw.slot("UI_Guide_Bubble", panel, z + 1).ScaleType = Enum.ScaleType.Slice
+	-- The 9-slice art sits in a frame that follows the panel (not in the panel: its list layout
+	-- would take the slot for a row).
+	local skin = Draw.new("Frame", { Name = "Skin", ZIndex = z + 1, Parent = root }) :: Frame
+	Draw.slot("UI_Guide_Bubble", skin, z + 1).ScaleType = Enum.ScaleType.Slice
 	-- The tail: a square turned 45 degrees under the panel, so only its lower point shows.
 	local tail = Draw.new("Frame", {
 		Name = "Tail",
@@ -644,8 +647,9 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		end,
 		size = function(scale: number): (number, number)
 			local s = panel.AbsoluteSize
-			-- 08 §1.5: past two lines, the text drops to 22 before it wraps further.
-			local lines = label.TextBounds.Y / math.max(1e-3, label.TextSize)
+			-- 08 §1.5: past two lines, the text drops to 22 before it wraps further. TextBounds is
+			-- in pixels; a line of Nunito is about 1.36 x its size.
+			local lines = label.TextBounds.Y / math.max(1e-3, label.TextSize * scale * 1.36)
 			local rpx = label:GetAttribute(Screen.TEXT_RPX)
 			if lines > G.bubbleLines + 0.5 and rpx == G.bubbleText then
 				label:SetAttribute(Screen.TEXT_RPX, HudLayout.TEXT_FLOOR)
@@ -657,6 +661,8 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 			place(panel, rect.x, rect.y)
 			place(shadow, rect.x, rect.y + Theme.SHADOW_OFFSET)
 			shadow.Size = UDim2.fromOffset(rect.width, rect.height)
+			place(skin, rect.x, rect.y)
+			skin.Size = UDim2.fromOffset(rect.width, rect.height)
 			tail.Visible = side ~= "slot"
 			local inset = G.tailHeight * 0.25
 			if side == "above" then
