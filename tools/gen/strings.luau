@@ -4,8 +4,9 @@
 --   lune run tools/gen/strings                   the English table from the CSV (committed)
 --   lune run tools/gen/strings -- --from-docs    first rewrites the CSV from chapter 08's text
 --                                                list (sections 14.1 to 14.12), then as above
--- The CSV (`key, context, en`) is also the file uploaded as the cloud localisation table, so it
--- is the source; tests/unit/tools/strings.spec checks it still matches chapter 08 word for word.
+-- The CSV (`Key, Context, Example, Source`, English in `Source`: the cloud table's columns,
+-- docs/09 §18.1) is also the file uploaded as the cloud localisation table, so it is the source;
+-- tests/unit/tools/strings.spec checks it still matches chapter 08 word for word.
 -- Every key must be well formed (Logic/LocFormat.isKey) and every parameter must take a
 -- documented form, `{Name}` or `{1:int}` (V30).
 local fs = require("@lune/fs")

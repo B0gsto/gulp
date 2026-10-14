@@ -90,8 +90,8 @@ canEat(eater, target):
 
 | Volume | Who is safe inside | Who may enter |
 |---|---|---|
-| `NurserySafe` | Everyone, from players and predators | Tier 1 and 2 only (section 6.5) |
-| `CoveSafe` (one per cove) | Everyone | Owner always. Others: section 13.4 |
+| `SafeNursery` | Everyone, from players and predators | Tier 1 and 2 only (section 6.5) |
+| The cove: `CoveMouth` and `CoveInterior` (two per cove, section 11.1) | Everyone | Owner always. Others: section 13.4 |
 
 No bite of any kind on a player happens while the victim's centre is inside a safe volume. Eating prey inside a safe volume is allowed.
 
@@ -115,7 +115,7 @@ Overlays: `Dashing`, `Puffed`, `Tucked`, `Jetting`, `Rampaging`, `Slowed`, `Camo
 
 ### 0.7 Run lifecycle
 
-1. A run **starts** when the centre leaves the owner's `CoveSafe` (`InCove` → `Swimming`). The run timer starts.
+1. A run **starts** when the centre leaves the owner's cove, its `CoveMouth` and `CoveInterior` (`InCove` → `Swimming`). The run timer starts.
 2. A run is **armed for banking** once mass ≥ 1.
 3. Re-entering the own cove with mass < 1 cancels the run silently (back to `InCove`; not counted in any statistic). Re-entering it with an armed run banks it at once (canon 5.4; section 11.2); an armed run is never cancelled.
 4. A run **ends** by banking (section 11), by being gulped without a revive (section 12), or by a suspended run expiring (section 16.5).
@@ -480,7 +480,7 @@ predator:           gain = predator.mass (document 03) × (1 + 0.25 Bonefed)
 
 - Spots applies to prey and trait prey only. Bonefed applies to every gain.
 - `feedGuard` (section 6.6) halves the gain for the second and third time the same victim is eaten inside 10 minutes, and is 0 from the fourth time: 1, 0.5, 0.25, then 0.
-- **Nursery prey** (document 05, section 2.1): prey eaten inside `NurserySafe` gives 100% of its mass to a tier 1 creature, 50% to a tier 2 creature and nothing to tier 3 or higher (possible only during the 10 s exit prompt, section 6.5).
+- **Nursery prey** (document 05, section 2.1): prey eaten inside `SafeNursery` gives 100% of its mass to a tier 1 creature, 50% to a tier 2 creature and nothing to tier 3 or higher (possible only during the 10 s exit prompt, section 6.5).
 - Mass is a decimal number. Display: one decimal below 10, whole numbers from 10.
 - Tier-up is checked after every gain (section 5).
 
@@ -555,7 +555,7 @@ A tier-down from 4 or higher to 3 or lower swaps back under the same cloud durin
 
 1. A player eats another player only if `canEat` is true: at least one full tier higher than the victim's defence tier, or two with Spiny.
 2. Tier 1 players are never eaten by players.
-3. Nobody is eaten inside `NurserySafe` or any `CoveSafe`.
+3. Nobody is eaten inside `SafeNursery` or any `CoveMouth` or `CoveInterior`.
 4. Nobody is eaten during a protection window (6.3).
 5. A new player cannot be eaten by anything before their first bank (for up to 240 s), and the first bite an account ever takes from another player is absorbed once (6.3; chapter 04, section 4 owns the detail).
 6. The eater gains 30% of the victim's mass (section 4.4). The victim's traits are not passed on.
@@ -576,7 +576,7 @@ A bump happens when two collision spheres overlap outside safe volumes and no ea
 | `Bumped` overlay | 0.25 s for both: no thrust, coast drag only. No stun, no mass loss. |
 | Pair cooldown | The same pair cannot bump again for 0.5 s |
 | Softness | Player-to-player contact is a push, never a solid wall. A creature can always squeeze past. |
-| Safe volumes | No player-to-player collision at all inside `NurserySafe` or `CoveSafe` |
+| Safe volumes | No player-to-player collision at all inside `SafeNursery`, a `CoveMouth` or a `CoveInterior` |
 
 ### 6.3 Protection windows
 
@@ -602,7 +602,7 @@ A protected creature shows a white bubble-shield outline to everyone and no red 
 | **Cove-mouth camping** | Each cove mouth has a 50-stud loiter radius. A non-owner of tier 2 or higher builds loiter time while inside it; the timer clears after 10 s outside. At 12 s the cove's current pushes the loiterer outward at 30 studs/s for 2 s and marks it `Shooed` for 60 s: it cannot eat players within 80 studs of that cove mouth. Chasing a player home is allowed; waiting at the door is not. |
 | **Predators at the door** | No predator spawns within 80 studs of a cove mouth or enters within 60 studs. A predator drops its target at that line. |
 | **Spawn killing** | Tier 1 immunity, the first-run shield and newcomer bubble, the 5 s spawn window, the 3 s of protection after a revive and the 90 s repeat guard. |
-| **Nursery hiding** | Creatures of tier 3 or higher cannot enter `NurserySafe` (6.5). |
+| **Nursery hiding** | Creatures of tier 3 or higher cannot enter `SafeNursery` (6.5). |
 | **Body blocking** | Bumps are soft pushes; there is no player collision inside safe volumes. |
 | **Pushing into danger** | Bump speed is capped at 30 studs/s for 0.25 s (about 4 studs of travel). |
 | **Teaming and feeding** | See 6.6. |
@@ -611,7 +611,7 @@ A protected creature shows a white bubble-shield outline to everyone and no red 
 
 - Tiers 1 and 2 enter freely.
 - A tier 3 or higher creature that reaches the inlet is pushed back at 20 studs/s by a visible outflow.
-- A creature that reaches tier 3 while inside gets a 10 s "Time to leave" prompt, then an outflow carries it to the inlet at 30 studs/s. It keeps `NurserySafe` protection until it crosses the inlet, then gets a normal 5 s spawn window.
+- A creature that reaches tier 3 while inside gets a 10 s "Time to leave" prompt, then an outflow carries it to the inlet at 30 studs/s. It keeps `SafeNursery` protection until it crosses the inlet, then gets a normal 5 s spawn window.
 
 ### 6.6 Teaming and feeding
 
@@ -913,7 +913,7 @@ Flee speed, flee distance, depth and spawn place for each trait prey are in docu
 Shared rules:
 
 - A predator targets only creatures for which `canEat(predator, creature)` is true. It re-checks every tick. A target that stops being legal (tier-up, Puff, protection, safe volume, `Camo`, ink) is dropped at once.
-- Predators never enter `NurserySafe`, any `CoveSafe`, or the 60 studs around a cove mouth.
+- Predators never enter `SafeNursery`, any `CoveMouth` or `CoveInterior`, or the 60 studs around a cove mouth.
 - Predators do not eat prey and do not grow.
 - A predator eaten by a player gives its fixed mass (Barracuda 25, Grouper 60) and respawns 45 s later at its home point, out of sight.
 - Predators ignore jelly blooms, anemones, vents and currents.
@@ -1132,8 +1132,8 @@ The surface is a hazard only through the Gull (section 9.4).
 
 ### 11.1 The cove mouth and "inside"
 
-- Each cove has one volume, `CoveSafe`: the cove interior up to the flat plane of the mouth opening. There is no porch outside it.
-- A creature is **inside** when its centre is inside `CoveSafe` on the server.
+- Each cove has two volumes, named in chapter 09, section 9.1 (`CoveIndex` = the cove number): `CoveMouth`, the throat from the flat plane of the mouth opening inward, and `CoveInterior`, the chamber behind it. Together they are the cove, from the mouth plane in. There is no porch outside it.
+- A creature is **inside** when its centre is inside its cove's `CoveMouth` or `CoveInterior` on the server.
 - Safety and banking start at the same instant: the tick on which the owner's centre crosses the mouth plane.
 - Requirement on document 03: every mouth opening is at least 30 studs across, so a tier 7 creature fits.
 - **Membrane:** a thin bubble film across each mouth. The owner passes freely. Others: section 13.4.
@@ -1184,6 +1184,7 @@ A specimen stores: species, pattern, tier, final mass, up to three trait IDs, Pl
 - The released one pays a refund: `max(5, floor(one hour of its income))` Pearls (document 05, section 3.10 owns the amount).
 - A specimen marked as locked **[L]** cannot be picked.
 - There is no timer. The player is safe in the cove and cannot start a new run until the choice is made.
+- Buying the next cove slot (document 05, section 4.2; the panel's More slots button, document 08, section 4.6) also ends the choice: the new creature moves into the new slot and nothing is released or refunded.
 - If the player disconnects with the panel open, the new creature is saved as `pendingSpecimen`. The panel opens again on the next join, before anything else.
 
 ### 11.6 Interrupted banking
@@ -1495,7 +1496,7 @@ Excluded runs still pay Pearls and still create specimens. Wild creatures never 
 ### 16.1 Server fill [MVP]
 
 - 24 players per server, 24 coves. Fill uses the Roblox default ("Roblox optimises server fill"). No slots are held back.
-- **Cove assignment** (chapter 04, section 5.5 owns the rule; chapter 03, section 6.7 names the coves): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, measured from Little Arch: C16, C17, C15, C18, then the next nearest, so its first trip home is short. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible **(tune)**. If the player joined a friend **[L]**, the nearest free cove to that friend's is used instead.
+- **Cove assignment** (chapter 04, section 5.5 owns the rule; chapter 03, section 6.7 names the coves): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, measured from Little Arch: C16, C17, C15, C18, then the next nearest, so its first trip home is short. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible **(tune)**; if all 20 are taken, the free one of the other four nearest Little Arch. If the player joined a friend **[L]**, the nearest free cove to that friend's is used instead.
 - A cove is kept for 120 s after its owner disconnects. If a new player joins and no other cove is free, the kept cove is given up at once.
 
 ### 16.2 Joining friends [L]

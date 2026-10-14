@@ -466,7 +466,7 @@ A chase with no automatic help is logged `clean`. The value on every `ftue_chase
 The route from the Home Current mouth to the cove mouth should be at most 450 studs **(tune)**, a ride of about 10 seconds. To make that possible:
 
 - When a player with `banks_total = 0` joins, the server gives them the free cove nearest the Gap.
-- When a player with `banks_total > 0` joins, the server gives them the free cove farthest from the Gap among those within the nearest 20, so the four closest stay free for newcomers where possible **(tune)**.
+- When a player with `banks_total > 0` joins, the server gives them the free cove farthest from the Gap among those within the nearest 20, so the four closest stay free for newcomers where possible **(tune)**. If all 20 are taken, they get the free one of the other four that is nearest the Gap.
 - If the route is longer than 600 studs anyway, the Home Current's speed is raised so the ride takes 12 s.
 
 The Home Current is drawn only for this player and disappears at the first bank.

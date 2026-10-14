@@ -15,8 +15,8 @@
 --             instead (printed as it is written when `Analytics.debugPrint` is true). Engine specs
 --             and the chapter 04 checklist read it with `Analytics.buffer()`.
 --   Log:      installs the counter of Util/Log (09 §4.6): every `Log.warn` and `Log.error` is
---             counted by level and tag (`Analytics.logCounts()`). Chapter 10 has no event to carry
---             these counts yet, so they are not sent.
+--             counted by level and tag (`Analytics.logCounts()`), in memory only: no event carries
+--             them (10 §2.4, 09 §4.6: the counts are per server, every event is per player).
 local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
