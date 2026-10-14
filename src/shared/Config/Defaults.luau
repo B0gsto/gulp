@@ -182,7 +182,9 @@ Defaults.input = table.freeze({
 
 -- The rule numbers of shared/Logic (task S4-C3) that the bible gives in prose or formulas, not in
 -- a data table. Table values are generated instead: cove base income per tier (05 §3.3
--- data:CoveIncome, in Tiers) and reward bands (05 §3.12 data:RewardBands). All (tune).
+-- data:CoveIncome, in Tiers), reward bands (05 §3.12 data:RewardBands), banking bands (canon 5.4
+-- data:BankRates), scraps shares (canon 5.5 data:Scraps) and slot prices (05 §4.2
+-- data:SlotPrices). All (tune).
 
 -- Logic/BiteRules: canon 5.2; 02 §4.2, §4.4, §6.1, §6.6.
 Defaults.bite = table.freeze({
@@ -207,16 +209,10 @@ Defaults.traits = table.freeze({
 	spinyDefence = 1, -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
 })
 
--- Logic/BankMath: canon 5.4, 5.5; 02 §0.7, §11.4; 05 §3.1, §3.2.
+-- Logic/BankMath: 02 §0.7, §11.4; 05 §3.1. The mass bands and rates (canon 5.4 data:BankRates)
+-- and the scraps shares (canon 5.5 data:Scraps) are generated, not here.
 Defaults.bank = table.freeze({
-	fullRateMass = 1200, -- 05 §3.1: 3 Pearls per mass up to here
-	ceilingMass = 3000, -- 05 §3.1: 1 Pearl per mass from 1,200 to here, nothing above
-	fullRate = 3, -- 05 §3.1
-	lowRate = 1, -- 05 §3.1
 	deepPockets = 2, -- 05 §3.1: ×2 with the Deep Pockets pass
-	scrapsRate = 0.10, -- canon 5.5, 05 §3.2
-	scrapsRateEarly = 0.50, -- canon 5.5: for the first three deaths on the account
-	earlyDeaths = 3, -- canon 5.5
 	armedMass = 1, -- 02 §0.7: a run is armed for banking once mass ≥ 1
 	specimenTier = 2, -- canon 5.4, 02 §11.4
 })

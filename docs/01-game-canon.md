@@ -117,17 +117,40 @@ Target time to reach each tier for an average player: tier 2 in 30 seconds, tier
 
 - Swim into your own cove mouth to bank. Banking happens at once, with no confirmation. Once inside you are safe.
 - Banking converts the run into Pearls, plus a **specimen** if you reached tier 2 or higher and have a free cove slot.
-- Pearls from banking **(tune)**: 3 per mass up to 1,200 mass, 1 per mass from 1,200 to 3,000, nothing above 3,000. The limit exists because a Leviathan is very hard to eat.
+- Pearls from banking **(tune)**: 3 per mass up to 1,200 mass, 1 per mass from 1,200 to 3,000, nothing above 3,000 (the table below is the authority). The limit exists because a Leviathan is very hard to eat.
 - A specimen stores species, tier, final mass, up to three traits, and the date.
 - If the cove is full, the player chooses a specimen to release (for a small Pearl refund) or releases the new one.
+
+<!-- data:BankRates -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| Mass from | Mass up to | Pearls per mass |
+|---|---|---|
+| 0 | 1,200 | 3 |
+| 1,200 | 3,000 | 1 |
+| 3,000 | No limit | 0 |
+
+<!-- /data -->
+
+Each band pays its rate for the mass inside it, and the bands add up: 2,000 mass pays 3 × 1,200 + 1 × 800 = 4,400 Pearls (chapter 05, section 3.1).
 
 ### 5.5 Getting gulped
 
 - The creature and its unbanked traits are lost.
-- The player receives 10% of the Pearls they would have banked ("scraps") **(tune)**. For the first three deaths on an account this is 50%.
+- The player receives 10% of the Pearls they would have banked ("scraps") **(tune)**. For the first three deaths on an account this is 50% (the table at the end of this section is the authority).
 - One revive per run: paid, or by watching a rewarded video where eligible. A revive returns the creature with its traits at 70% mass and 3 seconds of protection. The offer has no countdown timer, is not shown on an account's first death, and appears only when the lost creature had 30 mass or more (tier 3).
 - Respawn as a Fry at the cove in under 3 seconds. Only a new player's very first run starts in the Nursery; every later run starts at the cove.
 - **Disconnecting mid-run:** the creature stays in the water and can be eaten for 10 seconds, then the run is saved as suspended for 5 minutes. Rejoining in that time resumes it; after that it is lost with scraps paid.
+
+<!-- data:Scraps -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| Death on the account | Scraps (share of the Pearls the run would have banked) |
+|---|---|
+| 1st to 3rd | 50% |
+| 4th and later | 10% |
+
+<!-- /data -->
 
 ### 5.6 Controls principle
 

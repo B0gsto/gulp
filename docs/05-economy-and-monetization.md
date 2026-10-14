@@ -211,6 +211,8 @@ bankPearls = floor(basePearls × crystal × deepPockets)
     deepPockets = 2 if the player owns Deep Pockets, else 1
 ```
 
+The mass bands and their rates (3, 1 and 0 Pearls per mass) are canon 5.4's table (`data:BankRates`), which the code is generated from; the formula above restates it. The table below is worked examples of it.
+
 | Mass at bank | Tier | Base Pearls | With Crystal | With Deep Pockets | With both |
 |---|---|---|---|---|---|
 | 10 | 2 | 30 | 45 | 60 | 90 |
@@ -230,6 +232,8 @@ The canon's rate of 3 Pearls per mass is kept up to 1,200 mass. Above that the r
 scraps = floor(rate × bankPearls the run would have paid)
     rate = 0.50 for the first three deaths on the account, then 0.10
 ```
+
+The two rates are canon 5.5's table (`data:Scraps`), which the code is generated from.
 
 A creature gulped at 88 mass would have banked 264 Pearls, so it pays 26 (or 132 during the first three deaths).
 
@@ -448,20 +452,37 @@ The canon's species prices fit the pacing targets once cove income is retuned (s
 
 Slots 1 to 6 are free. Slot 7 costs 1,200 Pearls and each later slot costs about 1.25 times the one before, rounded to a tidy number. The table is the authority.
 
-| Slot | Price (Pearls) | Running total | Slot | Price (Pearls) | Running total |
-|---|---|---|---|---|---|
-| 7 | 1,200 | 1,200 | 19 | 17,500 | 82,750 |
-| 8 | 1,500 | 2,700 | 20 | 22,000 | 104,750 |
-| 9 | 1,900 | 4,600 | 21 | 27,500 | 132,250 |
-| 10 | 2,400 | 7,000 | 22 | 34,000 | 166,250 |
-| 11 | 3,000 | 10,000 | 23 | 43,000 | 209,250 |
-| 12 | 3,750 | 13,750 | 24 | 54,000 | 263,250 |
-| 13 | 4,500 | 18,250 | 25 | 67,000 | 330,250 |
-| 14 | 5,750 | 24,000 | 26 | 84,000 | 414,250 |
-| 15 | 7,250 | 31,250 | 27 | 105,000 | 519,250 |
-| 16 | 9,000 | 40,250 | 28 | 130,000 | 649,250 |
-| 17 | 11,000 | 51,250 | 29 | 165,000 | 814,250 |
-| 18 | 14,000 | 65,250 | 30 | 205,000 | 1,019,250 |
+<!-- data:SlotPrices -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| Slot | Price (Pearls) | Running total |
+|---|---|---|
+| 7 | 1,200 | 1,200 |
+| 8 | 1,500 | 2,700 |
+| 9 | 1,900 | 4,600 |
+| 10 | 2,400 | 7,000 |
+| 11 | 3,000 | 10,000 |
+| 12 | 3,750 | 13,750 |
+| 13 | 4,500 | 18,250 |
+| 14 | 5,750 | 24,000 |
+| 15 | 7,250 | 31,250 |
+| 16 | 9,000 | 40,250 |
+| 17 | 11,000 | 51,250 |
+| 18 | 14,000 | 65,250 |
+| 19 | 17,500 | 82,750 |
+| 20 | 22,000 | 104,750 |
+| 21 | 27,500 | 132,250 |
+| 22 | 34,000 | 166,250 |
+| 23 | 43,000 | 209,250 |
+| 24 | 54,000 | 263,250 |
+| 25 | 67,000 | 330,250 |
+| 26 | 84,000 | 414,250 |
+| 27 | 105,000 | 519,250 |
+| 28 | 130,000 | 649,250 |
+| 29 | 165,000 | 814,250 |
+| 30 | 205,000 | 1,019,250 |
+
+<!-- /data -->
 
 All 24 slots cost **1,019,250 Pearls**.
 
