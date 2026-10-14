@@ -1,6 +1,7 @@
 --!strict
--- HudLayout: the pure geometry of the run HUD stage 1 and of screens S11, S12 and S14 (docs/08,
--- sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.4, 4.5 and 5.1; docs/15, sections 3.1 to 3.3). Numbers and
+-- HudLayout: the pure geometry of the run HUD stage 1, of screens S11, S12 and S14 and of the
+-- guide kit S33 (docs/08, sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.4, 4.5, 5.1 and 7; docs/04,
+-- section 3.2; docs/15, sections 3.1 to 3.3). Numbers and
 -- tables only, so it runs in Lune; `client/UI` places instances where this module says.
 --
 -- Coordinates are rpx. A `content` rect is the safe frame less its margins (Kit/Screen's
@@ -499,6 +500,529 @@ function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: numb
 		dash = dash,
 		dashHit = dashHit,
 	}
+end
+
+-- 08 §7: the guide kit (S33) and chapter 04's prompts built from it (04 §3.2), on the `GulpGuide`
+-- layer. Rects are content-box rpx like the rest of this module; the danger edge alone is in rpx
+-- of the full screen (it reaches the physical edges). Sizes and timings are 08 §7's.
+HudLayout.TEXT_FLOOR = 22 -- 08 §1.5: Small 22 is the smallest text anywhere
+HudLayout.GUIDE = table.freeze({
+	-- G1 arrow: 96 rpx, bobbing 12 rpx at 1.5 Hz along its own direction, 8 rpx off its target.
+	arrow = 96,
+	bob = 12,
+	bobHz = 1.5,
+	arrowGap = 8,
+	-- Edge arrows (G1 for an off-screen target) ride the home marker's ellipse (08 §3.12).
+	edgeInset = 72,
+	-- G2 curved arrow.
+	curved = 128,
+	-- G3 hand and its loops (seconds).
+	hand = 112,
+	tapDown = 0.12,
+	tapUp = 0.38,
+	tapPause = 0.5,
+	dragTime = 0.8,
+	holdRing = 72,
+	-- G4 trail: a dot every 12 studs, at most 12; chevrons flow at two dots a second, one per
+	-- four dots; a dot fades out over the 3 studs after the creature passes it.
+	trailDot = 48,
+	trailChevron = 64,
+	trailSpacing = 12,
+	trailMax = 12,
+	chevronRate = 2,
+	chevronEvery = 4,
+	trailFade = 3, -- studs past a dot over which it fades out
+	trailNear = 30, -- studs from the camera within which a dot is drawn full size
+	-- G5 ring: 16 rpx around its target (never under the 96 rpx source image), 160 round a
+	-- point; pulses 1.0 to 1.15 at 1 Hz.
+	ring = 160,
+	ringMin = 96,
+	ringPad = 16,
+	ringPulse = 1.15,
+	ringHz = 1,
+	-- G6 cut-out: 50% dim, the hole 16 rpx round the target's hit area, corners 24.
+	cutoutDim = 0.5,
+	cutoutPad = 16,
+	cutoutRadius = 24,
+	-- G7 bubble: up to 420 wide, two lines of Body 24, 16 rpx padding; the tail is 24 x 16 and
+	-- the bubble keeps 16 rpx from its target. With no target it uses `HUD.MomentSlot` (08 §3.3).
+	bubbleMaxWidth = 420,
+	bubbleText = 24,
+	bubbleLines = 2,
+	bubblePad = 16,
+	bubbleLine = 32, -- one line of Body 24
+	bubbleGap = 16,
+	tailWidth = 24,
+	tailHeight = 16,
+	momentTop = 130,
+	momentHeight = 112,
+	-- G8 input hint and G9 step tick.
+	hint = 64,
+	hintGap = 8,
+	tick = 64,
+	tickTime = 0.4,
+	-- 08 §7 rules: in within 200 ms, out within 100 ms, a replay after 6 s with no input, and a
+	-- 0.5 Hz fade instead of bobbing and pulsing with Less motion.
+	appear = 0.2,
+	clear = 0.1,
+	idle = 6,
+	bounce = 0.4,
+	lessMotionHz = 0.5,
+	-- 04 §3.2 ghost thumb (08 §7): 112 rpx at 45%, an 84 rpx drag (the drag ring's reach; 128 for
+	-- the replay), every 1.6 s.
+	ghost = 112,
+	ghostOpacity = 0.45,
+	ghostDrag = 84,
+	ghostDragLong = 128,
+	ghostLoop = 1.6,
+	-- 04 §3.2 dash pulse: a white ring 8 rpx outside the button swells to 1.3x twice a second.
+	dashPulse = 1.3,
+	dashPulseHz = 2,
+	dashRingPad = 8,
+	-- 04 §3.3 HOME and DASH! chips.
+	tagHeight = 32,
+	tagText = 22,
+	dashTagHeight = 40,
+	dashTagText = 24,
+	tagGap = 8,
+	-- 04 §3.2 danger edge (08 §7): 96 rpx deep, 35% at the edge, out over 0.5 s.
+	dangerDepth = 96,
+	dangerOpacity = 0.35,
+	dangerFade = 0.5,
+})
+
+local function box(content: Size): Rect
+	return { x = 0, y = 0, width = content.width, height = content.height }
+end
+
+local function within(inner: Rect, outer: Rect): boolean
+	return inner.x >= outer.x - 1e-6
+		and inner.y >= outer.y - 1e-6
+		and inner.x + inner.width <= outer.x + outer.width + 1e-6
+		and inner.y + inner.height <= outer.y + outer.height + 1e-6
+end
+
+local function centredRect(x: number, y: number, width: number, height: number): Rect
+	return { x = x - width / 2, y = y - height / 2, width = width, height = height }
+end
+
+-- True when `rect` clears every `avoid` rect by `gap`, skipping the ones that share area with
+-- `own` (the target itself and its hit area).
+local function clearOf(rect: Rect, avoid: { Rect }, gap: number, own: Rect?): boolean
+	for _, r in avoid do
+		local mine = own ~= nil and HudLayout.overlaps(r, own)
+		if not mine and HudLayout.overlaps(rect, HudLayout.grow(r, gap)) then
+			return false
+		end
+	end
+	return true
+end
+
+-- 08 §7 rule: prompts never cover the keep-clear box, unless their target is in it (a world
+-- target beside the creature), when only the HUD is kept clear.
+local function clearOfBox(rect: Rect, content: Size, target: Rect?): boolean
+	local kc = HudLayout.keepClear(content)
+	if target and HudLayout.overlaps(HudLayout.grow(target, 1e-6), kc) then
+		return true
+	end
+	return not HudLayout.overlaps(rect, kc)
+end
+
+--- G5: the highlight ring round `target` (a zero-sized rect is a point).
+function HudLayout.guideRing(target: Rect): Rect
+	local g = HudLayout.GUIDE
+	local cx, cy = target.x + target.width / 2, target.y + target.height / 2
+	if target.width <= 0 and target.height <= 0 then
+		return centredRect(cx, cy, g.ring, g.ring)
+	end
+	return centredRect(
+		cx,
+		cy,
+		math.max(target.width + 2 * g.ringPad, g.ringMin),
+		math.max(target.height + 2 * g.ringPad, g.ringMin)
+	)
+end
+
+--- G6: the cut-out's hole, the target's hit area (at least the touch or mouse minimum, 08 §1.5)
+--- grown by 16 rpx, so every tap the target takes lands in the hole.
+function HudLayout.guideCutout(target: Rect, screenClass: ScreenClass): Rect
+	local hit = HudLayout.hitRect(target, HudLayout.minTarget(screenClass))
+	return HudLayout.grow(hit, HudLayout.GUIDE.cutoutPad)
+end
+
+--- The rect an arrow centred at (x, y) can take while it bobs.
+function HudLayout.arrowRect(x: number, y: number): Rect
+	local g = HudLayout.GUIDE
+	local side = g.arrow + 2 * g.bob
+	return centredRect(x, y, side, side)
+end
+
+-- Directions tried for an arrow beside its target, nearest the way to the centre first.
+local ARROW_DIRECTIONS = 16
+
+--- G1 beside an on-screen `target`: the arrow sits on the side facing the centre of the screen
+--- (the nearest direction that keeps it inside the content box, off the keep-clear box and clear
+--- of every `avoid` rect by 8 rpx) and points at the target. Returns its centre and the angle it
+--- points along (radians, screen space: 0 right, π/2 down).
+function HudLayout.guideArrow(
+	target: Rect,
+	content: Size,
+	avoid: { Rect }
+): (number, number, number)
+	local g = HudLayout.GUIDE
+	local cx, cy = target.x + target.width / 2, target.y + target.height / 2
+	local dx, dy = content.width / 2 - cx, content.height / 2 - cy
+	local toward = if math.abs(dx) + math.abs(dy) < 1 then -math.pi / 2 else math.atan2(dy, dx)
+	local order: { number } = {}
+	for i = 0, ARROW_DIRECTIONS - 1 do
+		table.insert(order, toward + i * 2 * math.pi / ARROW_DIRECTIONS)
+	end
+	local function gap(a: number): number
+		local d = math.abs((a - toward + math.pi) % (2 * math.pi) - math.pi)
+		return d
+	end
+	table.sort(order, function(a: number, b: number)
+		return gap(a) < gap(b)
+	end)
+	local area = box(content)
+	local clearTarget = HudLayout.grow(target, g.arrowGap)
+	local first: { number }? = nil
+	for _, a in order do
+		local ux, uy = math.cos(a), math.sin(a)
+		-- Walk out from the target's centre until the bobbing arrow clears it by 8 rpx.
+		local x, y = cx, cy
+		for step = 0, 200 do
+			x, y = cx + ux * step * 4, cy + uy * step * 4
+			if not HudLayout.overlaps(HudLayout.arrowRect(x, y), clearTarget) then
+				break
+			end
+		end
+		local rect = HudLayout.arrowRect(x, y)
+		local pointing = a + math.pi
+		if first == nil then
+			first = { x, y, pointing }
+		end
+		if
+			within(rect, area)
+			and clearOfBox(rect, content, target)
+			and clearOf(rect, avoid, g.arrowGap, target)
+		then
+			return x, y, pointing
+		end
+	end
+	local f = first :: { number } -- safe: the loop runs at least once
+	return f[1], f[2], f[3]
+end
+
+--- The point at `angle` (radians, from the centre) on the ellipse `inset` rpx inside `content`.
+function HudLayout.onEllipse(content: Size, angle: number, inset: number): (number, number)
+	local ax = math.max(0, content.width / 2 - inset)
+	local ay = math.max(0, content.height / 2 - inset)
+	return content.width / 2 + ax * math.cos(angle), content.height / 2 + ay * math.sin(angle)
+end
+
+--- G1 for an off-screen target: on the 72 rpx ellipse toward it (like `HUD.Home`, 08 §3.12),
+--- slid the shortest way until it clears every `avoid` rect by 16 rpx. Returns its centre and
+--- the angle it points along (outward, toward the target).
+function HudLayout.guideEdgeArrow(
+	content: Size,
+	angle: number,
+	avoid: { Rect }
+): (number, number, number)
+	local inset = HudLayout.GUIDE.edgeInset
+	local steps = math.ceil(math.pi / HOME_SLIDE_STEP)
+	for i = 0, steps do
+		for _, sign in { 1, -1 } do
+			local a = angle + sign * i * HOME_SLIDE_STEP
+			local x, y = HudLayout.onEllipse(content, a, inset)
+			if clearOf(HudLayout.arrowRect(x, y), avoid, HudLayout.GAP_MIN) then
+				return x, y, angle
+			end
+		end
+	end
+	local x, y = HudLayout.onEllipse(content, angle, inset)
+	return x, y, angle
+end
+
+export type BubbleSide = "above" | "below" | "left" | "right" | "slot"
+export type BubblePlace = {
+	rect: Rect,
+	-- Where the bubble sits from its target; its tail points the other way. "slot" has no tail.
+	side: BubbleSide,
+	-- The tail's centre along the bubble edge facing the target (content rpx).
+	tailX: number,
+	tailY: number,
+	-- True when the bubble could not sit by its target: the curved arrow (G2) joins them.
+	curved: boolean,
+}
+
+local BUBBLE_VERTICAL: { BubbleSide } = { "above", "below" }
+local BUBBLE_SIDEWAYS: { BubbleSide } = { "right", "left" }
+
+--- `HUD.MomentSlot` (08 §3.3, §4.1) for a bubble of `size`: top centre, 130 rpx down, raised
+--- when it must so its bottom stays 8 rpx over the keep-clear box (P4: moments stay above it),
+--- but never onto the mass bar.
+function HudLayout.momentSlot(content: Size, size: Size): Rect
+	local g = HudLayout.GUIDE
+	local kc = HudLayout.keepClear(content)
+	local floor = HudLayout.MASS_BAR.top + HudLayout.MASS_BAR.height + g.hintGap
+	local y = math.max(floor, math.min(g.momentTop, kc.y - g.hintGap - size.height))
+	return {
+		x = (content.width - size.width) / 2,
+		y = y,
+		width = size.width,
+		height = size.height,
+	}
+end
+
+--- G7: where a bubble of `size` goes for `target` (nil: the creature, so the moment slot). Tries
+--- above the target, then below, then right and left, each centred on the target or slid just
+--- off the keep-clear box, and takes the first that stays in the content box, off the keep-clear
+--- box and 8 rpx clear of every `avoid` rect (the HUD and the pointer), with its tail still over
+--- the target. If none fits, the moment slot and a curved arrow (G2).
+function HudLayout.guideBubble(
+	size: Size,
+	target: Rect?,
+	content: Size,
+	avoid: { Rect }
+): BubblePlace
+	local g = HudLayout.GUIDE
+	local slot = HudLayout.momentSlot(content, size)
+	if target == nil then
+		return {
+			rect = slot,
+			side = "slot",
+			tailX = slot.x + slot.width / 2,
+			tailY = slot.y + slot.height,
+			curved = false,
+		}
+	end
+	local t = target :: Rect
+	local area = box(content)
+	local kc = HudLayout.keepClear(content)
+	local away = g.bubbleGap + g.tailHeight
+	local tcx, tcy = t.x + t.width / 2, t.y + t.height / 2
+	local w, h = size.width, size.height
+	local inset = g.tailWidth -- the tail keeps clear of the rounded corners
+	local candidates: { BubblePlace } = {}
+	local function add(side: string, x: number, y: number)
+		local rx = math.clamp(x, 0, math.max(0, content.width - w))
+		local ry = math.clamp(y, 0, math.max(0, content.height - h))
+		local rect = { x = rx, y = ry, width = w, height = h }
+		local tailX, tailY
+		if side == "above" or side == "below" then
+			if tcx < rx + inset or tcx > rx + w - inset then
+				return -- the tail would miss the target
+			end
+			tailX, tailY = tcx, if side == "above" then ry + h else ry
+		else
+			if tcy < ry + inset or tcy > ry + h - inset then
+				return
+			end
+			tailX, tailY = if side == "left" then rx + w else rx, tcy
+		end
+		table.insert(candidates, {
+			rect = rect,
+			side = (side :: any) :: BubbleSide,
+			tailX = tailX,
+			tailY = tailY,
+			curved = false,
+		})
+	end
+	for _, side in BUBBLE_VERTICAL do
+		local y = if side == "above" then t.y - away - h else t.y + t.height + away
+		add(side, tcx - w / 2, y)
+		add(side, kc.x + kc.width + g.bubbleGap, y)
+		add(side, kc.x - g.bubbleGap - w, y)
+	end
+	for _, side in BUBBLE_SIDEWAYS do
+		local x = if side == "right" then t.x + t.width + away else t.x - away - w
+		add(side, x, tcy - h / 2)
+		add(side, x, kc.y + kc.height + g.bubbleGap)
+		add(side, x, kc.y - g.bubbleGap - h)
+	end
+	for _, c in candidates do
+		if
+			within(c.rect, area)
+			and clearOfBox(c.rect, content, t)
+			and clearOf(c.rect, avoid, g.hintGap, t)
+			and not HudLayout.overlaps(c.rect, HudLayout.grow(t, g.bubbleGap - 1e-6))
+		then
+			return c
+		end
+	end
+	return {
+		rect = slot,
+		side = "slot",
+		tailX = slot.x + slot.width / 2,
+		tailY = slot.y + slot.height,
+		curved = true,
+	}
+end
+
+--- G2: the curved arrow at the end of `bubble` nearest `target`, outside it and above the
+--- keep-clear box, turned toward the target. Returns its centre and the angle it points along.
+function HudLayout.guideCurved(bubble: Rect, target: Rect, content: Size): (number, number, number)
+	local g = HudLayout.GUIDE
+	local kc = HudLayout.keepClear(content)
+	local tcx, tcy = target.x + target.width / 2, target.y + target.height / 2
+	local right = tcx >= bubble.x + bubble.width / 2
+	local half = g.curved / 2
+	local x = if right
+		then bubble.x + bubble.width + g.hintGap + half
+		else bubble.x - g.hintGap - half
+	local y = bubble.y + bubble.height / 2
+	if bubble.y + bubble.height <= kc.y then
+		y = math.min(y, kc.y - half)
+	end
+	x = math.clamp(x, half, math.max(half, content.width - half))
+	y = math.clamp(y, half, math.max(half, content.height - half))
+	return x, y, math.atan2(tcy - y, tcx - x)
+end
+
+--- The rect the curved arrow takes, centred at (x, y).
+function HudLayout.curvedRect(x: number, y: number): Rect
+	local s = HudLayout.GUIDE.curved
+	return centredRect(x, y, s, s)
+end
+
+--- G9: the step tick on the bubble's top right corner.
+function HudLayout.guideTick(bubble: Rect): Rect
+	local s = HudLayout.GUIDE.tick
+	return centredRect(bubble.x + bubble.width - s / 4, bubble.y + s / 4, s, s)
+end
+
+--- 04 §3.2 ghost thumb: the press point at lower centre, halfway between the keep-clear box and
+--- the bottom of the content box.
+function HudLayout.ghostThumb(content: Size): (number, number)
+	local kc = HudLayout.keepClear(content)
+	local bottom = kc.y + kc.height
+	return content.width / 2, bottom + (content.height - bottom) / 2
+end
+
+--- Where the ghost thumb's drag ends: 84 rpx (128 when `long`) from (x, y) along `angle`, held
+--- so the whole thumb stays in the content box. The drag is the one prompt that may cross into
+--- the keep-clear box (08 §7); it starts under it.
+function HudLayout.ghostDrag(
+	content: Size,
+	x: number,
+	y: number,
+	angle: number,
+	long: boolean?
+): (number, number)
+	local g = HudLayout.GUIDE
+	local length = if long then g.ghostDragLong else g.ghostDrag
+	local half = g.ghost / 2
+	local ex = x + math.cos(angle) * length
+	local ey = y + math.sin(angle) * length
+	ex = math.clamp(ex, half, math.max(half, content.width - half))
+	ey = math.clamp(ey, half, math.max(half, content.height - half))
+	return ex, ey
+end
+
+--- The rect of the ghost thumb (touch) or of its key row (keys: `width` x 64) centred at (x, y).
+function HudLayout.ghostRect(x: number, y: number, width: number?): Rect
+	local g = HudLayout.GUIDE
+	if width then
+		return centredRect(x, y, width, g.hint)
+	end
+	return centredRect(x, y, g.ghost, g.ghost)
+end
+
+--- 04 §3.3 HOME: a chip of `width` under the home marker's distance chip at (x, y), or above the
+--- marker's pointer orbit when there is no room under it (or the space is taken by an `avoid`
+--- rect), kept in the content box.
+function HudLayout.homeTag(
+	x: number,
+	y: number,
+	width: number,
+	content: Size,
+	avoid: { Rect }
+): Rect
+	local g = HudLayout.GUIDE
+	local h = HudLayout.HOME
+	local under = y + h.size / 2 + HudLayout.HOME_CHIP_GAP + h.labelHeight + HudLayout.HOME_CHIP_GAP
+	local over = y - HudLayout.HOME_REACH - HudLayout.HOME_CHIP_GAP - g.tagHeight
+	local area = box(content)
+	local first: Rect? = nil
+	for _, top in { under, over } do
+		local rect = {
+			x = math.clamp(x - width / 2, 0, math.max(0, content.width - width)),
+			y = top,
+			width = width,
+			height = g.tagHeight,
+		}
+		first = first or rect
+		if within(rect, area) and clearOf(rect, avoid, g.hintGap) then
+			return rect
+		end
+	end
+	local r = first :: Rect -- safe: set on the first pass
+	r.y = math.clamp(r.y, 0, math.max(0, content.height - g.tagHeight))
+	return r
+end
+
+--- 04 §3.2 dash pulse: the white ring round the dash button or tile.
+function HudLayout.dashRing(dash: Rect): Rect
+	return HudLayout.grow(dash, HudLayout.GUIDE.dashRingPad)
+end
+
+--- 04 §3.3 DASH!: a chip of `width` centred over the dash button, clear of the ring at its
+--- largest, kept in the content box.
+function HudLayout.dashTag(dash: Rect, width: number, content: Size): Rect
+	local g = HudLayout.GUIDE
+	local ring = HudLayout.dashRing(dash)
+	local swell = ring.height * (g.dashPulse - 1) / 2
+	local bottom = ring.y - swell - g.tagGap
+	return {
+		x = math.clamp(dash.x + dash.width / 2 - width / 2, 0, math.max(0, content.width - width)),
+		y = bottom - g.dashTagHeight,
+		width = width,
+		height = g.dashTagHeight,
+	}
+end
+
+export type Side = "left" | "right" | "top" | "bottom"
+
+--- The screen edge a threat at `angle` (radians from the centre of a `full` screen) lies past.
+function HudLayout.dangerSide(angle: number, full: Size): Side
+	local c, s = math.cos(angle), math.sin(angle)
+	local tx = if math.abs(c) > 1e-9 then (full.width / 2) / math.abs(c) else math.huge
+	local ty = if math.abs(s) > 1e-9 then (full.height / 2) / math.abs(s) else math.huge
+	if tx <= ty then
+		return if c >= 0 then "right" else "left"
+	end
+	return if s >= 0 then "bottom" else "top"
+end
+
+--- 04 §3.2 danger edge: the glow along `side` of a `full` screen, in full-screen rpx.
+function HudLayout.dangerEdge(side: Side, full: Size): Rect
+	local d = HudLayout.GUIDE.dangerDepth
+	if side == "left" then
+		return { x = 0, y = 0, width = d, height = full.height }
+	elseif side == "right" then
+		return { x = full.width - d, y = 0, width = d, height = full.height }
+	elseif side == "top" then
+		return { x = 0, y = 0, width = full.width, height = d }
+	end
+	return { x = 0, y = full.height - d, width = full.width, height = d }
+end
+
+--- G4: which trail dots show. Dots sit every 12 studs from the trail's start to its end
+--- (`length` studs; the last one on the target). The creature is `progress` studs along it:
+--- the dots it has passed are gone and at most 12 ahead of it show. Returns the first and last
+--- dot numbers (1 is 12 studs from the start); `first > last` when none are left.
+function HudLayout.trailWindow(length: number, progress: number): (number, number)
+	local g = HudLayout.GUIDE
+	local count = math.max(1, math.ceil(length / g.trailSpacing - 1e-6))
+	local first = math.max(1, math.floor(progress / g.trailSpacing) + 1)
+	return first, math.min(count, first + g.trailMax - 1)
+end
+
+--- The distance in studs of trail dot `k` along a trail of `length` studs (the last one sits on
+--- the target).
+function HudLayout.trailDot(k: number, length: number): number
+	return math.min(k * HudLayout.GUIDE.trailSpacing, length)
 end
 
 return table.freeze(HudLayout)

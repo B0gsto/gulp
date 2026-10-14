@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HUD stage 1 screenshots in Studio (task S4-C5; docs/08 sections 1, 3, 4.4, 4.5 and 15).
 
-usage: python3 tools/studio/hud_shots.py [--tag NAME] [--set hud|cove]
+usage: python3 tools/studio/hud_shots.py [--tag NAME] [--set hud|cove|guide]
 
 Under the machine-wide `studio` lock and one `heavy` slot, like tools/studio/light_bench.py: build build/ci.rbxl,
 open it, start play and wait for the local creature. On the client, Dev/HudHarness lays the interface out for a
@@ -10,6 +10,9 @@ real Studio viewport (a desktop), poses the HUD (drag ring, dash cooldown, mass 
 S11 and S12. Writes build/hud/: each capture downscaled to 768 px and hud-grid.png (one contact sheet).
 `--set cove` (task S5-C4) shoots S12 after a bank (specimen card; a tier 1 run on the phone) and S14 (Pearls,
 income, slots, Claim all, the Pearl pile) on both devices into build/hud/cove-grid.png.
+`--set guide` (task S6-C4) shoots the guide kit S33 (docs/08 section 7: all nine parts and chapter 04's ghost thumb,
+home marker, dash pulse and danger edge, over four poses) on a phone and a tablet (touch) and the desktop (keys) into
+build/hud/guide-grid.png, with each part's rect and keep-clear check in the report.
 The place is closed without saving; Studio is left stopped in Edit mode.
 """
 import base64, io, os, subprocess, sys, time
@@ -27,6 +30,8 @@ OUT = os.path.join(REPO, "build", "hud")
 H = ('local H = game:GetService("Players").LocalPlayer.PlayerScripts:WaitForChild("Client")'
      ':WaitForChild("HudHarness") ')
 PHONE = (844, 390)
+TABLET = (1024, 768)
+GUIDE_POSES = ("point", "tap", "hold", "ghost")
 
 
 def capture(sm, name, crop=None):
@@ -117,6 +122,30 @@ def run_cove(sm):
     return shots
 
 
+def run_guide(sm):
+    """The guide kit S33 on each screen class: phone and tablet with touch pictures, desktop with keys."""
+    if not start(sm):
+        return []
+    shots = []
+    for device, crop, mode in (("phone", PHONE, "Touch"), ("tablet", TABLET, "Touch"), ("real", None, "Keys")):
+        _, info = sm.lua("Client", H + 'return H:Invoke("device", "%s")' % device)
+        sm.add("INFO", device, info.strip())
+        sm.lua("Client", H + 'return H:Invoke("reset")')
+        _, info = sm.lua("Client", H + 'return H:Invoke("mode", "%s")' % mode)
+        sm.add("INFO", device + " mode", info.strip())
+        for pose in GUIDE_POSES:
+            _, info = sm.lua("Client", H + 'return H:Invoke("guide", "%s")' % pose)
+            time.sleep(0.9)
+            _, check = sm.lua("Client", H + 'return H:Invoke("guidecheck")')
+            bad = "KEEPCLEAR" in check and pose != "ghost"
+            sm.add("FAIL" if bad else "INFO", "%s guide %s" % (device, pose), (info.strip() + " | " + check.strip())[:900])
+            shots.append(("%s %s %s" % (device, mode, pose), capture(sm, "%s-guide-%s" % (device, pose), crop)))
+        sm.lua("Client", H + 'return H:Invoke("guide", "off")')
+        sm.lua("Client", H + 'return H:Invoke("reset")')
+    console_check(sm)
+    return shots
+
+
 def start(sm):
     mode, _ = sm.mode()
     if mode.lower() != "edit":
@@ -177,7 +206,8 @@ def main():
                     if pid:
                         bring_to_front(pid)
                     try:
-                        shots = run_cove(sm) if shot_set == "cove" else run(sm)
+                        shots = (run_cove(sm) if shot_set == "cove" else run_guide(sm) if shot_set == "guide"
+                                 else run(sm))
                     finally:
                         sm.call("start_stop_play", {"is_start": False}, 120)
                         edit, _ = sm.wait_mode("edit", 60)
@@ -189,7 +219,8 @@ def main():
                 sw.restore(previous)
     lines = ["%s %s: %s" % r for r in rows]
     if shots:
-        lines.append("grid: " + (grid(shots, "cove-grid.png", 3) if shot_set == "cove" else grid(shots)))
+        name = {"cove": "cove-grid.png", "guide": "guide-grid.png"}.get(shot_set, "hud-grid.png")
+        lines.append("grid: " + grid(shots, name, 4 if shot_set == "guide" else 3))
     print("\n".join(lines))
     sys.exit(1 if any(r[0] == "FAIL" for r in rows) or not shots else 0)
 

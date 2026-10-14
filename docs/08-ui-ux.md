@@ -1091,6 +1091,15 @@ Chapter 04 scripts the first two minutes and uses only these parts. All sit on t
 | G8 | Input hint | Hand, key cap or gamepad glyph | 64 | Shows the right picture for the input in use and swaps within 200 ms when the player changes input |
 | G9 | Step tick | `UI_Common_Check` | 64 | Pops on the bubble for 400 ms when the step is done, with `SFX_UI_GuideStep` |
 
+**Chapter 04's prompts built from the kit** (04 §3.2; also on the `GulpGuide` layer)
+
+| Prompt | Image | Size (rpx) | Behaviour |
+|---|---|---|---|
+| Ghost thumb | `UI_Guide_GhostThumb` | 112 | Touch: a thumbprint at 45% opacity presses at lower centre (halfway between the keep-clear box and the bottom of the safe frame) and drags 84 rpx toward the target (the drag ring's reach, 3.16; 128 for the longer replay) (tune), looping every 1.6 s. Its drag is the one prompt that may cross into the keep-clear box: it is see-through and moves for under a second. Keys: a row of `UI_Hint_MouseMove`, a W key cap (`UI_Hint_Key`, pressing in the same loop) and `UI_Hint_KeyArrows` at the same place. Pad [L]: `UI_Hint_PadLStick`. |
+| Home marker | Ring `UI_Guide_Ring` on `UI_HUD_HomeMarker` | Ring 104 | The highlight ring (G5) around `HUD.Home`'s marker, and `guide.home_tag` (Small 22, on a chip) under its distance chip, or above the marker when there is no room under it |
+| Dash pulse | Ring `UI_Common_RingPulse` on `UI_HUD_DashButton` | Dash + 16 | A white ring over `HUD.Dash` swells to 1.3× and back twice a second; `guide.dash_now` (Body 24, on a chip) sits above the button. Keys: a Space key cap beside the tile; Pad [L]: `UI_Hint_PadA` |
+| Danger edge | `UI_HUD_DangerEdge` | 96 deep (tune) | A red glow (canon red, 35% at the edge, fading inward) along the full screen edge on the predator's side; fades over 0.5 s when the danger ends |
+
 **Calls chapter 04 can make**
 
 ```
@@ -1098,8 +1107,14 @@ Guide.point(target, { pointer = "arrow" | "tap" | "hold" | "drag", textKey = "gu
 Guide.trail(worldPosition)
 Guide.done()        -- plays the step tick, then clears
 Guide.clear()
+Guide.ghost(target, { long = false })   -- the ghost thumb; nil target hides it
+Guide.home(true | false)                -- ring and HOME tag on HUD.Home
+Guide.dashPulse(true | false)
+Guide.danger(worldPosition | nil)
 HUD.setVisible(elementId, visible)
 ```
+
+A target is a HUD element by ID, a world position, a point on the screen, or the creature itself. `client/UI/Kit/Guide.luau` holds the full API in its header.
 
 **Rules**
 
@@ -1625,6 +1640,7 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_HUD_ThreatArrow` | [MVP] | Edge arrow toward a threat | 88x88 | No | 1 | Parts |
 | `UI_HUD_ThreatArrowBoss` | [MVP] | Edge arrow for Old Scar | 96x96 | No | 1 | Parts |
 | `UI_HUD_ThreatVignette` | [MVP] | Edge vignette, stretched over the screen | 320x180 | No | 1 | No |
+| `UI_HUD_DangerEdge` | [MVP] | Red glow along one screen edge, toward a predator (04 §3.2), stretched along it | 96x360 | No | 1 | No |
 | `UI_HUD_TraitMarker` | [MVP] | Edge marker for trait prey (Glow) | 44x44 | No | 1 | Glyphs |
 | `UI_HUD_HomeMarker` | [MVP] | Home marker | 72x72 | No | normal, best | Glyphs |
 | `UI_HUD_HomePointer` | [MVP] | Pointer that orbits the home marker | 24x24 | No | 1 | Glyphs |
@@ -1818,6 +1834,7 @@ All 96x96 rpx, not nine-sliced, one art state, `Content` atlas.
 | `UI_Guide_Ring` | [MVP] | Highlight ring around a target | 96x96 | Yes | 1 | No |
 | `UI_Guide_Cutout` | [MVP] | Soft-edged hole for the cut-out scrim | 96x96 | Yes | 1 | No |
 | `UI_Guide_Bubble` | [MVP] | Text bubble | 64x64 | Yes | 1 | No |
+| `UI_Guide_GhostThumb` | [MVP] | See-through thumbprint for the first steering prompt (04 §3.2) | 112x112 | No | 1 | Parts |
 | `UI_Load_Background` | [MVP] | Painted sea, soft enough to stretch | 1280x720 | No | 1 | No |
 | `UI_Load_Logo` | [MVP] | GULP wordmark (not translated) | 560x240 | No | 1 | No |
 | `UI_Load_Mascot` | [MVP] | Minnow that swims along the loading bar | 128x128 | No | 1 | No |
@@ -2350,6 +2367,8 @@ At most 28 characters in English; keep translations under 40.
 | `guide.claim` | Tap to claim | Touch; collect the Pearls |
 | `guide.pick` | Pick a new creature | Points at the Creatures button |
 | `guide.out` | Swim out for more | Leave the cove to start a new run |
+| `guide.home_tag` | HOME | Under the home marker in the first run; one short word |
+| `guide.dash_now` | DASH! | On the dash button during the scripted chase; one short shout |
 
 ### 14.12 Settings, private reef, loading, reconnect, emotes and gamepad hints
 
@@ -2435,7 +2454,7 @@ Chapter 03 owns these content lists and supplies the English. The interface has 
 | `danger.<id>.line` | [L] One line per predator and hazard, for the Codex Dangers tab | Chapter 03 |
 | Language names | Each language in its own name; not translated | Set when languages are chosen |
 
-**String count:** 423 strings in sections 14.1 to 14.12: 275 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
+**String count:** 425 strings in sections 14.1 to 14.12: 277 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
 
 ## 15. Build order
 
