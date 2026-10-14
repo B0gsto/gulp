@@ -164,11 +164,11 @@ M_Env_Rim_Pass,MVP,not started,,yes,
 T_Rim_Alb,MVP,not started,,yes,
 M_Env_Blue_Haze,MVP,not started,,yes,
 T_Haze_Mask,MVP,not started,,yes,
-M_Env_Nursery_Floor_01,MVP,not started,,yes,
-M_Env_Nursery_Floor_02,MVP,not started,,yes,
-M_Env_Nursery_Floor_03,MVP,not started,,yes,
-M_Env_Nursery_Rim_01,MVP,not started,,yes,
-M_Env_Nursery_Rim_02,MVP,not started,,yes,
+M_Env_Nursery_Floor_01,MVP,in review,,yes,S6-A3 kit sheet; owner sign-off pending
+M_Env_Nursery_Floor_02,MVP,in review,,yes,S6-A3 kit sheet; owner sign-off pending
+M_Env_Nursery_Floor_03,MVP,in review,,yes,S6-A3 kit sheet (Krill Corner bowl); owner sign-off pending
+M_Env_Nursery_Rim_01,MVP,in review,,yes,S6-A3 kit sheet; owner sign-off pending
+M_Env_Nursery_Rim_02,MVP,in review,,yes,S6-A3 kit sheet; owner sign-off pending
 M_Env_Nursery_Coral_01,MVP,not started,,yes,
 M_Env_Nursery_Coral_02,MVP,not started,,yes,
 M_Env_Nursery_GrassTuft_01,MVP,not started,,yes,
@@ -176,7 +176,7 @@ M_Env_Nursery_GrassTuft_02,MVP,not started,,yes,
 M_Env_Nursery_GlowBuoy,MVP,not started,,yes,
 M_Env_Nursery_LM_LittleArch,MVP,not started,,yes,
 M_Prop_Nursery_ShellSign,MVP,not started,,yes,
-T_EnvNursery_Alb,MVP,not started,,yes,
+T_EnvNursery_Alb,MVP,in review,,yes,S6-A3 atlas; owner sign-off pending
 M_Env_Reef_Floor_01,MVP,not started,,yes,
 M_Env_Reef_Floor_02,MVP,not started,,yes,
 M_Env_Reef_Floor_03,MVP,not started,,yes,
