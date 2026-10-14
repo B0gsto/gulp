@@ -41,6 +41,7 @@ from mathutils import Vector  # noqa: E402
 import clips  # noqa: E402
 import common  # noqa: E402
 import meshgen  # noqa: E402
+import mouth  # noqa: E402
 import rigs  # noqa: E402
 import texgen  # noqa: E402
 from fishbody import FIN_THICK, HEIGHT, LENGTH, SPINE_NODES, WIDTH, Y_NOSE, Y_TAIL_TIP, FishBody  # noqa: E402
@@ -62,7 +63,7 @@ BLOCKS = ("mid", "light", "dark", "accent")
 BLOCK_HEX = {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT}
 
 # Rings and segments per part (1,500 triangle budget, 06 section 6.3).
-RES = dict(segs=20, rings=18, tail=(5, 5), dorsal=(7, 3), pec=(6, 5), eye=(14, 5), lid=(3, 3))
+RES = dict(segs=20, rings=18, tail=(5, 5), dorsal=(7, 3), pec=(6, 5), eye=(14, 4), lid=(3, 3))   # eye 14 x 4 (was 5): S4-A3 freed 56 triangles for the mouth interior
 
 
 # ---------------------------------------------------------------- the body profile (side, top and section)
@@ -208,6 +209,7 @@ UV = {
     "pec": texgen.place("Fish", "fins", TEX, u=(0.5, 1.0)),
     "eye": texgen.place("Fish", "eye", TEX, v=(0.0, 0.125)),
     "lid": texgen.place("Fish", "eye", TEX, v=(0.125, 0.25)),
+    "mouth": texgen.place("Fish", "mouth", TEX),                # S4-A3: the mouth interior (mouth.py)
 }
 
 
@@ -220,7 +222,7 @@ def tail_uv(p, q):
     return _TAILUV((p.y - Y_TAIL_ROOT) / (Y_TAIL_TIP - Y_TAIL_ROOT), 0.5 + 0.5 * p.z / 0.45)
 
 
-PARTS = ("body", "tail", "dorsal", "pec", "eye", "lid")
+PARTS = ("body", "tail", "dorsal", "pec", "eye", "lid", "mouth")
 
 
 def minnow_meshdata(res, fit):
@@ -234,6 +236,7 @@ def minnow_meshdata(res, fit):
         part_of.extend([PARTS.index(kind)] * (len(md.verts) - len(part_of)))
 
     add(body_part(res["segs"], res["rings"]), "body", uv=body_uv, weights=lambda p, q: fit.body_weights(p))
+    body_count = len(md.verts)
     add(tail_part(res["tail"]), "tail", uv=tail_uv, weights=fit.part_weights("tail"))
     add(dorsal_part(res["dorsal"]), "dorsal", uv=lambda p, q: UV["dorsal"](*q),
         weights=lambda p, q: fit.fin_weights("Dorsal", p, q[1]))
@@ -243,6 +246,11 @@ def minnow_meshdata(res, fit):
         add(meshgen.sphere(eye_centre(side), EYE_R, axis, (0.0, 0.0, 1.0), *res["eye"]), "eye",
             uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights=fit.part_weights("eye", tag))
         add(lid_part(side, res["lid"]), "lid", uv=lambda p, q: UV["lid"](*q), weights=fit.part_weights("lid", tag))
+    # S4-A3: the lip seam and the mouth interior, so the gape shows a dark mouth (mouth.py).
+    info = mouth.add_mouth(md, body_count, fit, UV["mouth"], k=fit.k)
+    part_of.extend([PARTS.index("body")] * len(info["twins"]))
+    part_of.extend([PARTS.index("mouth")] * len(info["cavity_verts"]))
+    print("[minnow] mouth: %d seam edges, %d cavity faces" % (info["seam_edges"], info["cavity_faces"]))
     return md, np.array(part_of)
 
 
@@ -436,7 +444,7 @@ def paint(P, N, part):
 
     # Fin roots, eyeballs and lids buried in the body are never seen: they take the body colour and
     # stay out of the value-block shares (06 4.1 counts the visible surface).
-    ins = (part != PARTS.index("body")) & (y > Y_NOSE) & (y < Y_BODY_END) & (
+    ins = (part != PARTS.index("body")) & (part != PARTS.index("mouth")) & (y > Y_NOSE) & (y < Y_BODY_END) & (
         (x / np.maximum(hwv, 1e-4)) ** (2 / 0.85) + np.abs(zn) ** (2 / 0.9) < 0.97)
     base[ins] = hex_rgb(MID)
     block[ins] = -1
@@ -572,6 +580,20 @@ def paint_texture(body, part_of_vertex):
     block = np.full(part.shape, -1, dtype=int)
     rgb = np.zeros(P.shape)
     blk, col, hexes = paint(P[filled], N[filled], part[filled])
+    # The mouth interior (mouth.py) by its place in the mouth region, which nothing else uses: the
+    # tongue at the region's foot (the lower lip's side), the throat in the middle, the palate
+    # above. Buried in the closed head, it stays out of the value-block shares (block -1, as the
+    # fin roots, 06 4.1 counts the visible surface).
+    (mu0, mv0), (mu1, mv1) = UV["mouth"](0.0, 0.0), UV["mouth"](1.0, 1.0)
+    rows, cols = np.nonzero(filled)
+    fv = ((rows + 0.5) / PAINT - mv0) / (mv1 - mv0)
+    fu = ((cols + 0.5) / PAINT - mu0) / (mu1 - mu0)
+    m = (fu > -0.05) & (fu < 1.05) & (fv > -0.05) & (fv < 1.05)
+    if m.any():
+        hexes = list(hexes)
+        for idx in np.nonzero(m)[0]:
+            key = mouth.TONGUE if fv[idx] < 0.3 else mouth.THROAT if abs(fv[idx] - 0.5) < 0.12 else mouth.MOUTH
+            blk[idx], col[idx], hexes[idx] = -1, hex_rgb(key), key
     block[filled], rgb[filled] = blk, col
     base_key = np.full(part.shape, "", dtype=object)
     base_key[filled] = np.array(hexes, dtype=object)

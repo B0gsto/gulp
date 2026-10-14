@@ -533,13 +533,15 @@ def fish_bite_pose(frame, k=1.0):
 # value is (tune).
 
 
-def girth_out(pose, amount, k=1.0, tilt=0.0, pivot=GIRTH_T, slide=0.0):
+def girth_out(pose, amount, k=1.0, tilt=0.0, pivot=GIRTH_T, slide=0.0, wide=1.0):
     """Swells the section at the girth centre by `amount` (0.1 = 10% wider and deeper) with the
     four Girth bones moved out, and leans the swell toward the head (`tilt` > 0, degrees) or the
     tail (< 0) by turning them about `pivot` (a body fraction), as the cheeks do: the swallow
     bulge (06 7.2 and 7.5) is this swell carried from front to back, the Girth bones also sliding
-    `slide` studs toward the tail (06 7.5: their influence slid along the body)."""
+    `slide` studs toward the tail (06 7.5: their influence slid along the body). The flanks take
+    `wide` times the swell (the back and belly fold the skin first, fish_squash_pose)."""
     top, bot, half = (r * k * amount / GIRTH_PEAK for r in GIRTH_REF)
+    half *= wide
     for bone in GIRTH:
         _put(pose, bone, loc=(0.0, slide, 0.0))
     _put(pose, "Girth_Top", loc=(0.0, 0.0, top))
@@ -588,19 +590,21 @@ def roll_body(pose, angle, k=1.0):
 
 
 # A_Fish_Gulp, 12 frames (06 7.2, eater): 2 frames of anticipation, the mouth at full gape by
-# frame 1 and held on 2 (the jaw as wide as the bite's, the head thrown up 12 degrees over it, so
-# the V reads from the side), the head drawn back and the body gathered; the snap on frame 3,
+# frame 1 and held on 2 (the jaw dropped 64 degrees and the head thrown up 15 over it: the
+# mouth past the bite's 55; wider, the lower jaw hides the mouth from the side; the lip seam and the dark
+# interior of mouth.py line it), the head drawn back and the body gathered; the snap on frame 3,
 # the head lunging and the body stretching; 3 frames with the head stuffed full (the cheeks and
 # throat swollen past the bite's: the head 110%); then 6 frames of settle while the swallow bulge
 # runs from behind the head to the tail on the Girth bones and the head nods it down.
-GULP_JAW = [(0, 0.0), (1, 50.0, "snap"), (2, 55.0, "io"), (3, 0.0, "snap")]
+GULP_JAW = [(0, 0.0), (1, 60.0, "snap"), (2, 64.0, "io"), (3, 0.0, "snap")]
 GULP_STRETCH = [(0, 1.0), (1, 0.94, "out"), (2, 0.92, "io"), (3, 1.10, "snap"), (6, 1.08, "io"), (8, 0.97, "io"), (10, 1.01, "io"), (12, 1.0, "io")]
 GULP_LUNGE = [(0, 0.0), (1, -0.08, "out"), (2, -0.10, "io"), (3, 0.30, "snap"), (6, 0.24, "io"), (9, -0.02, "io"), (12, 0.0, "io")]
-GULP_NOD = [(0, 0.0), (1, -10.0, "snap"), (2, -12.0, "io"), (3, 5.0, "snap"), (6, 3.0, "io"), (8, 7.0, "io"), (10, -1.5, "io"), (12, 0.0, "io")]
+GULP_NOD = [(0, 0.0), (1, -13.0, "snap"), (2, -15.0, "io"), (3, 5.0, "snap"), (6, 3.0, "io"), (8, 7.0, "io"), (10, -1.5, "io"), (12, 0.0, "io")]
 GULP_CHEEKS = [(0, 0.0), (2, 0.0), (3, 1.15, "snap"), (5, 1.0, "io"), (8, 0.0, "io")]
 # The bulge: how much the girth swells, and its lean (+ toward the head, - toward the tail).
-GULP_BULGE = [(0, 0.0), (5, 0.0), (6.5, 0.18, "out"), (9, 0.16, "io"), (11, 0.08, "io"), (12, 0.0, "io")]
-GULP_LEAN = [(0, 12.0), (6, 12.0), (11, -26.0, "io"), (12, -26.0)]
+GULP_BULGE = [(0, 0.0), (5, 0.0), (6.5, 0.15, "out"), (9, 0.135, "io"), (11, 0.07, "io"), (12, 0.0, "io")]
+GULP_WIDE = 1.8        # the bulge is widest on the flanks: +27% width at its peak, so it reads at thumbnail size
+GULP_LEAN = [(0, 4.0), (6, 4.0), (11, -26.0, "io"), (12, -26.0)]
 GULP_SLIDE = [(0, -0.10), (6, -0.10), (11, 0.30, "io"), (12, 0.30)]   # studs toward the tail at k = 1, times the swell
 GULP_FINS = [(0, 0.0), (2, 1.0, "out"), (3, -0.6, "snap"), (6, -0.4, "io"), (9, 0.1, "io"), (12, 0.0, "io")]
 GULP_TAIL = [(0, 0.0), (2, -0.5, "in"), (3, 1.0, "snap"), (5, -0.55, "io"), (7, 0.3, "io"), (9, -0.1, "io"), (11, 0.0, "io")]
@@ -618,7 +622,8 @@ def fish_gulp_pose(frame, k=1.0):
     _put(pose, "Jaw", rot=(ease_keys(frame, GULP_JAW), 0.0, 0.0))
     cheeks(pose, ease_keys(frame, GULP_CHEEKS), k)
     bulge = ease_keys(frame, GULP_BULGE)
-    girth_out(pose, bulge, k, tilt=ease_keys(frame, GULP_LEAN), slide=k * ease_keys(frame, GULP_SLIDE) * bulge / 0.18)
+    girth_out(pose, bulge, k, tilt=ease_keys(frame, GULP_LEAN), slide=k * ease_keys(frame, GULP_SLIDE) * bulge / 0.15,
+              wide=GULP_WIDE)
     fins = ease_keys(frame - 1.0, GULP_FINS)
     brake, back = max(fins, 0.0), max(-fins, 0.0)
     _put(pose, "Pec_L", rot=(0.0, 14.0 * brake, -26.0 * brake + 24.0 * back))
