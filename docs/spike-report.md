@@ -3,7 +3,7 @@
 Task S0-T1 (13 §5, Sprint 0). Measured 13–14 October 2026 on the 16 GB Mac (Roblox Studio driven through the
 Studio MCP; Blender 5.2.2 headless). **No phone was used:** every phone half (device rows 1 and 3) is "not run".
 Evidence files are in `spike/results/` (raw numbers in `spike/results/raw/`). The decision at the end is the
-owner's and is left blank.
+owner's; it is recorded in section 8 (14 October 2026).
 
 Result words: **pass** (every criterion of 09 §6.11 or 13 met), **partial** (the Mac half or some questions pass;
 the rest are not run or fail), **fail**, **not run**.
@@ -35,7 +35,9 @@ the rest are not run or fail), **fail**, **not run**.
 0.35 ms averaged per frame"), and 09 §15.2 gives interest and send its own row (0.25 ms per player per tick, 4
 players per frame). Read that way the server half passes (0.33 ms simulate; about 0.13 ms per recipient p50, about
 0.19 ms at p99 by subtraction). If the owner reads S6's "server step ≤ 2.0 ms" as simulate plus interest, the
-crowded case (p50 3.35 ms) fails and the S6 row of the decision table applies.
+crowded case (p50 3.35 ms) fails and the S6 row of the decision table applies. **Owner's ruling (14 Oct 2026, on the
+agent's recommendation): the 09 §15.2 reading stands. Interest and send have their own budget, so the S6 server half
+passes.**
 
 ## 2. Art spikes (06 §18.2)
 
@@ -72,13 +74,13 @@ Planned: 3 WH (13 Sprint 0 art table), time-box 4 OH.
 | Builder agent turns (tool calls) | about 44 | 12 | about 56 |
 | Logged seconds (`date`, understates wall time) | 1,072 s | 150 s | 1,222 s |
 | WH (agent build time) | not separable from turns; see above | | |
-| OH (owner time) | ______ (owner fills in) | ______ | ______ |
+| OH (owner time) | ≈ 0 | ≈ 0 | ≈ 0; sign-off pending |
 
-Owner time during the agent loops was about zero; the sign-off review of the final sheet is not yet done.
+Owner time during the agent loops was about zero; the sign-off review of the final sheet is not yet done (recorded by the owner's instruction, 14 October 2026).
 
 ## 5. Design findings that change or threaten the bible
 
-Proposals only; nothing in the bible was changed on these. Each needs an owner decision.
+**F1–F27: all proposals adopted (14 Oct 2026)**, by the owner on the agent's recommendation. The bible was changed to match on the same day (chapters 06, 07, 08, 09, 11 and 15); the proposals are kept below as the record.
 
 | # | Finding | Threatens | Proposal |
 |---|---|---|---|
@@ -117,7 +119,7 @@ Proposals only; nothing in the bible was changed on these. Each needs an owner d
 | S1, S9, S10 | partial / partial / pass | "S1, S9 or S10 fails" | No on the Mac; open until device row 1 |
 | S2 | partial | "S2 fails on frame rate only" / "on feel" | Open until device rows 1 and 3 |
 | S3, S4, S5 | pass | — | No |
-| S6 | partial | "S6 or S7 fails" | No under the 09 §15.2 reading; yes if the owner reads 2.0 ms as simulate + interest; phone half open |
+| S6 | partial | "S6 or S7 fails" | No: the owner ruled for the 09 §15.2 reading (14 Oct 2026); phone half open |
 | S7 | partial | "S6 or S7 fails" | No in Studio; Wi-Fi loss open |
 | S8 | partial | "S8 fails" | No on the Mac; open until device row 1 |
 | S12 | fail, inconclusive | Only "S12 passes" has a row | None applies; R2's fallback stays closed |
@@ -128,7 +130,7 @@ Proposals only; nothing in the bible was changed on these. Each needs an owner d
 | S0-A4 | pass (B) | "Decal overlays do not follow a skinned mesh" | **Yes**: overlays move to a second shell per creature (run-time combining is not available to game scripts, F17) |
 | S0-A5 | partial | "Realistic lighting misses 30 fps on device row 1" | Open until device row 1. Fog over Atmosphere is 06 §10.2's own fallback, no row in 13 |
 | S0-A6 | not run | — | Open |
-| S0-A7 | fail | "The agent art trial cannot reach a reviewer pass in three loops" | **Yes**, unless the owner rules otherwise after signing off the Minnow sheet |
+| S0-A7 | fail | "The agent art trial cannot reach a reviewer pass in three loops" | **Ruled otherwise by the owner** (section 8): agents keep making creatures |
 | S1, S2, S6, S8 together | — | "Stop" | Not triggered on Mac evidence; depends on the phone halves |
 
 ## 7. Owner actions still needed for the decision
@@ -145,10 +147,22 @@ Proposals only; nothing in the bible was changed on these. Each needs an owner d
 
 ## 8. Decision
 
-Decision: ______ (go / change / stop)
+Decision: **Change (provisional)**
 
-Rows that apply: ______
+Rows that apply:
 
-Signed: ______ (owner)
+- **"Decal overlays do not follow a skinned mesh"** (S0-A4): trait overlays are a second shell per creature, built
+  into the template (option B, F17–F19). Already written into 06 §8.4 and chapter 07.
+- **"The agent art trial cannot reach a reviewer pass in three loops"** (S0-A7): the owner rules otherwise. Agents
+  keep making creatures, because two of the three loops were lost to the preview-lighting bug (F27), and the Minnow
+  then passed review in Sprint 2 (task S2-A1). The creature share stays 45% (13 §1.2) and is measured again at gate G1.
+- **S6 budget reading:** interest and send have their own budget (09 §15.2), so the S6 row does not apply (section 1).
+- **F1–F27:** all proposals adopted (14 Oct 2026), section 5.
 
-Date: ______
+Provisional because the phone halves (device rows 1 and 3), S13 and S17 have not been run. They run as soon as the
+phones and the experiences (GULP Dev, GULP CI) exist, and any fail re-opens this decision against the 13 Sprint 0
+decision table.
+
+Signed: Owner (by instruction to the agent), 14 Oct 2026
+
+Date: 14 October 2026

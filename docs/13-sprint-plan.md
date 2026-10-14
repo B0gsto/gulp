@@ -170,6 +170,8 @@ The canon's go/no-go is day-1 retention and session time at or above the median 
 
 ### 3.2 Exactly what is in the slice
 
+**Accepted by the owner on 14 Oct 2026** as defined below (decision D3 (a), on the agent's recommendation).
+
 | Area | In the slice at `S` | Canon [MVP] items left out |
 |---|---|---|
 | Zones | Nursery Lagoon, Sunlit Reef, Kelp Forest (reduced), 24 coves, the Rim. East and south of the Reef and Kelp end in `M_Env_Blue_Haze` with a current that turns creatures back. | The Drop-off |
@@ -434,6 +436,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | Calibration fails | **Change** | Fix the scale factor in the export script; if FBX skinning is unreliable, export glTF. |
 | The agent art trial cannot reach a reviewer pass in three loops | **Change** | Creatures are modelled by hand by the owner (creature share 100%, about +60 OH to soft launch), or a contract artist is budgeted (decision D2). |
 | Two or more of S1, S2, S6 and S8 fail with no fallback that holds 30 fps on device row 1 | **Stop** | The no-Humanoid phone-first design does not work on this engine today. Stop condition 1 in chapter 14. |
+
+**The decision taken (14 Oct 2026):** **Change (provisional)**, signed by the owner by instruction to the agent (`docs/spike-report.md` §8). Overlays are a second shell per creature; the agent art trial row is ruled otherwise (agents keep making creatures; the creature share stays 45% and is measured again at G1). It becomes final when the phone halves, S13 and S17 have run; any fail re-opens it.
 
 **Acceptance criteria**
 
