@@ -84,7 +84,23 @@ local function owner()
 		"slot",
 		`Slot attribute {slot} (1 to 24)`
 	)
-	report("PENDING", "profile", "DataService (B20, S4-C6, Sprint 4)")
+	-- DataService runs in the server's VM; Main's Studio hook DataGet returns the profile as JSON.
+	local dataGet = game:GetService("ServerScriptService").Server:FindFirstChild("DataGet")
+	local profileText = if dataGet
+		then (dataGet :: BindableFunction):Invoke(player.UserId)
+		else "no DataGet hook"
+	local profileOk, profile = pcall(
+		game:GetService("HttpService").JSONDecode,
+		game:GetService("HttpService"),
+		profileText
+	)
+	check(
+		profileOk and type(profile) == "table" and type(profile.v) == "number",
+		"profile",
+		if profileOk and type(profile) == "table"
+			then `schema v{profile.v}, session {profile.sessions}`
+			else `none ({string.sub(tostring(profileText), 1, 60)})`
+	)
 	check(player.Character == model, "creature", `{model:GetFullName()} is the Character`)
 	local netOwner = root:GetNetworkOwner()
 	check(
