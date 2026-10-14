@@ -472,6 +472,7 @@ local function resetAll()
 	setHold(false)
 	hideAll()
 	controlAt = nil
+	table.clear(marks) -- the probe's log restarts with the script
 	mark("reset")
 end
 
@@ -727,7 +728,7 @@ end
 
 local function pilot(swim: Types.SwimInput)
 	local rig = ownRig()
-	local target = if rig then beatTarget() else nil
+	local target = if rig and controlAt then beatTarget() else nil
 	pilotSteering = false
 	if rig == nil or target == nil then
 		return
