@@ -43,7 +43,6 @@ import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
 import texgen  # noqa: E402
-import weightcheck  # noqa: E402
 from fishbody import FIN_THICK, HEIGHT, LENGTH, SPINE_NODES, WIDTH, Y_NOSE, Y_TAIL_TIP, FishBody  # noqa: E402
 from fishshape import spread  # noqa: E402
 
@@ -729,7 +728,7 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
-        "weight_check": {"body": body, "rings": RES["rings"], "segs": RES["segs"], "waivers": weightcheck.DASH_WAIVERS},
+        "weight_check": {"body": body, "rings": RES["rings"], "segs": RES["segs"]},
         "rig_k": fit.k,
         "texture_sampler": sampler,
         "texture_name": "%s, %d px, occlusion %s" % (ALBEDO, TEX, "baked" if baked else "NOT baked"),

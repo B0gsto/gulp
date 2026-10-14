@@ -34,7 +34,6 @@ import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
 import texgen  # noqa: E402
-import weightcheck  # noqa: E402
 from fishshape import (EYE, HEIGHT, LENGTH, MOUTH_Y, PEC, WIDTH, Y_BODY_END, Y_NOSE, Y_TAIL_ROOT,  # noqa: E402
                        Y_TAIL_TIP, Z_HI, BODY, body_part, crest_part, dorsal_part, eye_part, lid_part, pec_part,
                        tail_part)
@@ -127,7 +126,7 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
-        "weight_check": {"body": body, "rings": RES["rings"], "segs": RES["segs"], "waivers": weightcheck.DASH_WAIVERS},
+        "weight_check": {"body": body, "rings": RES["rings"], "segs": RES["segs"]},
         "rig_k": fit.k,
         "meshes": [
             {"object": body, "role": "body", "primary": True},

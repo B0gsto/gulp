@@ -37,11 +37,6 @@ import template
 # hand-overs: a falloff of 6.3 per stud. Smooth means no band takes more than its share.
 LIMITS = {"falloff": 4.5, "bend": 12.0, "jump": 1.3, "ring": 15.0}
 
-# The dash squash's C-bend pinches the inside flank of the back half, and the stretch starts within
-# two rings of the rigid head: open for the S1-A3 art review (weights sheet), not hidden.
-DASH_WAIVERS = {"Dash f2": "S1-A3 open: C-bend inner flank pinch and head-node stretch onset at the 85% squash, see the weights sheet",
-                "Dash f4": "S1-A3 open: stretch onset behind the rigid head at 125%, see the weights sheet"}
-
 COLOURS = {"Spine1": "#E8505B", "Spine2": "#F2A33A", "Spine3": "#5BC06A", "Spine4": "#3A9BDC",
            "TailFin": "#8A5CD8", "Jaw": "#E84DB8", "Girth_Top": "#FFFFFF", "Girth_Bot": "#FFFFFF",
            "Girth_L": "#FFFFFF", "Girth_R": "#FFFFFF", "Dorsal": "#F5E04A", "Pec_L": "#4AD9D9",

@@ -17,9 +17,10 @@ from fishbody import SPINE_NODES
 SPINE_ORDER = ("Spine1", "Spine2", "Spine3", "Spine4", "TailFin")
 CANON_NOSE, CANON_ROOT = -1.5, 0.95       # the family base body at scale 1 (fishshape.py): k = 1
 CANON_LENGTH = CANON_ROOT - CANON_NOSE
-SPINE_EASE = 0.35       # 0: linear hand-over (even stretch); 1: smoothstep (zero slope at the nodes)
+SPINE_EASE = 0.28       # 0: linear hand-over (even stretch); 1: smoothstep (zero slope at the nodes)
+ONSET = 0.95            # share of the mean strain the span out of the rigid head takes (the stretch fades in)
 PIVOTS = {"Spine1": 0.37, "Spine2": 0.59, "Spine3": 0.63, "Spine4": 0.80, "TailFin": 0.95}   # bone heads, body fractions
-GIRTH_T, GIRTH_REACH, GIRTH_PEAK = SPINE_NODES[1], 0.30, 0.4   # centred on Spine2's node, soft over the middle 60% (06 7.5)
+GIRTH_T, GIRTH_REACH, GIRTH_PEAK = 0.50, 0.30, 0.29  # soft over the middle 60% of the body (06 7.5): 0.2 to 0.8
 JAW_T, LIP_Z = 0.22, -0.03    # the mouth corner (body fraction) and the lip line's height at k = 1
 GIRTH = ("Girth_Top", "Girth_Bot", "Girth_L", "Girth_R")
 
@@ -37,19 +38,26 @@ GIRTH_REF = _girth_ref()
 def ramp(u, ease_in, ease_out):
     """Share of the next spine bone at fraction u between two weight nodes. Between two bending
     nodes the ramp is linear eased by SPINE_EASE, which keeps its slope equal on both sides of
-    every inner node (an even stretch has no corner there). Out of the rigid head (`ease_in`) and
-    into the rigid tail root (`ease_out`) it starts or ends with zero slope, so the stretch fades
-    in instead of starting at a ring: a cubic meeting the inner ramps' slope at the far end."""
+    every inner node (an even stretch has no corner there). Out of the rigid head (`ease_in`) the
+    ramp starts with zero slope and the span takes ONSET of the mean strain, so the stretch fades
+    in from the head instead of starting at a ring: a cubic whose end slope meets the inner ramps'
+    at the next node, rising without overshoot. Into a rigid end (`ease_out`) it mirrors that."""
     u = max(0.0, min(1.0, u))
     c = 1.0 - SPINE_EASE                  # the inner ramps' slope at a node, as a share of their mean
     if ease_in and ease_out:
         return smooth(u)
     if ease_in:
-        return (3.0 - c) * u * u + (c - 2.0) * u ** 3
+        e = c / ONSET
+        return (3.0 - e) * u * u + (e - 2.0) * u ** 3
     if ease_out:
-        v = 1.0 - u
-        return 1.0 - ((3.0 - c) * v * v + (c - 2.0) * v ** 3)
+        return 1.0 - ramp(1.0 - u, True, False)
     return u + SPINE_EASE * (smooth(u) - u)
+
+
+def span_share(i):
+    """Share of the body's strain taken by spine span i (nodes i to i + 1) per unit length: ONSET
+    for the span out of the rigid head, 1 for the others."""
+    return ONSET if i == 0 else 1.0
 
 
 def smooth(t):
@@ -312,6 +320,24 @@ def canon_nodes(k=1.0):
     return [k * (CANON_NOSE + t * CANON_LENGTH) for t in SPINE_NODES]
 
 
+def slide_share(y, k=1.0):
+    """Share (0 at Spine1's node, 1 at the tail root) of a slide along the body that the skin at
+    station y takes when the spine nodes slide by their strain shares (span_share): the stretch is
+    even along the body, fading in out of the rigid head. Between nodes it follows the weight
+    ramp, so it is exactly where a centre-line vertex at y goes."""
+    nodes = canon_nodes(k)
+    cum = [0.0]
+    for i in range(len(nodes) - 1):
+        cum.append(cum[-1] + span_share(i) * (nodes[i + 1] - nodes[i]))
+    if y <= nodes[0]:
+        return 0.0
+    for i in range(len(nodes) - 1):
+        if y <= nodes[i + 1]:
+            u = (y - nodes[i]) / (nodes[i + 1] - nodes[i])
+            return (cum[i] + (cum[i + 1] - cum[i]) * ramp(u, i == 0, False)) / cum[-1]
+    return 1.0
+
+
 def spine_slide(pose, disp, k=1.0):
     """Adds world slides along the body to the spine chain: `disp` gives each spine bone's world
     y displacement at its weight node; the chain's local offsets are worked out (Spine1 rides on
@@ -329,15 +355,13 @@ def spine_slide(pose, disp, k=1.0):
 def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
     """Creature length `stretch` (1.25 = 125%, nose to tail tip) by sliding the Spine bones apart
     (06 section 7.5). The head in front of Spine1's node and the tail fin are rigid, so the body
-    between them takes the whole change, evenly: every node moves in proportion to its distance from
-    the span's centre. Girth is kept by the Girth bones: offset = radius x (1 / sqrt(local stretch)
-    - 1), divided by GIRTH_PEAK so the section at the girth centre keeps its area."""
-    nodes = canon_nodes(k)
-    span = nodes[-1] - nodes[0]
-    local = 1.0 + (stretch - 1.0) * 3.0 * k / span          # the body span's own stretch
-    centre = 0.5 * (nodes[0] + nodes[-1])
-    pose = spine_slide({}, lambda y: (local - 1.0) * (y - centre), k)
-    g = (1.0 / math.sqrt(local) - 1.0) / GIRTH_PEAK
+    between them takes the whole change, evenly but fading in out of the head (slide_share); the
+    head and the tail move apart by the same amount. Girth by the bible (06 7.1 and 7.5): the
+    section at the girth centre scales by 1 / sqrt(stretch) (stretch 125% means girth 89%), the
+    Girth bones' offset divided by GIRTH_PEAK, their weight there."""
+    total = (stretch - 1.0) * 3.0 * k
+    pose = spine_slide({}, lambda y: total * (slide_share(y, k) - 0.5), k)
+    g = (1.0 / math.sqrt(stretch) - 1.0) / GIRTH_PEAK
     gz_top, gz_bot, gx = (r * k * g for r in GIRTH_REF)
     _put(pose, "Girth_Top", loc=(0.0, 0.0, gz_top))
     _put(pose, "Girth_Bot", loc=(0.0, 0.0, -gz_bot))
@@ -351,9 +375,22 @@ def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
 
 def lunge_slide(pose, lunge, k=1.0):
     """The head lunges forward by `lunge` studs and the body follows it, tail root anchored: the
-    slide falls off evenly from Spine1's node to the tail (no stretch piled into the neck)."""
-    nodes = canon_nodes(k)
-    return spine_slide(pose, lambda y: -lunge * (nodes[-1] - y) / (nodes[-1] - nodes[0]), k)
+    slide falls off along the body as the stretch does (slide_share), no stretch piled into the neck."""
+    return spine_slide(pose, lambda y: -lunge * (1.0 - slide_share(y, k)), k)
+
+
+def rotate_about(pose, bone, rot, pivot_t, k=1.0):
+    """Adds rotation `rot` (degrees, XYZ) to `bone` about the point on its axis at body fraction
+    `pivot_t` instead of about its head: the location that moves the head onto that rotation is
+    added too ((I - R) q, q from the head to the pivot), so a clip can turn a bone about the
+    point that skins best (06 6.5) without moving the rest skeleton."""
+    rx, ry, rz = (math.radians(a) for a in rot)
+    cx, sx, cy, sy, cz, sz = math.cos(rx), math.sin(rx), math.cos(ry), math.sin(ry), math.cos(rz), math.sin(rz)
+    q = k * (pivot_t - (GIRTH_T if bone in GIRTH else PIVOTS[bone])) * CANON_LENGTH
+    # R = Rz Ry Rx (Blender XYZ euler) applied to (0, q, 0): its second column times q
+    col = (cz * sy * sx - sz * cx, sz * sy * sx + cz * cx, cy * sx)
+    _put(pose, bone, loc=(-col[0] * q, q - col[1] * q, -col[2] * q), rot=rot)
+    return pose
 
 
 def _put(pose, bone, loc=None, rot=None):
@@ -407,6 +444,12 @@ DASH_STRETCH = [(0, 1.0), (2, 0.85, "in"), (4, 1.25, "snap"), (8, 1.23, "io"), (
 # The bend of a C-start: the body curls into a C during the squash, whips through to the other
 # side on the power stroke and swings out in shrinking beats. +1 curls head and tail to the left.
 DASH_BEND = [(0, 0.0), (2, 1.0, "in"), (4, -0.75, "snap"), (6, 0.32, "io"), (8, -0.12, "io"), (10, 0.0, "io")]
+# The C at full bend: (bone, degrees about Z, pivot as a body fraction, lag in frames). 40 degrees
+# from head to tail, 13 in the head and 30 in the back half, spread over the joints by their span
+# and turned about the pivots that skin best (S1-A3: solved against weightcheck.py on the base and
+# the Minnow; Spine2 stays straight, the head turns on Spine1 alone).
+DASH_C = (("Spine1", 13.0, 0.40, 0.0), ("Spine3", -11.0, 0.63, 0.5), ("Spine4", -10.0, 0.79, 1.2),
+          ("TailFin", -9.0, 0.93, 2.0))
 # Fins pinned back from the snap (fast out), flaring past rest on the overshoot (follow-through).
 DASH_FINS = [(0, 0.0), (2, 0.25, "in"), (4, 1.0, "snap"), (8, 1.0), (11, -0.3, "io"), (13, 0.0, "io")]
 
@@ -420,11 +463,9 @@ def fish_dash_pose(frame, k=1.0):
     # each bone holds the C for its lag, then follows: the wave runs down the body.
     bend = lambda lag: ease_keys(max(frame - lag, min(frame, 2.0)), DASH_BEND)
     fins = ease_keys(frame - 1.0, DASH_FINS)
-    _put(pose, "Spine2", rot=(0.0, 0.0, 7.0 * bend(0.0)))
-    _put(pose, "Spine1", rot=(0.0, 0.0, 10.0 * bend(0.0)))
-    _put(pose, "Spine3", rot=(0.0, 0.0, -10.0 * bend(0.5)))
-    _put(pose, "Spine4", rot=(0.0, 0.0, -13.0 * bend(1.2)))
-    _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), -15.0 * bend(2.0)))
+    for bone, angle, pivot, lag in DASH_C:
+        rotate_about(pose, bone, (0.0, 0.0, angle * bend(lag)), pivot, k)
+    _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), 0.0))
     pose["Pec_L"] = {"rot": (0.0, -6.0 * min(fins, 0.0), 26.0 * fins)}
     pose["Pec_R"] = {"rot": (0.0, 6.0 * min(fins, 0.0), -26.0 * fins)}
     pose["Dorsal"] = {"rot": (-16.0 * fins, 5.0 * bend(1.8), 0.0)}
@@ -432,6 +473,21 @@ def fish_dash_pose(frame, k=1.0):
 
 
 BITE_FLICK = [(0, 0.0), (1, 1.0, "snap"), (2.5, -0.45, "io"), (4, 0.12, "io"), (5, 0.0, "io")]
+
+
+# The bite's cheeks (06 7.2: "cheeks bulge on frame 2"). RIG_Fish has no cheek bone (06 6.3 lists
+# the 18), so the Girth bones make them: Girth_L and Girth_R turn about Z and Girth_Bot about X,
+# about a pivot behind the head (CHEEK_PIVOT, a body fraction), so their weight's front half, just
+# behind the jaw, swells out and down while the middle of the body stays (the back half narrows a
+# little, under the bite's stretch). Degrees at full bulge.
+CHEEK_SIDE, CHEEK_THROAT, CHEEK_PIVOT = 30.0, 16.0, 0.55
+
+
+def cheeks(pose, amount, k=1.0):
+    rotate_about(pose, "Girth_L", (0.0, 0.0, CHEEK_SIDE * amount), CHEEK_PIVOT, k)
+    rotate_about(pose, "Girth_R", (0.0, 0.0, -CHEEK_SIDE * amount), CHEEK_PIVOT, k)
+    rotate_about(pose, "Girth_Bot", (CHEEK_THROAT * amount, 0.0, 0.0), CHEEK_PIVOT, k)
+    return pose
 
 
 def fish_bite_pose(frame, k=1.0):
@@ -444,16 +500,14 @@ def fish_bite_pose(frame, k=1.0):
     stretch = ease_keys(frame, [(0, 1.0), (1, 0.93, "in"), (2, 1.08, "snap"), (4, 1.15), (6, 0.97, "io"), (8, 1.0, "io")])
     lunge = ease_keys(frame, [(0, 0.0), (1, -0.05 * k, "in"), (2, 0.36 * k, "snap"), (4, 0.22 * k, "io"), (6, -0.02 * k, "io"), (8, 0.0, "io")])
     nod = ease_keys(frame, [(0, -2.0), (1, -7.0, "in"), (2, 6.0, "snap"), (4, 0.0, "io"), (6, -1.5, "io"), (8, 0.0, "io")])
-    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.14, "snap"), (4, 0.07, "io"), (7, 0.0, "io")])
+    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.5, "io"), (7, 0.0, "io")])
     brake = ease_keys(frame - 1.0, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.35, "io"), (7, 0.0, "io")])
     flick = lambda lag: ease_keys(frame - lag, BITE_FLICK)
     pose = fish_stretch_pose(stretch, k)
     lunge_slide(pose, lunge, k)
     _put(pose, "Spine1", rot=(nod, 0.0, 0.0))
     _put(pose, "Jaw", rot=(jaw, 0.0, 0.0))
-    _put(pose, "Girth_L", loc=(bulge, 0.0, 0.0))
-    _put(pose, "Girth_R", loc=(-bulge, 0.0, 0.0))
-    _put(pose, "Girth_Bot", loc=(0.0, 0.0, -0.5 * bulge))
+    cheeks(pose, bulge, k)
     _put(pose, "Pec_L", rot=(0.0, 12.0 * brake, -24.0 * brake))
     _put(pose, "Pec_R", rot=(0.0, -12.0 * brake, 24.0 * brake))
     _put(pose, "Dorsal", rot=(8.0 * brake, 0.0, 0.0))

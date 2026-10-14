@@ -12,9 +12,11 @@ Profile, at station y from the nose (t = 0) to the tail root (t = 1):
 
 Topology (the family standard): `segs` segments around (a multiple of four, so a vertex line runs
 along the back, the belly and both flanks: the mouth's lip line and the UV seams sit on them) and
-`rings` rings along, closer together at the nose and the tail root where the curvature is, and with
-one ring snapped onto each spine weight node (SPINE_NODES below), so an edge loop sits wherever the
-skin hands over from one bone to the next. Two pole fans close the ends. All quads in between.
+`rings` rings along: closer together at the nose, where the head's curvature is; from the first
+spine weight node (SPINE_NODES below) to the tail root a ring on every node, so an edge loop sits
+wherever the skin hands over from one bone to the next, and the rings between nodes evenly spaced,
+so a pose's stretch and bend spread over even bands (ring_stations). Two pole fans close the ends.
+All quads in between.
 """
 import math
 
@@ -36,6 +38,7 @@ FIN_THICK = 0.04            # fins are closed slabs; the floor is 0.03 (06 secti
 # skin hands over between neighbours (rigs.FishFit). Spine1 is the rigid head behind the eye,
 # Spine2 the girth centre, TailFin the tail root.
 SPINE_NODES = (0.30, 0.55, 0.72, 0.87, 1.0)
+TAIL_DENSITY = 0.3          # rings per stud at the tail root over those at the head node, less one (ring_stations)
 
 
 def smoothstep(t):
@@ -136,18 +139,33 @@ class FishBody:
 
     # -------------------------------------------------------------- topology
     def ring_stations(self, rings, nodes=()):
-        """Body fractions of the rings: closer at nose and tail root, with the ring nearest each
-        weight node (a body fraction) snapped onto it, so an edge loop sits on every hand-over."""
+        """Body fractions of the rings. The head, in front of the first weight node, keeps the
+        rings of a spacing closer at the nose (its curvature); from the first node to the tail
+        root every weight node (a body fraction) sits on a ring, so an edge loop is on every
+        hand-over, and the rings between two nodes are evenly spaced, each span taking its share
+        of the rings by length (TAIL_DENSITY more per stud at the tail root, where the body
+        narrows). Even spans keep the stretch and the bend of a pose spread over the same number
+        of edges per stud, so no one band takes it (weightcheck.py)."""
         n = rings + 1
         ts = [0.55 * (0.5 - 0.5 * math.cos(math.pi * k / n)) + 0.45 * (k / n) for k in range(1, rings + 1)]
-        for node in nodes:
-            if 0.0 < node < 1.0:
-                i = min(range(rings), key=lambda j: abs(ts[j] - node))
-                lo = ts[i - 1] if i > 0 else 0.0
-                hi = ts[i + 1] if i + 1 < rings else 1.0
-                if lo + 0.25 * (hi - lo) < node < hi - 0.25 * (hi - lo):   # never crowd a neighbour
-                    ts[i] = node
-        return ts
+        inner = [t for t in nodes if 0.0 < t < 1.0]
+        if not inner:
+            return ts
+        head = [t for t in ts if t < inner[0] - 0.4 * (1.0 - inner[0]) / (rings - len([u for u in ts if u < inner[0]]))]
+        anchors = inner + [1.0]
+        free = rings - len(head) - len(inner)            # rings strictly between the nodes, and before the root
+        lengths = [(b - a) * (1.0 + TAIL_DENSITY * (0.5 * (a + b) - inner[0]) / (1.0 - inner[0]))
+                   for a, b in zip(anchors, anchors[1:])]
+        share = [free * L / sum(lengths) for L in lengths]
+        count = [int(c) for c in share]
+        for i in sorted(range(len(share)), key=lambda i: count[i] - share[i])[:free - sum(count)]:
+            count[i] += 1
+        out = list(head)
+        for (a, b), c in zip(zip(anchors, anchors[1:]), count):
+            out.append(a)
+            edges = c + (1.0 if b < 1.0 else 0.7)        # the last span ends at the root's pole fan, not on a ring
+            out += [a + (b - a) * j / edges for j in range(1, c + 1)]
+        return out
 
     def part(self, segs, rings, nodes=()):
         """The body as one closed quad loft with pole fans (meshgen part: verts, faces, params).
