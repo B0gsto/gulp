@@ -50,6 +50,8 @@ BUDGETS = {
     # Not a bible row: M_Prop_ScaleCube is a script output (07 section 17 tool row).
     # It is held to the cove-prop ceiling, with no floor.
     "calibration": {"tris": 800, "bones": 0},
+    # Not a bible row: the grey-box stand-ins of 07 section 16 (blocks, cones, rings) have no floor.
+    "placeholder_block": {"tris": 800, "bones": 0},
 }
 
 # Skeletons by family (06 section 6.3). Sockets are extra, weightless bones (06 section 8.4).

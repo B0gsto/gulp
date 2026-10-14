@@ -5,6 +5,7 @@ conventions of 6.1 and the names of 6.6 / chapter 07 section 1.2. Any failed row
 the build. Not in this version: size against every row of 6.2 (the asset states its own
 expected size), fin thickness, interior faces, and the `palette` checks.
 """
+import os
 import re
 
 import bmesh
@@ -12,6 +13,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 import budgets
+import uvlayout
 import common
 
 WORD = r"[A-Z][A-Za-z0-9]*"
@@ -124,7 +126,10 @@ def check_mesh(spec, entry, report):
     limit = budgets.tri_budget(entry.get("budget", spec["budget"]), "shell" if role == "shell" else "body",
                                lod=lod, body_tris=body_tris)
     entry["tri_budget"] = limit
-    add("triangles", limit is not None and tris <= limit, "%d of %s" % (tris, limit))
+    raised = entry.get("shell_budget_raised")
+    report.add(name, "triangles", limit is not None and tris <= limit, "%d of %s" % (tris, limit),
+               waiver=("06 6.3 shell budget %d cannot hold an even outline; raised to %d, logged for the owner in "
+                       "spike/results/art-blender.md" % (raised["bible"], raised["used"])) if raised else None)
     floor = budgets.BUDGETS[entry.get("budget", spec["budget"])].get("tris_min")
     if floor and role != "shell" and not lod:
         add("triangles floor", tris >= floor, "%d, at least %d" % (tris, floor))
@@ -152,6 +157,19 @@ def check_mesh(spec, entry, report):
     volume = bm.calc_volume(signed=True)
     if role == "shell":
         add("faces flipped", volume < 0.0, "signed volume %.4f (a shell shows its back faces)" % volume)
+        if entry.get("body") is not None:
+            import versions
+            m = versions.shell_metrics(obj, entry["body"], entry["level_body"])
+            entry["width"] = m
+            d = entry["thickness"]
+            add("shell outside body", m["inside_points"] == 0,
+                "%d of %d shell points inside the body" % (m["inside_points"], m["points"]))
+            add("shell width even", versions.width_ok(m, d),
+                "corners and face centres %.3f to %.3f studs from the body (mean %.3f, cv %.2f) for %.3f; "
+                "allowed min %.1fx, mean %.1fx to %.1fx, max %.1fx, cv %.2f" % ((m["min"], m["max"], m["mean"], m["cv"], d) + versions.SHELL_WIDTH))
+        if "self_intersections" in entry:
+            add("no self-intersection", entry["self_intersections"] == 0,
+                "%d crossing face pairs inside a part; grown %.3f studs" % (entry["self_intersections"], entry["thickness"]))
     else:
         add("faces outward", volume > 0.0, "signed volume %.4f" % volume)
     min_area = min((f.calc_area() for f in bm.faces), default=0.0)
@@ -366,6 +384,48 @@ def check_action(spec, clip, report):
         add("loops", worst < 1e-4, "%d frames, first and last pose differ by %.6f" % (clip["end"] - clip["start"], worst))
 
 
+def check_ph_stamp(spec, report):
+    """07 section 16: a placeholder's "PH" stamp must show on the mesh. Samples the texture over
+    every face of the primary mesh through its UVs and counts stamp-ink pixels."""
+    import numpy as np
+    body = next(e["object"] for e in spec["meshes"] if e.get("primary"))
+    img = bpy.data.images.load(spec["ph_texture"], check_existing=True)
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(h, w, 4)
+    mesh = body.data
+    uv = mesh.uv_layers.active.data
+    total = ink = 0
+    inks, all_uv = [], []
+    steps = 6
+    for poly in mesh.polygons:
+        corners = [uv[li].uv for li in poly.loop_indices]
+        for k in range(1, len(corners) - 1):
+            a, b, c = corners[0], corners[k], corners[k + 1]
+            for i in range(steps + 1):
+                for j in range(steps + 1 - i):
+                    u = (a.x * (steps - i - j) + b.x * i + c.x * j) / steps
+                    v = (a.y * (steps - i - j) + b.y * i + c.y * j) / steps
+                    p = px[min(h - 1, int(v * h)), min(w - 1, int(u * w))]
+                    total += 1
+                    all_uv.append((u, v))
+                    if p[0] < 0.15 and p[1] < 0.15 and p[2] < 0.15:
+                        ink += 1
+                        inks.append((u, v))
+    share = ink / max(total, 1)
+    # The stamp must be the mesh's own, in the middle of the area its UVs use, not the edge of
+    # someone else's (a wrong atlas cell shows only a corner of a neighbour's stamp).
+    lo = [min(c[i] for c in all_uv) for i in range(2)]
+    hi = [max(c[i] for c in all_uv) for i in range(2)]
+    centre = [sum(c[i] for c in inks) / len(inks) for i in range(2)] if inks else [-1.0, -1.0]
+    rel = [(centre[i] - lo[i]) / max(hi[i] - lo[i], 1e-6) for i in range(2)]
+    centred = all(0.25 <= r <= 0.75 for r in rel)
+    report.add(body.name, "PH stamp on mesh", ink >= 3 and share >= 0.01 and centred,
+               "%d of %d samples of %s over the UVs are stamp ink (%.1f%%, at least 1%%); ink centre at %.2f, %.2f "
+               "of the UV area (0.25 to 0.75)" % (ink, total, os.path.basename(spec["ph_texture"]), 100.0 * share, rel[0], rel[1]))
+
+
 def run(spec):
     report = Report()
     body = [e for e in spec["meshes"] if e.get("primary")]
@@ -375,6 +435,10 @@ def run(spec):
         check_mesh(spec, entry, report)
     if spec.get("preview", {}).get("blocks"):
         check_values(spec, report)
+    if spec.get("uv"):
+        uvlayout.check(spec, report)
+    if spec.get("ph_texture"):
+        check_ph_stamp(spec, report)
     if spec.get("armature"):
         check_rig(spec, report)
     for clip in spec.get("actions", []):
