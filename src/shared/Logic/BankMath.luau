@@ -3,22 +3,23 @@
 -- canon 5.4 and 5.5; docs/02, sections 0.7, 11 and 12.2; docs/05, sections 3.1 and 3.2;
 -- docs/09, section 13.4). Pure numbers, so it runs in Lune.
 --
--- The numbers have no data row in the bible (05 §3.1 and §3.2 give them as formulas); they are
--- on the lines below with their source.
+-- 05 §3.1 and §3.2 give the numbers as formulas, so they live in Config/Defaults.bank.
+local Defaults = require("../Config/Defaults")
 local TraitRules = require("./TraitRules")
 
 local BankMath = {}
 
-BankMath.FULL_RATE_MASS = 1200 -- 05 §3.1: 3 Pearls per mass up to here
-BankMath.CEILING_MASS = 3000 -- 05 §3.1: 1 Pearl per mass from 1,200 to here, nothing above
-BankMath.FULL_RATE = 3
-BankMath.LOW_RATE = 1
-BankMath.DEEP_POCKETS = 2 -- 05 §3.1: ×2 with the Deep Pockets pass
-BankMath.SCRAPS_RATE = 0.10 -- canon 5.5, 05 §3.2
-BankMath.SCRAPS_RATE_EARLY = 0.50 -- canon 5.5: for the first three deaths on the account
-BankMath.EARLY_DEATHS = 3
-BankMath.ARMED_MASS = 1 -- 02 §0.7: a run is armed for banking once mass ≥ 1
-BankMath.SPECIMEN_TIER = 2 -- canon 5.4, 02 §11.4: a specimen needs tier 2 or higher
+local B = Defaults.bank
+BankMath.FULL_RATE_MASS = B.fullRateMass
+BankMath.CEILING_MASS = B.ceilingMass
+BankMath.FULL_RATE = B.fullRate
+BankMath.LOW_RATE = B.lowRate
+BankMath.DEEP_POCKETS = B.deepPockets
+BankMath.SCRAPS_RATE = B.scrapsRate
+BankMath.SCRAPS_RATE_EARLY = B.scrapsRateEarly
+BankMath.EARLY_DEATHS = B.earlyDeaths
+BankMath.ARMED_MASS = B.armedMass
+BankMath.SPECIMEN_TIER = B.specimenTier
 
 --- Base Pearls for banking `mass` (05 §3.1): 3 per mass to 1,200, 1 per mass to 3,000, nothing
 --- above. Mass below 0 pays nothing.

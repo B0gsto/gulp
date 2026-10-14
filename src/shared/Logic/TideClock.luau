@@ -12,17 +12,18 @@
 --   :30      = after launch a limited-time tide from live config replaces its Feeding Frenzy
 --              while the slot start lies inside the configured window (09 §11.1, §17.4)
 --
--- The timings have no data row (data:Tides has none); they are canon 10's.
+-- The timings and the rotation are canon 10 prose, so they live in Config/Defaults.tides.
+local Defaults = require("../Config/Defaults")
 local Index = require("../Data/Index")
 local Types = require("../Types")
 
 local TideClock = {}
 
-TideClock.SLOT = 900 -- canon 10: an event every 15 minutes
-TideClock.ACTIVE = 240 -- canon 10: each lasts 4 minutes
-TideClock.WARN = 60 -- canon 10: with a 60-second warning
-TideClock.ROTATION = table.freeze({ "frenzy", "moon_tide", "frenzy", "whale_fall" }) -- :00 :15 :30 :45
-TideClock.FLEX_SLOT = 3 -- canon 10: the :30 slot is the flexible one after launch
+TideClock.SLOT = Defaults.tides.slot
+TideClock.ACTIVE = Defaults.tides.active
+TideClock.WARN = Defaults.tides.warn
+TideClock.ROTATION = Defaults.tides.rotation
+TideClock.FLEX_SLOT = Defaults.tides.flexSlot
 
 --- The scope tags the MVP build ships (canon 15): the default when no `shipped` set is given.
 TideClock.MVP = table.freeze({ MVP = true } :: { [string]: boolean })
@@ -62,7 +63,7 @@ end
 --- The tide of the slot that starts at `slotStart` (a multiple of SLOT), after the limited-tide
 --- swap and the fallback.
 function TideClock.slotTide(slotStart: number, opts: Options?): string
-	local index = (slotStart % 3600) // TideClock.SLOT + 1
+	local index = (slotStart // TideClock.SLOT) % #TideClock.ROTATION + 1
 	local id = TideClock.ROTATION[index]
 	local shipped = if opts then opts.shipped else nil
 	if opts and index == TideClock.FLEX_SLOT then

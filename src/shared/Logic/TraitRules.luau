@@ -8,21 +8,23 @@
 -- The functions that change them (`eatTraitPrey`, `shed`, `grantReady`) change the tables the
 -- caller passes in and return what happened; nothing else here changes its arguments.
 --
--- The rarity bonuses come from Data/Generated/Traits (05 §3.3 data:TraitIncome). The effect
--- numbers below have no data row in the bible: they are canon 9 and 02 §8.4, on the line.
+-- The rarity bonuses come from Data/Generated/Traits (05 §3.3 data:TraitIncome); the effect
+-- numbers (canon 9, 02 §8.4) from Config/Defaults.traits.
+local Defaults = require("../Config/Defaults")
 local Index = require("../Data/Index")
 
 local TraitRules = {}
 
-TraitRules.SLOTS = 3 -- canon 9: a creature holds up to three traits
-TraitRules.PIPS = 5 -- 02 §8.1: trait prey eaten in one run to gain the trait
-TraitRules.PIPS_KEEN_NOSE = 4 -- 02 §8.1: with the Keen Nose pass [L]
-TraitRules.STRIPES_SPEED = 1.08 -- canon 9, 02 §8.4: topSpeed ×1.08
-TraitRules.SPOTS_MASS = 0.10 -- canon 9, 02 §8.4: +10% mass from prey and trait prey
-TraitRules.BONEFED_MASS = 0.25 -- canon 9, 02 §8.4: +25% mass from every source
-TraitRules.CRYSTAL_BANK = 1.5 -- canon 9, 02 §8.4, 05 §3.1: bank Pearls ×1.5
-TraitRules.LONGFIN_DASH = 0.30 -- canon 9, 02 §8.4: dash length +30% (adds, 02 §8.5)
-TraitRules.SPINY_DEFENCE = 1 -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
+local T = Defaults.traits
+TraitRules.SLOTS = T.slots
+TraitRules.PIPS = T.pips
+TraitRules.PIPS_KEEN_NOSE = T.pipsKeenNose
+TraitRules.STRIPES_SPEED = T.stripesSpeed
+TraitRules.SPOTS_MASS = T.spotsMass
+TraitRules.BONEFED_MASS = T.bonefedMass
+TraitRules.CRYSTAL_BANK = T.crystalBank
+TraitRules.LONGFIN_DASH = T.longfinDash -- adds with the species' own (02 §8.5)
+TraitRules.SPINY_DEFENCE = T.spinyDefence
 
 export type MassSource = "prey" | "player" | "predator"
 export type PipResult = "gained" | "pip" | "held" | "full" | "unknown"

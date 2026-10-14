@@ -7,19 +7,21 @@
 --
 -- Wild creatures [L] count as players on both sides (02 §0.4, §6.1 rule 9): pass kind "player".
 -- Predator tiers and the mass of edible predators come from Data/Generated/Predators; a predator
--- with no `eatenMass` (Gull, Moray, Old Scar) is never edible (canon 5.2). The other numbers have
--- no data row in the bible; they are below with their source.
+-- with no `eatenMass` (Gull, Moray, Old Scar) is never edible (canon 5.2). The other numbers are
+-- prose in the bible and live in Config/Defaults.bite.
+local Defaults = require("../Config/Defaults")
 local Index = require("../Data/Index")
 local TraitRules = require("./TraitRules")
 
 local BiteRules = {}
 
-BiteRules.PLAYER_GAIN = 0.30 -- canon 5.2: eating a player gives 30% of the victim's mass
-BiteRules.REPEAT_GUARD_SECONDS = 90 -- 02 §4.2 check 7, §6.1 rule 7
-BiteRules.FEED_GUARD_SECONDS = 600 -- 02 §6.6: repeats of the same victim within 10 minutes
-BiteRules.FEED_GUARD = table.freeze({ 1, 0.5, 0.25 }) -- 02 §4.4: then 0 from the fourth time
-BiteRules.NURSERY_MAX_TIER = 2 -- canon 5.2, 02 §0.5: tier 3 or higher cannot enter the Nursery
-BiteRules.NURSERY_SHARE = table.freeze({ 1, 0.5 }) -- 02 §4.4: Nursery prey to tier 1, tier 2; else 0
+local D = Defaults.bite
+BiteRules.PLAYER_GAIN = D.playerGain
+BiteRules.REPEAT_GUARD_SECONDS = D.repeatGuardSeconds
+BiteRules.FEED_GUARD_SECONDS = D.feedGuardSeconds
+BiteRules.FEED_GUARD = D.feedGuard
+BiteRules.NURSERY_MAX_TIER = D.nurseryMaxTier
+BiteRules.NURSERY_SHARE = D.nurseryShare
 
 export type Kind = "prey" | "player" | "predator"
 

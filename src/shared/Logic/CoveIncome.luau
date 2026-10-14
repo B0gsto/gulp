@@ -7,24 +7,23 @@
 -- clamped to 0 from below and `accruedAt` only moves forward, so a slow clock cannot wind the
 -- pile back and re-pay a period; the pile is capped, so a fast clock over-pays at most one cap.
 --
--- Trait bonuses come from Data/Generated/Traits (05 data:TraitIncome) through TraitRules. The
--- base rate per tier, the caps and the small thresholds have no data row in the bible (05 §3.3
--- gives the base as a plain table); they are below with their source.
+-- The base rate per tier comes from Data/Generated/Tiers (05 §3.3 data:CoveIncome), trait bonuses
+-- from Traits (05 data:TraitIncome) through TraitRules, the caps and thresholds from
+-- Config/Defaults.cove.
+local Defaults = require("../Config/Defaults")
+local Index = require("../Data/Index")
 local TraitRules = require("./TraitRules")
 local Types = require("../Types")
 
 local CoveIncome = {}
 
---- 05 §3.3: base Pearls per hour by specimen tier (a table, not a formula). Tier 1 keeps none.
-CoveIncome.BASE = table.freeze(
-	{ [2] = 6, [3] = 10, [4] = 18, [5] = 30, [6] = 50, [7] = 80 } :: { [number]: number }
-)
-CoveIncome.CAP_HOURS = 8 -- canon 11, 05 §3.4
-CoveIncome.CAP_HOURS_TIDE_WATCHER = 24 -- 05 §3.4: with the Tide Watcher pass [L]
-CoveIncome.BOOST_HOURS = 2 -- 05 §3.4: Cove Boost [L]
-CoveIncome.REFUND_MIN = 5 -- 05 §3.10: release refund floor
-CoveIncome.AWAY_MIN_SECONDS = 600 -- 02 §13.3: "While you were away" card: away 10 minutes or more
-CoveIncome.AWAY_MIN_PEARLS = 10 -- 02 §13.3: and earned 10 Pearls or more
+local C = Defaults.cove
+CoveIncome.CAP_HOURS = C.capHours
+CoveIncome.CAP_HOURS_TIDE_WATCHER = C.capHoursTideWatcher
+CoveIncome.BOOST_HOURS = C.boostHours
+CoveIncome.REFUND_MIN = C.refundMin
+CoveIncome.AWAY_MIN_SECONDS = C.awayMinSeconds
+CoveIncome.AWAY_MIN_PEARLS = C.awayMinPearls
 
 local HOUR = 3600
 
@@ -32,7 +31,8 @@ local HOUR = 3600
 --- A tier with no base (tier 1, or out of range) earns nothing. Computed in hundredths so the
 --- worked examples come out exact (30 × 1.30 = 39).
 function CoveIncome.specimenRate(tier: number, traits: { string }): number
-	local base = CoveIncome.BASE[tier]
+	local def = Index.Tiers.byTier[tier]
+	local base = if def then def.coveIncome else nil
 	if base == nil then
 		return 0
 	end

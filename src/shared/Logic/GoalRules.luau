@@ -6,9 +6,10 @@
 --
 -- The goal list, targets, difficulties, reward bands and "Needs" come from Data/Generated/Goals.
 -- The data has no column for a goal's kind, so two rules read the canon goal text: a tier goal
--- is "Grow into a <tier name>", and a goal that needs eating players says "other player". The
--- band amounts, the rank multiplier and the reroll limits have no data row; they are below with
--- their source.
+-- is "Grow into a <tier name>", and a goal that needs eating players says "other player". Band
+-- amounts come from Data/Generated/RewardBands (05 §3.12); the rank multiplier and the reroll
+-- limits from Config/Defaults.goals.
+local Defaults = require("../Config/Defaults")
 local Index = require("../Data/Index")
 local Rng = require("../Util/Rng")
 
@@ -17,12 +18,10 @@ local GoalRules = {}
 GoalRules.DAY = 86400 -- goals reset at 00:00 UTC (02 §15.3)
 GoalRules.FIRST_DAY = table.freeze({ "dg_eat_50", "dg_tier3", "dg_bank_snapper" }) -- canon 11
 GoalRules.DIFFICULTIES = table.freeze({ "Easy", "Medium", "Hard" }) -- canon 11: one of each
-GoalRules.BANDS =
-	table.freeze({ R1 = 100, R2 = 125, R3 = 175, R4 = 2500, R5 = 5000 } :: { [string]: number }) -- 05 §3.12
-GoalRules.ALL_DONE_BAND = "R1" -- 05 §3.5: the bonus for all three
-GoalRules.RANK_STEP = 0.1 -- 05 §3.7: rankMultiplier = 1 + 0.1 × (rank − 1)
-GoalRules.MAX_RANK = 50 -- 05 §3.7: the multiplier stops at rank 50
-GoalRules.REROLLS = table.freeze({ free = 1, video = 1, product = 3 } :: { [string]: number }) -- 02 §15.3, 05 §3.5
+GoalRules.ALL_DONE_BAND = Defaults.goals.allDoneBand
+GoalRules.RANK_STEP = Defaults.goals.rankStep
+GoalRules.MAX_RANK = Defaults.goals.maxRank
+GoalRules.REROLLS = Defaults.goals.rerolls :: { [string]: number }
 
 export type RerollHow = "free" | "video" | "product"
 
@@ -55,18 +54,17 @@ end
 --- down. 0 for an unknown goal.
 function GoalRules.reward(goalId: string, rank: number): number
 	local def = Index.Goals.byId[goalId]
-	local base = if def then GoalRules.BANDS[def.reward] else nil
-	if base == nil then
+	local band = if def then Index.RewardBands.byId[def.reward] else nil
+	if band == nil then
 		return 0
 	end
-	return math.floor(base * GoalRules.rankMultiplier(rank) + 1e-9)
+	return math.floor(band.pearls * GoalRules.rankMultiplier(rank) + 1e-9)
 end
 
 --- The bonus for finishing all three goals (05 §3.5), × the rank multiplier, rounded down.
 function GoalRules.allDoneBonus(rank: number): number
-	return math.floor(
-		GoalRules.BANDS[GoalRules.ALL_DONE_BAND] * GoalRules.rankMultiplier(rank) + 1e-9
-	)
+	local band = Index.RewardBands.byId[GoalRules.ALL_DONE_BAND]
+	return if band then math.floor(band.pearls * GoalRules.rankMultiplier(rank) + 1e-9) else 0
 end
 
 --- The tier a "Grow into a <tier>" goal asks for; nil for any other goal.
