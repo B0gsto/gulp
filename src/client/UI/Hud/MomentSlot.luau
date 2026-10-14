@@ -72,50 +72,6 @@ local function applyFades(fades: { Fade }, alpha: number)
 	end
 end
 
---- `UI_Common_Rays` stand-in (08 §13.2: a ray burst that turns behind rewards): `count` soft bars
---- through the centre, `size` rpx across, centred at `centre` in `parent`. Turn it by setting
---- `Rotation`.
-function MomentSlot.rays(
-	parent: Instance,
-	size: number,
-	colour: Color3,
-	centre: UDim2,
-	zIndex: number
-): Frame
-	local holder = Draw.new("Frame", {
-		Name = "Rays",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = centre,
-		Size = UDim2.fromOffset(size, size),
-		ZIndex = zIndex,
-		Parent = parent,
-	}) :: Frame
-	local count = 6
-	for i = 1, count do
-		local bar = Draw.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, 0, 0, size * 0.12),
-			Rotation = (i - 1) * 180 / count,
-			BackgroundColor3 = colour,
-			BackgroundTransparency = 0.25,
-			ZIndex = zIndex,
-			Parent = holder,
-		}, { Draw.corner() }) :: Frame
-		-- Strong at the centre, gone at the tips.
-		Draw.new("UIGradient", {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.5, 0),
-				NumberSequenceKeypoint.new(1, 1),
-			}),
-			Parent = bar,
-		})
-	end
-	Draw.slot("UI_Common_Rays", holder, zIndex)
-	return holder
-end
-
 -- A card on screen: the moment it shows, when it began and what fades with it.
 type Live = { moment: MomentQueue.Moment, card: Card, fades: { Fade }, startedAt: number }
 
