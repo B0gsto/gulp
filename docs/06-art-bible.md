@@ -680,7 +680,7 @@ Prey of tiers 3 to 6 use the same sway code on 3 or 4 bones. Smaller prey are ri
 - **Hop:** arc height and length in studs, time in the air and rest between hops in seconds, and for a prey that hops in short runs, the hops in a row.
 - **Pulse:** a repeating change that is not a wobble: `twinkle` (size, ± share), `glow` (emissive, ± share), `shimmer` (sheen speed only), `squash` (rim bones, ± share of the body), `crawl` (stretch and pull, ± share of the body). Frequency in Hz.
 - **Drift:** a slow free drift in studs/s for prey that do not swim.
-- **Flee look:** how a flee looks, then its settings: "wobble ×" or "sway ×" multiplies the wobble or sway during a flee burst, "hop ×" multiplies the hop, and the rest are times in seconds, distances in studs or angles in degrees.
+- **Flee look:** how a flee looks, then its settings: "wobble ×" or "sway ×" multiplies the wobble or sway during a flee burst, "hop ×" multiplies the hop, "regroup over" is how long a scattered swarm takes to close up again (it copies chapter 02, section 9.2, which wins), and the rest are times in seconds, distances in studs or angles in degrees.
 
 <!-- data:PreyMotion -->
 Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`, `glowfry`, `zebra_darter`, `dotted_goby`, `armor_shrimp`, `urchin_puff`.
@@ -688,7 +688,7 @@ Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sar
 | ID | Tag | Drawn as | Wobble (Hz, yaw °, roll °, bob studs) | Sway (Hz, swing °, Hz per stud/s; tail lag s) | Hop (height, length studs; time, rest s; hops in a row) | Pulse (Hz, size) | Drift (studs/s) | Flee look |
 |---|---|---|---|---|---|---|---|---|
 | `plankton` | [MVP] | `billboard` | — | — | — | `twinkle` 0.6 Hz, ±0.25 | 0.3 | `none` |
-| `krill` | [MVP] | `rigid` | 3, 12°, 10°, 0.03 | — | — | — | — | `scatter` · wobble ×2.5 · regroup 3 s |
+| `krill` | [MVP] | `rigid` | 3, 12°, 10°, 0.03 | — | — | — | — | `scatter` · wobble ×2.5 · regroup over 3 s |
 | `shrimp` | [MVP] | `rigid` | 1.2, 6°, 4°, 0 | — | 0.8, 3; 0.45, 0.6 | — | — | `hops` · hop ×1.6 |
 | `sardine` | [MVP] | `rigid` | 4, 12°, 8°, 0 | — | — | — | — | `flash` · wobble ×1.8 · bank 35° |
 | `darter` | [MVP] | `RIG_Prey3` | 2.5, 12°, 6°, 0 | 2.2, 14°, 0.12 | — | — | — | `quick_turns` · sway ×2 |

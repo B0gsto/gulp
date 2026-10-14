@@ -206,7 +206,7 @@ Notes (all tune):
 | ID | Length (studs) | Appearance brief | Behaviour |
 |---|---|---|---|
 | `plankton` | 0.4 | A soft pale-green mote that twinkles. No face. | Drifts in loose patches. Never reacts. |
-| `krill` | 0.8 | Pink-orange comma shape, two black dot eyes, feathery legs that flutter. Looks busy. | Swarm hangs in mid-water. Scatters outward when approached, then regroups after 3 s. |
+| `krill` | 0.8 | Pink-orange comma shape, two black dot eyes, feathery legs that flutter. Looks busy. | Swarm hangs in mid-water. Scatters outward when approached; after 2 s it regroups to the swarm centre over 3 s (chapter 02, section 9.2). |
 | `shrimp` | 1.0 | See-through peach body, long whiskers, curled tail. Looks startled. | Sits on the floor. Hops 4 to 6 studs at a time, each hop kicks up a sand puff. |
 | `sardine` | 1.6 | Silver-blue sliver with one round surprised eye. | Tight school that turns as one. Flees as a group away from the threat; splits in two if hit in the middle. |
 | `darter` | 2.4 | Bright orange body, teal fins, pointed nose. Looks smug. | Hovers near coral or kelp. Flees in short zig-zags and hides behind cover. |

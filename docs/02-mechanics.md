@@ -982,7 +982,7 @@ He cannot fit through gaps under 14 studs. Counterplay: turn hard, use gaps, lea
 - The server runs a spawn pass every 1.0 s.
 - For each zone and prey type: if the count is below target, spawn one individual or one whole group at a spawn region (document 03) with no player within 60 studs. If no region qualifies for three passes in a row, use the region furthest from all players.
 - New prey fade in over 0.5 s and cannot be eaten until fully in.
-- A single prey slot refills no sooner than 8 s after it was eaten.
+- **Respawn delay.** Each spawn row (one prey in one zone) has its prey's respawn delay, document 03's "Respawn (s)" (sections 2.1 and 3.1). When a group of that row is eaten or removed, the row may not spawn again until the delay has run; a pass then spawns at most one group for it (three in a Feeding Frenzy, section 14.4). For normal prey the delay is divided by the running tide's prey spawn rate (canon data:Tides). This per-prey delay replaces the earlier single 8 s slot refill, which no longer applies.
 - Prey have no lifetime. Only stragglers, event prey and the Crystal Jelly despawn.
 - If a zone holds more than 150% of its target (after a Feeding Frenzy), the extra prey with no player within 80 studs despawn, 10 per second.
 
@@ -1361,7 +1361,7 @@ Tide Watcher **[L]** adds an in-game tide board that shows the next three tides,
 | Rule | Value |
 |---|---|
 | Density target | ×2.0 for normal prey in every zone, including the Nursery |
-| Refill | Three spawns per pass instead of one; slot refill time 8 s → 2.7 s. Both come from the tide's prey spawn rate, ×3 (canon section 10, data:Tides): each respawn delay of normal prey is divided by it |
+| Refill | Three spawns per pass instead of one, and every respawn delay of normal prey divided by 3 (a 12 s `krill` delay becomes 4 s; section 9.5). Both come from the tide's prey spawn rate, ×3 (canon section 10, data:Tides) |
 | Trait prey | Unchanged. The Crystal Jelly timer is unchanged. |
 | Which tide | Only the `frenzy` tide doubles the density target and the caps. The spawn rate and the density are two rules: a tide's prey spawn rate (canon data:Tides) divides respawn delays and sets spawns per pass for any tide, and a future tide with a rate above ×1 does not double the density unless this chapter says so for that tide |
 | Predators and hazards | Unchanged |
