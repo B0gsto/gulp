@@ -18,8 +18,10 @@
 --             arc and is kept while the group is still.
 --   Pools     `assign` gives the mesh budget (8.8 and 15.1: tune.quality.preyMeshes, within
 --             tune.quality.preyMeshDistance; the renderer passes both) to the nearest groups
---             first, whole groups while it lasts; the group where it runs out is drawn in part, and the rest of it, like every group past the mesh range, falls to
---             particles (part 2, S4-C1).
+--             first, whole groups while it lasts; the group where it runs out is drawn in part, and the
+--             rest of it, like every group past the mesh range, falls to far glints:
+--             `assignGlints` gives one emitter per group, nearest first, within the tier's
+--             emitter cap and prey-visible total, and keeps each group on its emitter slot.
 --
 -- Hot path (09 §4.7): the group table is arrays indexed by groupId + 1, preallocated for the 512
 -- IDs the codec allows; `applyPacket`, `step` and `assign` allocate nothing once warm.
@@ -54,6 +56,10 @@ export type Mirror = {
 	snap: { boolean }, -- the next `step` snaps instead of easing
 	dist: { number }, -- distance to the viewer at the last `assign`
 	drawn: { number }, -- members drawn as meshes at the last `assign`
+	glints: { number }, -- members drawn as far glints at the last `assignGlints`
+	slotOf: { number }, -- the group's glint emitter slot, 0 for none
+	-- Per glint emitter slot (1 to the emitter cap): its group ID + 1, 0 when free.
+	slotGroup: { number },
 	-- The live group IDs, in no order, and each one's place in that list.
 	ids: { number },
 	at: { number },
@@ -112,6 +118,9 @@ function PreyMirror.new(): Mirror
 		snap = table.create(N, false),
 		dist = table.create(N, 0),
 		drawn = table.create(N, 0),
+		glints = table.create(N, 0),
+		slotOf = table.create(N, 0),
+		slotGroup = {},
 		ids = table.create(N),
 		at = table.create(N, 0),
 		order = table.create(N),
@@ -176,6 +185,12 @@ function PreyMirror.remove(m: Mirror, groupId: number): boolean
 	end
 	m.live[i] = false
 	m.drawn[i] = 0
+	m.glints[i] = 0
+	local slot = m.slotOf[i]
+	if slot > 0 then
+		m.slotGroup[slot] = 0
+		m.slotOf[i] = 0
+	end
 	local ids = m.ids
 	local place, last = m.at[i], #ids
 	local moved = ids[last]
@@ -446,6 +461,61 @@ function PreyMirror.assign(
 		front = k
 	end
 	return given, front
+end
+
+--- Far glints (8.8 and 15.1), after `assign`: every member of a live group not drawn as a mesh
+--- is drawn as a glint by its group's one emitter. Emitters go to the groups nearest first, at
+--- most `emitterCap` of them (tune.quality.farPreyEmitters: 30, 60, 60), and the glints of all
+--- of them together stay within `glintCap` (the tier's prey visible in total, 250, 400 or 800,
+--- minus the meshes drawn). Writes `m.glints`. A group keeps its emitter slot (`m.slotOf`,
+--- `m.slotGroup`, 1 to `emitterCap`) for as long as it has glints, so its particles never jump
+--- to another group; a freed slot goes to the nearest group without one. Returns the emitters
+--- in use and the glints given. Allocates nothing once warm.
+function PreyMirror.assignGlints(m: Mirror, emitterCap: number, glintCap: number): (number, number)
+	local order, drawn, glints, slotOf, slotGroup =
+		m.order, m.drawn, m.glints, m.slotOf, m.slotGroup
+	local emitters, given = 0, 0
+	for k = 1, #order do
+		local i = order[k] + 1
+		local want = 0
+		if emitters < emitterCap and given < glintCap then
+			want =
+				math.min(PreyMirror.aliveCount(m.alive[i], m.count[i]) - drawn[i], glintCap - given)
+		end
+		if want > 0 then
+			emitters += 1
+			given += want
+			glints[i] = want
+		else
+			glints[i] = 0
+		end
+	end
+	-- Free the slots of groups that lost their glints, and every slot past the cap.
+	for slot = 1, math.max(#slotGroup, emitterCap) do
+		local g = slotGroup[slot] or 0
+		if g > 0 and (slot > emitterCap or glints[g] == 0) then
+			slotOf[g] = 0
+			g = 0
+		end
+		if slot <= emitterCap then
+			slotGroup[slot] = g
+		else
+			slotGroup[slot] = nil
+		end
+	end
+	-- Give the free slots to the groups that need one, nearest first.
+	local free = 1
+	for k = 1, #order do
+		local i = order[k] + 1
+		if glints[i] > 0 and slotOf[i] == 0 then
+			while slotGroup[free] ~= 0 do
+				free += 1
+			end
+			slotGroup[free] = i
+			slotOf[i] = free
+		end
+	end
+	return emitters, given
 end
 
 --- The nearest live group to (x, y, z) whose kind is in `kinds` (any kind when nil) and that has
