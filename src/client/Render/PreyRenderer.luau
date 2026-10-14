@@ -70,6 +70,7 @@ local Client = require(script.Parent.Parent.Net.Client)
 local CreatureController = require(script.Parent.Parent.Controllers.CreatureController)
 local HullMesh = require(script.Parent.HullMesh)
 local InputController = require(script.Parent.Parent.Controllers.InputController)
+local OutlineBudget = require(script.Parent.OutlineBudget)
 local Outlines = require(script.Parent.Outlines)
 local Pools = require(script.Parent.Pools)
 
@@ -139,7 +140,6 @@ local budget = 0 -- prey drawn as meshes
 local meshDistance = 0 -- studs
 local farEmitters = 0 -- far group emitters
 local visibleCap = 0 -- prey visible in total, meshes and glints
-local capEdible, capDangerous = 0, 0
 local viewerTier = 1
 local folder: Folder? = nil
 local looks: { [number]: Look } = {}
@@ -220,8 +220,10 @@ local function readQuality(t: GraphicsTier)
 	meshDistance = Flags.tiers("tune.quality.preyMeshDistance")[t]
 	farEmitters = Flags.tiers("tune.quality.farPreyEmitters")[t]
 	visibleCap = Flags.tiers("tune.quality.preyVisible")[t]
-	capEdible = Flags.tiers("tune.quality.outlinesEdible")[t]
-	capDangerous = Flags.tiers("tune.quality.outlinesDangerous")[t]
+	OutlineBudget.setCaps(
+		Flags.tiers("tune.quality.outlinesEdible")[t],
+		Flags.tiers("tune.quality.outlinesDangerous")[t]
+	)
 	stats.tier, stats.meshes, stats.meshDistance, stats.farEmitters =
 		t, budget, meshDistance, farEmitters
 end
@@ -689,12 +691,15 @@ function PreyRenderer.render(dt: number)
 			else "none"
 		outlineDistances[k] = mirror.dist[i]
 	end
+	-- 09 §8.8: one budget per colour, shared with the creatures.
+	local shareEdible, shareDangerous =
+		OutlineBudget.caps("prey", outlineKinds, outlineDistances, front)
 	OutlineRules.select(
 		outlineKinds,
 		outlineDistances,
 		front,
-		capEdible,
-		capDangerous,
+		shareEdible,
+		shareDangerous,
 		outlineOrder,
 		outlineShown
 	)

@@ -37,6 +37,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HullMesh = require(script.Parent.HullMesh)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
+local Outlines = require(script.Parent.Outlines)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
 
 local CreatureRig = {}
@@ -472,7 +473,7 @@ local function formFromTemplate(model: Model, form: Form): FormParts
 	local lists: { { BasePart } } = { parts.thin, parts.thick }
 	for _, list in lists do
 		for _, s in list do
-			s.Material = Enum.Material.Neon
+			s.Material = Outlines.MATERIAL -- 06 §13.2 matte fallback
 			s.Transparency = 1
 		end
 	end

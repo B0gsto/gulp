@@ -19,6 +19,7 @@ local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Log = require(ReplicatedStorage.Shared.Util.Log)
+local Outlines = require(script.Parent.Outlines)
 
 local HullMesh = {}
 
@@ -63,7 +64,7 @@ local function build(): MeshPart
 	end
 	local part = AssetService:CreateMeshPartAsync(Content.fromObject(mesh))
 	part.Name = "HullShell"
-	part.Material = Enum.Material.Neon -- 06 §13.2
+	part.Material = Outlines.MATERIAL -- 06 §13.2 matte fallback
 	part.Transparency = 1
 	part.CastShadow = false
 	part.Anchored = false
@@ -94,7 +95,7 @@ function HullMesh.failed(): boolean
 	return failed
 end
 
---- A new hidden Neon hull named `name`, `size` studs across (body size plus twice the line
+--- A new hidden hull named `name`, `size` studs across (body size plus twice the line
 --- width), or nil while the mesh is not built yet.
 function HullMesh.new(name: string, size: Vector3): MeshPart?
 	local t = template
