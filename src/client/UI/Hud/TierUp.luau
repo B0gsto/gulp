@@ -3,7 +3,7 @@
 -- `UI_Common_Ribbon`: the new tier badge, `moment.tier_up`, the tier's canon name (`tier.1` to
 -- `tier.7`, shown in capitals as in 08 §4.2 and 04 §3.3's NIBBLER) and `moment.new_food` with
 -- up to three prey that just became edible, each in an edible-colour ring. Tier 7 holds longer,
--- turns `UI_Common_Rays` behind a bigger badge and edges the ribbon in gold. Rects come from
+-- turns `UI_Common_Rays` behind a bigger, gold-rimmed badge and edges the ribbon in gold. Rects come from
 -- `HudLayout.tierUpCard`; the slot (`MomentSlot`) moves it in and out. The images are
 -- `MomentArt`'s stand-ins.
 -- Not here yet: `SFX_UI_TierUp` and the two haptic pulses (08 §11.4: Medium, 40 ms, twice,
@@ -107,10 +107,17 @@ function TierUp.build(
 	local centre = UDim2.fromOffset(art.x + art.width / 2, art.y + art.height / 2)
 	local rays: Frame? = nil
 	if top then
-		-- 08 §4.2: the climax. Rays turn over the band behind the badge and past the card's
-		-- edge, up to the gap under the chip row (HudLayout.tierUpCard), in a gold halo.
-		rays = MomentArt.rays(root, rects.rays, rects.raysClip, Theme.GOLD, 0.1, 4)
-		MomentArt.halo(root, centre, art.width, Theme.GOLD, 5)
+		-- 08 §4.2: the climax. Crisp gold spokes, light and dark in turn, turn over the band
+		-- behind the badge, centred on it, past the card's side and up into the gap under the
+		-- chip row, never below the card (HudLayout.tierUpCard).
+		rays = MomentArt.rays(
+			root,
+			rects.rays,
+			rects.raysClip,
+			Theme.PRIMARY:Lerp(Theme.WHITE, 0.45),
+			Theme.PRIMARY_SHADE,
+			4
+		)
 	end
 	local badgeHolder = Draw.new("Frame", {
 		Name = "Badge",
@@ -121,7 +128,26 @@ function TierUp.build(
 		Parent = root,
 	}) :: Frame
 	local badgeScale = Draw.new("UIScale", { Scale = 0.01, Parent = badgeHolder }) :: UIScale
-	Icons.tier(data.tier, art.width, badgeHolder, nil, 6)
+	if top then
+		-- The climax badge fills all 104 rpx: a gold rim with a white glint round the tier 7
+		-- badge, so it reads bigger than the 96 rpx badges below it.
+		local rim = Draw.disc(art.width, Theme.GOLD, nil, {
+			Name = "GoldRim",
+			ZIndex = 6,
+			Parent = badgeHolder,
+		})
+		Draw.stroke(Theme.STROKE_ICON).Parent = rim
+		local glint = Draw.disc(art.width - 4, Theme.GOLD, nil, {
+			Name = "Glint",
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+			Parent = rim,
+		})
+		Draw.stroke(2, Theme.PRIMARY:Lerp(Theme.WHITE, 0.6)).Parent = glint
+		Icons.tier(data.tier, art.width - 2 * spec.topRim, badgeHolder, nil, 7)
+	else
+		Icons.tier(data.tier, art.width, badgeHolder, nil, 6)
+	end
 
 	local hp, hs = toRect(rects.header)
 	Draw.text({

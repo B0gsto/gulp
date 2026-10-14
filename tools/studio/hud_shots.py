@@ -7,7 +7,8 @@ Under the machine-wide `studio` lock and one `heavy` slot, like tools/studio/lig
 open it, start play and wait for the local creature. On the client, Dev/HudHarness lays the interface out for a
 simulated phone (844 x 390 px, 47 px notch insets, drawn at the top left of the viewport and cropped) and for the
 real Studio viewport (a desktop), poses the HUD (drag ring, dash cooldown, mass pops, off-screen home) and opens
-S11 and S12. Writes build/hud/: each capture downscaled to 768 px and hud-grid.png (one contact sheet).
+S11 and S12. Writes build/hud/: each capture downscaled to 768 px (a cropped one also at full resolution, NAME-raw.png) and
+hud-grid.png (one contact sheet).
 `--set cove` (task S5-C4) shoots S12 after a bank (specimen card; a tier 1 run on the phone) and S14 (Pearls,
 income, slots, Claim all, the Pearl pile) on both devices into build/hud/cove-grid.png.
 `--set moments` (task S6-C5) shoots S07 and S08 held in the moment slot (tier 2 and 7, Glow and the Epic Crystal on
@@ -46,6 +47,7 @@ def capture(sm, name, crop=None, box=None):
             img = img.crop(tuple(max(0, int(v * k)) for v in box))
         else:
             img = img.crop((0, 0, int(crop[0] * k), int(crop[1] * k)))
+        img.save(os.path.join(OUT, name + "-raw.png"))  # full resolution, for detail crops
     img.thumbnail((768, 768))
     path = os.path.join(OUT, name + ".png")
     img.save(path)

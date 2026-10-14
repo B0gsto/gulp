@@ -400,7 +400,15 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 		["S07 with food"] = HudLayout.tierUpCard(slotSize, true),
 		["S07 without food"] = HudLayout.tierUpCard(slotSize, false),
 		["S07 tier 7"] = HudLayout.tierUpCard(slotSize, false, true),
+		["S07 tier 7 with food"] = HudLayout.tierUpCard(slotSize, true, true),
 		["S08"] = HudLayout.traitCard(slotSize),
+		["S08 Epic or Mythic"] = HudLayout.traitCard(slotSize, true),
+	}
+	-- The cards that turn `UI_Common_Rays` (08 §4.2 tier 7, §4.3 Epic and Mythic).
+	local burst = {
+		["S07 tier 7"] = true,
+		["S07 tier 7 with food"] = true,
+		["S08 Epic or Mythic"] = true,
 	}
 	local function offset(r: Rect, dx: number, dy: number): Rect
 		return { x = r.x + dx, y = r.y + dy, width = r.width, height = r.height }
@@ -458,6 +466,27 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 				expect(c.rays.x < 0 or c.rays.y < 0).toBe(true)
 				expect(clip.y < placed.y).toBe(true)
 			end)
+
+			if burst[card] then
+				it(
+					`{name}, {card}: the rays are symmetric about the art and clear the text`,
+					function()
+						local ax = c.art.x + c.art.width / 2
+						local ay = c.art.y + c.art.height / 2
+						expect(c.rays.x + c.rays.width / 2).toBeCloseTo(ax, 1e-6)
+						expect(c.rays.y + c.rays.height / 2).toBeCloseTo(ay, 1e-6)
+						expect(c.raysClip.x + c.raysClip.width / 2).toBeCloseTo(ax, 1e-6)
+						expect(c.raysClip.width).toBeCloseTo(c.rays.width, 1e-6)
+						-- Past the card's side by as much as they reach right of the art.
+						expect(c.raysClip.x < 0).toBe(true)
+						-- The spokes show beyond the art (not a thin corona), and stay off the text.
+						expect(c.rays.width / 2 - c.art.width / 2 >= 32).toBe(true)
+						for _, t in { c.header, c.name, c.line } do
+							expect(HudLayout.overlaps(t :: Rect, c.raysClip)).toBe(false)
+						end
+					end
+				)
+			end
 		end
 
 		-- 08 §1.5: Small 22 is the floor. Kit/Draw sizes text with ScreenScale.textRpx, which
@@ -526,7 +555,9 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 			local top = HudLayout.tierUpCard(slotSize, true, true)
 			expect(top.art.width).toBe(104)
 			expect(top.art.x + top.art.width / 2).toBe(t.art.x + t.art.width / 2)
-			expect(top.header.x).toBe(t.header.x)
+			-- The badge grows to 104 by a gold rim round the 96 rpx badge.
+			expect(top.art.width - 2 * HudLayout.TIER_UP.topRim).toBe(t.art.width)
+			expect(top.header.x).toBe(top.rays.x + top.rays.width + HudLayout.TIER_UP.raysGap)
 			local s = HudLayout.traitCard(slotSize)
 			expect(s.card.width).toBe(420)
 			expect(s.card.height).toBe(104)
@@ -538,10 +569,69 @@ describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 
 	it("sets the S08 effect line in Body 24 and fits three food icons on the S07 row", function()
 		expect(HudLayout.TRAIT_GAINED.type.line).toBe(24)
 		local t = HudLayout.TIER_UP
-		local line = HudLayout.tierUpCard(slotSize, true).line :: Rect
-		-- "New food:" at Small 22 is about 100 rpx in English; three icons follow it.
-		expect(100 + 3 * (t.foodIcon + t.foodGap) <= line.width).toBe(true)
-		expect(t.foodIcon <= line.height).toBe(true)
+		for _, top in { false, true } do
+			local line = HudLayout.tierUpCard(slotSize, true, top).line :: Rect
+			-- "New food:" at Small 22 is about 100 rpx in English; three icons follow it.
+			expect(100 + 3 * (t.foodIcon + t.foodGap) <= line.width).toBe(true)
+			expect(t.foodIcon <= line.height).toBe(true)
+		end
+	end)
+
+	-- The phone the review captures: an iPhone 12 to 15 in landscape, 844 x 390 points with
+	-- 47 point notch insets (Dev/HudHarness's simulated phone). What the engine draws for each
+	-- S07 and S08 text, the prey icons and the badges, in rpx at that phone's scale.
+	describe("on a real phone viewport, 844 x 390 with 47 px notches", function()
+		local phone = screen(reading(true, false, 844, 390), 47)
+		local scale = phone.scale
+		local function drawn(rpx: number): number
+			return ScreenScale.drawnPx(ScreenScale.textRpx(rpx, scale), scale) / scale
+		end
+
+		it("is the Phone class, so the review's capture is the real size", function()
+			expect(phone.screenClass).toBe("Phone")
+			expect(scale > 0.5 and scale < 0.7).toBe(true)
+		end)
+
+		it(
+			"draws You grew! (moment.tier_up) and New food (moment.new_food) at 22 rpx or more",
+			function()
+				local t = HudLayout.TIER_UP
+				expect(drawn(t.type.header) >= 24).toBe(true)
+				expect(drawn(t.type.line) >= HudLayout.TEXT_FLOOR).toBe(true)
+				-- In screen points: 12 for Small 22 and 13 for Body 24 at this phone's 0.542.
+				expect(ScreenScale.drawnPx(ScreenScale.textRpx(t.type.line, scale), scale)).toBe(12)
+				expect(ScreenScale.drawnPx(ScreenScale.textRpx(t.type.header, scale), scale)).toBe(
+					13
+				)
+			end
+		)
+
+		it("draws every S07 and S08 text at its 08 §1.5 size or more and fits its row", function()
+			for _, spec in { HudLayout.TIER_UP, HudLayout.TRAIT_GAINED } do
+				for _, row in
+					{
+						{ spec.type.header, spec.headerHeight },
+						{ spec.type.name, spec.nameHeight },
+						{ spec.type.line, spec.lineHeight },
+					}
+				do
+					expect(drawn(row[1]) >= row[1]).toBe(true)
+					expect(ScreenScale.textRpx(row[1], scale) <= row[2]).toBe(true)
+				end
+			end
+		end)
+
+		it(
+			"shows the food icons at 36 rpx (about 20 points) and the tier 7 badge at 104 against 96",
+			function()
+				expect(HudLayout.TIER_UP.foodIcon * scale >= 19).toBe(true)
+				local t = HudLayout.tierUpCard(slotSize, true)
+				local top = HudLayout.tierUpCard(slotSize, true, true)
+				expect(top.art.width).toBe(104)
+				expect(t.art.width).toBe(96)
+				expect((top.art.width - t.art.width) * scale >= 4).toBe(true)
+			end
+		)
 	end)
 end)
 describe(

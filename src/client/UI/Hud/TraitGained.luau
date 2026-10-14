@@ -49,7 +49,9 @@ function TraitGained.build(
 	slot: { width: number, height: number },
 	data: Data
 ): MomentSlot.Card
-	local rects = HudLayout.traitCard(slot)
+	local r = rarity(data.traitId)
+	local burst = r == "Epic" or r == "Mythic"
+	local rects = HudLayout.traitCard(slot, burst)
 	local spec = HudLayout.TRAIT_GAINED
 	local frameColour = Icons.rarityColour(data.traitId)
 	local position, size = toRect(rects.card)
@@ -70,13 +72,19 @@ function TraitGained.build(
 
 	local art = rects.art
 	local centre = UDim2.fromOffset(art.x + art.width / 2, art.y + art.height / 2)
-	local r = rarity(data.traitId)
 	local rays: Frame? = nil
-	if r == "Epic" or r == "Mythic" then
-		-- 08 §4.3: over the card behind the icon and past its edge, up to the gap under the
-		-- chip row (HudLayout.traitCard), in a halo of the rarity colour.
-		rays = MomentArt.rays(root, rects.rays, rects.raysClip, frameColour, 0.05, 4)
-		MomentArt.halo(root, centre, art.width, frameColour, 5)
+	if burst then
+		-- 08 §4.3: crisp spokes of the rarity colour, light and dark in turn, over the card
+		-- behind the icon, centred on it, past the card's side and up into the gap under the chip
+		-- row, never below the card (HudLayout.traitCard).
+		rays = MomentArt.rays(
+			root,
+			rects.rays,
+			rects.raysClip,
+			frameColour:Lerp(Theme.WHITE, 0.55),
+			frameColour:Lerp(Theme.INK, 0.15),
+			4
+		)
 	end
 	-- The rarity frame (06 §4.4): a rounded square in the rarity colour with the navy outline,
 	-- and a darker inner stroke in the same hue so even Common's pale grey reads on cream.

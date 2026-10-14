@@ -150,25 +150,20 @@ end
 
 local TRAIT: { [string]: (c: Canvas) -> () } = {}
 
--- Glow (06 §8.2 `#FFE98A`): a lit lure with a four-point sparkle and a halo.
+-- Glow (06 §8.2 `#FFE98A`): a lit lure with a bold four-point sparkle and a halo, one outlined
+-- shape so it holds up at phone size.
 TRAIT.glow = function(c)
-	local glow = hex("#FFE98A")
+	local glow, spark = hex("#FFE98A"), hex("#FFD23D")
 	put(c, { x = 0.5, y = 0.5, w = 0.98, h = 0.98, colour = glow, alpha = 0.55 })
-	put(c, { x = 0.5, y = 0.5, w = 0.74, h = 0.74, colour = glow, alpha = 0.3, dz = 1 })
-	for i, len in { 1.0, 0.68, 1.0, 0.68 } do
-		put(c, {
-			x = 0.5,
-			y = 0.5,
-			w = len,
-			h = 0.09,
-			colour = hex("#FFD23D"),
-			rot = (i - 1) * 45,
-			dz = 2,
-		})
-	end
-	shape(c, { { x = 0.5, y = 0.5, w = 0.5, h = 0.5, colour = glow } }, 3)
-	put(c, { x = 0.5, y = 0.5, w = 0.28, h = 0.28, colour = Theme.WHITE, alpha = 0.2, dz = 5 })
-	highlight(c, 0.4, 0.38, 0.12, 6)
+	shape(c, {
+		{ x = 0.5, y = 0.5, w = 0.9, h = 0.17, colour = spark },
+		{ x = 0.5, y = 0.5, w = 0.17, h = 0.9, colour = spark },
+		{ x = 0.5, y = 0.5, w = 0.66, h = 0.14, colour = spark, rot = 45 },
+		{ x = 0.5, y = 0.5, w = 0.66, h = 0.14, colour = spark, rot = -45 },
+	}, 1)
+	shape(c, { { x = 0.5, y = 0.5, w = 0.48, h = 0.48, colour = glow } }, 3)
+	put(c, { x = 0.5, y = 0.5, w = 0.26, h = 0.26, colour = Theme.WHITE, alpha = 0.2, dz = 5 })
+	highlight(c, 0.41, 0.39, 0.12, 6)
 end
 
 -- Stripes (`#1E2A4A` on `#FFFFFF`): a white fish with three bold bands.
@@ -299,8 +294,8 @@ TRAIT.crystal = function(c)
 	}
 	shape(c, { shards[1], shards[2] }, 0)
 	shape(c, { shards[3] }, 2)
-	put(c, { x = 0.5, y = 0.48, w = 0.12, h = 0.6, colour = hex("#FF9BE6"), alpha = 0.55, dz = 4 })
-	put(c, { x = 0.46, y = 0.3, w = 0.05, h = 0.22, colour = Theme.WHITE, dz = 5 })
+	put(c, { x = 0.5, y = 0.48, w = 0.13, h = 0.6, colour = hex("#FF9BE6"), dz = 4 })
+	put(c, { x = 0.44, y = 0.3, w = 0.07, h = 0.22, colour = Theme.WHITE, dz = 5 })
 	highlight(c, 0.26, 0.48, 0.07, 4)
 end
 
@@ -322,7 +317,8 @@ function MomentArt.trait(traitId: string, size: number, parent: Instance, zIndex
 	if draw == nil then
 		return Icons.trait(traitId, size, parent, nil, zIndex)
 	end
-	local c = canvas(parent, size, zIndex, math.max(1.5, size * 0.04))
+	-- 4 rpx at the 56 rpx S08 size: about 2.4 px on a phone (06 §12.2's icon weight).
+	local c = canvas(parent, size, zIndex, math.max(3, size * 0.075))
 	c.root.Name = "Trait"
 	draw(c)
 	Draw.slot(`UI_Icon_Trait{pascal(traitId)}`, c.root, zIndex + 8)
@@ -343,9 +339,10 @@ type Fish = {
 	halo: Color3?,
 	rim: Color3?,
 	fin: Color3?,
-	finlets: Color3?,
 }
 
+-- A fish at icon size: body, V tail and a big eye, plus one mark (bands, dots, a halo or a rim)
+-- and a two-tone back; nothing finer than a phone can show.
 local function fish(c: Canvas, f: Fish)
 	local x0 = 0.54 - f.len / 2 -- tail end of the body
 	if f.halo then
@@ -353,16 +350,16 @@ local function fish(c: Canvas, f: Fish)
 	end
 	local tail = f.back or f.body
 	local parts: { Part } = {
-		{ x = x0 - 0.04, y = 0.4, w = 0.24, h = 0.12, colour = tail, rot = -38 },
-		{ x = x0 - 0.04, y = 0.6, w = 0.24, h = 0.12, colour = tail, rot = 38 },
+		{ x = x0 - 0.02, y = 0.39, w = 0.26, h = 0.16, colour = tail, rot = -38 },
+		{ x = x0 - 0.02, y = 0.61, w = 0.26, h = 0.16, colour = tail, rot = 38 },
 		{ x = 0.54, y = 0.5, w = f.len, h = f.depth, colour = f.body },
 	}
 	if f.fin then
 		table.insert(parts, 1, {
 			x = 0.5,
 			y = 0.5 - f.depth / 2,
-			w = 0.22,
-			h = 0.14,
+			w = 0.24,
+			h = 0.16,
 			colour = f.fin,
 			rot = -12,
 		})
@@ -385,100 +382,75 @@ local function fish(c: Canvas, f: Fish)
 	if back then
 		put(c, {
 			x = 0.52,
-			y = 0.5 - f.depth * 0.22,
-			w = f.len * 0.72,
-			h = f.depth * 0.26,
+			y = 0.5 - f.depth * 0.2,
+			w = f.len * 0.7,
+			h = f.depth * 0.32,
 			colour = back,
 			dz = 3,
 		})
 	end
 	local bands = f.bands
 	if bands then
-		for i = -1, 1 do
+		for i = -1, 1, 2 do
 			put(c, {
-				x = 0.5 + i * f.len * 0.2,
+				x = 0.5 + i * f.len * 0.14,
 				y = 0.5,
-				w = 0.07,
-				h = f.depth * (if i == 0 then 0.92 else 0.8),
+				w = 0.11,
+				h = f.depth * 0.86,
 				colour = bands,
-				radius = 0.02,
+				radius = 0.03,
 				dz = 3,
 			})
 		end
 	end
 	if f.dots then
-		for _, d in { { 0.42, 0.5 }, { 0.6, 0.56 } } do
-			put(c, {
-				x = d[1],
-				y = d[2],
-				w = 0.13,
-				h = 0.13,
-				colour = hex("#FFF3D1"),
-				stroke = hex("#3A2A4A"),
-				strokeWidth = c.line * 0.8,
-				dz = 3,
-			})
-		end
-	end
-	local finlets = f.finlets
-	if finlets then
-		for i = 0, 1 do
-			put(c, {
-				x = x0 + 0.1 + i * 0.07,
-				y = 0.5 - f.depth * 0.42,
-				w = 0.06,
-				h = 0.06,
-				colour = finlets,
-				dz = 3,
-			})
-		end
+		put(c, {
+			x = 0.48,
+			y = 0.52,
+			w = 0.17,
+			h = 0.17,
+			colour = hex("#FFF3D1"),
+			stroke = hex("#3A2A4A"),
+			strokeWidth = c.line * 0.8,
+			dz = 3,
+		})
 	end
 	local front = 0.54 + f.len / 2
-	put(c, { x = front - 0.1, y = 0.47, w = 0.08, h = 0.08, colour = Theme.INK, dz = 4 })
-	highlight(c, front - 0.2, 0.5 - f.depth * 0.18, 0.07, 4)
+	put(c, { x = front - 0.11, y = 0.46, w = 0.12, h = 0.12, colour = Theme.INK, dz = 4 })
 end
 
--- A curled crustacean: four segments on an arc, a tail fan and two feelers.
+-- A curled crustacean at icon size: three segments on an arc, a tail fan, two thick feelers and
+-- a big eye.
 local function crustacean(c: Canvas, body: Color3, edge: Color3?)
-	local segs = {
-		{ 0.64, 0.4, 0.32 },
-		{ 0.48, 0.5, 0.28 },
-		{ 0.35, 0.6, 0.22 },
-		{ 0.25, 0.7, 0.16 },
-	}
 	for i = 1, 2 do
 		put(c, {
 			x = 0.8,
-			y = 0.24 + i * 0.05,
+			y = 0.22 + i * 0.07,
 			w = 0.34,
-			h = 0.035,
+			h = 0.06,
 			colour = Theme.INK,
 			rot = -30 - i * 12,
 			dz = 0,
 		})
 	end
-	local parts: { Part } = {
-		{ x = 0.17, y = 0.78, w = 0.18, h = 0.18, colour = body, rot = 45, radius = 0.04 },
-	}
-	for _, s in segs do
-		table.insert(parts, { x = s[1], y = s[2], w = s[3], h = s[3], colour = body })
-	end
-	shape(c, parts, 1)
+	shape(c, {
+		{ x = 0.2, y = 0.76, w = 0.22, h = 0.22, colour = body, rot = 45, radius = 0.05 },
+		{ x = 0.62, y = 0.42, w = 0.38, h = 0.38, colour = body },
+		{ x = 0.44, y = 0.55, w = 0.32, h = 0.32, colour = body },
+		{ x = 0.3, y = 0.67, w = 0.24, h = 0.24, colour = body },
+	}, 1)
 	if edge then
-		for _, s in { segs[2], segs[3] } do
-			put(c, {
-				x = s[1] + 0.06,
-				y = s[2] - 0.06,
-				w = 0.04,
-				h = s[3] * 0.8,
-				colour = edge,
-				rot = 40,
-				dz = 3,
-			})
-		end
+		put(c, {
+			x = 0.5,
+			y = 0.5,
+			w = 0.06,
+			h = 0.3,
+			colour = edge,
+			rot = 40,
+			dz = 3,
+		})
 	end
-	put(c, { x = 0.72, y = 0.36, w = 0.07, h = 0.07, colour = Theme.INK, dz = 4 })
-	highlight(c, 0.58, 0.34, 0.08, 4)
+	put(c, { x = 0.7, y = 0.36, w = 0.12, h = 0.12, colour = Theme.INK, dz = 4 })
 end
 
 local PREY: { [string]: (c: Canvas) -> () } = {
@@ -529,7 +501,6 @@ local PREY: { [string]: (c: Canvas) -> () } = {
 		fish(c, {
 			body = hex("#4F6FD0"),
 			back = hex("#162657"),
-			finlets = hex("#FFD23D"),
 			len = 0.68,
 			depth = 0.42,
 		})
@@ -628,15 +599,16 @@ function MomentArt.prey(preyId: string, size: number, parent: Instance, zIndex: 
 		Parent = parent,
 	}) :: Frame
 	-- Navy rim, lime ring, deep-water face: the edible outline of 08 §3.11 read on cream.
+	local ring = math.max(3, size * 0.09)
 	Draw.disc(size + 3, Theme.INK, nil, { ZIndex = zIndex, Parent = holder })
 	local face = Draw.disc(
-		size - 2,
+		size - 2 * ring,
 		Theme.INK:Lerp(Theme.SECONDARY_SHADE, 0.45),
 		nil,
 		{ Name = "Ring", ZIndex = zIndex + 1, Parent = holder }
 	)
-	Draw.stroke(2.4, Theme.EDIBLE).Parent = face
-	local c = canvas(holder, size * 0.86, zIndex + 2, math.max(1, size * 0.045))
+	Draw.stroke(ring, Theme.EDIBLE).Parent = face
+	local c = canvas(holder, (size - 2 * ring) * 0.96, zIndex + 2, math.max(2, size * 0.08))
 	local draw = PREY[preyId] or genericFish
 	draw(c)
 	Draw.slot(`UI_Icon_Prey{pascal(preyId)}`, holder, zIndex + 8)
@@ -747,72 +719,73 @@ function MomentArt.tail(
 	return holder
 end
 
---- `UI_Common_Rays` stand-in (08 §13.2: a ray burst that turns behind rewards): twelve spokes
---- in `colour` filling `rays` (card-local), shown only inside `clip`; `alpha` is the spokes'
---- transparency at their strongest. Turn the returned frame by setting `Rotation`.
+-- `UI_Common_Rays`: 16 wedges, light and dark in turn.
+local RAY_WEDGES = 16
+-- A hard step at the middle of a UIGradient: transparent before, opaque after.
+local CUT = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.5, 1),
+	NumberSequenceKeypoint.new(0.501, 0),
+	NumberSequenceKeypoint.new(1, 0),
+})
+
+--- `UI_Common_Rays` stand-in (08 §13.2: a ray burst that turns behind rewards): a disc of
+--- `dark` under eight crisp `light` wedges, so every second spoke is light, filling `rays`
+--- (card-local) and shown only inside `clip`. Turn the returned frame by setting `Rotation`.
 function MomentArt.rays(
 	parent: Instance,
 	rays: HudLayout.Rect,
 	clip: HudLayout.Rect,
-	colour: Color3,
-	alpha: number,
+	light: Color3,
+	dark: Color3,
 	z: number
 ): Frame
 	local box = rect(parent, clip, { Name = "RaysClip", ClipsDescendants = true, ZIndex = z })
-	local size = rays.width
+	local d = rays.width
+	local r = d / 2
 	local holder = Draw.new("Frame", {
 		Name = "Rays",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromOffset(
-			rays.x + rays.width / 2 - clip.x,
-			rays.y + rays.height / 2 - clip.y
-		),
-		Size = UDim2.fromOffset(size, size),
+		Position = UDim2.fromOffset(r + rays.x - clip.x, rays.y + rays.height / 2 - clip.y),
+		Size = UDim2.fromOffset(d, d),
 		ZIndex = z,
 		Parent = box,
 	}) :: Frame
-	local count = 6
-	for i = 1, count do
-		local long = i % 2 == 1
-		local bar = Draw.new("Frame", {
+	Draw.disc(d, dark, nil, { Name = "Base", ZIndex = z, Parent = holder })
+	-- Each light wedge is two right triangles about its axis, from the centre out to `r`: a
+	-- rect `r` × `h` cut along its diagonal by a UIGradient step. A gradient turns in pixels
+	-- and steps through the rect's centre, which is on that diagonal.
+	local half = math.pi / RAY_WEDGES
+	local h = r * math.tan(half)
+	for i = 0, RAY_WEDGES / 2 - 1 do
+		local spoke = Draw.new("Frame", {
+			Name = `Wedge{i + 1}`,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(
-				size * (if long then 1 else 0.8),
-				size * (if long then 0.17 else 0.11)
-			),
-			Rotation = (i - 1) * 180 / count,
-			BackgroundColor3 = colour,
-			BackgroundTransparency = alpha,
+			Size = UDim2.fromOffset(d, d),
+			Rotation = i * 720 / RAY_WEDGES,
 			ZIndex = z,
 			Parent = holder,
-		}) :: Frame
-		-- Strong from the art's edge outwards, gone at the tips.
-		Draw.new("UIGradient", {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.16, 0.25),
-				NumberSequenceKeypoint.new(0.5, 0),
-				NumberSequenceKeypoint.new(0.84, 0.25),
-				NumberSequenceKeypoint.new(1, 1),
-			}),
-			Parent = bar,
 		})
+		for side = -1, 1, 2 do
+			-- side -1: above the axis, apex at its bottom left; 1: below, apex at its top left.
+			local tri = Draw.new("Frame", {
+				Position = UDim2.fromOffset(r, if side < 0 then r - h else r),
+				Size = UDim2.fromOffset(r, h),
+				BackgroundColor3 = light,
+				BackgroundTransparency = 0,
+				ZIndex = z + 1,
+				Parent = spoke,
+			})
+			Draw.new("UIGradient", {
+				Transparency = CUT,
+				Rotation = math.deg(math.atan2(-side * r, h)),
+				Parent = tri,
+			})
+		end
 	end
-	Draw.slot("UI_Common_Rays", holder, z)
+	Draw.slot("UI_Common_Rays", holder, z + 1)
 	return holder
-end
-
---- A soft halo of `colour` behind art `size` rpx across, centred at `centre` in `parent`.
-function MomentArt.halo(parent: Instance, centre: UDim2, size: number, colour: Color3, z: number)
-	for i, k in { 1.55, 1.28 } do
-		Draw.disc(size * k, colour, centre, {
-			Name = `Halo{i}`,
-			BackgroundTransparency = if i == 1 then 0.75 else 0.5,
-			ZIndex = z,
-			Parent = parent,
-		})
-	end
 end
 
 return table.freeze(MomentArt)
