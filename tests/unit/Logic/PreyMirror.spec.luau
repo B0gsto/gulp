@@ -269,3 +269,82 @@ describe("PreyMirror.assign (09 §8.8, §15.1)", function()
 		expect((PreyMirror.nearest(m, 0, 0, 0, { [1] = true }))).toBe(nil)
 	end)
 end)
+
+describe("PreyMirror.assignGlints (09 §8.8, §15.1: far groups as glints)", function()
+	it("gives the members not drawn as meshes to one emitter per group, nearest first", function()
+		local m = PreyMirror.new()
+		PreyMirror.applyFull(m, full(0, 100, 0, 0, 0, 20), 0, 0)
+		PreyMirror.applyFull(m, full(1, 10, 0, 0, 0, 20), 0, 0)
+		PreyMirror.applyFull(m, full(2, 300, 0, 0, 0, 20), 0, 0)
+		PreyMirror.applyFull(m, full(3, 400, 0, 0, 0, 20), 0, 0)
+		PreyMirror.step(m, 0, 0)
+		local given = PreyMirror.assign(m, 0, 0, 0, 30, 250)
+		expect(given).toBe(30)
+		-- Group 1 is all meshes; group 0 has 10 meshes and 10 glints; 2 and 3 are all glints.
+		local emitters, glints = PreyMirror.assignGlints(m, 60, 400 - given)
+		expect(emitters).toBe(3)
+		expect(glints).toBe(50)
+		expect(m.glints[2]).toBe(0)
+		expect(m.glints[1]).toBe(10)
+		expect(m.glints[3]).toBe(20)
+		expect(m.glints[4]).toBe(20)
+		expect(m.slotOf[2]).toBe(0)
+		expect(m.slotGroup[m.slotOf[1]]).toBe(1)
+		expect(m.slotGroup[m.slotOf[4]]).toBe(4)
+	end)
+
+	it("keeps both caps: emitters and prey visible in total", function()
+		local m = PreyMirror.new()
+		for g = 0, 9 do
+			PreyMirror.applyFull(m, full(g, 400 + 10 * g, 0, 0, 0, 20), 0, 0)
+		end
+		PreyMirror.step(m, 0, 0)
+		PreyMirror.assign(m, 0, 0, 0, 80, 150)
+		local emitters, glints = PreyMirror.assignGlints(m, 3, 250)
+		expect(emitters).toBe(3)
+		expect(glints).toBe(60)
+		expect(m.glints[4]).toBe(0) -- the fourth nearest has no emitter
+		emitters, glints = PreyMirror.assignGlints(m, 30, 50)
+		expect(emitters).toBe(3)
+		expect(glints).toBe(50)
+		expect(m.glints[3]).toBe(10)
+		expect(m.slotGroup[4]).toBe(0) -- a free slot within the new cap of 30
+	end)
+
+	it(
+		"keeps a group on its slot while the order changes, and frees slots of groups that go",
+		function()
+			local m = PreyMirror.new()
+			PreyMirror.applyFull(m, full(0, 400, 0, 0, 0, 8), 0, 0)
+			PreyMirror.applyFull(m, full(1, 500, 0, 0, 0, 8), 0, 0)
+			PreyMirror.step(m, 0, 0)
+			PreyMirror.assign(m, 0, 0, 0, 80, 150)
+			PreyMirror.assignGlints(m, 2, 250)
+			local slot0, slot1 = m.slotOf[1], m.slotOf[2]
+			expect(slot0 ~= slot1).toBe(true)
+			-- Swap the distances: the slots stay.
+			PreyMirror.applyFull(m, full(0, 600, 0, 0, 0, 8), 0, 0)
+			PreyMirror.step(m, 0, 10) -- long enough for the ease to arrive
+			PreyMirror.assign(m, 0, 0, 0, 80, 150)
+			PreyMirror.assignGlints(m, 2, 250)
+			expect(m.order[1]).toBe(1)
+			expect(m.slotOf[1]).toBe(slot0)
+			expect(m.slotOf[2]).toBe(slot1)
+			-- Group 1 leaves; a new group 2 takes its slot.
+			PreyMirror.remove(m, 1)
+			expect(m.slotGroup[slot1]).toBe(0)
+			PreyMirror.applyFull(m, full(2, 450, 0, 0, 0, 8), 0, 0)
+			PreyMirror.step(m, 0, 0)
+			PreyMirror.assign(m, 0, 0, 0, 80, 150)
+			PreyMirror.assignGlints(m, 2, 250)
+			expect(m.slotOf[3]).toBe(slot1)
+			expect(m.slotOf[1]).toBe(slot0)
+			-- The cap drops to 1: the farther group loses its emitter and slot 2 is gone.
+			PreyMirror.assignGlints(m, 1, 250)
+			expect(m.glints[1]).toBe(0)
+			expect(m.slotOf[1]).toBe(0)
+			expect(m.slotGroup[2]).toBe(nil)
+			expect(m.slotGroup[1]).toBe(3)
+		end
+	)
+end)

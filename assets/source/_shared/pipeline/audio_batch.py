@@ -21,9 +21,11 @@ the peak kept under -1 dBFS; 07 12 rule 7, both tune), mix effects to mono, enco
 44.1 kHz (see encoder()) into assets/export/audio/sfx|music/<name>.ogg, then decode the result and check:
 level reached, channels, nothing clipped, and for loops: no gap of silence at either end and
 no click where the end joins the start. Report: assets/review/_audio/<date>_audio_report.json.
-Uses the ffmpeg already on the machine (nothing is installed). Without libvorbis it falls back to
-ffmpeg's native `vorbis` encoder, which is stereo only: effects are then written as two identical
-channels and the format check says so (a deviation from 07 section 11 until libvorbis is there). Exit status 1 when any row fails.
+Encodes with oggenc (vorbis-tools, the reference libvorbis encoder: mono effects as 07 section 11
+asks); ffmpeg does the trimming, mixing, levelling, decoding and analysis. Nothing is installed by
+this tool: without oggenc it falls back to ffmpeg's libvorbis, else to ffmpeg's native `vorbis`
+encoder, which is stereo only, so effects are then written as two identical channels and the format
+check says so (a deviation from 07 section 11). Exit status 1 when any row fails.
 """
 import argparse
 import array
@@ -53,7 +55,8 @@ MUSIC_PEAK_CEILING_DB = -1.0
 PEAK_TOL_DB, LUFS_TOL = 0.5, 1.0
 TRIM_DB = -50.0             # one-shots: silence below this at either end is cut
 GAP_MS = 5.0                # loops: more digital silence than this at an end is a gap
-RE_NAME = re.compile(r"^(SFX|MUS)(_[A-Z0-9][A-Za-z0-9]*)+$")
+RE_NAME = re.compile(r"^(SFX|MUS)(_[A-Z0-9][A-Za-z0-9]*){1,3}$")   # 07 1.2: two inner underscores at most
+OGG_QUALITY = 6
 
 
 def ffmpeg():
@@ -64,12 +67,35 @@ def ffmpeg():
 
 
 def encoder():
-    """libvorbis when this ffmpeg has it (mono files possible); else ffmpeg's native `vorbis`,
-    which encodes two channels only, so a mono effect is written as two identical channels."""
+    """The OGG Vorbis encoder: ('oggenc', path) when vorbis-tools is installed (any channel count);
+    else ('libvorbis', ffmpeg codec args) when this ffmpeg has it; else ('native', args) for ffmpeg's
+    own `vorbis`, which encodes two channels only, so a mono effect becomes two identical channels."""
+    exe = shutil.which("oggenc")
+    if exe:
+        return "oggenc", exe
     found = subprocess.run([ffmpeg(), "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
     if re.search(r"\blibvorbis\b", found):
-        return ["-c:a", "libvorbis", "-q:a", "6"], True
-    return ["-c:a", "vorbis", "-strict", "-2", "-ac", "2"], False
+        return "libvorbis", ["-c:a", "libvorbis", "-q:a", str(OGG_QUALITY)]
+    return "native", ["-c:a", "vorbis", "-strict", "-2", "-ac", "2"]
+
+
+def encode(stage, gain_db, out, channels, tmp):
+    """Apply one gain to the staged float WAV and write OGG Vorbis at RATE. channels None keeps the
+    source's. Returns True when the requested channel count could be kept."""
+    kind, enc = encoder()
+    pre = ["-i", stage, "-af", "volume=%.4fdB" % gain_db, "-ar", str(RATE)] + (["-ac", str(channels)] if channels else [])
+    if kind == "oggenc":
+        wav = os.path.join(tmp, "level.wav")
+        run_ff(pre + ["-c:a", "pcm_f32le", wav])
+        done = subprocess.run([enc, "-Q", "-q", str(OGG_QUALITY), "-o", out, wav], capture_output=True)
+        if done.returncode != 0:
+            raise RuntimeError("oggenc: " + done.stderr.decode(errors="replace")[-400:])
+        return True
+    if kind == "libvorbis":
+        run_ff(pre + enc + [out])
+        return True
+    run_ff(pre[:-2] + enc + [out] if channels else pre + enc + [out])
+    return channels is None or channels == 2
 
 
 def run_ff(args):
@@ -160,9 +186,6 @@ def process(row, source_dir, out_root, licences_dir):
     out = os.path.join(out_root, "music" if music else "sfx", name + ".ogg")
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
-    codec, mono_ok = encoder()
-    if music or mono_ok:
-        codec = [a for a in codec if a not in ("-ac", "2")] if not music else codec[:4]
     tmp = tempfile.mkdtemp(prefix="gulp_audio_")
     try:
         # 1. trim (one-shots), mono for effects, to a float WAV we can measure
@@ -185,7 +208,7 @@ def process(row, source_dir, out_root, licences_dir):
             gain = SFX_PEAK_DB - peak_db(data)
         # 3. encode, then measure the file itself and correct once (the encoder moves peaks a little)
         for _ in range(2):
-            run_ff(["-i", stage, "-af", "volume=%.4fdB" % gain, "-ar", str(RATE)] + codec + [out])
+            encode(stage, gain, out, channels, tmp)
             got, ch = decode(out)
             pk = peak_db(got)
             target = None if music else SFX_PEAK_DB
@@ -201,7 +224,7 @@ def process(row, source_dir, out_root, licences_dir):
             "OGG Vorbis, %d channel%s, %d Hz, %.3f s%s" % (ch, "" if ch == 1 else "s", RATE, seconds,
                                                           "" if music or ch == 1 else
                                                           "; DEVIATION from 07 section 11 (mono): two identical channels, "
-                                                          "this ffmpeg has no libvorbis and its native encoder is stereo only"))
+                                                          "no oggenc and no libvorbis: ffmpeg's native encoder is stereo only"))
         # The encoder may pad the last block: harmless after a one-shot, a gap in a loop.
         add("length kept", abs(seconds - src_seconds) <= (0.002 if loop else 0.025),
             "%.4f s out, %.4f s %s" % (seconds, src_seconds, "in (a loop gains no padding)" if loop else

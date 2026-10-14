@@ -186,20 +186,52 @@ local function rowsFor(t: Table, slice: boolean): { Row }
 	return rows
 end
 
-local function buildTiers(canon: Tables, slice: boolean): Module
+local function buildTiers(canon: Tables, economy: Tables, slice: boolean): Module
 	local t = get(canon, CANON, "Tiers")
+	-- 05 §3.3 data:CoveIncome: a specimen's base Pearls per hour by tier. A cell that is not a
+	-- plain number ("Not applicable", tier 1) means the tier keeps no specimen.
+	local income = get(economy, ECONOMY, "CoveIncome")
+	local base: { [number]: number } = {}
+	for _, row in income.rows do
+		local value = MarkdownTables.number(cell(income, row, "Base Pearls/h"))
+		if value ~= nil then
+			base[firstNumber(income, row, "Tier")] = value
+		end
+	end
 	local rows = {}
 	for _, row in rowsFor(t, slice) do
-		table.insert(rows, {
+		local fields = {
 			field("tier", num(t, row, "Tier")),
 			field("name", MarkdownTables.plain(cell(t, row, "Name"))),
 			field("massNeeded", num(t, row, "Mass needed")),
 			field("bodyScale", num(t, row, "Body scale")),
 			field("swimSpeed", num(t, row, "Swim speed (studs/s)")),
 			field("turnRate", num(t, row, "Turn rate (°/s)")),
-		})
+		}
+		optional(fields, "coveIncome", base[num(t, row, "Tier")])
+		table.insert(rows, fields)
 	end
-	return { name = "Tiers", typeName = "TierDef", sources = { `{CANON} data:Tiers` }, rows = rows }
+	return {
+		name = "Tiers",
+		typeName = "TierDef",
+		sources = { `{CANON} data:Tiers`, `{ECONOMY} data:CoveIncome` },
+		rows = rows,
+	}
+end
+
+-- 05 §3.12 data:RewardBands: the Pearl amount of each reward band R1 to R5.
+local function buildRewardBands(economy: Tables, slice: boolean): Module
+	local t = get(economy, ECONOMY, "RewardBands")
+	local rows = {}
+	for _, row in rowsFor(t, slice) do
+		table.insert(rows, { field("id", row.key), field("pearls", num(t, row, "Pearls")) })
+	end
+	return {
+		name = "RewardBands",
+		typeName = "RewardBandDef",
+		sources = { `{ECONOMY} data:RewardBands` },
+		rows = rows,
+	}
 end
 
 local function buildTraits(catalog: Tables, economy: Tables, slice: boolean): Module
@@ -996,7 +1028,8 @@ local mechanics = load(MECHANICS)
 local economy = load(ECONOMY)
 local art = load(ART)
 local modules = {
-	buildTiers(canon, slice),
+	buildTiers(canon, economy, slice),
+	buildRewardBands(economy, slice),
 	buildSpecies(catalog, economy, slice),
 	buildPrey(canon, catalog, "Prey", slice),
 	buildPrey(canon, catalog, "TraitPrey", slice),

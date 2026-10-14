@@ -20,6 +20,7 @@ local loaded: { Service } = {
 	require(script.Parent.Services.WorldIndex),
 	require(script.Parent.Services.CreatureService),
 	require(script.Parent.Services.PreyService),
+	require(script.Parent.Services.BiteService),
 	require(script.Parent.Services.PlayerLifecycle), -- always last
 }
 

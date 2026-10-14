@@ -52,6 +52,12 @@ export type TierDef = {
 	bodyScale: number,
 	swimSpeed: number,
 	turnRate: number,
+	coveIncome: number?, -- 05 §3.3 data:CoveIncome: a specimen's base Pearls per hour; nil at tier 1
+}
+
+export type RewardBandDef = {
+	id: string, -- R1 to R5 (05 §3.12)
+	pearls: number,
 }
 
 export type SpeciesDef = {

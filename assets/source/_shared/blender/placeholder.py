@@ -377,16 +377,29 @@ def seconds(text, default):
     return float(m.group(1)) if m else default
 
 
-def ffmpeg(args, out):
+def ffmpeg(args, out, channels=2):
+    """Render with ffmpeg, encode OGG Vorbis with oggenc (vorbis-tools) so a one-shot effect can be
+    mono (07 section 11; ambience beds and music stay stereo). Without oggenc, ffmpeg's native
+    `vorbis` encoder writes it, which is stereo only."""
     exe = shutil.which("ffmpeg")
     if not exe:
         raise SystemExit("ffmpeg not found: audio placeholders need it (no install is done by this tool)")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    cmd = [exe, "-hide_banner", "-loglevel", "error", "-y"] + args + ["-ac", "2", "-ar", "44100",
-                                                                       "-c:a", "vorbis", "-strict", "-2", out]
-    done = subprocess.run(cmd, capture_output=True, text=True)
-    if done.returncode != 0:
-        raise SystemExit("ffmpeg failed: " + done.stderr[-400:])
+    base = [exe, "-hide_banner", "-loglevel", "error", "-y"] + args + ["-ar", "44100"]
+    oggenc = shutil.which("oggenc")
+    if oggenc:
+        wav = out[:-4] + ".tmp.wav"
+        steps = [base + ["-ac", str(channels), "-c:a", "pcm_f32le", wav], [oggenc, "-Q", "-q", "6", "-o", out, wav]]
+    else:
+        wav, steps = None, [base + ["-ac", "2", "-c:a", "vorbis", "-strict", "-2", out]]
+    try:
+        for cmd in steps:
+            done = subprocess.run(cmd, capture_output=True, text=True)
+            if done.returncode != 0:
+                raise SystemExit("%s failed: %s" % (os.path.basename(cmd[0]), done.stderr[-400:]))
+    finally:
+        if wav and os.path.exists(wav):
+            os.remove(wav)
     return out
 
 
@@ -411,7 +424,7 @@ def sound(name, row):
         return out, "%.2f s soft noise loop" % length
     fade = min(0.02, length / 4)
     expr = "0.5*sin(2*PI*%.2f*t)*min(1,t/%.3f)*min(1,(%.3f-t)/%.3f)" % (pitch, fade, length, fade)
-    ffmpeg(["-f", "lavfi", "-i", "aevalsrc='%s':d=%.3f:s=44100" % (expr, length)], out)
+    ffmpeg(["-f", "lavfi", "-i", "aevalsrc='%s':d=%.3f:s=44100" % (expr, length)], out, channels=1)
     return out, "%.2f s beep at %.0f Hz (%s)" % (length, pitch, group)
 
 

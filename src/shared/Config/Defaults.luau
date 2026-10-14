@@ -180,4 +180,72 @@ Defaults.input = table.freeze({
 	mouseLookSpeedMax = 3.0,
 })
 
+-- The rule numbers of shared/Logic (task S4-C3) that the bible gives in prose or formulas, not in
+-- a data table. Table values are generated instead: cove base income per tier (05 §3.3
+-- data:CoveIncome, in Tiers) and reward bands (05 §3.12 data:RewardBands). All (tune).
+
+-- Logic/BiteRules: canon 5.2; 02 §4.2, §4.4, §6.1, §6.6.
+Defaults.bite = table.freeze({
+	playerGain = 0.30, -- canon 5.2: eating a player gives 30% of the victim's mass
+	repeatGuardSeconds = 90, -- 02 §4.2 check 7, §6.1 rule 7
+	feedGuardSeconds = 600, -- 02 §6.6: repeats of the same victim within 10 minutes
+	feedGuard = table.freeze({ 1, 0.5, 0.25 }), -- 02 §4.4: by eats before; 0 from the fourth
+	nurseryMaxTier = 2, -- canon 5.2, 02 §0.5: tier 3 or higher cannot enter the Nursery
+	nurseryShare = table.freeze({ 1, 0.5 }), -- 02 §4.4: Nursery prey to tier 1, tier 2; else 0
+})
+
+-- Logic/TraitRules: canon 9; 02 §8.1, §8.4.
+Defaults.traits = table.freeze({
+	slots = 3, -- canon 9
+	pips = 5, -- 02 §8.1
+	pipsKeenNose = 4, -- 02 §8.1: with the Keen Nose pass [L]
+	stripesSpeed = 1.08, -- canon 9, 02 §8.4: topSpeed ×1.08
+	spotsMass = 0.10, -- canon 9, 02 §8.4: +10% mass from prey and trait prey
+	bonefedMass = 0.25, -- canon 9, 02 §8.4: +25% mass from every source
+	crystalBank = 1.5, -- canon 9, 02 §8.4, 05 §3.1: bank Pearls ×1.5
+	longfinDash = 0.30, -- canon 9, 02 §8.4: dash length +30%
+	spinyDefence = 1, -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
+})
+
+-- Logic/BankMath: canon 5.4, 5.5; 02 §0.7, §11.4; 05 §3.1, §3.2.
+Defaults.bank = table.freeze({
+	fullRateMass = 1200, -- 05 §3.1: 3 Pearls per mass up to here
+	ceilingMass = 3000, -- 05 §3.1: 1 Pearl per mass from 1,200 to here, nothing above
+	fullRate = 3, -- 05 §3.1
+	lowRate = 1, -- 05 §3.1
+	deepPockets = 2, -- 05 §3.1: ×2 with the Deep Pockets pass
+	scrapsRate = 0.10, -- canon 5.5, 05 §3.2
+	scrapsRateEarly = 0.50, -- canon 5.5: for the first three deaths on the account
+	earlyDeaths = 3, -- canon 5.5
+	armedMass = 1, -- 02 §0.7: a run is armed for banking once mass ≥ 1
+	specimenTier = 2, -- canon 5.4, 02 §11.4
+})
+
+-- Logic/CoveIncome: canon 11; 02 §11.5, §13.3; 05 §3.4, §3.10.
+Defaults.cove = table.freeze({
+	capHours = 8, -- canon 11, 05 §3.4
+	capHoursTideWatcher = 24, -- 05 §3.4: with the Tide Watcher pass [L]
+	boostHours = 2, -- 05 §3.4: Cove Boost [L]
+	refundMin = 5, -- 05 §3.10: release refund floor
+	awayMinSeconds = 600, -- 02 §13.3: "While you were away" card after 10 minutes away
+	awayMinPearls = 10, -- 02 §13.3: and 10 Pearls earned
+})
+
+-- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.
+Defaults.tides = table.freeze({
+	slot = 900, -- canon 10: an event every 15 minutes on the UTC quarter hour
+	active = 240, -- canon 10: each lasts 4 minutes
+	warn = 60, -- canon 10: with a 60-second warning
+	rotation = table.freeze({ "frenzy", "moon_tide", "frenzy", "whale_fall" }), -- canon 10: :00 :15 :30 :45
+	flexSlot = 3, -- canon 10: after launch the :30 slot is the flexible one
+})
+
+-- Logic/GoalRules: 02 §15.3; 05 §3.5, §3.7.
+Defaults.goals = table.freeze({
+	rankStep = 0.1, -- 05 §3.7: rankMultiplier = 1 + 0.1 × (rank − 1)
+	maxRank = 50, -- 05 §3.7: the multiplier stops at rank 50
+	allDoneBand = "R1", -- 05 §3.5: the bonus for finishing all three
+	rerolls = table.freeze({ free = 1, video = 1, product = 3 }), -- 02 §15.3, 05 §3.5: per day
+})
+
 return Defaults

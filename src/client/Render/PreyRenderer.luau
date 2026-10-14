@@ -1,5 +1,5 @@
 --!strict
--- PreyRenderer (module B17, first part; task S3-C4; docs/09, sections 4.7, 5.2 and 8.5 to 8.8):
+-- PreyRenderer (module B17; tasks S3-C4 and S4-C1; docs/09, sections 4.7, 5.2 and 8.5 to 8.9):
 -- decodes `PreyState` and `PreyEvent`, dead-reckons every known group and draws the nearest
 -- members from pooled parts moved by one `workspace:BulkMoveTo` per frame (V25; spike tech-b S6).
 --
@@ -28,11 +28,27 @@
 --              kind: a slightly larger copy pushed away from the camera so only a rim shows; the
 --              push is folded into the shell's CFrame, so it costs no property write.
 --
--- Not here yet: far groups and members past the pool as particles (S4-C1), and
--- TODO(S4-C1): local bite detection (09 §8.9, PreyRenderer part 2). Skinned prey (tier 3 and up,
--- `RIG_Prey3`) are wiggled rigid until their meshes exist. The Smooth tier and `setQuality` come
--- from QualityController once it exists; until then the tier is Balanced. The far emitter cap is
--- read but nothing draws far groups yet (S4-C1).
+--   Glints   (S4-C1) every member not drawn as a mesh, of a group past the mesh range or past the
+--              pool, is a glint (8.8; 06 `FX_Glint`, 07 §4: "every prey becomes a single dot"):
+--              one ParticleEmitter on a pooled Attachment per group, `count` glints in the kind's
+--              colour, within the tier's emitter cap (30, 60, 60) and prey visible in total (250,
+--              400, 800, meshes included). `PreyMirror.assignGlints` keeps a group on its emitter.
+--              The Attachment's anchored host part moves in the same BulkMoveTo as the meshes and
+--              the glints are locked to it, so a cluster swims with its group.
+--   Bites    (S4-C1; 8.9) every frame, before drawing, the own mouth (`CreatureController.
+--              localMouth`, the smoothed rig, 6.7) is tested against the drawn position of every
+--              live member of an edible kind near it, with the gulp assist of the current input
+--              mode (`Shared.Logic.BiteDetect`; 02 §4.1, 15 §4.3). A hit is hidden at once and
+--              claimed in one `Bite` per frame, kept to the `Bite` bucket (`Shared.Logic.
+--              BiteClaims`); `BiteResult` marks accepted members eaten and shows rejected ones
+--              again, fading in over 0.15 s with a puff (02 §4.3). Members the assist is pulling
+--              are drawn moved toward the mouth by the distance pulled.
+--
+-- Not here yet: `FX_BubblePop_*`, `SFX_Bite_*` and the "+mass" number (07 rows not started; a
+-- placeholder bubble pop and miss puff stand in), the predicted mass on the HUD (02 §4.3) and
+-- the jaw. Skinned prey (tier 3 and up, `RIG_Prey3`) are wiggled rigid until their meshes exist.
+-- The Smooth tier and `setQuality` come from QualityController once it exists; until then the
+-- tier is Balanced.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -45,7 +61,14 @@ local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
 local PreyMirror = require(ReplicatedStorage.Shared.Logic.PreyMirror)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local BiteClaims = require(ReplicatedStorage.Shared.Logic.BiteClaims)
+local BiteDetect = require(ReplicatedStorage.Shared.Logic.BiteDetect)
+local BiteResult = require(ReplicatedStorage.Shared.Net.Codec.BiteResult)
+local PreyEvent = require(ReplicatedStorage.Shared.Net.Codec.PreyEvent)
+
 local Client = require(script.Parent.Parent.Net.Client)
+local CreatureController = require(script.Parent.Parent.Controllers.CreatureController)
+local InputController = require(script.Parent.Parent.Controllers.InputController)
 local Outlines = require(script.Parent.Outlines)
 local Pools = require(script.Parent.Pools)
 
@@ -55,6 +78,18 @@ type Item = {
 	body: BasePart,
 	shell: BasePart?, -- nil for prey that never get an outline (plankton)
 	outlined: boolean,
+	fading: boolean, -- drawn part-transparent while fading back in after a rejected claim
+}
+
+-- One far glint emitter (8.8): an anchored, invisible host part moved with the meshes, holding
+-- the Attachment and its ParticleEmitter.
+type Host = {
+	part: BasePart,
+	emitter: ParticleEmitter,
+	group: number, -- groupId + 1 it draws, 0 for none
+	gen: number,
+	rate: number,
+	size: number,
 }
 
 type Look = {
@@ -103,7 +138,8 @@ local tier: GraphicsTier = "Balanced"
 -- The tier's numbers (tune.quality.*), set by `readQuality`.
 local budget = 0 -- prey drawn as meshes
 local meshDistance = 0 -- studs
-local farEmitters = 0 -- far group emitters (part 2, S4-C1)
+local farEmitters = 0 -- far group emitters
+local visibleCap = 0 -- prey visible in total, meshes and glints
 local capEdible, capDangerous = 0, 0
 local viewerTier = 1
 local folder: Folder? = nil
@@ -122,6 +158,32 @@ local outlineDistances: { number } = {}
 local outlineOrder: { number } = {}
 local outlineShown: { boolean } = {}
 
+-- Bites (8.9).
+local claims = BiteClaims.new(os.clock())
+local detect = BiteDetect.new()
+local accepted: { BiteClaims.Target } = {}
+local missed: { BiteClaims.Target } = {}
+local gone: { BiteClaims.Target } = {}
+local mouthX, mouthY, mouthZ = 0, 0, 0
+local pulling = false -- some member is being pulled by the assist this frame
+local puffAttachment: Attachment? = nil
+local popEmitter: ParticleEmitter? = nil
+local missEmitter: ParticleEmitter? = nil
+
+-- Far glints (8.8).
+local hosts: { Host } = {}
+local GLINT_LIFE = NumberRange.new(1.6, 2.4) -- seconds (tune)
+local GLINT_MEAN_LIFE = 2.0
+local GLINT_ANGLE = 0.007 -- glint size, studs per stud of distance: about 4 px at 800 px tall (tune)
+local GLINT_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds" -- until T_FX_Star_Mask
+local GLINT_TWINKLE = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.15, 0.05),
+	NumberSequenceKeypoint.new(0.5, 0.35),
+	NumberSequenceKeypoint.new(0.7, 0.05),
+	NumberSequenceKeypoint.new(1, 1),
+})
+
 -- Frame statistics for the dev harness: the draw step's time and the meshes drawn.
 local stats = {
 	drawMs = 0,
@@ -136,12 +198,29 @@ local stats = {
 	meshes = 0,
 	meshDistance = 0,
 	farEmitters = 0,
+	-- Far glints (S4-C1).
+	emitters = 0,
+	glints = 0,
+	-- Bites (S4-C1): claims sent, members claimed, results, members hidden now.
+	claims = 0,
+	claimed = 0,
+	accepted = 0,
+	missed = 0, -- members: rejected by the server or timed out
+	gone = 0, -- members: rejected as eaten by someone else
+	hidden = 0,
+	pending = 0,
+	lastSeq = -1, -- the seq of the last claim sent
+	lastReason = 0,
+	lastMass = 0,
+	lastTier = 0,
+	biteMs = 0,
 }
 
 local function readQuality(t: GraphicsTier)
 	budget = Flags.tiers("tune.quality.preyMeshes")[t]
 	meshDistance = Flags.tiers("tune.quality.preyMeshDistance")[t]
 	farEmitters = Flags.tiers("tune.quality.farPreyEmitters")[t]
+	visibleCap = Flags.tiers("tune.quality.preyVisible")[t]
 	capEdible = Flags.tiers("tune.quality.outlinesEdible")[t]
 	capDangerous = Flags.tiers("tune.quality.outlinesDangerous")[t]
 	stats.tier, stats.meshes, stats.meshDistance, stats.farEmitters =
@@ -251,7 +330,7 @@ local function makeItem(look: Look): Item
 		s.Parent = folder
 		shell = s
 	end
-	return { body = body, shell = shell, outlined = false }
+	return { body = body, shell = shell, outlined = false, fading = false }
 end
 
 local function destroyItem(item: Item)
@@ -290,6 +369,293 @@ local function viewerPosition(): Vector3?
 	return if camera then camera.CFrame.Position else nil
 end
 
+local function newPuffEmitter(
+	name: string,
+	colour: Color3,
+	size: number,
+	speed: number
+): ParticleEmitter
+	local e = Instance.new("ParticleEmitter")
+	e.Name = name
+	e.Enabled = false
+	e.Texture = GLINT_TEXTURE
+	e.Color = ColorSequence.new(colour)
+	e.LightEmission = 0.6
+	e.LightInfluence = 0
+	e.Lifetime = NumberRange.new(0.3, 0.5)
+	e.Speed = NumberRange.new(speed * 0.5, speed)
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.Drag = 4
+	e.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, size * 0.4),
+		NumberSequenceKeypoint.new(1, size),
+	})
+	e.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	return e
+end
+
+-- Placeholder pop on a bite and puff on a miss (02 §4.3; 07 `FX_BubblePop_*` not made yet).
+local function puff(emitter: ParticleEmitter?, x: number, y: number, z: number, count: number)
+	local a = puffAttachment
+	if emitter and a then
+		a.WorldPosition = Vector3.new(x, y, z)
+		emitter:Emit(count)
+	end
+end
+
+local function makeHost(): Host
+	local part = Instance.new("Part")
+	part.Name = "GlintHost"
+	part.Size = Vector3.new(0.2, 0.2, 0.2)
+	part.Transparency = 1
+	setVisualPart(part)
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = part
+	local e = Instance.new("ParticleEmitter")
+	e.Name = "FX_Glint"
+	e.Enabled = false
+	e.Texture = GLINT_TEXTURE
+	e.LightEmission = 1
+	e.LightInfluence = 0
+	e.LockedToPart = true -- the cluster swims with its group
+	e.Lifetime = GLINT_LIFE
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.RotSpeed = NumberRange.new(-90, 90)
+	e.Rotation = NumberRange.new(0, 360)
+	e.Transparency = GLINT_TWINKLE
+	e.Parent = attachment
+	part.Parent = folder
+	return { part = part, emitter = e, group = 0, gen = 0, rate = 0, size = 0 }
+end
+
+local function setHostCap(cap: number)
+	for n = #hosts, cap + 1, -1 do
+		hosts[n].part:Destroy()
+		hosts[n] = nil
+	end
+end
+
+-- Draws the far glints `PreyMirror.assignGlints` gave out; queues each host's move.
+local function drawGlints()
+	local slotGroup, glints = mirror.slotGroup, mirror.glints
+	local emitters, total = 0, 0
+	for slot = 1, farEmitters do
+		local i = slotGroup[slot] or 0
+		local host = hosts[slot]
+		if i > 0 then
+			local look = lookOf(mirror.kind[i])
+			if look then
+				if host == nil then
+					host = makeHost()
+					hosts[slot] = host
+				end
+				local e = host.emitter
+				if host.group ~= i or host.gen ~= mirror.gen[i] then
+					-- A new group on this emitter: start clean, in its kind's colour and spread.
+					host.group, host.gen = i, mirror.gen[i]
+					e:Clear()
+					e.Color = ColorSequence.new(look.colour)
+					local kind = look.kind
+					local spread = Formation.radius(kind)
+							* (1 + mirror.scatter[i] * Formation.scatterGain(kind))
+						+ Formation.wobbleCap(kind)
+					local v = math.max(spread, 0.5) / GLINT_MEAN_LIFE
+					e.Speed = NumberRange.new(0.3 * v, v)
+					host.rate, host.size = 0, 0
+				end
+				local n = glints[i]
+				local rate = n / GLINT_MEAN_LIFE
+				if rate ~= host.rate then
+					host.rate = rate
+					e.Rate = rate
+				end
+				local size = math.max(look.size.Z * 0.8, mirror.dist[i] * GLINT_ANGLE)
+				if math.abs(size - host.size) > 0.15 * host.size then
+					host.size = size
+					e.Size = NumberSequence.new(size)
+				end
+				if not e.Enabled then
+					e.Enabled = true
+					-- Warm start: a new cluster appears whole instead of growing in.
+					e:Emit(n)
+				end
+				push(host.part, CFrame.new(mirror.dx[i], mirror.dy[i], mirror.dz[i]))
+				emitters += 1
+				total += n
+			end
+		elseif host and host.group ~= 0 then
+			-- Freed: stop emitting; the last glints twinkle out where they are.
+			host.group = 0
+			host.emitter.Enabled = false
+		end
+	end
+	stats.emitters, stats.glints = emitters, total
+end
+
+-- A rejected member pops back with a "miss" puff where it is drawn (8.9).
+local function missPuff(target: BiteClaims.Target)
+	stats.missed += 1
+	local i = target.groupId + 1
+	if mirror.live[i] and mirror.gen[i] == target.gen then
+		local x, y, z = Formation.memberPos(
+			mirror.kind[i],
+			mirror.seed[i],
+			target.member,
+			mirror.dx[i],
+			mirror.dy[i],
+			mirror.dz[i],
+			mirror.heading[i],
+			mirror.scatter[i]
+		)
+		puff(missEmitter, x, y, z, 5)
+	end
+end
+
+-- The own mouth, its facing and radius, from the smoothed rig (6.7); nil when there is no
+-- creature.
+local function ownMouth(): (Vector3?, Vector3, number)
+	local mouth, radius = CreatureController.localMouth()
+	if radius <= 0 then
+		return nil, Vector3.zero, 0
+	end
+	local slot = player and player:GetAttribute("Slot")
+	local rig = if typeof(slot) == "number" then CreatureController.rigOf(slot) else nil
+	local facing = if rig then rig.heading else Vector3.zero
+	if facing.Magnitude < 1e-3 then
+		local viewer = viewerPosition()
+		facing = if viewer then mouth - viewer else Vector3.zAxis
+	end
+	return mouth, facing.Unit, radius
+end
+
+-- Settles results and time-outs, then tests the mouth against the members near it (8.9).
+local function biteStep(now: number, dt: number, t: number)
+	local started = os.clock()
+	BiteDetect.beginFrame(detect)
+	pulling = false
+	table.clear(missed)
+	BiteClaims.expire(claims, now, missed)
+	for _, target in missed do
+		missPuff(target)
+	end
+
+	local mouth, facing, r = ownMouth()
+	if mouth == nil then
+		stats.biteMs = (os.clock() - started) * 1000
+		return
+	end
+	local mx, my, mz = mouth.X, mouth.Y, mouth.Z
+	local fx, fy, fz = facing.X, facing.Y, facing.Z
+	mouthX, mouthY, mouthZ = mx, my, mz
+	local set = BiteDetect.assistSet(InputController.mode())
+	local reach = math.max(set.range, 1) * r
+	local live, kinds, gens, alive, counts =
+		mirror.live, mirror.kind, mirror.gen, mirror.alive, mirror.count
+	local dx, dy, dz = mirror.dx, mirror.dy, mirror.dz
+	for _, id in mirror.ids do
+		local i = id + 1
+		local look = if live[i] and alive[i] ~= 0 then lookOf(kinds[i]) else nil
+		-- 02 §4.2 check 6, prey side: only prey the creature can eat are tested or pulled.
+		if look and look.def.tier <= viewerTier then
+			local kind = look.kind
+			local scatter = mirror.scatter[i]
+			local preyRadius = look.def.radius
+			local around = Formation.radius(kind) * (1 + scatter * Formation.scatterGain(kind))
+				+ Formation.wobbleCap(kind)
+				+ preyRadius
+				+ reach
+			local ax, ay, az = dx[i] - mx, dy[i] - my, dz[i] - mz
+			if ax * ax + ay * ay + az * az <= around * around then
+				local seed, gen, mask, h = mirror.seed[i], gens[i], alive[i], mirror.heading[i]
+				for member = 0, counts[i] - 1 do
+					if
+						bit32.btest(mask, bit32.lshift(1, member))
+						and not BiteClaims.isHidden(claims, id, member, gen)
+					then
+						local x, y, z =
+							Formation.memberPos(kind, seed, member, dx[i], dy[i], dz[i], h, scatter)
+						local wx, wy, wz = Formation.wobble(kind, seed, member, t)
+						local result = BiteDetect.test(
+							detect,
+							BiteDetect.key(id, member),
+							dt,
+							mx,
+							my,
+							mz,
+							r,
+							fx,
+							fy,
+							fz,
+							x + wx,
+							y + wy,
+							z + wz,
+							preyRadius,
+							set
+						)
+						if result == BiteDetect.HIT then
+							if BiteClaims.add(claims, id, member, gen, now) then
+								stats.claimed += 1
+								puff(popEmitter, x + wx, y + wy, z + wz, 6)
+								-- TODO(S4-C1 assets): SFX_Bite_<size> and FX_BubblePop_<tier> (07).
+							end
+						elseif result == BiteDetect.ASSIST then
+							pulling = true
+						end
+					end
+				end
+			end
+		end
+	end
+	local rtt = if player then player:GetNetworkPing() else nil
+	local payload, seq = BiteClaims.flush(claims, Client.timeMs(), now, BiteClaims.timeout(rtt))
+	if payload then
+		if Client.send("Bite", payload) then
+			stats.claims += 1
+			stats.lastSeq = seq
+		else
+			BiteClaims.unsent(claims, seq)
+		end
+	end
+	stats.hidden = BiteClaims.hiddenCount(claims)
+	stats.pending = BiteClaims.pendingCount(claims)
+	stats.biteMs = (os.clock() - started) * 1000
+end
+
+--- Applies one `BiteResult` payload (8.9): accepted members, and those rejected as `gone`, are
+--- eaten in the mirror; members rejected for any other reason (range, tier, time, rate, state,
+--- safe zone, protected) fade back in with a puff.
+function PreyRenderer.onBiteResult(payload: buffer)
+	if not BiteResult.valid(payload) then
+		Log.once("warn", TAG, "dropped a malformed BiteResult")
+		return
+	end
+	local seq, mask, reason, mass, newTier = BiteResult.decode(payload)
+	stats.lastReason, stats.lastMass, stats.lastTier = reason, mass, newTier
+	table.clear(accepted)
+	table.clear(missed)
+	table.clear(gone)
+	if not BiteClaims.result(claims, seq, mask, reason, os.clock(), accepted, missed, gone) then
+		return
+	end
+	for _, target in accepted do
+		PreyMirror.applyEvent(mirror, PreyEvent.OP_EATEN, target.groupId, target.gen, target.member)
+		stats.accepted += 1
+	end
+	-- `gone`: someone else ate it first; it stays gone and nothing plays (8.9).
+	for _, target in gone do
+		PreyMirror.applyEvent(mirror, PreyEvent.OP_EATEN, target.groupId, target.gen, target.member)
+		stats.gone += 1
+	end
+	for _, target in missed do
+		missPuff(target)
+	end
+	stats.hidden = BiteClaims.hiddenCount(claims)
+	stats.pending = BiteClaims.pendingCount(claims)
+end
+
 --- The draw step, every frame (09 §4.7 hot path).
 function PreyRenderer.render(dt: number)
 	debug.profilebegin(TAG)
@@ -302,6 +668,8 @@ function PreyRenderer.render(dt: number)
 		PreyMirror.dropStale(mirror, started)
 	end
 	PreyMirror.step(mirror, Client.timeMs() / 1000, dt)
+	-- Bites before drawing, so a member hidden this frame is not drawn (8.9).
+	biteStep(started, dt, clock)
 
 	local camera = workspace.CurrentCamera
 	local eye = if camera then camera.CFrame.Position else Vector3.zero
@@ -310,6 +678,7 @@ function PreyRenderer.render(dt: number)
 	if viewer then
 		given, front = PreyMirror.assign(mirror, viewer.X, viewer.Y, viewer.Z, budget, meshDistance)
 	end
+	PreyMirror.assignGlints(mirror, farEmitters, math.max(visibleCap - given, 0))
 
 	-- Outlines: nearest edible groups first, up to the cap (8.8).
 	local order, kinds, drawn = mirror.order, mirror.kind, mirror.drawn
@@ -340,6 +709,8 @@ function PreyRenderer.render(dt: number)
 	local outlined = 0
 	local t = clock
 	local dx, dy, dz, heading = mirror.dx, mirror.dy, mirror.dz, mirror.heading
+	local anyHidden = next(claims.hidden) ~= nil
+	local anyFading = BiteClaims.fading(claims)
 	for k = 1, front do
 		local i = order[k] + 1
 		local want = drawn[i]
@@ -348,12 +719,16 @@ function PreyRenderer.render(dt: number)
 			local pool = poolOf(look)
 			local kind, seed, count, alive =
 				look.kind, mirror.seed[i], mirror.count[i], mirror.alive[i]
+			local groupId, gen = order[k], mirror.gen[i]
 			local gx, gy, gz, h, scatter = dx[i], dy[i], dz[i], heading[i], mirror.scatter[i]
 			local outline = outlineShown[k] == true
 			local hz, yawAmp, rollAmp, bob = look.hz, look.yaw, look.roll, look.bob
 			local member = 0
 			while want > 0 and member < count do
-				if bit32.btest(alive, bit32.lshift(1, member)) then
+				if
+					bit32.btest(alive, bit32.lshift(1, member))
+					and not (anyHidden and BiteClaims.isHidden(claims, groupId, member, gen))
+				then
 					want -= 1
 					local item, wasHidden = Pools.take(pool)
 					if item == nil then
@@ -365,6 +740,18 @@ function PreyRenderer.render(dt: number)
 					local yaw = h + math.pi + yawAmp * math.sin(phase)
 					local roll = rollAmp * math.sin(phase + 1.3)
 					x, y, z = x + wx, y + wy + bob * math.sin(phase * 2), z + wz
+					if pulling then
+						-- 02 §4.1: the gulp assist pulls the member toward the mouth centre.
+						local p = BiteDetect.pulled(detect, BiteDetect.key(groupId, member))
+						if p > 0 then
+							local ax, ay, az = mouthX - x, mouthY - y, mouthZ - z
+							local d = math.sqrt(ax * ax + ay * ay + az * az)
+							if d > 1e-3 then
+								local f = math.min(p / d, 1)
+								x, y, z = x + ax * f, y + ay * f, z + az * f
+							end
+						end
+					end
 					-- Ry(yaw) × Rz(roll): local −Z (LookVector) faces the heading (sin h, 0, cos h).
 					local c, s, cr, sr =
 						math.cos(yaw), math.sin(yaw), math.cos(roll), math.sin(roll)
@@ -372,7 +759,15 @@ function PreyRenderer.render(dt: number)
 					local r10, r11, r12 = sr, cr, 0
 					local r20, r21, r22 = -s * cr, s * sr, c
 					local body = item.body
-					if wasHidden then
+					local shown = if anyFading
+						then BiteClaims.fadeIn(claims, groupId, member, started)
+						else 1
+					if shown < 1 then
+						-- 02 §4.3: a rejected member fades back in.
+						item.fading = true
+						body.Transparency = 1 - shown
+					elseif wasHidden or item.fading then
+						item.fading = false
 						body.Transparency = 0
 					end
 					push(body, CFrame.new(x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22))
@@ -421,6 +816,7 @@ function PreyRenderer.render(dt: number)
 		for n = from, to do
 			local item = Pools.at(pool, n)
 			item.body.Transparency = 1
+			item.fading = false
 			local shell = item.shell
 			if shell and item.outlined then
 				item.outlined = false
@@ -428,6 +824,7 @@ function PreyRenderer.render(dt: number)
 			end
 		end
 	end
+	drawGlints()
 	for n = #moveParts, moveCount + 1, -1 do
 		moveParts[n] = nil
 		moveCFrames[n] = nil
@@ -485,6 +882,7 @@ function PreyRenderer.setQuality(newTier: GraphicsTier)
 	for _, pool in poolList do
 		Pools.setCap(pool, budget, destroyItem)
 	end
+	setHostCap(farEmitters)
 end
 
 --- Dev: makes `feed` the one packet source ("remote" by default; PreyHarness takes it while it
@@ -506,6 +904,9 @@ end
 
 function PreyRenderer.init()
 	mirror = PreyMirror.new()
+	claims = BiteClaims.new(os.clock())
+	detect = BiteDetect.new()
+	table.clear(hosts)
 	table.clear(looks)
 	table.clear(pools)
 	table.clear(poolList)
@@ -530,6 +931,29 @@ function PreyRenderer.start()
 			PreyRenderer.feedEvents(payload)
 		end
 	end)
+	Client.on("BiteResult", function(payload: unknown)
+		if typeof(payload) == "buffer" then
+			PreyRenderer.onBiteResult(payload)
+		end
+	end)
+	-- One attachment for the placeholder bite pop and miss puff (02 §4.3).
+	local puffHost = Instance.new("Part")
+	puffHost.Name = "PuffHost"
+	puffHost.Size = Vector3.new(0.2, 0.2, 0.2)
+	puffHost.Transparency = 1
+	setVisualPart(puffHost)
+	local a = Instance.new("Attachment")
+	a.Parent = puffHost
+	popEmitter = newPuffEmitter("BitePop", Color3.fromHex("#E8F8FF"), 0.6, 6)
+	missEmitter = newPuffEmitter("MissPuff", Color3.fromHex("#9FB3C2"), 0.8, 3)
+	if popEmitter then
+		popEmitter.Parent = a
+	end
+	if missEmitter then
+		missEmitter.Parent = a
+	end
+	puffAttachment = a
+	puffHost.Parent = f
 	-- After the camera (Camera + 1), so the shells face this frame's eye.
 	RunService:BindToRenderStep(
 		RENDER_NAME,
