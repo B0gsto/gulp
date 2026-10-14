@@ -371,6 +371,19 @@ function PreyService.tryEat(
 	return true, def
 end
 
+--- The PreyDef of member `member` of group `groupId` when the group is live at `gen` and the
+--- member is alive (8.9, check 3), and the group's speed in studs/s; nil and 0 when it is gone.
+--- Reads only: `tryEat` still decides. Addition to 5.1's API, for BiteService's reject reasons.
+function PreyService.peek(groupId: number, member: number, gen: number): (PreyDef?, number)
+	if not PreySim.memberAlive(sim, groupId, member) or not PreySim.isLive(sim, groupId, gen) then
+		return nil, 0
+	end
+	local b, o4 = sim.buffers, groupId * 4
+	local vx, vy, vz =
+		buffer.readf32(b.velX, o4), buffer.readf32(b.velY, o4), buffer.readf32(b.velZ, o4)
+	return Formation.defOf(buffer.readu8(b.kind, groupId)), math.sqrt(vx * vx + vy * vy + vz * vz)
+end
+
 --- Where member `member` of group `groupId` was at server time `t` (8.9's distance check), from
 --- the group's 0.8 s history. The caller has checked the group is live at its gen.
 function PreyService.memberPosAt(
