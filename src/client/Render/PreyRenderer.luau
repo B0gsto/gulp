@@ -24,9 +24,9 @@
 --              wiggled) plus Formation's cosmetic wobble. No motion number is copied here.
 --   Outlines   lime "can eat" shells (06 §13.2, canon 5.2) on the nearest edible groups, capped by
 --              the tier's outline caps (8.8: 20 groups, 8 on Smooth). Prey shells are 10% of body
---              height with no minimum (06 §13.2). Placeholder shells are the CreatureRig
---              kind: a slightly larger copy pushed away from the camera so only a rim shows; the
---              push is folded into the shell's CFrame, so it costs no property write.
+--              height with no minimum (06 §13.2). Placeholder shells are Render/HullMesh's
+--              flipped-face ellipsoid, body size plus twice the line width, moved with the body;
+--              made on first use, since the mesh is built async.
 --
 --   Glints   (S4-C1) every member not drawn as a mesh, of a group past the mesh range or past the
 --              pool, is a glint (8.8; 06 `FX_Glint`, 07 §4: "every prey becomes a single dot"):
@@ -68,6 +68,7 @@ local PreyEvent = require(ReplicatedStorage.Shared.Net.Codec.PreyEvent)
 
 local Client = require(script.Parent.Parent.Net.Client)
 local CreatureController = require(script.Parent.Parent.Controllers.CreatureController)
+local HullMesh = require(script.Parent.HullMesh)
 local InputController = require(script.Parent.Parent.Controllers.InputController)
 local Outlines = require(script.Parent.Outlines)
 local Pools = require(script.Parent.Pools)
@@ -76,7 +77,7 @@ export type GraphicsTier = PreyMirror.GraphicsTier
 
 type Item = {
 	body: BasePart,
-	shell: BasePart?, -- nil for prey that never get an outline (plankton)
+	shell: BasePart?, -- nil for prey that never get an outline (plankton), and until first used
 	outlined: boolean,
 	fading: boolean, -- drawn part-transparent while fading back in after a rejected claim
 }
@@ -98,7 +99,6 @@ type Look = {
 	template: BasePart?,
 	size: Vector3,
 	colour: Color3,
-	shellPush: number, -- studs the shell is pushed away from the camera
 	shellSize: Vector3,
 	hasShell: boolean,
 	hz: number, -- wiggle, cycles per second
@@ -115,7 +115,6 @@ local VISUAL_GROUP = "Visual" -- 09 §6.5
 local FOLDER = "PreyRender"
 local RENDER_NAME = "GulpPrey"
 local TWO_PI = 2 * math.pi
-local PUSH = 2.5 -- placeholder shell pushed back by this many line widths (CreatureRig's, tune)
 
 -- 06 §6.3 lengths (studs) and 06 §6.2 Mid colours. Width and height of the placeholder ellipsoid
 -- are shares of the length (tune); plankton is a round mote.
@@ -283,7 +282,6 @@ local function lookOf(kind: number): Look?
 		template = template,
 		size = size,
 		colour = Color3.fromHex(if place then place.colour else PLACEHOLDER_COLOUR),
-		shellPush = PUSH * edibleT,
 		shellSize = size + Vector3.new(2 * edibleT, 2 * edibleT, 2 * edibleT),
 		-- 06 §13.2: plankton has no shell; hook bait is not a prey kind.
 		hasShell = OutlineRules.prey(math.huge, def.tier, false) ~= "none",
@@ -307,6 +305,21 @@ local function ellipsoid(name: string, size: Vector3): Part
 	return p
 end
 
+-- The outline shell of one member, or nil (no shell for this kind, or the hull not built yet).
+local function makeShell(look: Look): BasePart?
+	if not look.hasShell then
+		return nil
+	end
+	-- TODO(S3-A1 meshes): clone `M_Prey_<Kind>_Shell` once uploaded instead of this hull.
+	local s = HullMesh.new(look.def.id .. "_Shell", look.shellSize)
+	if s then
+		s.Color = Outlines.colour("edible")
+		setVisualPart(s)
+		s.Parent = folder
+	end
+	return s
+end
+
 local function makeItem(look: Look): Item
 	local body: BasePart
 	if look.template then
@@ -319,18 +332,7 @@ local function makeItem(look: Look): Item
 	setVisualPart(body)
 	body.Transparency = 1
 	body.Parent = folder
-	local shell: BasePart? = nil
-	if look.hasShell then
-		-- TODO(S3-A1 meshes): clone `M_Prey_<Kind>_Shell` once uploaded instead of this hull.
-		local s = ellipsoid(look.def.id .. "_Shell", look.shellSize)
-		s.Material = Enum.Material.Neon -- 06 §13.2
-		s.Color = Outlines.colour("edible")
-		s.Transparency = 1
-		setVisualPart(s)
-		s.Parent = folder
-		shell = s
-	end
-	return { body = body, shell = shell, outlined = false, fading = false }
+	return { body = body, shell = makeShell(look), outlined = false, fading = false }
 end
 
 local function destroyItem(item: Item)
@@ -671,9 +673,6 @@ function PreyRenderer.render(dt: number)
 	-- Bites before drawing, so a member hidden this frame is not drawn (8.9).
 	biteStep(started, dt, clock)
 
-	local camera = workspace.CurrentCamera
-	local eye = if camera then camera.CFrame.Position else Vector3.zero
-	local ex, ey, ez = eye.X, eye.Y, eye.Z
 	local given, front = 0, 0
 	if viewer then
 		given, front = PreyMirror.assign(mirror, viewer.X, viewer.Y, viewer.Z, budget, meshDistance)
@@ -768,8 +767,13 @@ function PreyRenderer.render(dt: number)
 						item.fading = false
 						body.Transparency = 0
 					end
-					push(body, CFrame.new(x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22))
+					local cf = CFrame.new(x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
+					push(body, cf)
 					local shell = item.shell
+					if outline and not shell then
+						shell = makeShell(look)
+						item.shell = shell
+					end
 					if shell then
 						if outline then
 							if not item.outlined then
@@ -777,26 +781,7 @@ function PreyRenderer.render(dt: number)
 								shell.Color = Outlines.colour("edible")
 								shell.Transparency = 0
 							end
-							local ax, ay, az = x - ex, y - ey, z - ez
-							local d = math.sqrt(ax * ax + ay * ay + az * az)
-							local p = if d > 1e-3 then look.shellPush / d else 0
-							push(
-								shell,
-								CFrame.new(
-									x + ax * p,
-									y + ay * p,
-									z + az * p,
-									r00,
-									r01,
-									r02,
-									r10,
-									r11,
-									r12,
-									r20,
-									r21,
-									r22
-								)
-							)
+							push(shell, cf)
 							outlined += 1
 						elseif item.outlined then
 							item.outlined = false
@@ -952,7 +937,7 @@ function PreyRenderer.start()
 	end
 	puffAttachment = a
 	puffHost.Parent = f
-	-- After the camera (Camera + 1), so the shells face this frame's eye.
+	-- After the camera (Camera + 1), so the glints see this frame's eye.
 	RunService:BindToRenderStep(
 		RENDER_NAME,
 		Enum.RenderPriority.Camera.Value + 1,

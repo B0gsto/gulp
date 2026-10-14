@@ -19,11 +19,12 @@
 --      creature, so skinned pieces are in the template before spawning (spike F19).
 --   2. Otherwise a code-built placeholder with the RIG_Fish bone names (rigs.py FishFit): rigid
 --      ellipsoid pieces held to their bones by RigidConstraint (06 §8.4, spike F14), and
---      placeholder shells: a slightly larger copy of each body ellipsoid pushed away from the
---      camera (`SpecialMesh.Offset`), so the body hides its middle and only a rim shows. A
---      negative mesh scale does not flip faces in the engine: measured in Studio for S3-C6, it
---      drew a solid neon ellipsoid over the body. The imported `_Shell` meshes have real flipped
---      faces (spike S0-A2) and need none of this.
+--      placeholder shells: a flipped-face ellipsoid hull per outlined piece (Render/HullMesh),
+--      the body piece's size plus twice the line width, held to the same bone. Only its far
+--      inside draws, so a rim shows around the body from any camera. Two earlier stand-ins drew
+--      solid blobs over the body in Studio: a negative mesh scale (it does not flip faces) and a
+--      larger shell pushed away from the camera. The imported `_Shell` meshes have real flipped
+--      faces (spike S0-A2).
 --
 -- Animation: the five fish clips play through the Animator when the manifest has their asset
 -- IDs; otherwise `sway` writes the reference swim wave onto the bones. Bones are written on the
@@ -33,6 +34,7 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local HullMesh = require(script.Parent.HullMesh)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
@@ -46,14 +48,16 @@ export type Form = "Juvenile" | "Adult"
 export type Kind = OutlineRules.Kind
 export type Clip = RigMath.Clip
 
---- A placeholder shell: an inverted ellipsoid whose mesh scale sets the line thickness.
-type HullShell = { part: BasePart, mesh: SpecialMesh, size: Vector3 }
+--- A placeholder shell: a flipped-face hull (Render/HullMesh) over one body piece, made the
+--- first time the form shows an outline once the hull mesh is ready.
+type HullShell = { body: BasePart, part: BasePart? }
 
 type FormParts = {
 	body: { BasePart },
 	thin: { BasePart }, -- the `_Shell` (green)
 	thick: { BasePart }, -- the `_ShellThick` (red); the same parts as `thin` on the placeholder
 	hulls: { HullShell }, -- placeholder only
+	folder: Instance?, -- placeholder only: where its hulls go
 }
 
 export type Rig = {
@@ -309,6 +313,7 @@ local function buildPlaceholderForm(
 	local folder = Instance.new("Model")
 	folder.Name = form
 	local parts: FormParts = { body = {}, thin = {}, thick = {}, hulls = {} }
+	parts.thick = parts.thin -- one hull per piece, sized per colour by `fitHulls`
 	-- The adult reads a little deeper in the body until its mesh exists (09 §6.9 placeholder).
 	local depth = if form == "Adult" then 1.12 else 1
 	for _, row in PIECES do
@@ -329,25 +334,11 @@ local function buildPlaceholderForm(
 		p.Parent = folder
 		table.insert(parts.body, p)
 		if row[6] then
-			-- Placeholder shell: the same ellipsoid, a little larger, drawn behind the body from the
-			-- camera's side (`faceCamera`), so only its rim shows around the silhouette.
-			local s = Instance.new("Part")
-			s.Name = name .. "_Shell"
-			s.Size = size
-			s.Material = Enum.Material.Neon -- 06 §13.2
-			s.Transparency = 1
-			s.CFrame = p.CFrame
-			local hull = Instance.new("SpecialMesh")
-			hull.MeshType = Enum.MeshType.Sphere
-			hull.Parent = s
-			setVisualPart(s)
-			attach(s, bones[boneName], centre)
-			s.Parent = folder
-			table.insert(parts.thin, s)
-			table.insert(parts.thick, s)
-			table.insert(parts.hulls, { part = s :: BasePart, mesh = hull, size = size })
+			-- Its outline hull is made on first use (`ensureHulls`): the mesh is built async.
+			table.insert(parts.hulls, { body = p :: BasePart })
 		end
 	end
+	parts.folder = folder
 	if form == "Adult" then
 		for _, p in parts.body do
 			p.Transparency = 1
@@ -585,40 +576,60 @@ function CreatureRig.applyScale(rig: Rig, scale: number)
 	end
 end
 
--- Placeholder shells: mesh scale 1 + 2t / size on each axis gives a rim `t` studs wide.
+-- Placeholder shells: the body piece's current size plus twice the line width on each axis.
 local function fitHulls(rig: Rig, kind: Kind)
-	local scale = rig.scaleEase.value
-	local t = OutlineRules.thickness(rig.bodyHeight * scale, kind, false) / scale
+	local t = OutlineRules.thickness(rig.bodyHeight * rig.scaleEase.value, kind, false)
+	local grow = Vector3.new(2 * t, 2 * t, 2 * t)
 	for _, h in formParts(rig, rig.form).hulls do
-		local s = h.size
-		h.mesh.Scale = Vector3.new(1 + 2 * t / s.X, 1 + 2 * t / s.Y, 1 + 2 * t / s.Z)
+		local part = h.part
+		if part then
+			part.Size = h.body.Size + grow
+		end
 	end
 end
 
-local PUSH = 2.5 -- placeholder shell pushed back by this many line widths (tune)
-
---- Placeholder only, every frame while an outline shows: pushes each shell directly away from
---- the camera at `eye`, so the body covers its middle. The imported flipped-face shells skip this.
-function CreatureRig.faceCamera(rig: Rig, eye: Vector3)
-	if not rig.placeholder or rig.outline == "none" then
-		return
+-- Placeholder only: makes the form's missing hulls once the hull mesh is ready, each held to
+-- its body piece's bone at the body piece's offset. True when the form has all of them.
+local function ensureHulls(parts: FormParts): boolean
+	if #parts.thin == #parts.hulls then
+		return true
 	end
-	local scale = rig.scaleEase.value
-	local push = PUSH * OutlineRules.thickness(rig.bodyHeight * scale, rig.outline, false)
-	for _, h in formParts(rig, rig.form).hulls do
-		local cf = h.part.CFrame
-		local away = cf.Position - eye
-		local d = away.Magnitude
-		if d > 1e-3 then
-			-- Offset is in the part's object space, in studs.
-			h.mesh.Offset = cf:VectorToObjectSpace(away) * (push / d)
+	for _, h in parts.hulls do
+		local body = h.body
+		local at = body:FindFirstChild("RigAttach") :: Attachment?
+		local bone = at and body:FindFirstChildOfClass("RigidConstraint")
+		local boneAt = bone and (bone :: RigidConstraint).Attachment0
+		if not h.part and at and boneAt then
+			local s = HullMesh.new(body.Name .. "_Shell", body.Size)
+			if not s then
+				return false
+			end
+			s.CFrame = body.CFrame
+			local a = Instance.new("Attachment")
+			a.Name = "RigAttach"
+			a.CFrame = at.CFrame
+			a.Parent = s
+			local c = Instance.new("RigidConstraint")
+			c.Attachment0 = boneAt
+			c.Attachment1 = a
+			c.Parent = s
+			setVisualPart(s)
+			s.Parent = parts.folder
+			h.part = s
+			table.insert(parts.thin, s)
 		end
 	end
+	return #parts.thin == #parts.hulls
 end
 
 --- Shows the outline of `kind` in `colour` on the visible form, or hides it ("none").
 function CreatureRig.setOutline(rig: Rig, kind: Kind, colour: Color3)
 	local parts = formParts(rig, rig.form)
+	-- A placeholder whose hulls were not made yet (mesh still building) shows its outline as soon
+	-- as they are: until then it reads as having none, so the next call retries.
+	if rig.placeholder and kind ~= "none" and rig.outline ~= kind and not ensureHulls(parts) then
+		return
+	end
 	if kind ~= rig.outline then
 		for _, s in parts.thin do
 			s.Transparency = 1
@@ -658,6 +669,8 @@ function CreatureRig.setForm(rig: Rig, form: Form)
 		return
 	end
 	local outline: Kind = rig.outline
+	local lit = formParts(rig, rig.form).thin[1]
+	local colour = if lit then lit.Color else Color3.new(1, 1, 1)
 	CreatureRig.setOutline(rig, "none", Color3.new())
 	for _, p in formParts(rig, rig.form).body do
 		p.Transparency = 1
@@ -668,8 +681,7 @@ function CreatureRig.setForm(rig: Rig, form: Form)
 	rig.form = form
 	rig.outline = "none"
 	if outline ~= "none" then
-		local list = formParts(rig, form).thin
-		CreatureRig.setOutline(rig, outline, if list[1] then list[1].Color else Color3.new(1, 1, 1))
+		CreatureRig.setOutline(rig, outline, colour)
 	end
 end
 

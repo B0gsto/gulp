@@ -92,8 +92,8 @@ end
 
 --- Picks which outlines draw: nearest first, up to `capEdible` edible and `capDangerous`
 --- dangerous. `kinds[i]` and `distances[i]` describe candidate i of `count`; `order` is a scratch
---- array the caller keeps; `shown[i]` is written for every i. Allocates nothing once `order` has
---- grown to `count`.
+--- array the caller keeps; `shown[i]` is written for every i, and entries past `count` are
+--- dropped. Allocates nothing once `order` has grown to `count`.
 function OutlineRules.select(
 	kinds: { Kind },
 	distances: { number },
@@ -109,6 +109,9 @@ function OutlineRules.select(
 	end
 	for i = #order, count + 1, -1 do
 		order[i] = nil
+	end
+	for i = #shown, count + 1, -1 do
+		shown[i] = nil
 	end
 	-- Insertion sort: a server holds a few dozen creatures, and the order barely changes between
 	-- calls.
