@@ -133,26 +133,28 @@ def _star_r(ang, n_pts, r_in, r_out, k):
 
 
 def star_cell(kind):
-    """0 fat four-point star (the pop star and glints), 1 sparkle (four points plus four short ones),
-    2 slim glint, 3 plus. White with a soft grey rim, plus a faint halo; the emitter colours it."""
+    """07 9.1: glint, star, sparkle and plus. The order is also the pop star's OneShot flipbook (06 11.2:
+    the BiteChomp star is an animated flipbook): 0 slim glint (the flash; also the pinned glint of the
+    bubble pops), 1 fat four-point star (the pop, 06 11.1), 2 sparkle (the star bursting into rays),
+    3 thin plus (it settles). White with a soft grey rim and a faint halo; the emitter colours it."""
     v, a, n = _cell_canvas()
     x, y = _grid(n)
     r_max = 1.0 - 2.0 * (GUTTER + 2) / CELL
     aa = 2.5 / (n / 2.0)
     rr = np.sqrt(x * x + y * y)
     ang = np.arctan2(y, x)
-    if kind == 0:
+    if kind == 1:
         R = _star_r(ang, 4, 0.34 * r_max, r_max, 2.2)
-    elif kind == 1:
+    elif kind == 2:
         R = np.maximum(_star_r(ang, 4, 0.24 * r_max, r_max, 3.0),
                        _star_r(ang + math.pi / 4, 4, 0.2 * r_max, 0.52 * r_max, 3.0))
-    elif kind == 2:
+    elif kind == 0:
         R = _star_r(ang, 4, 0.12 * r_max, r_max, 6.0)
     else:
         ax, ay = np.abs(x), np.abs(y)
-        arm = 0.2 * r_max
-        d_h = np.maximum(ax - (r_max - arm), ay - arm)       # rounded-end bars via offset boxes
-        d_v = np.maximum(ay - (r_max - arm), ax - arm)
+        arm, reach = 0.11 * r_max, 0.8 * r_max
+        d_h = np.sqrt(np.maximum(ax - (reach - arm), 0) ** 2 + np.maximum(ay, 0) ** 2) - arm   # capsule bars
+        d_v = np.sqrt(np.maximum(ay - (reach - arm), 0) ** 2 + np.maximum(ax, 0) ** 2) - arm
         d = np.minimum(d_h, d_v)
         R = None
     if R is not None:
@@ -203,6 +205,7 @@ def build_textures():
 
 # ---------------------------------------------------------------- definitions
 
+FLIP_MODES = ("Loop", "OneShot", "Random")
 REQUIRED = ("EmissionDirection", "SpreadAngle", "Speed", "Drag", "Acceleration", "Lifetime", "Size",
             "Transparency", "Color", "Rotation", "RotSpeed", "LightEmission", "LightInfluence",
             "FlipbookLayout", "FlipbookMode", "FlipbookFramerate", "FlipbookStartRandom")
@@ -231,8 +234,16 @@ def validate(defs):
                 errs.append("%s: texture %r is not one of this task's sheets (never the default image)" % (where, e.get("texture")))
             if p.get("Lifetime", [0, 0])[1] > fx["lifetime"] + 1e-6:
                 errs.append("%s: lifetime over the effect's %.2f s" % (where, fx["lifetime"]))
-            if p.get("Lifetime", [0, 0])[1] >= 1.0 / p.get("FlipbookFramerate", [1, 1])[0]:
-                errs.append("%s: lives long enough to change flipbook cell" % where)
+            mode, life = p.get("FlipbookMode"), p.get("Lifetime", [0, 0])
+            if mode not in FLIP_MODES or p.get("FlipbookLayout") != "Grid2x2":
+                errs.append("%s: FlipbookLayout must be Grid2x2 (07 9.1 sheets) and FlipbookMode one of %s" % (where, FLIP_MODES))
+            elif mode == "OneShot":
+                fps = [GRID * GRID / life[1], GRID * GRID / life[0]]
+                if fps[0] < 16 - 1e-6 or fps[1] > 30 + 1e-6:
+                    errs.append("%s: OneShot plays %d frames at %.1f-%.1f a second; 06 11.3 wants 16 to 24 (engine max 30)"
+                                % (where, GRID * GRID, fps[0], fps[1]))
+            elif life[1] >= 1.0 / p.get("FlipbookFramerate", [1, 1])[0]:
+                errs.append("%s: %s particles must die before their first cell change (one cell each)" % (where, mode))
             for seq in ("Size", "Transparency"):
                 ts = [k[0] for k in p.get(seq, [])]
                 if not ts or ts[0] != 0 or ts[-1] != 1 or ts != sorted(ts):
@@ -293,7 +304,8 @@ def spawn(e, rng):
             "e": e, "pos": [0.0, 0.0, 0.0], "vel": [d[0] * spd, d[1] * spd, d[2] * spd],
             "life": rng.uniform(*p["Lifetime"]), "rot": rng.uniform(*p["Rotation"]),
             "rs": rng.uniform(*p["RotSpeed"]), "env": env,
-            "cell": rng.randrange(4) if p["FlipbookStartRandom"] else 0,
+            "cell0": rng.randrange(4) if p["FlipbookStartRandom"] else 0,
+            "rng": random.Random(rng.random()),
         })
     return out
 
@@ -310,7 +322,7 @@ def sim(fx, seed, frames):
         snap = []
         for q in parts:
             if t <= q["life"]:
-                snap.append((q, t / q["life"], list(q["pos"]), q["rot"]))
+                snap.append((q, t / q["life"], list(q["pos"]), q["rot"], flip_cell(q, t, t / q["life"])))
         states.append(snap)
         sub = 8
         for _ in range(sub):                              # integrate to the next frame
@@ -326,6 +338,20 @@ def sim(fx, seed, frames):
                     q["pos"][k] += q["vel"][k] * h
                 q["rot"] += q["rs"] * h
     return states
+
+
+def flip_cell(q, age, u):
+    """The sheet cell a particle shows: Loop steps from its start cell at FlipbookFramerate; Random
+    picks a new random cell at each step; OneShot plays the whole sheet once over the lifetime."""
+    p = q["e"]["props"]
+    n = GRID * GRID
+    if p["FlipbookMode"] == "OneShot":
+        return min(n - 1, int(u * n))
+    step = int(age * p["FlipbookFramerate"][0])
+    if p["FlipbookMode"] == "Random":
+        r = random.Random(hash((id(q), step)) & 0xFFFFFFFF) if step else None
+        return q["cell0"] if r is None else r.randrange(n)
+    return (q["cell0"] + step) % n
 
 
 def tex_cell(tex, cell):
@@ -366,7 +392,7 @@ def render_frame(snap, textures, size, pps, bg, kind, first):
     canvas = water(size, *bg)
     if kind == "eater" or first:
         canvas = stand_in(canvas, kind, pps, cx, cy)
-    for q, u, pos, rot in sorted(snap, key=lambda s: s[0]["e"]["props"].get("ZOffset", 0)):
+    for q, u, pos, rot, cell_i in sorted(snap, key=lambda s: s[0]["e"]["props"].get("ZOffset", 0)):
         p = q["e"]["props"]
         sz = seq_eval(p["Size"], u)
         env = [k[2] for k in p["Size"]]
@@ -376,7 +402,7 @@ def render_frame(snap, textures, size, pps, bg, kind, first):
         px = int(round(sz * pps))
         if px < 2 or tr >= 0.999:
             continue
-        cell = tex_cell(textures[q["e"]["texture"]], q["cell"]).resize((px, px), Image.LANCZOS).rotate(-rot, Image.BICUBIC)
+        cell = tex_cell(textures[q["e"]["texture"]], cell_i).resize((px, px), Image.LANCZOS).rotate(-rot, Image.BICUBIC)
         arr = np.asarray(cell).astype(np.float32) / 255.0
         rgb, al = arr[..., :3] * np.array(col) * p.get("Brightness", 1), arr[..., 3] * (1 - tr)
         x0, y0 = int(round(cx + pos[0] * pps - px / 2)), int(round(cy - pos[1] * pps - px / 2))

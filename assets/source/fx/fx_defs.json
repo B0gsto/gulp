@@ -6,7 +6,7 @@
     "Property names are Roblox ParticleEmitter names. Encoding: NumberSequence = [[time, value, envelope], ...]; ColorSequence = [[time, \"#RRGGBB\"], ...]; NumberRange = [min, max]; Vector2/Vector3 = arrays; enums = the item name (\"Grid2x2\").",
     "Sizes and speeds are for scale 1.0. Render/Fx multiplies Size, Speed and Acceleration by the scale named in 'scaleWith' (06 section 11.1 rule 8); counts never scale.",
     "'tint' marks a Color that code recolours at spawn: it keeps the keypoint times and white keypoints and replaces every other keypoint with the tint colour ('prey' = the eaten prey's mid colour, 06 section 4.3). The Color here is the fallback, shown with Krill.",
-    "Texture cells (2x2, row-major from top left): T_FX_Bubble_Mask 0-3 = four bubble shapes; T_FX_Star_Mask 0 = fat four-point star, 1 = sparkle, 2 = slim glint, 3 = plus. With FlipbookMode Loop and FlipbookFramerate 1 a particle that lives under 1 s never changes cell, so FlipbookStartRandom false pins cell 0 and true picks one of the four.",
+    "Flipbooks (Roblox ParticleEmitter FlipbookLayout/FlipbookMode/FlipbookFramerate). Both sheets are Grid2x2, cells row-major from the top left. T_FX_Bubble_Mask 0-3 = four bubble shapes; T_FX_Star_Mask 0 = slim glint, 1 = fat four-point star, 2 = sparkle, 3 = thin plus, which is also the pop star's animation. FlipbookMode Random (FlipbookFramerate 1, FlipbookStartRandom true, life under 1 s) gives each particle one random cell; Loop at FlipbookFramerate 1 with FlipbookStartRandom false pins cell 0 for a particle that lives under 1 s; OneShot plays the four cells once over the particle's life (06 section 11.3 wants 16 to 24 frames a second).",
     "All values (tune)."
   ],
   "effects": {
@@ -39,7 +39,7 @@
             "Brightness": 1,
             "ZOffset": 0.2,
             "FlipbookLayout": "Grid2x2",
-            "FlipbookMode": "Loop",
+            "FlipbookMode": "Random",
             "FlipbookFramerate": [1, 1],
             "FlipbookStartRandom": true
           }
@@ -54,24 +54,25 @@
             "Speed": [0.6, 0.6],
             "Drag": 10,
             "Acceleration": [0, 0, 0],
-            "Lifetime": [0.3, 0.3],
-            "Size": [[0, 0.1, 0], [0.25, 1.25, 0], [0.55, 1.0, 0], [1, 0.55, 0]],
-            "Transparency": [[0, 0, 0], [0.5, 0, 0], [1, 1, 0]],
+            "Lifetime": [0.22, 0.22],
+            "Size": [[0, 0.55, 0], [0.2, 1.25, 0], [0.6, 1.15, 0], [1, 0.85, 0]],
+            "Transparency": [[0, 0, 0], [0.6, 0, 0], [1, 1, 0]],
             "Color": [[0, "#FFFFFF"], [0.3, "#F4FFE6"], [1, "#D2FF9E"]],
             "Rotation": [-15, 15],
-            "RotSpeed": [160, 220],
+            "RotSpeed": [90, 140],
             "LightEmission": 0,
             "LightInfluence": 0,
             "Brightness": 1,
             "ZOffset": 0.6,
             "FlipbookLayout": "Grid2x2",
-            "FlipbookMode": "Loop",
+            "FlipbookMode": "OneShot",
             "FlipbookFramerate": [1, 1],
             "FlipbookStartRandom": false
           }
         }
       ],
-      "stillFallback": "With flipbooks off the 2x2 sheets show whole: each bubble becomes a cluster of four bubbles and the star a cluster of four star shapes; both still read as a bubbly pop (06 section 11.1 rule 7)."
+      "stillFallback": "With flipbooks off the 2x2 sheets show whole: each bubble becomes a cluster of four bubbles and the star a cluster of four star shapes; both still read as a bubbly pop (06 section 11.1 rule 7).",
+      "animation": "PopStar plays T_FX_Star_Mask as a 4-frame OneShot flipbook over 0.22 s (18 a second): glint flash, fat star, sparkle burst, plus. 06 section 11.2 asks for a 4x4 flipbook on 512; 07 section 9.2 gives the effect T_FX_Bubble_Mask only and the sprint task two textures, so per 07's precedence over rows and sizes the animation lives in the 256 px 2x2 T_FX_Star_Mask (open conflict, listed for the owner)."
     },
     "FX_BubblePop_T0": {
       "tag": "MVP",
@@ -165,7 +166,7 @@
             "Brightness": 1,
             "ZOffset": 0.2,
             "FlipbookLayout": "Grid2x2",
-            "FlipbookMode": "Loop",
+            "FlipbookMode": "Random",
             "FlipbookFramerate": [1, 1],
             "FlipbookStartRandom": true
           }
