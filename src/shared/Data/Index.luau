@@ -8,6 +8,7 @@ local Goals = require("./Generated/Goals")
 local Hazards = require("./Generated/Hazards")
 local Predators = require("./Generated/Predators")
 local Prey = require("./Generated/Prey")
+local PreySpawns = require("./Generated/PreySpawns")
 local Products = require("./Generated/Products")
 local RevivePoints = require("./Generated/RevivePoints")
 local Species = require("./Generated/Species")
@@ -54,7 +55,19 @@ for _, def in Products do
 	productById[def.id] = def
 end
 
+-- Spawn rows by zone, in the generated order (03's prey order within a zone).
+local spawnsByZone: { [string]: { Types.PreySpawnDef } } = {}
+for _, def in PreySpawns do
+	local list = spawnsByZone[def.zone] or {}
+	spawnsByZone[def.zone] = list
+	table.insert(list, def)
+end
+for _, list in spawnsByZone do
+	table.freeze(list)
+end
+
 local Index = {
+	PreySpawns = table.freeze({ list = PreySpawns, byZone = table.freeze(spawnsByZone) }),
 	Products = table.freeze({ list = Products, byId = table.freeze(productById) }),
 	Tiers = table.freeze({ list = Tiers, byTier = table.freeze(tierByNumber) }),
 	Codex = lookup("Codex", Codex, function(def: Types.CodexCategoryDef): (string, number)

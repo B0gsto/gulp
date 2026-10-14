@@ -73,8 +73,9 @@ do
 			unreliable[def.name] = remote
 		end
 	end
-	-- TODO(WorldInfo, 5.3): 8.7 sends ServerEpoch once in WorldInfo, which no task has built
-	-- yet; until it does, the folder carries it so the client can stamp `Ability` (timeMs).
+	-- TODO(S3-C4, Net/Client): 8.7 sends ServerEpoch once in WorldInfo, which WorldIndex now
+	-- sends; the client still reads it from this attribute to stamp `Ability` (timeMs). Remove the
+	-- attribute once Net/Client takes the epoch from WorldInfo.
 	folder:SetAttribute(EPOCH_ATTRIBUTE, Server.EPOCH)
 	-- Parented last, so a client that finds the folder finds every remote in it.
 	folder.Parent = ReplicatedStorage

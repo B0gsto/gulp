@@ -19,6 +19,7 @@ type Row = MarkdownTables.Row
 local OUTPUT_ROOT = "src/shared/Data/Generated"
 local COLUMN_WIDTH = 100 -- stylua.toml
 local CANON = "docs/01-game-canon.md"
+local MECHANICS = "docs/02-mechanics.md"
 local CATALOG = "docs/03-content-catalog.md"
 local ECONOMY = "docs/05-economy-and-monetization.md"
 
@@ -101,7 +102,10 @@ end
 local function numbers(text: string): { number }
 	local out = {}
 	text = string.gsub(string.gsub(text, "`[^`]*`", ""), "\u{2212}", "-")
-	text = string.gsub(text, "(%d),(%d%d%d)", "%1%2")
+	local grouped = 1
+	while grouped > 0 do -- one pass joins every other group of "1,078,195"
+		text, grouped = string.gsub(text, "(%d),(%d%d%d)", "%1%2")
+	end
 	for digits in string.gmatch(text, "%-?%d+%.?%d*") do
 		table.insert(out, tonumber(digits) :: number)
 	end
@@ -550,6 +554,114 @@ local function buildTides(canon: Tables, catalog: Tables, slice: boolean): Modul
 	return { name = "Tides", typeName = "TideDef", sources = { `{CANON} data:Tides` }, rows = rows }
 end
 
+-- A table's column for a zone: headers name zones as 01's data:Zones does, give or take a
+-- leading "The", a trailing tag, and the Nursery's short name ("Nursery" for "Nursery Lagoon").
+local function zoneColumn(t: Table, zoneName: string): string?
+	local function norm(text: string): string
+		local plainText = string.gsub(MarkdownTables.plain(text), "%s*%[%w+%]$", "")
+		return (string.gsub(plainText, "^The ", ""))
+	end
+	local want = norm(zoneName)
+	for _, header in t.header do
+		local have = norm(header)
+		if have ~= "" and string.sub(want, 1, #have) == have then
+			return header
+		end
+	end
+	return nil
+end
+
+-- One row per prey and zone where 03 §2.3 gives a weight and 02 §9.6 a base count (the Trench
+-- [P2] has weights and caps but no base counts yet, so it has no rows). Zones in canon order,
+-- prey in 03's order within each zone.
+local function buildPreySpawns(
+	canon: Tables,
+	mechanics: Tables,
+	catalog: Tables,
+	slice: boolean
+): Module
+	local spawns = get(catalog, CATALOG, "PreySpawns")
+	local targets = get(mechanics, MECHANICS, "PreyTargets")
+	local areas = get(catalog, CATALOG, "ZoneAreas")
+	local zones = get(canon, CANON, "Zones")
+	local prey = get(catalog, CATALOG, "Prey")
+	local preyRow: { [string]: Row } = {}
+	for _, row in prey.rows do
+		preyRow[row.key] = row
+	end
+	local targetRow: { [string]: Row } = {}
+	for _, row in targets.rows do
+		targetRow[row.key] = row
+	end
+	local areaOf: { [string]: number } = {}
+	for _, row in areas.rows do
+		areaOf[row.key] = firstNumber(areas, row, "Plan area (studs²)")
+	end
+	for _, row in spawns.rows do
+		if preyRow[row.key] == nil then
+			fail(`data:PreySpawns, row {row.key}: not in data:Prey`)
+		end
+	end
+	local rows = {}
+	for _, zone in zones.rows do
+		local zoneName = MarkdownTables.plain(cell(zones, zone, "Zone"))
+		local spawnColumn = zoneColumn(spawns, zoneName)
+		local targetColumn = zoneColumn(targets, zoneName)
+		if spawnColumn == nil or targetColumn == nil or (slice and not zone.inSlice) then
+			continue
+		end
+		local area = areaOf[zone.key]
+		if area == nil then
+			fail(`data:ZoneAreas has no row {zone.key}`)
+		end
+		for _, row in spawns.rows do
+			local weightCap = numbers(cell(spawns, row, spawnColumn :: string))
+			if #weightCap == 0 or (slice and not row.inSlice) then
+				continue -- "None": the prey does not spawn in this zone
+			end
+			local allowed = ids(prey, preyRow[row.key], "Zones (section 2.3)")
+			if not table.find(allowed, zone.key) then
+				fail(`data:PreySpawns, row {row.key}: {zone.key} is not in its data:Prey zones`)
+			end
+			local target = targetRow[row.key]
+			if target == nil then
+				fail(`data:PreyTargets has no row {row.key}`)
+			end
+			local text = cell(targets, target, targetColumn :: string)
+			local counts = numbers(text)
+			if #counts == 0 then
+				fail(`data:PreyTargets, row {row.key}: no base count for {zone.key}`)
+			end
+			local counted = cell(targets, target, "Counted as")
+			local members = (
+				string.match(counted, "^Motes") ~= nil
+				or string.match(counted, "^Animals") ~= nil
+			) and string.find(text, "patches", 1, true) == nil
+			local fields = {
+				field("zone", zone.key),
+				field("prey", row.key),
+				field("weight", weightCap[1]),
+				field("cap", weightCap[2]),
+				field("base", counts[1]),
+				field("baseUnit", if members then "members" else "groups"),
+			}
+			optional(fields, "perPlayerInside", counts[2])
+			table.insert(fields, field("zoneArea", area :: number))
+			table.insert(rows, fields)
+		end
+	end
+	return {
+		name = "PreySpawns",
+		typeName = "PreySpawnDef",
+		sources = {
+			`{CATALOG} data:PreySpawns, data:ZoneAreas, data:Prey`,
+			`{MECHANICS} data:PreyTargets`,
+			`{CANON} data:Zones`,
+		},
+		rows = rows,
+	}
+end
+
 local function buildProducts(economy: Tables, slice: boolean): Module
 	local rows = {}
 	for _, name in { "Passes", "Products", "PearlPacks" } do
@@ -676,6 +788,7 @@ Files.requireRepoRoot()
 local slice = table.find(process.args, "--slice") ~= nil
 local canon = load(CANON)
 local catalog = load(CATALOG)
+local mechanics = load(MECHANICS)
 local economy = load(ECONOMY)
 local modules = {
 	buildTiers(canon, slice),
@@ -691,6 +804,7 @@ local modules = {
 	buildCodex(catalog, slice),
 	buildGoals(catalog, slice),
 	buildRevivePoints(canon, catalog, slice),
+	buildPreySpawns(canon, mechanics, catalog, slice),
 }
 
 if not fs.isDir(OUTPUT_ROOT) then
