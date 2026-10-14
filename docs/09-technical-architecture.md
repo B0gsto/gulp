@@ -523,25 +523,25 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 
 ### 5.3 Remotes
 
-Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. Every payload is one `buffer` except `State` and the low-rate `*Action` remotes, which carry a small array of scalars.
+Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. The payload column says how each one is encoded. **Buffers** (one `buffer` argument, laid out in 8.7 and 8.9): `Bite`, `Ability`, `Telemetry`, `BiteResult`, `PreyEvent`, `PredatorEvent`, `PreyState` and `PredatorState`. **Every other remote carries plain Luau arguments** (numbers, booleans, short strings, or one table where the row says so): `State`, `WorldInfo`, the low-rate `*Action` remotes, `SettingsSet`, `TutorialStep`, `CreatureEvent`, `TideEvent` and `CoveView`. Plain arguments are type-checked and range-checked on arrival like everything else (14.2).
 
 | Remote | Kind | Direction | Payload | Rate limit per player (bucket size) |
 |---|---|---|---|---|
 | `ClientReady` | Reliable | C→S | none | 1 per session |
 | `Bite` | Reliable | C→S | 8 to 40 bytes (8.9) | 12/s (20) |
-| `Ability` | Reliable | C→S | 6 bytes: op, seq, time | 4/s (6) |
+| `Ability` | Reliable | C→S | 6 bytes: `op` u8 (1 dash, 2 ability press, 3 ability release for held abilities such as Shell), `seq` u8, `timeMs` u32 (the client's estimate of server time when pressed). The client starts its dash at once and reports it with op 1; the server's dash window (7.1) opens only from that message | 4/s (6) |
 | `RunAction` | Reliable | C→S | op + up to 2 numbers | 5/s (8) |
 | `CoveAction` | Reliable | C→S | op + up to 2 scalars | 5/s (8) |
 | `ShopAction` | Reliable | C→S | op + sku string ≤ 32 chars | 3/s (5) |
 | `GoalAction` | Reliable | C→S | op + index | 2/s (4) |
-| `SettingsSet` | Reliable | C→S | key + value | 2/s (4) |
-| `TutorialStep` | Reliable | C→S | step number | 2/s (4) |
+| `SettingsSet` | Reliable | C→S | Plain arguments, not a buffer: key (string from the fixed settings list, ≤ 32 chars) + value (number or boolean) | 2/s (4) |
+| `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: step number (integer) | 2/s (4) |
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
 | `State` | Reliable | S→C | path string, value | n/a |
 | `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady` | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
-| `PreyEvent` | Reliable | S→C | 1 + 6n bytes | n/a |
+| `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
 | `CreatureEvent` | Reliable | S→C | gulped, revived, status, tier change, bite absorbed, emote [L] | n/a |
 | `PredatorEvent` | Reliable | S→C | 14 bytes | n/a |
 | `TideEvent` | Reliable | S→C | override start and end only | n/a |
@@ -614,7 +614,7 @@ The server takes ownership back (`SetNetworkOwner(nil)`) only while the creature
 ### 6.5 Physics setup
 
 - **Underwater (root Y ≤ 0):** `MovementController` writes `Move.VectorVelocity` and `Turn.CFrame` every frame from `SwimModel.step`. `MaxForce` is high enough that gravity is irrelevant. The sea is **not** Terrain water: it is empty space dressed with fog, colour and a surface mesh, so the engine applies no buoyancy we would have to fight.
-- **Above the surface (root Y > 0):** `Move.Enabled = false`; the creature follows a ballistic arc under `Workspace.Gravity` (196.2 by default, **V29**) and re-enters. This is the breach.
+- **Above the surface (root Y > 0):** `Move.Enabled = false`; the creature follows a ballistic arc under `Workspace.Gravity` and re-enters. This is the breach. The project files set `Workspace.Gravity = 80`, chapter 02's air gravity (02 §1.7; the engine default is 196.2, **V29**). One global value is enough: under water `MaxForce` overrides gravity whatever its value, nothing else in the game falls (prey and predators are moved by code), and `SwimModel`'s own air step uses the same 80 (`Config/Defaults`, `swim.gravity`), so the client's prediction and the engine's arc agree. No custom downward force is needed. Concretely, when `SwimModel` reports `Airborne`, `MovementController` sets `root.AssemblyLinearVelocity` to the model's velocity, sets `Move.Enabled = false` and keeps `Turn` (turn rate ×0.3, 02 §1.7); the engine then flies the arc. Each frame in the air it copies the root's position and velocity back into the model's state, so `SwimModel`'s air step only predicts between frames. When the centre is below `Y = 0` again it scales the velocity by 0.8 into the model and sets `Move.Enabled = true`.
 - `Workspace.FallenPartsDestroyHeight` is set to `-5000`; the map reaches 600 studs below the surface and the engine default would delete creatures in the Drop-off.
 - World origin is the centre of the map on the surface: X and Z from −1,024 to +1,024, Y from −600 to +96.
 - `PhysicsSteppingMethod = Adaptive` (**V32**).
@@ -690,7 +690,7 @@ Animations play through an `Animator` under an `AnimationController` in the clie
 |---|---|---|
 | Avatar loading and appearance | Never loaded. `CharacterAutoLoads = false` | PlayerLifecycle |
 | Control scripts, touch thumbstick, jump button | `InputController` reads `UserInputService` directly. A stub `PlayerModule` in `StarterPlayerScripts` stops the default one from loading (**U1**, S9) | InputController |
-| Camera follow, zoom, occlusion | `CameraType = Scriptable` gives full control (**V32**); `CameraController` sets `CFrame` and `Focus` every frame; occlusion by one raycast against `World` | CameraController |
+| Camera follow, zoom, occlusion | `CameraType = Scriptable` gives full control (**V32**); `CameraController` sets `CFrame` and `Focus` every frame; occlusion by one sphere-cast (radius 1.0, chapter 02, section 3.5) from the look-at point to the desired camera position against `workspace.Collision`, the World shell; a ray in the `World` group would miss it, because that group does not collide with itself | CameraController |
 | Health and health bar | No health. A creature is alive, protected or gulped. Plated's single save is a flag in `CreatureState` | CreatureService |
 | Death and respawn (`Humanoid.Died`, `RespawnTime`) | `RunLoopService.gulp` and the table in 6.3 | RunLoopService |
 | Swimming, buoyancy | `SwimModel` plus mover constraints | MovementController |
@@ -745,11 +745,21 @@ Sprint 0 ran the spike on the Mac; its results and findings (F1 to F27) are in `
 ### 7.1 Allowed speed
 
 ```text
-vAllowed = Tiers[tier].swimSpeed × species.speedMult × TraitService.speedMult(slot)   -- Stripes ×1.08
+vSwim    = Tiers[tier].swimSpeed × species.speedMult × TraitService.speedMult(slot)   -- Stripes ×1.08
          × statusMult        -- statuses slow 0.5 (anemone), puff 0.4, shell 0, stun 0, rampage 1.25
-         × currentMult       -- 1.6 while WorldIndex says the pose is inside a Current volume
-         × dashMult          -- 2.2 from (dashStart − 0.10 s) to (dashStart + dashDuration + 0.25 s)
+         × dashFactor        -- species.dashMult (2.2; Sea Turtle 2.0, Squid 2.6) from (dashStart − 0.10 s)
+                             -- to (dashStart + dashDuration + 0.25 s), then the dash tail below; else 1
+vCurrent = 0.6 × Tiers[tier].swimSpeed while WorldIndex says the pose is inside a Current volume, else 0
+vForward = vSwim + vCurrent              -- the most an honest creature moves along its look vector
+vAllowed = vSwim × slideMult + vCurrent  -- the most it moves in any direction
+slideMult = 1.17                         -- √(1 + 0.6²): full forward speed plus a full strafe (02 §1.3) (tune)
 ```
+
+A current adds `0.6 × tierSpeed` along the stream after everything else (02 §1.2); it is added here, not multiplied, so a slow species or a dash is not over- or under-credited.
+
+**Dash tail.** After the dash window closes, `dashFactor = 1 + (species.dashMult − 1) × e^(−accel × species.accelMult × t)`, with `t` the seconds since the window closed and `accel` the tier's value from 02 §1.3. This is the relaxation `SwimModel` itself uses, so the validator expects exactly the slow-down an honest creature has. It matters at high tiers: a tier-7 creature (accel 4/s) needs about 0.6 s to fall back within 10% of its top speed after a dash (ln 12 / 4 = 0.62 s), longer than the 0.25 s that closes the window; a tier-1 creature needs 0.28 s.
+
+**Why the slide term.** 02 §1.3 relaxes forward and lateral speed separately, so a creature that strafes at full speed moves at √(1 + 0.6²) = 1.166 × its top speed, and one that turns hard in a dash slides past its forward target for a moment. `SwimModel` measured both on 14 October 2026 (task S2-C1, `movement_fuzz.sim`): the worst honest speed was **1.072 × dash speed** in turns and strafes during dashes, and the worst honest 1 s displacement away from dashes **0.925 × top speed**. `slideMult` covers the strafe in any direction; the forward check of 7.2 still holds a creature that is simply faster than it should be to `vForward`.
 
 A dash window opens only when the server accepts an `Ability` message: cooldown elapsed (2.5 s, `minnow` 2.0 s, checked with 0.15 s slack), not stunned, alive. An exploiter who never sends `Ability` gets no window; one who sends it early is refused.
 
@@ -759,7 +769,7 @@ The status `rampage` is the Shark Pup's passive ability (canon 7): `BiteService`
 
 | Check | Rule | Starting tolerance (tune) | On failure |
 |---|---|---|---|
-| Speed (windowed) | Distance travelled over the last 1.0 s ≤ Σ(`vAllowed` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vAllowed` | 10% + 6 studs + ping slack | Rubber-band, +2 suspicion |
+| Speed (windowed) | Over the last 1.0 s: the distance travelled ≤ Σ(`vAllowed` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vAllowed`, **and** the part of it along the sampled look vectors ≤ Σ(`vForward` × dt) × 1.10 + 6 studs + `min(ping, 0.3 s)` × `vForward` (7.1) | 10% + 6 studs + ping slack | Rubber-band, +2 suspicion |
 | Teleport | One-sample displacement ≤ `max(30 studs, 4 × vAllowed × dt)` unless explained by a stall (7.4) | 30 studs | Rubber-band, +5 |
 | Acceleration | Speed change over 0.1 s ≤ 2 × `vAllowed` + 10 studs/s | Soft | +1 only, no correction |
 | World bounds | \|x\|, \|z\| ≤ 1,032; −608 ≤ y ≤ 40 | 8 studs | Rubber-band, +2 |
@@ -774,7 +784,7 @@ The last accepted position is always in open water, so one ray per tick per play
 | Level | Trigger | What the server does | What the player sees |
 |---|---|---|---|
 | 0. Accept | All checks pass | Store pose as accepted | Nothing |
-| 1. Correct | A hard check fails, suspicion < 10 | Set `root.CFrame` to the last accepted pose; the owner's creature is there within 0.3 s (S4; measured in Studio: 0.212–0.272 s at 200 ms lag, about 30 ms margin, F9; re-measured on a real phone and network, 6.11); expect the next poses within 15 studs of it for 1 s | A small snap back |
+| 1. Correct | A hard check fails, suspicion < 10 | Set `root.CFrame` to the last accepted pose; the owner's creature is there within 0.3 s (S4; measured in Studio: 0.212–0.272 s at 200 ms lag, about 30 ms margin, F9; re-measured on a real phone and network, 6.11); expect the next poses within 15 studs of it for 1 s. On the client, `MovementController` treats a root more than 8 studs **(tune)** from where `SwimModel` put it on the last frame as a server correction: it moves the model to the root's pose and clears its velocity | A small snap back |
 | 2. Rubber-band (hard) | The level 1 correction is ignored, or suspicion ≥ 10 | `SetNetworkOwner(nil)`, anchor at the last accepted pose for 0.5 s, unanchor, return ownership, grace 0.5 s | A half-second freeze |
 | 3. Flag | Suspicion ≥ 25 | Log `guard_flag` (chapter 10; ctx is the rule ID, `speed` for movement checks) with the reasons in the server log; reject bites for 10 s; mark the run `untrusted` (it banks Pearls but is excluded from leaderboards and yields no specimen above tier 4) | Bites fail briefly |
 | 4. Kick | Suspicion ≥ 50 in one session, or 3 flags | Discard the run, log `guard_action` with ctx `kick`, `player:Kick("Connection problem. Please rejoin.")`, increment `moderation.kicks` in the profile | Disconnect |
@@ -1690,7 +1700,7 @@ Every row but the experience setting is set in the Rojo project file that builds
 | `Workspace.SignalBehavior` | Deferred | |
 | `Workspace.PhysicsSteppingMethod` | Adaptive | |
 | `Workspace.FallenPartsDestroyHeight` | −5000 | |
-| `Workspace.Gravity` | 196.2 | Default; only matters above the surface |
+| `Workspace.Gravity` | 80 | Chapter 02's air gravity (02 §1.7, 6.5); only matters above the surface. The engine default is 196.2 |
 | `Players.CharacterAutoLoads` | false | Also set in code |
 | `VoiceChatService.EnableDefaultVoice` | false | |
 | `StarterGui.ScreenOrientation` | LandscapeSensor | Phones are landscape only (canon 15). The client sets the same value on `PlayerGui` at start (chapter 15) |
@@ -1736,7 +1746,7 @@ Never cut on any device: edible and danger outline shells on the nearest 6 objec
 |---|---|---|
 | `tests/sim/economy.sim.luau` | 2,000 scripted players through 30 days using the data tables: bites per minute by tier, bank and death rates, cove income | Time to each tier is more than 25% off canon 5.1; any species unlock day is more than 30% off canon section 7; Pearls per hour grows without bound |
 | `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the full Frenzy count (8.1: about 2,600 members in about 510 groups), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
-| `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Any honest trace reaches suspicion 10; a trace at 1.3 × speed is not flagged within 5 s |
+| `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Either of: any honest trace reaches suspicion 10, or a trace at 1.3 × speed is not flagged within 5 s (it passes when no honest trace reaches 10 and the 1.3 × trace is flagged within 5 s, 13 Sprint 8) |
 
 Command: `lune run tools/test/runner -- sim`.
 
@@ -1756,8 +1766,9 @@ Specs under `src/server/Tests/` use the same `TestKit` and cover what needs the 
 3. `user_keyboard_input`: hold W for 2 s. Server `execute_luau`: the pose moved more than 30 studs and suspicion is 0.
 4. Client `execute_luau`: `PreyRenderer` knows more than 10 groups; frame time average is at most 17 ms (the Mac is vsync-capped at 60 fps, so 16.7 ms is the floor, not a margin).
 5. Server `execute_luau`: place a `krill` group in front of the creature. Wait 1 s. Mass is greater than 0.
-6. `get_console_output`: no line at error level.
-7. `screen_capture` to disk, then `start_stop_play` (stop).
+6. Server `execute_luau`: `return game.ServerScriptService.Server.RunTests:Invoke()` (16.3); the summary's first line starts with `PASS`.
+7. `get_console_output`: no line at error level.
+8. `screen_capture` to disk, then `start_stop_play` (stop).
 
 `character_navigation` is not used; it is assumed to need a Humanoid.
 
@@ -1785,7 +1796,7 @@ Whether an agent can start a two-client test through MCP is not known (**U13**);
 | `unit` | `lune run tools/test/runner -- unit` | ubuntu-latest |
 | `sim` | `lune run tools/test/runner -- sim` | ubuntu-latest |
 | `build` | `rojo build ci.project.json -o build/ci.rbxl`; upload as an artifact | ubuntu-latest |
-| `engine` (on `main` only) | `lune run tools/cloud/publish_ci` then `lune run tools/cloud/run_engine_tests` | ubuntu-latest, concurrency group of 1 |
+| `engine` (on `main` only) | `lune run tools/cloud/publish_ci` then `lune run tools/cloud/run_engine_tests`: one Luau execution task that calls the `RunTests` hook of 16.3 (`Main` creates it in the CI environment) and requires `Tests/RunAll` itself only if the hook is not there yet; the summary's first line must start with `PASS` | ubuntu-latest, concurrency group of 1 |
 
 Each job starts with `actions/checkout` and `CompeyDev/setup-rokit@v0.2.1`. The `engine` job needs the secret `ROBLOX_API_KEY` with `universe-places` write on the CI place and `universe.place.luau-execution-session:write` (**V15**, **V16**). Luau execution allows 5 task creations a minute per key owner and tasks of up to 5 minutes (**V16**); one task runs all engine specs.
 
@@ -1795,12 +1806,12 @@ Each job starts with `actions/checkout` and `CompeyDev/setup-rokit@v0.2.1`. The 
 
 Four experiences, so data stores never mix (data stores belong to an experience).
 
-| Environment | Experience | Who can join | Data | How it is updated |
-|---|---|---|---|---|
-| Development | `GULP Dev` | Owner, in Studio | `ProfileStore.Mock` by default | Rojo live sync |
-| CI | `GULP CI` | Nobody | Mock | `rojo build ci.project.json` + Open Cloud publish |
-| Staging | `GULP Staging` | Owner and invited testers, private | Real, disposable | Studio "Publish to Roblox As" from the dev place |
-| Production | `GULP` | Public | Real | Studio "Publish to Roblox As" from the dev place, after staging passes |
+| Environment | Experience | Who can join | Data | How it is updated | Purchases | Analytics | Dev cheats |
+|---|---|---|---|---|---|---|---|
+| Development | `GULP Dev` | Owner, in Studio | `ProfileStore.Mock` by default | Rojo live sync | On (Studio test purchases) | Off (Studio sends none, 10 §2.4) | On |
+| CI | `GULP CI` | Nobody | Mock | `rojo build ci.project.json` + Open Cloud publish | Off | Off | Off |
+| Staging | `GULP Staging` | Owner and invited testers, private | Real, disposable | Studio "Publish to Roblox As" from the dev place | On | On | Off |
+| Production | `GULP` | Public | Real | Studio "Publish to Roblox As" from the dev place, after staging passes | On | On | Off |
 
 `Config/Defaults.luau` holds one table per environment keyed by `game.GameId` (product IDs, pass IDs, analytics on or off, dev cheats on or off). An unknown `GameId` selects the development table with all purchases disabled.
 

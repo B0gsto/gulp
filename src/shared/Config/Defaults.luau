@@ -145,7 +145,7 @@ Defaults.swim = table.freeze({
 	breachSpeed = 8, -- 02 §1.7: upward speed needed to breach; below it the creature skims
 	skimDepth = 0.5, -- 02 §1.7: skim at Y = −0.5 × collision radius
 	collisionRadius = 0.9, -- 02 §0.2: collision radius = 0.9 × bodyScale × radiusMult
-	gravity = 80, -- 02 §1.7: studs/s² in the air (09 §6.5 says Workspace.Gravity; see SwimModel)
+	gravity = 80, -- 02 §1.7: studs/s² in the air; the project files set Workspace.Gravity to the same 80 (09 §6.5)
 	airTurnMult = 0.3, -- 02 §1.4 and §1.7
 	minAirTime = 0.2, -- 02 §1.7
 	reentryMult = 0.8, -- 02 §1.7: velocity × 0.8 on re-entry

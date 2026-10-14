@@ -55,7 +55,7 @@
         "SignalBehavior": "Deferred",
         "PhysicsSteppingMethod": "Adaptive",
         "FallenPartsDestroyHeight": -5000,
-        "Gravity": 196.2
+        "Gravity": 80
       },
       // Studio-owned containers, empty until zones are built (09 sections 3.1, 6.6 and 9.1)
       "World": { "$className": "Folder" },
