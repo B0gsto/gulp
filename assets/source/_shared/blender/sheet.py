@@ -73,7 +73,7 @@ def cell_image(job, cell):
     kind = cell["kind"]
     reef = common.colour("water.reef.fog")
     if kind == "view":
-        out = over(load(job, cell["image"]), reef)
+        out = over(load(job, cell["image"]), common.colour("water.%s.fog" % cell["backdrop"]) if cell.get("backdrop") else reef)
         draw = ImageDraw.Draw(out)
         f = font(13)
         for y, text in cell.get("labels", []):
@@ -113,6 +113,10 @@ def cell_image(job, cell):
     if kind == "value":
         return over(load(job, cell["image"]), "#808080").convert("L").convert("RGB")
     out = Image.new("RGB", (IMG, IMG), rgb(common.colour("ui.panel_shade")))
+    if kind == "picture":      # a texture or a map, made by the build (S6-A1): fitted, not cropped
+        pic = fitted(Image.open(cell["path"]).convert("RGB"), IMG - 8, IMG - 8)
+        out.paste(pic, ((IMG - pic.width) // 2, (IMG - pic.height) // 2))
+        return out
     if kind == "legend":
         draw = ImageDraw.Draw(out)
         f = font(15)

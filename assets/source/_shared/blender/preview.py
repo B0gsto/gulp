@@ -148,6 +148,28 @@ def stack(groups, gap):
     return saved
 
 
+def dim_lights(scale, restore=None):
+    """Scales every light and the world's strength by `scale` for one shot; returns what to restore."""
+    if restore is not None:
+        for light, energy in restore.get("lights", []):
+            light.energy = energy
+        for node, value in restore.get("world", []):
+            node.inputs["Strength"].default_value = value
+        return None
+    if not scale:
+        return None
+    saved = {"lights": [(l, l.energy) for l in bpy.data.lights], "world": []}
+    for light, energy in saved["lights"]:
+        light.energy = energy * scale
+    world = bpy.context.scene.world
+    if world and world.node_tree:
+        for node in world.node_tree.nodes:
+            if node.type == 'BACKGROUND':
+                saved["world"].append((node, node.inputs["Strength"].default_value))
+                node.inputs["Strength"].default_value *= scale
+    return saved
+
+
 def run(spec, report, validation_ok):
     scene = bpy.context.scene
     pv = spec["preview"]
@@ -195,6 +217,9 @@ def run(spec, report, validation_ok):
                       "caption": pv.get("lineup_caption", [])})
 
         for i, extra in enumerate(pv["extras"]):
+            if "picture" in extra:
+                cells.append({"title": extra["title"], "kind": "picture", "path": extra["picture"], "caption": extra.get("caption", [])})
+                continue
             if "legend" in extra:
                 cells.append({"title": extra["title"], "kind": "legend", "legend": extra["legend"], "caption": extra.get("caption", [])})
                 continue
@@ -206,13 +231,18 @@ def run(spec, report, validation_ok):
                 posed = extent(world_points(main[:1]))
                 rest_len, posed_len = rest[1].y - rest[0].y, posed[1].y - posed[0].y
                 caption.insert(0, "length %.2f of %.2f studs: %.0f%% of rest" % (posed_len, rest_len, 100.0 * posed_len / rest_len))
-            if extra.get("camera"):
-                image = perspective_shot(extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i), extra["camera"])
-            else:
-                image = shot(extra.get("view", "ThreeQuarter"), extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i))
+            dimmed = dim_lights(extra.get("light_scale"))      # a dark place: only what glows stays bright (S6-A1)
+            try:
+                if extra.get("camera"):
+                    image = perspective_shot(extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i), extra["camera"])
+                else:
+                    image = shot(extra.get("view", "ThreeQuarter"), extra.get("objects", main), os.path.join(tmp, "Extra%d.png" % i))
+            finally:
+                dim_lights(None, dimmed)
             if arm:
                 meshgen.apply_pose(arm, None)
-            cells.append({"title": extra["title"], "kind": "view", "image": image, "caption": caption})
+            cells.append({"title": extra["title"], "kind": "view", "image": image, "caption": caption,
+                          "backdrop": extra.get("backdrop")})
     finally:
         if arm:
             meshgen.apply_pose(arm, None)

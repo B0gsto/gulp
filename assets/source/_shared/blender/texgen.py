@@ -20,7 +20,7 @@ FAMILY_LAYOUTS = {f: STANDARD_LAYOUT for f in ("Fish", "Eel", "Turtle", "Squid")
 # 06 section 5.6: colour texture size and target texel density (pixels per stud at body scale 1.0).
 TEXTURE_CLASSES = {
     "species_juv": (256, 60), "species_adult": (512, 26), "prey_small_atlas": (256, 40),
-    "prey_cell": (128, 30), "predator": (512, 24), "old_scar": (1024, 24), "trait_overlay": (256, None),
+    "prey_cell": (128, 30), "trait_prey_atlas": (256, 30), "predator": (512, 24), "old_scar": (1024, 24), "trait_overlay": (256, None),
     "trait_pieces": (256, 40), "env_tiling": (512, 16), "env_kit_atlas": (512, 24), "landmark": (1024, 16),
     "cove_atlas": (512, 24), "flipbook": (512, None), "skybox_face": (512, None),
 }
