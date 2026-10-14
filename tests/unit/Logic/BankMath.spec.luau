@@ -60,4 +60,30 @@ describe("BankMath (canon 5.4, 5.5; 05 §3.1, §3.2; 09 §13.4)", function()
 		expect(BankMath.keepsSpecimen(2)).toBe(true)
 		expect(BankMath.keepsSpecimen(7)).toBe(true)
 	end)
+	it("splits a bank by its 10 §5.1 SKUs, adding up to the bank", function()
+		for _, mass in { 1, 12.3, 200, 1200, 2000.7, 3000, 9999 } do
+			for _, crystal in { false, true } do
+				for _, deep in { false, true } do
+					local p = BankMath.parts(mass, crystal, deep)
+					expect(p.base + p.crystal + p.deepPockets).toBe(
+						BankMath.bank(mass, crystal, deep)
+					)
+					expect(p.base).toBe(math.floor(BankMath.base(mass)))
+					if not crystal then
+						expect(p.crystal).toBe(0)
+					end
+					if not deep then
+						expect(p.deepPockets).toBe(0)
+					end
+				end
+			end
+		end
+		-- The Sprint 5 acceptance: a tier 2 Minnow of 12 mass banks 12 × 3 Pearls.
+		expect(BankMath.parts(12, false, false).base).toBe(36)
+		expect(BankMath.bankSku(2)).toBe("bank_t2")
+		expect(BankMath.bankSku(9)).toBe("bank_t7")
+		expect(BankMath.scrapsSku(0)).toBe("scraps_50")
+		expect(BankMath.scrapsSku(2)).toBe("scraps_50")
+		expect(BankMath.scrapsSku(3)).toBe("scraps_10")
+	end)
 end)

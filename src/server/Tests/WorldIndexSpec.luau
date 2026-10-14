@@ -13,6 +13,8 @@ local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CoveMouths = require(ReplicatedStorage.Shared.Data.Generated.CoveMouths)
+local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
 local HeightFieldMath = require(ReplicatedStorage.Shared.Logic.HeightFieldMath)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
@@ -111,6 +113,29 @@ local VOLUMES: { Row } = {
 	),
 }
 
+-- The other 23 coves of ci.project.json at their data:CoveMouths mouths (cove 3 keeps the test
+-- shapes above).
+for _, def in CoveMouths do
+	if def.wire ~= 3 then
+		local mouth, room = CoveRules.volumes(def.x, def.z)
+		local boxes: { [string]: CoveRules.BoxVolume } = { CoveMouth = mouth, CoveInterior = room }
+		for _, kind in { "CoveMouth", "CoveInterior" } do
+			local box = boxes[kind]
+			table.insert(
+				VOLUMES,
+				row(
+					`{kind}{def.wire}`,
+					Enum.PartType.Block,
+					Vector3.new(box.x, box.y, box.z),
+					Vector3.new(box.size[1], box.size[2], box.size[3]),
+					CFrame.lookAlong(Vector3.zero, Vector3.new(box.lookX, 0, box.lookZ)),
+					{ Kind = kind, CoveIndex = def.wire }
+				)
+			)
+		end
+	end
+end
+
 -- Authors the arena's volumes and revive points again when Main has already read them, then
 -- initialises this VM's WorldIndex from them.
 local function initArena()
@@ -177,8 +202,8 @@ return function()
 			expect(#CollectionService:GetTagged("Volume")).toBe(0)
 			expect(#WorldIndex.volumesOf("Zone")).toBe(3)
 			expect(#WorldIndex.volumesOf("SafeNursery")).toBe(1)
-			expect(#WorldIndex.volumesOf("CoveMouth")).toBe(1)
-			expect(#WorldIndex.volumesOf("CoveInterior")).toBe(1)
+			expect(#WorldIndex.volumesOf("CoveMouth")).toBe(24)
+			expect(#WorldIndex.volumesOf("CoveInterior")).toBe(24)
 			expect(#WorldIndex.volumesOf("Hazard")).toBe(1)
 			expect(WorldIndex.volumesOf("Hazard")[1].attrs.HazardId).toBe("jelly_bloom")
 			expect(#WorldIndex.volumesOf("Current")).toBe(0)
@@ -214,6 +239,13 @@ return function()
 			expect(WorldIndex.coveMouthAt(150, -38, 150)).toBe(nil)
 			expect(WorldIndex.coveMouthAt(150, -50, 166)).toBe(nil)
 			expect(WorldIndex.coveMouthAt(0, -50, 0)).toBe(nil)
+			-- A real cove (C16, data:CoveMouths): just inside the mouth plane, then just outside.
+			local c16 = CoveMouths[16]
+			local r = math.sqrt(c16.x * c16.x + c16.z * c16.z)
+			local ox, oz = c16.x / r, c16.z / r
+			expect(WorldIndex.coveMouthAt(c16.x + ox, -30, c16.z + oz)).toBe(16)
+			expect(WorldIndex.coveMouthAt(c16.x - ox, -30, c16.z - oz)).toBe(nil)
+			expect(WorldIndex.isSafe(c16.x + ox * 80, -30, c16.z + oz * 80)).toBe(true) -- chamber
 		end)
 
 		it("answers floorY over the floor, the rock and open map", function()

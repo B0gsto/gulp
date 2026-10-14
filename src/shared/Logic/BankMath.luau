@@ -61,6 +61,33 @@ function BankMath.scraps(
 	return math.floor(BankMath.scrapsRate(deathsBefore) * BankMath.bank(mass, crystal, deepPockets))
 end
 
+--- The Pearls of one bank split by 10 §5.1's SKUs, so each line logs on its own: `base` (bank_t1
+--- to bank_t7), the extra from Crystal's ×1.5 (bank_crystal) and the extra from Deep Pockets' ×2
+--- (bank_deep_pockets). Whole numbers that add up to `BankMath.bank`.
+function BankMath.parts(
+	mass: number,
+	crystal: boolean,
+	deepPockets: boolean
+): { base: number, crystal: number, deepPockets: number }
+	local base = math.floor(BankMath.base(mass))
+	local withCrystal = BankMath.bank(mass, crystal, false)
+	return {
+		base = base,
+		crystal = withCrystal - base,
+		deepPockets = BankMath.bank(mass, crystal, deepPockets) - withCrystal,
+	}
+end
+
+--- The base bank SKU of 10 §5.1 for a bank at `tier` (1 to 7): `bank_t<tier>`.
+function BankMath.bankSku(tier: number): string
+	return `bank_t{math.clamp(math.floor(tier), 1, 7)}`
+end
+
+--- The scraps SKU of 10 §5.1 (`scraps_50` for the first three deaths, else `scraps_10`).
+function BankMath.scrapsSku(deathsBefore: number): string
+	return `scraps_{math.round(BankMath.scrapsRate(deathsBefore) * 100)}`
+end
+
 --- Reef Rank points for a bank (09 §13.4 step 3, canon 11): the bank without Deep Pockets.
 function BankMath.bankRankPoints(mass: number, crystal: boolean): number
 	return BankMath.bank(mass, crystal, false)

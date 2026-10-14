@@ -259,6 +259,8 @@ Defaults.run = table.freeze({
 	tierUpProtectSeconds = 1.0, -- 02 §5.1: Protected(tierUp), T+0.00 to T+1.00
 	returnProtectSeconds = 3, -- 09 §6.3, canon 5.5: Protected for 3 s after a revive or a resume
 	returnClearRadius = 60, -- 09 §6.3 return rule: nothing that can eat it within 60 studs
+	suspendSeconds = 300, -- canon 5.5, 09 §12.5: a run suspended by a disconnect waits 5 minutes
+	shutdownSuspendSeconds = 900, -- 09 §12.5: a run suspended by a shutdown (or a crash) waits 15
 })
 
 -- Logic/SaveSchema and DataService: the starting values of a new save (09 §12.2) and the save

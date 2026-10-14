@@ -14,6 +14,7 @@ local CoveIncome = require(ReplicatedStorage.Shared.Logic.CoveIncome)
 local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 local WorldInfo = require(ReplicatedStorage.Shared.Net.Codec.WorldInfo)
@@ -63,7 +64,6 @@ local open: { [ScreenId]: boolean } = {}
 -- S14 state (08 §5.1): the capacity from the last own `CoveView` (server truth, Bigger Cove
 -- included), else from the save; the server's pile clock is os.time (09 §13.3).
 local viewCapacity: number? = nil
-local lastRunMass = 0
 local covePreview: CoveHud.State? = nil -- Studio only (`Dev/HudHarness`)
 
 local function inCove(): boolean
@@ -143,6 +143,87 @@ local function attrNumber(name: string): number?
 	return if type(value) == "number" then value else nil
 end
 
+-- The specimen a bank just kept (08 §4.5 step 5), from the mirrored cove: the newest `at` among
+-- the specimens, or the waiting one when the cove was full. The "banked" event follows the
+-- bank's State patches, but this waits up to 0.5 s for them all the same.
+local function bankedSpecimen(kind: unknown, bankedAt: number): BankSummary.Specimen?
+	if kind ~= "added" and kind ~= "full" then
+		return nil
+	end
+	local deadline = os.clock() + 0.5
+	while true do
+		local cove = StateStore.get("cove")
+		local found: Types.SpecimenRecord? = nil
+		if type(cove) == "table" then
+			if kind == "full" then
+				-- TODO(S13, stage 3): the cove-full choice replaces the card (08 §4.5).
+				found = cove.pendingSpecimen
+			elseif type(cove.specimens) == "table" then
+				for _, sp in cove.specimens do
+					if sp.at >= bankedAt - 10 and (found == nil or sp.at >= found.at) then
+						found = sp
+					end
+				end
+			end
+		end
+		if found then
+			return {
+				sp = found.sp,
+				tier = found.tier,
+				traits = found.traits,
+				perHour = CoveIncome.specimenRate(found.tier, found.traits),
+			}
+		end
+		if os.clock() > deadline then
+			return nil
+		end
+		task.wait(0.05)
+	end
+end
+
+-- `CreatureEvent` "banked" (RunLoopService, task S5-C3): slot, mass, pearls, crystal,
+-- deepPockets, best, specimen ("added", "full" or "none"). The owner's bank opens S12 with what
+-- the server paid; the bank sequence around it is S7-C3's.
+local function onCreatureEvent(
+	kind: unknown,
+	slot: unknown,
+	mass: unknown,
+	pearls: unknown,
+	crystal: unknown,
+	deep: unknown,
+	best: unknown,
+	specimen: unknown
+)
+	if kind ~= "banked" or slot ~= player:GetAttribute("Slot") then
+		return
+	end
+	if type(mass) ~= "number" or type(pearls) ~= "number" then
+		return
+	end
+	local rows: { BankSummary.Row } = {}
+	if crystal == true then
+		table.insert(
+			rows,
+			{ nameKey = "trait.crystal", value = TraitRules.CRYSTAL_BANK, icon = "trait" }
+		)
+	end
+	if deep == true then
+		table.insert(
+			rows,
+			{ nameKey = "pass.deep_pockets", value = BankMath.DEEP_POCKETS, icon = "pass" }
+		)
+	end
+	local kept = bankedSpecimen(specimen, workspace:GetServerTimeNow())
+	UIController.showBank({
+		mass = mass,
+		multipliers = rows,
+		total = pearls,
+		best = best == true,
+		specimen = kept,
+		tooSmall = kept == nil and TierMath.tier(mass) < CoveRules.MIN_TIER,
+	})
+end
+
 --- Opens a screen. S11 takes no data at stage 1; S12 takes `BankSummary.Data`.
 function UIController.open(screen: ScreenId, data: unknown?)
 	open[screen] = true
@@ -179,77 +260,9 @@ function UIController.close(screen: ScreenId)
 	refreshCove()
 end
 
---- Shows S12 for a bank (08 §4.5). The bank event of RunLoopService (S5-C3) calls this.
+--- Shows S12 for a bank (08 §4.5); the "banked" `CreatureEvent` (S5-C3) is its one caller.
 function UIController.showBank(data: BankSummary.Data)
 	UIController.open("S12", data)
-end
-
--- TODO(B19, S5-C3): replace with the bank event once RunLoopService sends one. Until then S12 is
--- built from what the client already sees when `stats.banks` goes up: the run's last mass, the
--- Pearls the bank added and the specimen the cove gained. Traits are not mirrored yet, so the
--- Crystal row is missing and "New best!" is not shown.
-local function bankAdapter()
-	local banks: number? = nil
-	local pearls = 0
-	local specimens: { [string]: boolean } = {}
-	local function snapshot()
-		local p = StateStore.get("pearls")
-		pearls = if type(p) == "number" then p else pearls
-		local cove = StateStore.get("cove")
-		table.clear(specimens)
-		if type(cove) == "table" and type(cove.specimens) == "table" then
-			for _, sp in cove.specimens do
-				specimens[sp.id] = true
-			end
-		end
-	end
-	StateStore.observe("stats.banks", function(value: any)
-		if type(value) ~= "number" then
-			return
-		end
-		if banks == nil or value <= banks then
-			banks = value
-			snapshot()
-			return
-		end
-		banks = value
-		task.wait() -- let the same bank's pearls and cove patches land
-		local p = StateStore.get("pearls")
-		local added = if type(p) == "number" then p - pearls else 0
-		local deep = ownsPass("pass_deep_pockets")
-		local cove = StateStore.get("cove")
-		local fresh: BankSummary.Specimen? = nil
-		if type(cove) == "table" and type(cove.specimens) == "table" then
-			for _, sp in cove.specimens do
-				if not specimens[sp.id] then
-					fresh = {
-						sp = sp.sp,
-						tier = sp.tier,
-						traits = sp.traits,
-						perHour = CoveIncome.specimenRate(sp.tier, sp.traits),
-					}
-				end
-			end
-		end
-		local multipliers: { BankSummary.Row } = {}
-		if deep then
-			table.insert(multipliers, { nameKey = "pass.deep_pockets", value = 2, icon = "pass" })
-		end
-		UIController.showBank({
-			mass = lastRunMass,
-			multipliers = multipliers,
-			total = if added > 0 then added else BankMath.bank(lastRunMass, false, deep),
-			best = false,
-			specimen = fresh,
-			tooSmall = fresh == nil and TierMath.tier(lastRunMass) < CoveRules.MIN_TIER,
-		})
-		snapshot()
-	end)
-	StateStore.observe("pearls", function()
-		if next(open) == nil then
-			snapshot()
-		end
-	end)
 end
 
 --- S10 toasts are build stage 2 (08 §15). TODO(S10, stage 2): the toast stack.
@@ -292,9 +305,6 @@ function UIController.start()
 		local mass = attrNumber("Mass") or 0
 		Hud.setMass(mass, lastMass)
 		lastMass = mass
-		if player:GetAttribute("Phase") == "run" then
-			lastRunMass = mass
-		end
 	end)
 
 	-- S14, the cove HUD (08 §5.1).
@@ -361,9 +371,9 @@ function UIController.start()
 			end
 		end
 	end)
-	bankAdapter()
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
+	Client.on("CreatureEvent", onCreatureEvent)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)
 		local info, reason = WorldInfo.decode(netVersion, epoch, list)
 		if info == nil then
