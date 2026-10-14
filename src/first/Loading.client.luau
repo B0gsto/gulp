@@ -523,22 +523,23 @@ for i = 1, CONFIG.puffs do
 	}
 end
 
+-- The word's size at `logoTextSize`, unscaled: a first guess now, measured in the real font once
+-- it has loaded (below, after the first frame).
+local logoBounds = TextService:GetTextSize(
+	"GULP",
+	CONFIG.logoTextSize,
+	Enum.Font.FredokaOne,
+	Vector2.new(4096, 4096)
+)
+
 -- Layout in rpx, again whenever the screen changes size.
 local width, height, rpx = 1, 1, 1
 local function layout()
 	local size = gui.AbsoluteSize
 	width, height = math.max(size.X, 1), math.max(size.Y, 1)
 	rpx = math.min(width, height) / 720
-	-- The word's own bounds at its set size (TextBounds once the font is in, else measured).
-	local bounds = logo.TextBounds
-	if bounds.X < 1 then
-		bounds = TextService:GetTextSize(
-			"GULP",
-			CONFIG.logoTextSize,
-			Enum.Font.FredokaOne,
-			Vector2.new(4096, 4096)
-		)
-	end
+	-- The word's own bounds at its set size (`logoBounds`; TextBounds would include the UIScale).
+	local bounds = logoBounds
 	local logoScaleBy = CONFIG.logoWidth * width / math.max(bounds.X, 1)
 	local logoHeight = bounds.Y * logoScaleBy
 	for _, label in { logo, logoShadow } do
@@ -588,12 +589,23 @@ local function layout()
 	end
 end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-logo:GetPropertyChangedSignal("TextBounds"):Connect(layout) -- the font arrives after the first frame
 
 -- First frame: ours up, then the default screen away (09 §6.10, V32).
 gui.Parent = player:WaitForChild("PlayerGui")
 layout()
 ReplicatedFirst:RemoveDefaultLoadingScreen()
+task.spawn(function()
+	local params = Instance.new("GetTextBoundsParams")
+	params.Text = logo.Text
+	params.Font = logo.FontFace
+	params.Size = CONFIG.logoTextSize
+	params.Width = 4096
+	local ok, measured = pcall(TextService.GetTextBoundsAsync, TextService, params)
+	if ok and measured.X > 0 then
+		logoBounds = measured
+		layout()
+	end
+end)
 
 -- `SFX_Bite_Small` on each dot (04 §2.2), once the place has loaded.
 local biteSound: Sound? = nil
