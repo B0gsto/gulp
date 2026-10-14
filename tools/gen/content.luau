@@ -591,12 +591,17 @@ local function buildTides(canon: Tables, catalog: Tables, slice: boolean): Modul
 		end
 	end
 	local rows = {}
-	for _, row in rowsFor(t, slice) do
+	-- Every tide row in both builds: the rotation names them all (canon 10). In the slice build a
+	-- tide outside the slice is marked `outOfBuild` and runs its fallback (09 §11.1).
+	for _, row in t.rows do
 		checkIds(t, row, "Fallback", known, "data:Tides")
 		checkIds(t, row, "Event prey", known, "data:Prey or data:TraitPrey")
 		local fields =
 			{ field("id", row.key), field("wire", row.position), field("scope", scope(t, row)) }
 		optional(fields, "fallback", ids(t, row, "Fallback")[1])
+		if slice and not row.inSlice then
+			table.insert(fields, field("outOfBuild", true))
+		end
 		table.insert(fields, field("spawnRateMult", firstNumber(t, row, "Prey spawn rate")))
 		table.insert(fields, list("eventPrey", ids(t, row, "Event prey")))
 		table.insert(rows, fields)
@@ -944,6 +949,14 @@ local function buildGoals(catalog: Tables, slice: boolean): Module
 		}
 		local needs = MarkdownTables.plain(cell(t, row, "Needs"))
 		optional(fields, "needs", if needs == "Nothing" then nil else needs)
+		table.insert(fields, field("kind", MarkdownTables.plain(cell(t, row, "Kind"))))
+		local subject = MarkdownTables.plain(cell(t, row, "Subject"))
+		optional(fields, "subject", if subject == "None" then nil else subject)
+		local pool = MarkdownTables.plain(cell(t, row, "Pool"))
+		if pool ~= "eat" and pool ~= "grow" and pool ~= "world" then
+			fail(`data:Goals, row {row.key}: unknown pool {pool}`)
+		end
+		table.insert(fields, field("pool", pool))
 		table.insert(rows, fields)
 	end
 	return {

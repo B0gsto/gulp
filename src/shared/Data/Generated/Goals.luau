@@ -14,6 +14,8 @@ local Goals: { Types.GoalDef } = {
 		target = 50,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "eat_any",
+		pool = "eat",
 	},
 	{
 		id = "dg_krill_30",
@@ -23,6 +25,9 @@ local Goals: { Types.GoalDef } = {
 		target = 30,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "eat_prey",
+		subject = "krill",
+		pool = "eat",
 	},
 	{
 		id = "dg_plankton_100",
@@ -32,6 +37,9 @@ local Goals: { Types.GoalDef } = {
 		target = 100,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "eat_prey",
+		subject = "plankton",
+		pool = "eat",
 	},
 	{
 		id = "dg_shrimp_15",
@@ -41,6 +49,9 @@ local Goals: { Types.GoalDef } = {
 		target = 15,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "eat_prey",
+		subject = "shrimp",
+		pool = "eat",
 	},
 	{
 		id = "dg_sardine_15",
@@ -50,6 +61,9 @@ local Goals: { Types.GoalDef } = {
 		target = 15,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "eat_prey",
+		subject = "sardine",
+		pool = "eat",
 	},
 	{
 		id = "dg_dash_25",
@@ -59,6 +73,8 @@ local Goals: { Types.GoalDef } = {
 		target = 25,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "dash",
+		pool = "world",
 	},
 	{
 		id = "dg_runs_3",
@@ -68,6 +84,8 @@ local Goals: { Types.GoalDef } = {
 		target = 3,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "start_run",
+		pool = "world",
 	},
 	{
 		id = "dg_bank_1",
@@ -77,6 +95,8 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "bank",
+		pool = "grow",
 	},
 	{
 		id = "dg_tier3",
@@ -86,6 +106,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "reach_tier",
+		subject = "3",
+		pool = "grow",
 	},
 	{
 		id = "dg_current_3",
@@ -95,6 +118,8 @@ local Goals: { Types.GoalDef } = {
 		target = 3,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "ride_current",
+		pool = "world",
 	},
 	{
 		id = "dg_breach_5",
@@ -104,6 +129,8 @@ local Goals: { Types.GoalDef } = {
 		target = 5,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "breach",
+		pool = "world",
 	},
 	{
 		id = "dg_trait_1",
@@ -113,6 +140,8 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Easy",
 		reward = "R1",
+		kind = "gain_trait",
+		pool = "grow",
 	},
 	{
 		id = "dg_tier4",
@@ -122,6 +151,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "reach_tier",
+		subject = "4",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_snapper",
@@ -131,6 +163,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "bank_tier",
+		subject = "3",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_mass_300",
@@ -140,6 +175,8 @@ local Goals: { Types.GoalDef } = {
 		target = 300,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "bank_mass",
+		pool = "grow",
 	},
 	{
 		id = "dg_darter_10",
@@ -149,6 +186,9 @@ local Goals: { Types.GoalDef } = {
 		target = 10,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "eat_prey",
+		subject = "darter",
+		pool = "eat",
 	},
 	{
 		id = "dg_mackerel_8",
@@ -158,6 +198,9 @@ local Goals: { Types.GoalDef } = {
 		target = 8,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "eat_prey",
+		subject = "mackerel",
+		pool = "eat",
 	},
 	{
 		id = "dg_kelp_20",
@@ -167,6 +210,9 @@ local Goals: { Types.GoalDef } = {
 		target = 20,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "eat_in_zone",
+		subject = "kelp",
+		pool = "eat",
 	},
 	{
 		id = "dg_trait_prey_10",
@@ -176,6 +222,8 @@ local Goals: { Types.GoalDef } = {
 		target = 10,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "eat_trait_prey",
+		pool = "eat",
 	},
 	{
 		id = "dg_traits_2",
@@ -185,6 +233,8 @@ local Goals: { Types.GoalDef } = {
 		target = 2,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "hold_traits",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_common",
@@ -194,6 +244,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "bank_rarity",
+		subject = "Common",
+		pool = "grow",
 	},
 	{
 		id = "dg_frenzy_40",
@@ -203,6 +256,9 @@ local Goals: { Types.GoalDef } = {
 		target = 40,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "eat_in_tide",
+		subject = "frenzy",
+		pool = "world",
 	},
 	{
 		id = "dg_dropoff_home",
@@ -212,6 +268,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "visit_then_bank",
+		subject = "dropoff",
+		pool = "world",
 	},
 	{
 		id = "dg_survive_300",
@@ -221,6 +280,8 @@ local Goals: { Types.GoalDef } = {
 		target = 300,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "survive",
+		pool = "world",
 	},
 	{
 		id = "dg_gull_dodge_3",
@@ -230,6 +291,9 @@ local Goals: { Types.GoalDef } = {
 		target = 3,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "dodge",
+		subject = "gull",
+		pool = "world",
 	},
 	{
 		id = "dg_moray_dodge_3",
@@ -239,6 +303,9 @@ local Goals: { Types.GoalDef } = {
 		target = 3,
 		difficulty = "Medium",
 		reward = "R2",
+		kind = "dodge",
+		subject = "moray",
+		pool = "world",
 	},
 	{
 		id = "dg_species_2",
@@ -249,6 +316,8 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Medium",
 		reward = "R2",
 		needs = "Owns 2 or more species",
+		kind = "bank_species",
+		pool = "grow",
 	},
 	{
 		id = "dg_player_1",
@@ -259,6 +328,8 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Medium",
 		reward = "R2",
 		needs = "6 or more players on the server",
+		kind = "eat_player",
+		pool = "eat",
 	},
 	{
 		id = "dg_visit_3",
@@ -269,6 +340,8 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Medium",
 		reward = "R2",
 		needs = "4 or more players on the server",
+		kind = "visit_cove",
+		pool = "world",
 	},
 	{
 		id = "dg_tier5",
@@ -278,6 +351,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "reach_tier",
+		subject = "5",
+		pool = "grow",
 	},
 	{
 		id = "dg_tier6",
@@ -288,6 +364,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Brute before",
+		kind = "reach_tier",
+		subject = "6",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_brute",
@@ -297,6 +376,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "bank_tier",
+		subject = "5",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_mass_1000",
@@ -306,6 +388,8 @@ local Goals: { Types.GoalDef } = {
 		target = 1000,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "bank_mass",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_3_traits",
@@ -315,6 +399,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "bank_traits",
+		subject = "3",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_uncommon",
@@ -324,6 +411,9 @@ local Goals: { Types.GoalDef } = {
 		target = 1,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "bank_rarity",
+		subject = "Uncommon",
+		pool = "grow",
 	},
 	{
 		id = "dg_bank_rare",
@@ -334,6 +424,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Hunter before",
+		kind = "bank_rarity",
+		subject = "Rare",
+		pool = "grow",
 	},
 	{
 		id = "dg_bonito_6",
@@ -344,6 +437,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Brute before",
+		kind = "eat_prey",
+		subject = "bonito",
+		pool = "eat",
 	},
 	{
 		id = "dg_tuna_1",
@@ -354,6 +450,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Titan before",
+		kind = "eat_prey",
+		subject = "tuna",
+		pool = "eat",
 	},
 	{
 		id = "dg_lunar_3",
@@ -363,6 +462,9 @@ local Goals: { Types.GoalDef } = {
 		target = 3,
 		difficulty = "Hard",
 		reward = "R3",
+		kind = "eat_prey",
+		subject = "lunar_fry",
+		pool = "eat",
 	},
 	{
 		id = "dg_players_3",
@@ -373,6 +475,8 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "6 or more players on the server",
+		kind = "eat_player",
+		pool = "eat",
 	},
 	{
 		id = "dg_scar_escape",
@@ -383,6 +487,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Hunter before",
+		kind = "escape",
+		subject = "old_scar",
+		pool = "world",
 	},
 	{
 		id = "dg_marrow_3",
@@ -393,6 +500,9 @@ local Goals: { Types.GoalDef } = {
 		difficulty = "Hard",
 		reward = "R3",
 		needs = "Has reached Snapper before",
+		kind = "eat_prey",
+		subject = "marrow",
+		pool = "eat",
 	},
 }
 

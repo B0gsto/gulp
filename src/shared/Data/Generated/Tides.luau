@@ -7,7 +7,14 @@ local Types = require("../../Types")
 
 local Tides: { Types.TideDef } = {
 	{ id = "frenzy", wire = 1, scope = "MVP", spawnRateMult = 3, eventPrey = {} },
-	{ id = "moon_tide", wire = 2, scope = "MVP", spawnRateMult = 1, eventPrey = { "lunar_fry" } },
+	{
+		id = "moon_tide",
+		wire = 2,
+		scope = "MVP",
+		fallback = "frenzy",
+		spawnRateMult = 1,
+		eventPrey = { "lunar_fry" },
+	},
 	{
 		id = "whale_fall",
 		wire = 3,

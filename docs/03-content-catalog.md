@@ -956,53 +956,55 @@ Post-launch species, traits, places and events add entries to their categories. 
 
 Three goals a day (canon): one Easy, one Medium, one Hard. Reward band follows difficulty: Easy = R1 (100 Pearls), Medium = R2 (125), Hard = R3 (175), and R1 (100) more when all three are done. Chapter 05, section 3.5 owns these amounts and multiplies them by the rank multiplier. Document 02 owns how goals are picked; the **Needs** column lists what must be true before a goal can be offered. Targets are (tune).
 
+**Kind, Subject and Pool** say what the server counts, without reading the text. **Kind** is the event counted (`eat_any`, `eat_prey`, `eat_trait_prey`, `eat_in_zone`, `eat_in_tide`, `eat_player`, `reach_tier`, `gain_trait`, `hold_traits`, `bank`, `bank_tier`, `bank_mass`, `bank_rarity`, `bank_traits`, `bank_species`, `dash`, `start_run`, `ride_current`, `breach`, `survive`, `dodge`, `escape`, `visit_then_bank`, `visit_cove`). **Subject** narrows it: a prey, zone, tide or predator ID, a tier (`reach_tier`, `bank_tier`: that tier or higher), a trait rarity (that rarity or better) or a trait count; None when the kind needs none. **Pool** is chapter 02's goal pool (section 15.3): `eat` (Eat), `grow` (Grow and bank) or `world` (World). The pools follow 02's definitions; goals 02 does not name are placed by what they count: eating anything, trait prey or players is `eat`; gaining or holding traits and banking are `grow`; dashing, starting runs, surviving, escaping and visiting are `world`.
+
 <!-- data:Goals -->
 Soft-launch slice (chapter 13, section 3.2): `dg_eat_50`, `dg_krill_30`, `dg_plankton_100`, `dg_shrimp_15`, `dg_sardine_15`, `dg_dash_25`, `dg_runs_3`, `dg_bank_1`, `dg_tier3`, `dg_current_3`, `dg_breach_5`, `dg_trait_1`, `dg_tier4`, `dg_bank_snapper`, `dg_bank_mass_300`, `dg_darter_10`, `dg_mackerel_8`, `dg_kelp_20`, `dg_trait_prey_10`, `dg_traits_2`, `dg_bank_common`, `dg_frenzy_40`, `dg_survive_300`, `dg_species_2`, `dg_player_1`, `dg_tier5`, `dg_tier6`, `dg_bank_brute`, `dg_bank_mass_1000`, `dg_bank_3_traits`, `dg_bank_uncommon`, `dg_players_3`.
 
-| ID | Text | Target | Difficulty | Reward | Needs | Tag |
-|---|---|---|---|---|---|---|
-| `dg_eat_50` | Eat 50 prey | 50 | Easy | R1 | Nothing | [MVP] |
-| `dg_krill_30` | Eat 30 Krill | 30 | Easy | R1 | Nothing | [MVP] |
-| `dg_plankton_100` | Eat 100 Plankton motes | 100 | Easy | R1 | Nothing | [MVP] |
-| `dg_shrimp_15` | Eat 15 Tiny Shrimp | 15 | Easy | R1 | Nothing | [MVP] |
-| `dg_sardine_15` | Eat 15 Sardines | 15 | Easy | R1 | Nothing | [MVP] |
-| `dg_dash_25` | Dash 25 times | 25 | Easy | R1 | Nothing | [MVP] |
-| `dg_runs_3` | Start 3 runs | 3 | Easy | R1 | Nothing | [MVP] |
-| `dg_bank_1` | Bank 1 creature | 1 | Easy | R1 | Nothing | [MVP] |
-| `dg_tier3` | Grow into a Snapper | 1 | Easy | R1 | Nothing | [MVP] |
-| `dg_current_3` | Ride 3 currents | 3 | Easy | R1 | Nothing | [MVP] |
-| `dg_breach_5` | Jump out of the water 5 times | 5 | Easy | R1 | Nothing | [MVP] |
-| `dg_trait_1` | Gain 1 trait | 1 | Easy | R1 | Nothing | [MVP] |
-| `dg_tier4` | Grow into a Hunter | 1 | Medium | R2 | Nothing | [MVP] |
-| `dg_bank_snapper` | Bank a Snapper or bigger | 1 | Medium | R2 | Nothing | [MVP] |
-| `dg_bank_mass_300` | Bank 300 mass in total | 300 | Medium | R2 | Nothing | [MVP] |
-| `dg_darter_10` | Eat 10 Reef Darters | 10 | Medium | R2 | Nothing | [MVP] |
-| `dg_mackerel_8` | Eat 8 Mackerel | 8 | Medium | R2 | Nothing | [MVP] |
-| `dg_kelp_20` | Eat 20 prey in the Kelp Forest | 20 | Medium | R2 | Nothing | [MVP] |
-| `dg_trait_prey_10` | Eat 10 trait prey | 10 | Medium | R2 | Nothing | [MVP] |
-| `dg_traits_2` | Hold 2 traits at once | 2 | Medium | R2 | Nothing | [MVP] |
-| `dg_bank_common` | Bank a creature with a Common trait | 1 | Medium | R2 | Nothing | [MVP] |
-| `dg_frenzy_40` | Eat 40 prey during a Feeding Frenzy | 40 | Medium | R2 | Nothing | [MVP] |
-| `dg_dropoff_home` | Visit the Drop-off, then bank | 1 | Medium | R2 | Nothing | [MVP] |
-| `dg_survive_300` | Survive 5 minutes in one run | 300 s | Medium | R2 | Nothing | [MVP] |
-| `dg_gull_dodge_3` | Dodge 3 Gull dives | 3 | Medium | R2 | Nothing | [MVP] |
-| `dg_moray_dodge_3` | Dodge 3 Moray lunges | 3 | Medium | R2 | Nothing | [MVP] |
-| `dg_species_2` | Bank 2 different species | 2 | Medium | R2 | Owns 2 or more species | [MVP] |
-| `dg_player_1` | Eat 1 other player | 1 | Medium | R2 | 6 or more players on the server | [MVP] |
-| `dg_visit_3` | Visit 3 other coves | 3 | Medium | R2 | 4 or more players on the server | [L] |
-| `dg_tier5` | Grow into a Brute | 1 | Hard | R3 | Nothing | [MVP] |
-| `dg_tier6` | Grow into a Titan | 1 | Hard | R3 | Has reached Brute before | [MVP] |
-| `dg_bank_brute` | Bank a Brute or bigger | 1 | Hard | R3 | Nothing | [MVP] |
-| `dg_bank_mass_1000` | Bank 1,000 mass in total | 1,000 | Hard | R3 | Nothing | [MVP] |
-| `dg_bank_3_traits` | Bank a creature with 3 traits | 1 | Hard | R3 | Nothing | [MVP] |
-| `dg_bank_uncommon` | Bank an Uncommon trait or better | 1 | Hard | R3 | Nothing | [MVP] |
-| `dg_bank_rare` | Bank a Rare trait or better | 1 | Hard | R3 | Has reached Hunter before | [MVP] |
-| `dg_bonito_6` | Eat 6 Bonito | 6 | Hard | R3 | Has reached Brute before | [MVP] |
-| `dg_tuna_1` | Eat 1 Tuna | 1 | Hard | R3 | Has reached Titan before | [MVP] |
-| `dg_lunar_3` | Eat 3 Lunar Fry | 3 | Hard | R3 | Nothing | [MVP] |
-| `dg_players_3` | Eat 3 other players | 3 | Hard | R3 | 6 or more players on the server | [MVP] |
-| `dg_scar_escape` | Escape a chase by Old Scar | 1 | Hard | R3 | Has reached Hunter before | [MVP] |
-| `dg_marrow_3` | Eat 3 Marrow chunks | 3 | Hard | R3 | Has reached Snapper before | [L] |
+| ID | Text | Target | Difficulty | Reward | Needs | Kind | Subject | Pool | Tag |
+|---|---|---|---|---|---|---|---|---|---|
+| `dg_eat_50` | Eat 50 prey | 50 | Easy | R1 | Nothing | `eat_any` | None | `eat` | [MVP] |
+| `dg_krill_30` | Eat 30 Krill | 30 | Easy | R1 | Nothing | `eat_prey` | `krill` | `eat` | [MVP] |
+| `dg_plankton_100` | Eat 100 Plankton motes | 100 | Easy | R1 | Nothing | `eat_prey` | `plankton` | `eat` | [MVP] |
+| `dg_shrimp_15` | Eat 15 Tiny Shrimp | 15 | Easy | R1 | Nothing | `eat_prey` | `shrimp` | `eat` | [MVP] |
+| `dg_sardine_15` | Eat 15 Sardines | 15 | Easy | R1 | Nothing | `eat_prey` | `sardine` | `eat` | [MVP] |
+| `dg_dash_25` | Dash 25 times | 25 | Easy | R1 | Nothing | `dash` | None | `world` | [MVP] |
+| `dg_runs_3` | Start 3 runs | 3 | Easy | R1 | Nothing | `start_run` | None | `world` | [MVP] |
+| `dg_bank_1` | Bank 1 creature | 1 | Easy | R1 | Nothing | `bank` | None | `grow` | [MVP] |
+| `dg_tier3` | Grow into a Snapper | 1 | Easy | R1 | Nothing | `reach_tier` | 3 | `grow` | [MVP] |
+| `dg_current_3` | Ride 3 currents | 3 | Easy | R1 | Nothing | `ride_current` | None | `world` | [MVP] |
+| `dg_breach_5` | Jump out of the water 5 times | 5 | Easy | R1 | Nothing | `breach` | None | `world` | [MVP] |
+| `dg_trait_1` | Gain 1 trait | 1 | Easy | R1 | Nothing | `gain_trait` | None | `grow` | [MVP] |
+| `dg_tier4` | Grow into a Hunter | 1 | Medium | R2 | Nothing | `reach_tier` | 4 | `grow` | [MVP] |
+| `dg_bank_snapper` | Bank a Snapper or bigger | 1 | Medium | R2 | Nothing | `bank_tier` | 3 | `grow` | [MVP] |
+| `dg_bank_mass_300` | Bank 300 mass in total | 300 | Medium | R2 | Nothing | `bank_mass` | None | `grow` | [MVP] |
+| `dg_darter_10` | Eat 10 Reef Darters | 10 | Medium | R2 | Nothing | `eat_prey` | `darter` | `eat` | [MVP] |
+| `dg_mackerel_8` | Eat 8 Mackerel | 8 | Medium | R2 | Nothing | `eat_prey` | `mackerel` | `eat` | [MVP] |
+| `dg_kelp_20` | Eat 20 prey in the Kelp Forest | 20 | Medium | R2 | Nothing | `eat_in_zone` | `kelp` | `eat` | [MVP] |
+| `dg_trait_prey_10` | Eat 10 trait prey | 10 | Medium | R2 | Nothing | `eat_trait_prey` | None | `eat` | [MVP] |
+| `dg_traits_2` | Hold 2 traits at once | 2 | Medium | R2 | Nothing | `hold_traits` | None | `grow` | [MVP] |
+| `dg_bank_common` | Bank a creature with a Common trait | 1 | Medium | R2 | Nothing | `bank_rarity` | Common | `grow` | [MVP] |
+| `dg_frenzy_40` | Eat 40 prey during a Feeding Frenzy | 40 | Medium | R2 | Nothing | `eat_in_tide` | `frenzy` | `world` | [MVP] |
+| `dg_dropoff_home` | Visit the Drop-off, then bank | 1 | Medium | R2 | Nothing | `visit_then_bank` | `dropoff` | `world` | [MVP] |
+| `dg_survive_300` | Survive 5 minutes in one run | 300 s | Medium | R2 | Nothing | `survive` | None | `world` | [MVP] |
+| `dg_gull_dodge_3` | Dodge 3 Gull dives | 3 | Medium | R2 | Nothing | `dodge` | `gull` | `world` | [MVP] |
+| `dg_moray_dodge_3` | Dodge 3 Moray lunges | 3 | Medium | R2 | Nothing | `dodge` | `moray` | `world` | [MVP] |
+| `dg_species_2` | Bank 2 different species | 2 | Medium | R2 | Owns 2 or more species | `bank_species` | None | `grow` | [MVP] |
+| `dg_player_1` | Eat 1 other player | 1 | Medium | R2 | 6 or more players on the server | `eat_player` | None | `eat` | [MVP] |
+| `dg_visit_3` | Visit 3 other coves | 3 | Medium | R2 | 4 or more players on the server | `visit_cove` | None | `world` | [L] |
+| `dg_tier5` | Grow into a Brute | 1 | Hard | R3 | Nothing | `reach_tier` | 5 | `grow` | [MVP] |
+| `dg_tier6` | Grow into a Titan | 1 | Hard | R3 | Has reached Brute before | `reach_tier` | 6 | `grow` | [MVP] |
+| `dg_bank_brute` | Bank a Brute or bigger | 1 | Hard | R3 | Nothing | `bank_tier` | 5 | `grow` | [MVP] |
+| `dg_bank_mass_1000` | Bank 1,000 mass in total | 1,000 | Hard | R3 | Nothing | `bank_mass` | None | `grow` | [MVP] |
+| `dg_bank_3_traits` | Bank a creature with 3 traits | 1 | Hard | R3 | Nothing | `bank_traits` | 3 | `grow` | [MVP] |
+| `dg_bank_uncommon` | Bank an Uncommon trait or better | 1 | Hard | R3 | Nothing | `bank_rarity` | Uncommon | `grow` | [MVP] |
+| `dg_bank_rare` | Bank a Rare trait or better | 1 | Hard | R3 | Has reached Hunter before | `bank_rarity` | Rare | `grow` | [MVP] |
+| `dg_bonito_6` | Eat 6 Bonito | 6 | Hard | R3 | Has reached Brute before | `eat_prey` | `bonito` | `eat` | [MVP] |
+| `dg_tuna_1` | Eat 1 Tuna | 1 | Hard | R3 | Has reached Titan before | `eat_prey` | `tuna` | `eat` | [MVP] |
+| `dg_lunar_3` | Eat 3 Lunar Fry | 3 | Hard | R3 | Nothing | `eat_prey` | `lunar_fry` | `eat` | [MVP] |
+| `dg_players_3` | Eat 3 other players | 3 | Hard | R3 | 6 or more players on the server | `eat_player` | None | `eat` | [MVP] |
+| `dg_scar_escape` | Escape a chase by Old Scar | 1 | Hard | R3 | Has reached Hunter before | `escape` | `old_scar` | `world` | [MVP] |
+| `dg_marrow_3` | Eat 3 Marrow chunks | 3 | Hard | R3 | Has reached Snapper before | `eat_prey` | `marrow` | `eat` | [L] |
 
 <!-- /data -->
 
