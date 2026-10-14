@@ -25,7 +25,7 @@
 --     otherwise toward the wander target at cruiseSpeed (a new seeded target in the home volume
 --     every 3 to 6 s). A flee lasts at most the prey's burst, then it is tired for 2 s (cruise only).
 --   3 Integrate: vel += clampLength(desired − vel, accel × dt); pos += vel × dt. Scatter moves
---     toward its target at 2/s up, 0.5/s down. Swarms and packs scatter while fleeing, schools for
+--     toward its target at 2/s up, 1/3 per s down. Swarms and packs scatter while fleeing, schools for
 --     the first second of a flee.
 --   4 Leash: outside the home radius a pull back is added; beyond 1.5 × radius the position is
 --     clamped. `hop` kinds take y = floorY(x, z) + hop arc.
@@ -68,7 +68,7 @@ local TIRED = 2
 local LURE_RANGE = 40
 local LURE_SPEED = 4
 local SCATTER_UP = 2
-local SCATTER_DOWN = 0.5
+local SCATTER_DOWN = 1 / 3 -- a scattered swarm regroups over 3 s (02 §9.2)
 local SCHOOL_SCATTER = 1 -- s: members of a school scatter for the first second of a flee (02 §9.2)
 local WANDER_MIN, WANDER_MAX = 3, 6
 local WANDER_REACHED = 2 -- studs
@@ -99,28 +99,6 @@ local behaviourCode = {
 	pack = PACK,
 }
 
--- Turn rate (°/s; 0 = turns in any direction) and flee burst (s) of docs/03 §2.1, which the
--- generated PreyDef does not carry yet (reported gap). Trait prey use the prey whose behaviour they
--- borrow (02 §9.3), so the behaviour default stands in for them.
-local TURN_BURST_BY_ID: { [string]: { number } } = {
-	krill = { 400, 2 },
-	shrimp = { 0, 1.5 },
-	sardine = { 300, 3 },
-	darter = { 480, 3 },
-	mackerel = { 120, 4 },
-	bonito = { 110, 5 },
-	tuna = { 90, 6 },
-}
-local TURN_BURST_BY_BEHAVIOUR: { [number]: { number } } = {
-	[DRIFT] = { 0, 0 },
-	[SWARM] = { 400, 2 },
-	[HOP] = { 0, 1.5 },
-	[SCHOOL] = { 300, 3 },
-	[SOLO] = { 480, 3 },
-	[RUN] = { 120, 4 },
-	[PACK] = { 110, 5 },
-}
-
 -- Per-kind tables, indexed by kind code + 1.
 local kTier = table.create(256, 99) :: { number }
 local kBehaviour = table.create(256, 0) :: { number }
@@ -136,17 +114,17 @@ for _, kind in Formation.kinds() do
 	assert(def, "PreySim: kind without a def")
 	local code = behaviourCode[def.behaviour]
 	assert(code, `PreySim: unknown behaviour {def.behaviour}`)
-	local turnBurst = TURN_BURST_BY_ID[def.id] or TURN_BURST_BY_BEHAVIOUR[code]
-	local turn = if turnBurst[1] > 0 then math.rad(turnBurst[1]) else TAU
+	-- PreyDef.turnRate is °/s, 0 for prey that turn in any direction: one turn per second (8.4).
+	local turn = if def.turnRate > 0 then math.rad(def.turnRate) else TAU
 	local i = kind + 1
 	kTier[i] = def.tier
 	kBehaviour[i] = code
 	kCruise[i] = def.cruiseSpeed
 	kFlee[i] = def.fleeSpeed
 	kFleeR2[i] = def.fleeRadius * def.fleeRadius
-	-- Turning at `turn` rad/s at flee speed needs a lateral acceleration of speed × turn.
+	-- 09 §8.4: accel = fleeSpeed × turnRate, the lateral acceleration that turns at that rate.
 	kAccel[i] = if code == DRIFT then DRIFT_ACCEL else def.fleeSpeed * turn
-	kBurst[i] = turnBurst[2]
+	kBurst[i] = def.fleeBurst
 	reactRange = math.max(reactRange, def.fleeRadius)
 end
 -- The threat pass visits the 3 × 3 cells around a threat, so no reaction may reach past one cell.

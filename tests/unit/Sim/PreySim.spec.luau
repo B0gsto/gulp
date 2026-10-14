@@ -127,7 +127,9 @@ describe("Sim/PreySim (09 §8.1 to 8.4)", function()
 		now = run(sim, now, 13) -- the flee hold (1.2 s) runs out
 		expect(bit32.btest(flags(sim, g), PreySim.FLAG_FLEEING)).toBe(false)
 		expect(scatter(sim, g) < 1).toBe(true)
-		run(sim, now, 20) -- 0.5 per second down
+		now = run(sim, now, 20) -- 1/3 per second down: still regrouping after 2 s
+		expect(scatter(sim, g) > 0).toBe(true)
+		run(sim, now, 12) -- regrouped within 3 s of the flee's end (02 §9.2)
 		expect(scatter(sim, g)).toBe(0)
 	end)
 
@@ -136,7 +138,7 @@ describe("Sim/PreySim (09 §8.1 to 8.4)", function()
 		local g = PreySim.spawn(sim, SARDINE, 0, 0, -50, 0, 10) :: number
 		PreySim.setThreatCount(sim, 1)
 		local peak = 0
-		run(sim, 0, 25, function()
+		run(sim, 0, 35, function()
 			local x, y, z = pos(sim, g)
 			PreySim.setThreat(sim, 0, x - 10, y, z, 2, PLAYER)
 			peak = math.max(peak, scatter(sim, g))
