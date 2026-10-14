@@ -153,7 +153,27 @@ describe("RigMath clips and sway", function()
 		expect(RigMath.CLIP_SECONDS.SwimFast).toBeCloseTo(8 / 30, 1e-9)
 		expect(RigMath.CLIP_SECONDS.Idle).toBeCloseTo(2, 1e-9)
 		expect(RigMath.CLIP_SECONDS.Dash).toBeCloseTo(14 / 30, 1e-9)
-		expect(#RigMath.CLIPS).toBe(5)
+		expect(RigMath.CLIP_SECONDS.TierUp).toBeCloseTo(18 / 30, 1e-9)
+		expect(#RigMath.CLIPS).toBe(6)
+	end)
+
+	it("pops 0.6 s to 112% and settles back on the scale (02 §1.8)", function()
+		expect(RigMath.popMult(-0.1)).toBe(1)
+		expect(RigMath.popMult(0)).toBe(1)
+		expect(RigMath.popMult(0.6)).toBe(1)
+		expect(RigMath.popMult(1)).toBe(1)
+		local peak, at = 0, 0
+		for i = 1, 599 do
+			local t = i / 1000
+			local m = RigMath.popMult(t)
+			expect(m >= 1).toBe(true)
+			if m > peak then
+				peak, at = m, t
+			end
+		end
+		expect(peak).toBeCloseTo(1.12, 1e-4)
+		expect(at < 0.3).toBe(true) -- a quick rise, a longer settle
+		expect(RigMath.popMult(0.59) < 1.01).toBe(true)
 	end)
 
 	it("picks the loop by speed", function()

@@ -240,7 +240,7 @@ end
 --------------------------------------------------------------------------------------------------
 -- Clips and the code sway (docs/07 §2.1 rows A_Fish_*, 30 fps; rigs.py fish_swim_pose)
 
-export type Clip = "Swim" | "SwimFast" | "Idle" | "Dash" | "Bite"
+export type Clip = "Swim" | "SwimFast" | "Idle" | "Dash" | "Bite" | "TierUp"
 
 RigMath.FPS = 30
 --- Clip lengths in seconds at 07 §2.1's frame counts (Bite: the middle of 7 to 9 frames).
@@ -250,8 +250,24 @@ RigMath.CLIP_SECONDS = table.freeze({
 	Idle = 60 / 30,
 	Dash = 14 / 30,
 	Bite = 8 / 30,
+	TierUp = 18 / 30,
 } :: { [string]: number })
-RigMath.CLIPS = table.freeze({ "Swim", "SwimFast", "Idle", "Dash", "Bite" } :: { Clip })
+RigMath.CLIPS = table.freeze({ "Swim", "SwimFast", "Idle", "Dash", "Bite", "TierUp" } :: { Clip })
+
+--- The code tier-up pop when `A_Fish_TierUp` is not uploaded (02 §1.8): a 0.6 s pulse on the
+--- mesh only that overshoots to 112% of the current scale and settles back on it.
+RigMath.POP_SECONDS = 0.6
+RigMath.POP_PEAK = 1.12
+local POP_RISE = 0.6 -- the exponent that puts the peak near 30% of the pulse: a quick rise (tune)
+
+--- The scale multiplier `t` seconds into the tier-up pop: 1 before and after, POP_PEAK at its top.
+function RigMath.popMult(t: number): number
+	if t <= 0 or t >= RigMath.POP_SECONDS then
+		return 1
+	end
+	local u = (t / RigMath.POP_SECONDS) ^ POP_RISE
+	return 1 + (RigMath.POP_PEAK - 1) * math.sin(math.pi * u)
+end
 --- Wave amplitude per loop: SwimFast is the dash sweep (rigs.py amp 1.3); Idle is a slow hover.
 RigMath.SWAY_AMP = table.freeze({ Swim = 1.0, SwimFast = 1.3, Idle = 0.3 } :: { [string]: number })
 RigMath.FAST_RATIO = 1.15 -- speed over topSpeed × this reads as a dash (tune)

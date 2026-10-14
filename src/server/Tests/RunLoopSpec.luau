@@ -151,12 +151,19 @@ return function()
 		)
 
 		it("refuses a gulp outside a run", function()
-			local slot = slotAndState()
+			local slot, state = slotAndState()
 			local run = assert(RunLoopService._test.run(slot))
-			if run.phase == "run" then
-				return -- covered by the previous case's last step; nothing to refuse here
+			local homeList = if run.home == "nursery"
+				then RunLoopService._test.nurseries()
+				else RunLoopService._test.coveVolumes(slot)
+			if #homeList == 0 then
+				return -- no home volume on this map: the creature is always in a run
 			end
+			CreatureService.addMass(slot, -state.mass)
+			goTo(slot, Vector3.new(VolumeMath.centre(homeList[1])))
+			expect(run.phase).toBe("cove")
 			expect(RunLoopService.gulp(slot, "spec")).toBe(false)
+			expect(run.phase).toBe("cove")
 		end)
 
 		it("gulps: dead, held by the server, then back at the cove within 2.0 s", function()
