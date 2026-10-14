@@ -92,7 +92,7 @@ def build():
             cf = {"position": [round(c, 3) for c in pos], "look": [round(c, 5) for c in look],
                   "luau": "CFrame.lookAt(Vector3.new(%.3f, %.3f, %.3f), Vector3.new(%.3f, %.3f, %.3f))" % (
                       pos[0], pos[1], pos[2], pos[0] + look[0], pos[1] + look[1], pos[2] + look[2])}
-            size = [210.0, box[2], box[1] * 0.25]
+            size = [ra.HAZE_RADIAL_LEN, box[2], box[1] * 0.25]
         it["cframe"] = cf
         it["meshpart_size_roblox"] = [round(c, 3) for c in size]
         places.append(it)

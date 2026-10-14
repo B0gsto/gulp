@@ -7,8 +7,10 @@ depth 5 to 55, 160 long, used four times at B000, B090, B180, B270).
 A tunnel straight through the Rim: a level corridor 64 wide from depth 55 (a 5-stud sill above the Reef
 floor) to depth 5, over the whole 160 studs (03 6.7, which wins over review loop 1's open notch). Its
 walls are dented outward only (never narrower than 64); the span above is a natural rounded vault
-(corners radius 17, the crown dented upward, never lower than depth 5) under the Rim's humped,
-bulging rock, not a flat lintel. The 12 degrees of Rim it replaces is cut into two meshes along the
+(corners radius 17, the crown dented upward, never lower than depth 5). Review loop 3: the rock is the
+walls' boulder language, rounded uneven jambs at both mouths, a brow mass over each and a crown mass
+thickest over the middle of the span, fused (voxel remesh) and decimated, then the corridor is cut and
+the piece split at its centre line. The 12 degrees of Rim it replaces is cut into two meshes along the
 corridor's centre line: _01 the west half (left, seen from the Reef), _02 the east half. One rock field
 runs across both, so the arch meets without a step; the outer ends are recessed like every Rim piece's.
 In game the far window fades to the fog (kit sheet, Reef fog through East Pass). Origins: the centre of each

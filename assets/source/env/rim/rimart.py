@@ -38,7 +38,9 @@ WALL_SPAN, JOINT_SPAN, PASS_SPAN = 12.0, 4.0, 12.0
 PASS_HALF_W, PASS_FLOOR, PASS_ROOF = 32.0, -55.0, -5.0     # 03 6.7: 64 wide, depth 5 to 55
 COVE_DEPTH = 30.0
 HAZE_R, HAZE_SPAN, HAZE_TOP, HAZE_BOTTOM, HAZE_THICK = 980.0, 15.0, 0.0, -200.0, 4.0
-HAZE_CUT_R = 620.0                # 13 3.2: the soft-launch edge east and south of the Reef (no Drop-off)
+HAZE_CUT_R = 620.0
+HAZE_RADIAL_LEN = (985.0 - HAZE_CUT_R) / 2.0     # each straight piece; review loop 3: no clipped edge at the Nursery gap
+HAZE_RADIAL_MIDS = (HAZE_CUT_R + HAZE_RADIAL_LEN / 2.0, HAZE_CUT_R + 1.5 * HAZE_RADIAL_LEN)                # 13 3.2: the soft-launch edge east and south of the Reef (no Drop-off)
 ROCK_TILE = "T_Rim_Alb"           # review loop 1: the floor tile read as paving on a wall; no 07 row yet
 SAND = "#F2D9A0"                  # 06 4.2 Reef sand: the Rim reads at least 15 L* darker and cooler
 RIM_MID, RIM_MID2 = "#A2948F", "#978C8E"     # mid block, L* 62 / 59, cool grey-mauve
@@ -303,6 +305,10 @@ def boolean(ob, cutter, op='DIFFERENCE'):
             ob.modifiers.remove(mod)
             continue
         mod.object = cutter
+        if solver == 'EXACT':
+            for attr in ("use_self", "use_hole_tolerant"):   # remeshed, decimated rock may touch itself
+                if hasattr(mod, attr):
+                    setattr(mod, attr, True)
         dg = bpy.context.evaluated_depsgraph_get()
         new = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
         ob.modifiers.remove(mod)
@@ -395,17 +401,18 @@ def bounds(ob, off=None):
     return lo, hi
 
 
-LIT, CREASE = (0.53, 0.63), 0.04     # review loop 2: light top edges and dark creases inside 06 4.1's shares
+LIT, CREASE = (0.0, 0.3), 0.045      # review loop 3: facet tops lit, creases where boulders meet
+UNDER = (-0.5, -0.9, 1.0)
 
 
-def rim_texture(n=512, seed=21):
-    """T_Rim_Alb, RGBA rows from the top, tiling both ways: three strata of large soft rock planes per
-    repeat, each split at staggered joints; each plane one broad gradient in the mid block, a light lit
-    band along its top edge, a blue-violet crease under it and at its joints (06 4.1, 5.2). No cobble:
-    planes are 20 to 40 studs wide on the wall."""
+def rim_texture(n=512, seed=43, points=14):
+    """T_Rim_Alb, RGBA rows from the top, tiling both ways (review loop 3: no courses, no seam grid).
+    Large irregular rock facets (a periodic Voronoi of 14 cells per 64-stud repeat, so 15 to 25 studs
+    across): each facet one mid value with one broad gradient that lightens toward its upper edge (the
+    light top planes) and cools to blue-violet along its underside; soft dark crevices only along about
+    half the facet borders, where boulders meet (06 4.1, 5.2)."""
     import numpy as np
     rng = random.Random(seed)
-    tau = 2.0 * math.pi
     c = (np.arange(n) + 0.5) / n
     U, V = np.meshgrid(c, 1.0 - c)
 
@@ -419,38 +426,59 @@ def rim_texture(n=512, seed=21):
 
     def mix(a, b, t):
         return a * (1.0 - t[..., None]) + b * t[..., None]
-    marks = np.array([0.0, 0.34 + rng.uniform(-0.03, 0.03), 0.68 + rng.uniform(-0.03, 0.03), 1.0])
-    vv = (V + 0.03 * np.sin(tau * U + rng.uniform(0, tau)) + 0.018 * np.sin(tau * 2 * U + rng.uniform(0, tau))) % 1.0
-    row = np.clip(np.searchsorted(marks, vv, side="right") - 1, 0, 2)
-    t0, t1 = marks[row], marks[row + 1]
-    ty = (vv - t0) / (t1 - t0)
-    tx = np.zeros_like(U)
-    dj = np.ones_like(U)
-    grad = np.zeros_like(U)
-    for r in range(3):
-        k = rng.choice((2, 3))
-        start = rng.uniform(0, 1)
-        cuts = sorted((start + (i + rng.uniform(-0.12, 0.12)) / k) % 1.0 for i in range(k))
-        m = row == r
-        uu = (U[m] + 0.02 * np.sin(tau * V[m] * 3 + r)) % 1.0
-        cs = np.array(cuts + [cuts[0] + 1.0])
-        uq = np.where(uu < cs[0], uu + 1.0, uu)
-        idx = np.clip(np.searchsorted(cs, uq, side="right") - 1, 0, k - 1)
-        a, b = cs[idx], cs[idx + 1]
-        tx[m] = (uq - a) / (b - a)
-        dj[m] = np.minimum(uq - a, b - uq)
-        dirs = np.array([rng.uniform(-1, 1) for _ in range(k)])
-        grad[m] = 0.5 + 0.5 * (dirs[idx] * (tx[m] - 0.5) * 1.6)
-    brush = 0.5 + 0.25 * np.sin(tau * (2 * U + V) + 1.3) * np.sin(tau * (U - 2 * V) + 0.4)
-    col = mix(rgb(RIM_MID), rgb(RIM_MID2), np.clip(0.6 * grad + 0.4 * brush, 0, 1))
-    db = np.minimum(ty, 1.0 - ty) * (t1 - t0)                      # distance to the stratum line, in repeats
-    col = mix(col, rgb(RIM_LIGHT), sm(LIT[0], LIT[1], ty) * (1.0 - sm(0.9, 0.95, ty)))
-    crease = np.maximum(1.0 - sm(0.006, CREASE, db), 1.0 - sm(0.006, 0.026, dj))
-    under = (1.0 - sm(0.0, 0.25, ty)) * 0.25                     # occlusion under each plane, violet
-    col = mix(col, rgb(RIM_DARK), np.clip(np.maximum(crease, under), 0, 1))
+    pts = []
+    while len(pts) < points:                   # well spread, no grid
+        p = (rng.random(), rng.random())
+        if all(min(abs(p[0] - q[0]), 1 - abs(p[0] - q[0])) ** 2 + min(abs(p[1] - q[1]), 1 - abs(p[1] - q[1])) ** 2 > 0.16 ** 2 for q in pts):
+            pts.append(p)
+    P = np.array(pts)
+    best = np.full((2,) + U.shape, 9.0)
+    ids = np.zeros((2,) + U.shape, dtype=int)
+    dvs = np.zeros(U.shape)
+    for i, (px, py) in enumerate(P):
+        dx = (U - px + 0.5) % 1.0 - 0.5
+        dy = (V - py + 0.5) % 1.0 - 0.5
+        # stretched a little sideways (a shear would break the wrap)
+        d = np.sqrt(dx ** 2 * 0.75 + dy ** 2)
+        first = d < best[0]
+        second = ~first & (d < best[1])
+        best[1] = np.where(first, best[0], np.where(second, d, best[1]))
+        ids[1] = np.where(first, ids[0], np.where(second, i, ids[1]))
+        best[0] = np.where(first, d, best[0])
+        ids[0] = np.where(first, i, ids[0])
+        dvs = np.where(first, dy, dvs)
+    edge = best[1] - best[0]
+    tone = np.array([rng.uniform(0.0, 1.0) for _ in range(points)])
+    lean = np.array([rng.uniform(-0.6, 0.6) for _ in range(points)])
+    meet = np.array([[rng.random() < 0.5 for _ in range(points)] for _ in range(points)])
+    meet = meet | meet.T
+    size = 0.14
+    up = np.clip((dvs + lean[ids[0]] * 0.2 * ((U - P[ids[0], 0] + 0.5) % 1.0 - 0.5)) / size, -1.5, 1.5)
+    col = mix(rgb(RIM_MID), rgb(RIM_MID2), tone[ids[0]] * 0.7 + 0.15)
+    col = mix(col, rgb(RIM_LIGHT), sm(LIT[0], LIT[1], up))                       # light top planes
+    col = mix(col, rgb(RIM_DARK), sm(UNDER[0], UNDER[1], up) * UNDER[2])           # blue-violet undersides
+    crease = (1.0 - sm(0.0, CREASE, edge)) * meet[ids[0], ids[1]]
+    col = mix(col, rgb(RIM_DARK), crease)
     img = np.ones((n, n, 4))
     img[..., :3] = col
     return img
+
+
+def banding(img):
+    """Masonry guard: how much of the texture's value variation is explained by rows (or columns)
+    alone, and the strongest single row period. Courses or a seam grid score high."""
+    import numpy as np
+    import tilegen
+    lab = tilegen.lstar(img[..., :3])
+    out = {}
+    for axis, name in ((1, "rows"), (0, "columns")):
+        prof = lab.mean(axis=axis)
+        spread = float(prof.std() / (lab.std() or 1.0))
+        f = np.abs(np.fft.rfft(prof - prof.mean()))[2:]
+        k = int(np.argmax(f)) + 2
+        peak = float(f.max() / (np.abs(np.fft.rfft(prof - prof.mean())).sum() or 1.0))
+        out[name] = (spread, k, peak)
+    return out
 
 
 def rim_texture_file():
@@ -479,8 +507,18 @@ def rim_texture_checks(img):
         report.add(ROCK_TILE, "three values", 0.10 <= dark <= 0.15 and 0.20 <= light <= 0.30 and 0.55 <= mid <= 0.65,
                    "dark (L* 35 or less) %.1f%%, light (85 or more) %.1f%%, mid %.1f%% (06 4.1: 10-15 / 20-30 / 55-65)" % (
                        100 * dark, 100 * light, 100 * mid))
-        seam = max(float(np.abs(img[:, 0, :3] - img[:, -1, :3]).max()), float(np.abs(img[0, :, :3] - img[-1, :, :3]).max()))
-        report.add(ROCK_TILE, "tiles both ways", seam < 0.12, "largest colour step across the wrap %.3f" % seam)
+        for name, (spread, k, peak) in banding(img).items():
+            report.add(ROCK_TILE, "no banding: %s" % name, spread < 0.45 and peak < 0.18,
+                       "%s alone explain %.0f%% of the value spread (under 45%%; loop 2's courses: 67%%); strongest period %d per repeat "
+                       "holds %.0f%% of it (under 18%%; courses: 29%%)"
+                       % (name, 100 * spread, k, 100 * peak))
+        rgb3 = img[..., :3]
+        seam = np.concatenate([np.abs(rgb3[:, 0] - rgb3[:, -1]).max(axis=1), np.abs(rgb3[0] - rgb3[-1]).max(axis=1)])
+        inner = np.concatenate([np.abs(np.diff(rgb3, axis=1)).max(axis=2).ravel(), np.abs(np.diff(rgb3, axis=0)).max(axis=2).ravel()])
+        s_mean, i_mean = float(seam.mean()), float(inner.mean())
+        report.add(ROCK_TILE, "tiles both ways", s_mean <= 1.5 * i_mean + 0.005 and float(seam.max()) <= float(inner.max()) + 1e-6,
+                   "mean step across the wrap %.4f against %.4f inside; largest %.3f against %.3f inside (facet edges)" % (
+                       s_mean, i_mean, float(seam.max()), float(inner.max())))
     return check
 
 
@@ -555,8 +593,8 @@ def haze_layout():
         out.append({"slot": "edge %02d" % (k + 1), "bearing": 225.0 + 7.5 + 15.0 * k, "radius": HAZE_R, "kind": "arc"})
     for k in range(12):             # 13 3.2: east and south of the Reef, where the Drop-off is cut
         out.append({"slot": "cut %02d" % (k + 1), "bearing": 45.0 + 7.5 + 15.0 * k, "radius": HAZE_CUT_R, "kind": "arc"})
-    for b, side in ((45.0, -1.0), (225.0, 1.0)):     # the Kelp's two ends, r 560 to 980, facing the Kelp
-        for k, rm in enumerate((665.0, 875.0)):
+    for b, side in ((45.0, -1.0), (225.0, 1.0)):     # the Kelp's two ends, r 620 to 985, facing the Kelp;
+        for k, rm in enumerate(HAZE_RADIAL_MIDS):    # they meet both arcs in corners, so no free edge shows
             out.append({"slot": "Kelp end B%03d %d" % (b, k + 1), "bearing": b, "radius": rm, "kind": "radial", "side": side})
     return out
 
@@ -693,32 +731,185 @@ def notch_cutters():
     return out
 
 
+def bend(p):
+    """Unrolled (s, d, z) -> ring frame."""
+    s_, d, z = p
+    phi = s_ / R0
+    r = R_IN + d
+    return (r * math.sin(phi), r * math.cos(phi), z)
+
+
+def boulder(c, radii, seed, lean=12.0, facets=4, lumps=0.08):
+    """One deformed rock mass in unrolled coordinates: an icosphere stretched to `radii`, lumped by a
+    few soft waves, cut by flat facet planes (rock planes, 06 3: rounded but not blobby), its foot
+    flattened, leaned and turned. Returns (verts in the ring frame, faces)."""
+    import bmesh
+    from mathutils import Matrix, Vector
+    rng = random.Random(seed)
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=3, radius=1.0)
+    waves = [(Vector((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1))).normalized() * rng.uniform(1.5, 3.2),
+              rng.uniform(0.5, 1.0) * lumps, rng.uniform(0, 2 * math.pi)) for _ in range(5)]
+    planes = [(Vector((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 0.6) + 0.5)).normalized(), rng.uniform(0.8, 0.92))
+              for _ in range(facets)] + [(Vector((0.0, 0.0, -1.0)), 0.7)]
+    rot = (Matrix.Rotation(math.radians(rng.uniform(-25, 25)), 3, 'Z') @ Matrix.Rotation(math.radians(rng.uniform(-lean, lean)), 3, 'X')
+           @ Matrix.Rotation(math.radians(rng.uniform(-lean, lean)), 3, 'Y'))
+    verts = []
+    for v in bm.verts:
+        n = v.co.normalized()
+        r = 1.0 + sum(a * math.cos(f.dot(n) * 2.0 + ph) for f, a, ph in waves)
+        for m, o in planes:
+            k = n.dot(m)
+            if k > 1e-3:
+                r = min(r, o / k)
+        q = rot @ Vector((n.x * r * radii[0], n.y * r * radii[1], n.z * r * radii[2]))
+        verts.append(bend((c[0] + q.x, c[1] + q.y, c[2] + q.z)))
+    faces = [tuple(v.index for v in f.verts) for f in bm.faces]
+    bm.free()
+    return verts, faces
+
+
+def apply_mod(ob, kind, **props):
+    bpy, bmesh, Matrix, Vector = bpy_mods()
+    mod = ob.modifiers.new(kind.lower(), kind)
+    for k, v in props.items():
+        setattr(mod, k, v)
+    dg = bpy.context.evaluated_depsgraph_get()
+    new = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+    ob.modifiers.remove(mod)
+    old = ob.data
+    ob.data = new
+    bpy.data.meshes.remove(old)
+    new.name = ob.name
+
+
+def tri_count(ob):
+    return sum(len(p.vertices) - 2 for p in ob.data.polygons)
+
+
+def fuse(name, parts, target, voxel=1.6):
+    """Joins the core and the boulders, fuses them into one closed surface (voxel remesh), then
+    decimates to `target` triangles (06 6.3 budgets)."""
+    verts, faces = [], []
+    for v, f in parts:
+        o = len(verts)
+        verts += v
+        faces += [tuple(i + o for i in t) for t in f]
+    ob = mesh_object(name, verts, faces)
+    tidy(ob, triangulate=False)
+    apply_mod(ob, 'REMESH', mode='VOXEL', voxel_size=voxel, adaptivity=0.0)
+    apply_mod(ob, 'DECIMATE', decimate_type='COLLAPSE', ratio=min(1.0, target / float(max(1, tri_count(ob)))), use_collapse_triangulate=True)
+    return ob
+
+
+def core_parts(span_deg, s_range=None, top=TOP, inset=3.0):
+    """The Rim's body behind the boulders: the plain profile, set back `inset` on the inner face."""
+    L = math.radians(span_deg) * R0
+    s0, s1 = s_range if s_range else (-L / 2.0, L / 2.0)
+    prof = [(d + (inset if k in ("inner", "nose_in") else 0.0), z, k) for d, z, k in base_profile()]
+    secs = [ring_section(s0 + (s1 - s0) * k / 10, prof, None) for k in range(11)]
+    return loft(secs)
+
+
+def scatter(seed, L, kind):
+    """Boulder list [(centre (s, d, z), radii (s, d, z), seed)] for a span of arc L (at R0)."""
+    rng = random.Random(seed)
+    h = L / 2.0
+    out = []
+
+    def add(s_, d, z, rs, rd, rz):
+        rs = min(rs, h - abs(s_) - 1.5)
+        if rs > 5.0:
+            out.append(((s_, d, z), (rs, rd, rz), rng.randint(0, 1 << 30)))
+    if kind == "wall":
+        n = rng.choice((3, 4))
+        for i in range(n):                                   # the Reef face: big leaning masses
+            s_ = -h + (i + 0.5) * L / n + rng.uniform(-5, 5)
+            add(s_, rng.uniform(3.0, 9.0), rng.uniform(-48, -20), rng.uniform(17, 25), rng.uniform(13, 18), rng.uniform(24, 34))
+        for i in range(rng.choice((2, 3))):                  # the skyline: stepped, uneven, never under +12
+            add(rng.uniform(-h + 18, h - 18), rng.uniform(20, 135), rng.uniform(5, 11), rng.uniform(18, 28), rng.uniform(26, 40), rng.uniform(9, 15))
+        for i in range(2):                                   # the outer face
+            add(rng.uniform(-h + 20, h - 20), rng.uniform(152, 160), rng.uniform(-48, -12), rng.uniform(20, 28), rng.uniform(12, 18), rng.uniform(22, 32))
+        for i in range(rng.choice((1, 2))):                  # low feet that bury into the sand
+            add(rng.uniform(-h + 14, h - 14), rng.uniform(-8, -2), rng.uniform(-68, -60), rng.uniform(12, 18), rng.uniform(10, 14), rng.uniform(8, 12))
+    elif kind == "cove":
+        for sgn in (-1, 1):                                  # flanks of the mouth, leaning in
+            add(sgn * rng.uniform(40, 44), rng.uniform(2, 6), rng.uniform(-44, -26), rng.uniform(9, 12), rng.uniform(12, 16), rng.uniform(22, 30))
+        add(rng.uniform(-8, 8), rng.uniform(2, 6), rng.uniform(7, 10), rng.uniform(26, 34), rng.uniform(12, 16), rng.uniform(8, 11))   # brow
+        for i in range(2):
+            add(rng.uniform(-h + 18, h - 18), rng.uniform(30, 130), rng.uniform(5, 10), rng.uniform(18, 26), rng.uniform(26, 38), rng.uniform(9, 13))
+        for i in range(2):
+            add(rng.uniform(-h + 20, h - 20), rng.uniform(152, 160), rng.uniform(-48, -12), rng.uniform(18, 26), rng.uniform(12, 16), rng.uniform(22, 30))
+        add(rng.uniform(-30, 30), rng.uniform(-8, -2), rng.uniform(-70, -62), rng.uniform(16, 22), rng.uniform(10, 14), rng.uniform(8, 11))
+    elif kind == "joint":
+        add(0.0, rng.uniform(0, 4), -30.0, h - 1.5, rng.uniform(16, 20), rng.uniform(34, 40))
+        add(rng.uniform(-3, 3), rng.uniform(50, 90), 9.0, h - 1.5, 50.0, rng.uniform(12, 15))
+        add(0.0, 160.0, -30.0, h - 1.5, 16.0, 34.0)
+    elif kind == "pass":
+        for sgn in (-1, 1):                                  # jambs at both ends of the corridor, rounded and uneven
+            for d, z in ((rng.uniform(0, 4), rng.uniform(-40, -26)), (rng.uniform(156, 160), rng.uniform(-40, -26))):
+                xs = 37.0 if d < 80 else 46.0
+                add(sgn * xs * R0 / (R_IN + d), d, z, rng.uniform(8, 10), rng.uniform(12, 16), rng.uniform(22, 30))
+        add(rng.uniform(-6, 6), rng.uniform(-2, 2), rng.uniform(4, 7), rng.uniform(28, 34), rng.uniform(11, 14), rng.uniform(9, 12))      # brow, inner
+        add(rng.uniform(-6, 6), rng.uniform(156, 160), rng.uniform(3, 6), rng.uniform(28, 34), rng.uniform(11, 14), rng.uniform(9, 12))   # brow, outer
+        add(rng.uniform(-4, 4), rng.uniform(70, 90), 13.0, rng.uniform(32, 38), rng.uniform(48, 58), rng.uniform(11, 14))                # crown, thick mid-span
+    return out
+
+
+def zone_cutter():
+    """Prism of the stone frame's outline (mouth_zone) in front of the mouth plane: cuts the Rim flat there."""
+    ox, oy, oz = cove_origin()
+    pts = []
+    for k in range(72):
+        th = 2.0 * math.pi * k / 72
+        c, s_ = math.cos(th), math.sin(th)
+        a, b, q = (33.5, 31.5, 2.5) if s_ >= 0 else (33.5, 23.0, 6.0)
+        a, b = a * 1.04, b * 1.04
+        pts.append((a * math.copysign(abs(c) ** (2.0 / q), c), b * math.copysign(abs(s_) ** (2.0 / q), s_)))
+    m = len(pts)
+    verts = [(ox + x, y, oz + z) for y in (oy - 40.0, oy) for x, z in pts]
+    faces = [(i, (i + 1) % m, m + (i + 1) % m, m + i) for i in range(m)] + [tuple(range(m))[::-1], tuple(range(m, 2 * m))]
+    ob = mesh_object("CUT_Zone", verts, faces, collection="PREVIEW")
+    tidy(ob, triangulate=False)
+    return ob
+
+
+def half_box(west):
+    x0, x1 = (-400.0, 0.0) if west else (0.0, 400.0)
+    verts = [(x, y, z) for x in (x0, x1) for y in (300.0, 700.0) for z in (-300.0, 200.0)]
+    faces = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
+    ob = mesh_object("CUT_Half", verts, faces, collection="PREVIEW")
+    tidy(ob, triangulate=False)
+    return ob
+
+
+TARGETS = {"M_Env_Rim_Wall_01": 2300, "M_Env_Rim_Wall_02": 1950, "M_Env_Rim_Wall_03": 1500, "pass": 2900}
+
+
 def build_piece(name):
-    """One Rim piece in the ring frame: tidy, triangulated, UVs, vertex colour, front tag."""
+    """One Rim piece in the ring frame (review loop 3): the plain Rim body with 5 to 9 large rounded
+    rock masses fused into it (voxel remesh, decimated to budget), then cut where the kit needs it."""
+    L = math.radians(WALL_SPAN) * R0
     if name == "M_Env_Rim_Wall_01":
-        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], columns=22, humps=(4.5, 8.0), bulge=(3.5, 6.0)))
-        ob = mesh_object(name, v, f)
+        parts = [core_parts(WALL_SPAN)] + [boulder(c, r, sd) for c, r, sd in scatter(SEEDS[name], L, "wall")]
+        ob = fuse(name, parts, TARGETS[name])
     elif name == "M_Env_Rim_Wall_02":
-        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], cove=True, columns=22, humps=(2.5, 5.0), bulge=(2.0, 4.0)))
-        ob = mesh_object(name, v, f)
-        tidy(ob, triangulate=False)
-        for cut in cove_cutters():
+        block = boulder((0.0, 8.0, -COVE_DEPTH), (47.0, 20.0, 42.0), SEEDS[name] + 1, lean=0.0, facets=0, lumps=0.03)
+        parts = [core_parts(WALL_SPAN), block] + [boulder(c, r, sd) for c, r, sd in scatter(SEEDS[name], L, "cove")]
+        ob = fuse(name, parts, TARGETS[name])
+        for cut in [zone_cutter()] + list(cove_cutters()):
             boolean(ob, cut)
             remove(cut)
     elif name == "M_Env_Rim_Wall_03":
+        Lj = math.radians(JOINT_SPAN) * R0
         v, f = loft(joint_sections(SEEDS[name]))
-        ob = mesh_object(name, v, f)
+        parts = [(v, f)] + [boulder(c, r, sd, lean=6.0) for c, r, sd in scatter(SEEDS[name], Lj, "joint")]
+        ob = fuse(name, parts, TARGETS[name])
     elif name in ("M_Env_Rim_Pass_01", "M_Env_Rim_Pass_02"):
-        L = math.radians(PASS_SPAN) * R0
-        rock = Rock(SEEDS["pass"], -L / 2.0, L / 2.0, humps=(2.0, 4.0), bulge=(1.5, 3.0))
-        west = name.endswith("_01")
-        secs = wall_sections(PASS_SPAN, 0, s_range=(-L / 2.0, 0.0) if west else (0.0, L / 2.0),
-                             end_recess=(True, False) if west else (False, True), columns=13, rock=rock)
-        v, f = loft(secs)
-        ob = mesh_object(name, v, f)
-        tidy(ob, triangulate=False)
-        for cut in [pass_cutter()]:
-            boolean(ob, cut)
+        parts = [core_parts(PASS_SPAN)] + [boulder(c, r, sd, lean=8.0) for c, r, sd in scatter(SEEDS["pass"], L, "pass")]
+        ob = fuse(name, parts, TARGETS["pass"])
+        for cut in (pass_cutter(), half_box(name.endswith("_01"))):
+            boolean(ob, cut, op='INTERSECT' if cut.name.startswith("CUT_Half") else 'DIFFERENCE')
             remove(cut)
     else:
         raise KeyError(name)

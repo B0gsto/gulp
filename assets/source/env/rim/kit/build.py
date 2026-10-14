@@ -180,7 +180,7 @@ def render():
         else:
             # straight run: the piece turned to lie along the bearing, flattened, facing the Kelp side
             b = it["bearing"]
-            sx = 210.0 / (2.0 * ra.HAZE_R * math.sin(math.radians(ra.HAZE_SPAN / 2.0)))
+            sx = ra.HAZE_RADIAL_LEN / (2.0 * ra.HAZE_R * math.sin(math.radians(ra.HAZE_SPAN / 2.0)))
             flat = Matrix.Translation((0.0, -ra.HAZE_R, 0.0))
             m = Matrix.Diagonal((sx, 0.25, 1.0, 1.0)) @ flat
             turn = Matrix.Rotation(math.radians(90.0 if it["side"] < 0 else -90.0), 4, 'Z')

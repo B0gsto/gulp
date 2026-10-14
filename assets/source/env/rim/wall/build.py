@@ -3,21 +3,21 @@ row M_Env_Rim_Wall, 2,500 tris each, T_Tile_Rock_Alb; docs/03-content-catalog.md
 
     Blender --background --python assets/source/env/rim/wall/build.py
 
-The Rim is pale rock (03 6.7) stacked in big rounded slabs (06 9.3 layer 1: calm, low-saturation
-masses), from r 400 to r 560, 12 studs above the surface, its foot buried to depth 100. Each piece is a
-closed loft along the ring (rimart.py: the ring frame, the profile, the pillow slabs), textured with the
-Rim's own painted T_Rim_Alb (review loop 1: the floor tile T_Tile_Rock_Alb read as paving on a wall):
-three strata of large soft rock planes per 64-stud repeat with lit top edges and blue-violet creases,
-box-projected on the ring's axes, at least 15 L* darker and cooler than the Reef sand. 07 6.1 has no row
-for it yet (the owner adds one: T_Rim_Alb, 512 x 512). The top is humped (never under +12) and the faces
-bulge, differently on each piece; the layout gives every copy a SurfaceAppearance.Color tint so no two
-neighbours match (MeshParts cannot be mirrored).
+The Rim is pale rock (03 6.7) from r 400 to r 560, 12 studs above the surface, its foot buried to
+depth 100. Review loop 3: each piece is a cluster of large rounded rock masses, not a slab with a
+profile: the plain Rim body (rimart.core_parts) with 5 to 9 deformed boulders (icospheres lumped, cut by
+flat rock planes, leaned and turned) on the Reef face, the skyline (stepped, uneven, never under +12),
+the outer face and low feet that bury into the sand, fused by a voxel remesh and decimated to budget.
+The texture is the Rim's own T_Rim_Alb (07 6.1): large irregular rock facets with lit tops, blue-violet
+undersides and soft crevices only where masses meet, box-projected on the ring's axes, one repeat per
+64 studs; a banding check keeps masonry courses out. The layout tints every copy so neighbours differ
+(MeshParts cannot be mirrored).
 
   _01  plain span, 12 degrees (84 studs of inner face): the same rock as _02 with no mouth, so any cove
        slot can take either. 03's 24 coves leave no plain span on the ring today; it is the slot filler
        for a cove-less stretch (test arenas, the place before coves are set, a retired slot).
-  _02  cove span, 12 degrees, one per cove (24): the inner face lies flat on the mouth plane where the
-       M_Cove_Mouth stones sit (cove frame y = 0), with an opening 3 studs wider than the mouth outline
+  _02  cove span, 12 degrees, one per cove (24): a rounded mass behind the mouth is cut flat on the
+       mouth plane where the M_Cove_Mouth stones sit, framed by leaning flank masses and a brow (cove frame y = 0), with an opening 3 studs wider than the mouth outline
        (the throat's 2.5-stud skin slides in) running 26 studs in, into a closed pocket that holds the
        M_Cove_Interior shell. The cove frame (03 6.7: mouth centre on the inner face at r 400, depth 30)
        is (0, 400, -30) in the ring frame.
