@@ -1,0 +1,139 @@
+GIMP Palette
+Name: GULP
+Columns: 8
+# Generated from gulp_palette.json by assets/source/_shared/blender/palette.py
+159 240 230	water.nursery.surface
+ 76 207 210	water.nursery.fog
+ 47 175 192	water.nursery.deep
+246 227 180	water.nursery.floor_sand
+111 221 238	water.reef.surface
+ 30 159 208	water.reef.fog
+ 23 131 191	water.reef.deep
+242 217 160	water.reef.floor_sand
+201 169 143	water.reef.floor_rock
+143 224 160	water.kelp.surface
+ 35 138 114	water.kelp.fog
+ 23  96  79	water.kelp.deep
+143 160 122	water.kelp.floor_silt
+ 95 127 111	water.kelp.floor_rock
+ 63 163 224	water.dropoff_upper.surface
+ 27 111 191	water.dropoff_upper.fog
+ 18  78 156	water.dropoff_upper.deep
+ 79 111 160	water.dropoff_upper.floor_slate
+ 11  42 102	water.dropoff_deep.fog
+  8  28  77	water.dropoff_deep.deep
+ 47  74 128	water.dropoff_deep.floor_slate
+  6  15  51	water.trench.fog
+ 26  15  69	water.trench.deep
+ 31  31  74	water.trench.floor_basalt
+127 224 224	water.cove.surface
+ 62 143 168	water.cove.fog
+ 46 111 142	water.cove.deep
+217 180 143	water.cove.floor_stone
+ 79 184 255	water.above_surface.sky_top
+191 233 255	water.above_surface.fog
+255 226 168	creatures.minnow.light
+255 154  61	creatures.minnow.mid
+194  73  29	creatures.minnow.dark
+255 210  61	creatures.minnow.accent
+255 246 214	creatures.puffer.light
+255 216  74	creatures.puffer.mid
+184 121  31	creatures.puffer.dark
+255 140  90	creatures.puffer.accent
+224 214 255	creatures.eel.light
+138 107 240	creatures.eel.mid
+ 59  42 140	creatures.eel.dark
+255 224 102	creatures.eel.accent
+255 241 194	creatures.turtle.light
+124 203 122	creatures.turtle.mid
+217 147  61	creatures.turtle.mid_shell
+122  74  30	creatures.turtle.dark
+255 224 138	creatures.turtle.accent
+255 209 224	creatures.squid.light
+255 111 163	creatures.squid.mid
+184  51 107	creatures.squid.dark
+255 240 168	creatures.squid.accent
+242 247 250	creatures.shark.light
+143 169 196	creatures.shark.mid
+ 61  88 120	creatures.shark.dark
+255 179 138	creatures.shark.accent
+255 255 255	creatures.plankton.light
+217 255 232	creatures.plankton.mid
+255 217 204	creatures.krill.light
+255 140 122	creatures.krill.mid
+194  74  74	creatures.krill.dark
+255 230 209	creatures.shrimp.light
+255 180 138	creatures.shrimp.mid
+194 105  61	creatures.shrimp.dark
+242 248 252	creatures.sardine.light
+191 217 232	creatures.sardine.mid
+ 92 154 217	creatures.sardine.dark
+255 246 201	creatures.darter.light
+255 210  61	creatures.darter.mid
+ 47 127 140	creatures.darter.dark
+255 122  92	creatures.darter.accent
+232 242 240	creatures.mackerel.light
+ 47 168 154	creatures.mackerel.mid
+ 22  87  79	creatures.mackerel.dark
+230 238 245	creatures.bonito.light
+111 143 217	creatures.bonito.mid
+ 35  54 107	creatures.bonito.dark
+240 244 248	creatures.tuna.light
+ 79 111 208	creatures.tuna.mid
+ 22  38  87	creatures.tuna.dark
+255 210  61	creatures.tuna.accent
+255 255 255	creatures.gull.light
+201 211 218	creatures.gull.mid
+ 90 102 112	creatures.gull.dark
+242 166  90	creatures.gull.accent
+230 224 160	creatures.moray.light
+168 162  61	creatures.moray.mid
+ 74  74  31	creatures.moray.dark
+255 242 217	creatures.moray.accent
+242 246 248	creatures.barracuda.light
+199 211 217	creatures.barracuda.mid
+ 58  71  80	creatures.barracuda.dark
+255 210  61	creatures.barracuda.accent
+240 217 176	creatures.grouper.light
+196 118  74	creatures.grouper.mid
+ 95  51  32	creatures.grouper.dark
+245 248 250	creatures.old_scar.light
+185 196 204	creatures.old_scar.mid
+ 74  85  96	creatures.old_scar.dark
+255 217 208	creatures.old_scar.accent
+255 255 255	creatures.jelly_bloom.light
+255 194 226	creatures.jelly_bloom.mid
+122  92 194	creatures.jelly_bloom.dark
+255 230 240	creatures.anemone.light
+255 143 184	creatures.anemone.mid
+168  61 107	creatures.anemone.dark
+255 242 168	creatures.anemone.accent
+201 214 223	rarity.common
+ 46 211 198	rarity.uncommon
+ 77 141 255	rarity.rare
+168  98 255	rarity.epic
+255 176  31	rarity.mythic
+166 255  61	signal.can_eat
+255 242  61	signal.can_eat_alt
+255  59  78	signal.can_eat_you
+255  61 200	signal.can_eat_you_alt
+255 255 255	signal.pulse_white
+255 196 107	signal.home
+255 241 220	signal.safe_not_yours
+255 233 242	signal.pearl
+255 184 217	signal.pearl_shade
+255 122  31	named.ember_crack
+210  86  75	named.hook_float_red
+ 20  33  61	ui.ink
+255 248 231	ui.panel
+242 227 196	ui.panel_shade
+255 201  61	ui.primary
+224 154  31	ui.primary_shade
+ 61 214 208	ui.secondary
+ 31 163 168	ui.secondary_shade
+255 107  94	ui.destructive
+255 255 255	ui.text_on_dark
+184 196 204	ui.disabled
+ 11  21  48	ui.screen_dim
+255 246 217	preview.key_light
+111 182 217	preview.ambient_reef
