@@ -253,7 +253,7 @@ Studio-owned containers, never touched by Rojo:
 
 ### 3.2 Content data
 
-All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance) and writes one module per table. The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
+All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance), plus the prey density targets of `02-mechanics.md` (section 9.6, data:PreyTargets), and writes one module per table (`PreySpawns` joins 02's targets with 03's spawn weights, caps and zone plan areas). The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
 
 Each row gets a stable **wire index** (its 1-based position in the canon table) used in packets; rows are only ever appended.
 
@@ -290,6 +290,11 @@ export type HazardDef = { id: string, wire: number, scope: Scope,
 
 export type ZoneDef = { id: string, wire: number, scope: Scope, preyTierMin: number,
 	preyTierMax: number, safe: boolean, lightingPreset: string }
+
+export type PreySpawnDef = { zone: string, prey: string, weight: number, cap: number,
+	base: number, baseUnit: "groups" | "members",   -- 02 §9.6 counts plankton and tuna as individuals
+	perPlayerInside: number?,       -- Nursery only (02 §9.6)
+	zoneArea: number }              -- studs² from above (03 §6.1); Logic/PreySpawnMath scales by it
 
 export type TideDef = { id: string, wire: number, scope: Scope, fallback: string?,
 	spawnRateMult: number, eventPrey: { string } }

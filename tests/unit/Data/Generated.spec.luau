@@ -9,6 +9,8 @@ local Index = require("../../../src/shared/Data/Index")
 local MarkdownTables = require("../../../tools/lib/markdown_tables")
 local Predators = require("../../../src/shared/Data/Generated/Predators")
 local Prey = require("../../../src/shared/Data/Generated/Prey")
+local PreySpawnMath = require("../../../src/shared/Logic/PreySpawnMath")
+local PreySpawns = require("../../../src/shared/Data/Generated/PreySpawns")
 local Products = require("../../../src/shared/Data/Generated/Products")
 local RevivePoints = require("../../../src/shared/Data/Generated/RevivePoints")
 local Species = require("../../../src/shared/Data/Generated/Species")
@@ -180,6 +182,84 @@ describe("Cross-references", function()
 			expect(def.passId == nil or Index.Products.byId[def.passId :: string] ~= nil).toBe(true)
 		end
 	end)
+end)
+
+describe("Prey spawn tables (02 §9.6, 03 §2.3)", function()
+	it(
+		"names only prey that exist and are allowed in the zone, at a tier the zone holds",
+		function()
+			for _, def in PreySpawns do
+				local prey = Index.Prey.byId[def.prey]
+				local zone = Index.Zones.byId[def.zone]
+				expect(`{def.zone}/{def.prey}: {prey ~= nil and zone ~= nil}`).toBe(
+					`{def.zone}/{def.prey}: true`
+				)
+				expect(table.find(prey.zones, def.zone) ~= nil).toBe(true)
+				-- Plankton is tier 0 and lives everywhere (canon 8.1); the rest keep to the zone's range.
+				local inRange = prey.tier >= zone.preyTierMin and prey.tier <= zone.preyTierMax
+				expect(`{def.prey} in {def.zone}: {inRange or prey.tier == 0}`).toBe(
+					`{def.prey} in {def.zone}: true`
+				)
+				expect(def.zoneArea > 0 and def.cap >= 1 and def.base > 0).toBe(true)
+			end
+		end
+	)
+
+	it("covers every prey's zones, with weights adding to 100 and bases under the caps", function()
+		local weights: { [string]: number } = {}
+		local rows: { [string]: boolean } = {}
+		for _, def in PreySpawns do
+			weights[def.zone] = (weights[def.zone] or 0) + def.weight
+			rows[`{def.zone}/{def.prey}`] = true
+			local base = def.base
+			if def.baseUnit == "members" then
+				base /= PreySpawnMath.meanMembers(def.prey)
+			end
+			expect(`{def.zone}/{def.prey}: {base <= def.cap}`).toBe(`{def.zone}/{def.prey}: true`)
+		end
+		for zone, total in weights do
+			expect(`{zone}: {total}`).toBe(`{zone}: 100`)
+		end
+		for _, prey in Prey do
+			for _, zone in prey.zones do
+				if Index.Zones.byId[zone].scope ~= "P2" then -- the Trench has no base counts yet
+					expect(`{zone}/{prey.id}: {rows[`{zone}/{prey.id}`] == true}`).toBe(
+						`{zone}/{prey.id}: true`
+					)
+				end
+			end
+		end
+		expect(Index.PreySpawns.byZone.cove).toBe(nil)
+	end)
+
+	it(
+		"fills the whole map to 09 §8.1's load, and its Frenzy count stays inside the sizing",
+		function()
+			-- 09 §8.1, normal prey only (its trait prey row is 40 groups, 80 members): 214 groups,
+			-- 1,230 members; a Frenzy doubles them (09: about 2,540 members with trait prey) and the
+			-- pipeline is sized for 508 groups. Nursery empty and with 5 players inside (at its caps).
+			local zones = { "nursery", "reef", "kelp", "dropoff" }
+			for _, inside in { 0, 5 } do
+				for _, frenzy in { false, true } do
+					local groups, members = 0, 0
+					for _, zone in zones do
+						local situation = { players = 24, playersInside = inside, frenzy = frenzy }
+						for _, target in PreySpawnMath.zoneTargets(zone, situation) do
+							groups += target.groups
+							members += target.groups * PreySpawnMath.meanMembers(target.prey)
+						end
+					end
+					if frenzy then
+						expect(groups <= 508).toBe(true)
+						expect(math.abs(members / 2540 - 1) <= 0.1).toBe(true)
+					else
+						expect(math.abs(groups / 214 - 1) <= 0.25).toBe(true)
+						expect(math.abs(members / 1230 - 1) <= 0.1).toBe(true)
+					end
+				end
+			end
+		end
+	)
 end)
 
 describe("Data/Index", function()

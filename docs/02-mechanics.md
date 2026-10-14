@@ -989,35 +989,43 @@ He cannot fit through gaps under 14 studs. Counterplay: turn hard, use gaps, lea
 ### 9.6 Density targets [MVP]
 
 ```
-target(zone, type) = base(zone, type) × playerScale(n) × eventScale
+target(zone, type) = base(zone, type) × playerScale(n) × eventScale × areaScale
 playerScale(n)     = clamp(0.6 + 0.4 × n / 24, 0.6, 1.0)
 eventScale         = 2.0 for normal prey during a Feeding Frenzy, else 1.0
+areaScale          = 1 on the real map; see "Smaller spawn areas" below
 ```
 
 Base counts at 24 players (tune; documents 03 and 05 may rebalance). Plankton and tuna are counted as individuals; every other ordinary prey is counted in the groups document 03 uses (section 2.3). A target is never above document 03's live cap for that zone; if the two ever differ, the cap wins. Trait prey rows copy document 03's "alive per server" (section 3.1).
 
-| Type | Nursery | Sunlit Reef | Kelp Forest | Drop-off |
-|---|---|---|---|---|
-| `plankton` | See below | 300 | 200 | 150 |
-| `krill` (swarms) | See below | 8 | — | — |
-| `shrimp` (groups of 1 to 3) | — | 30 | 35 | — |
-| `sardine` (schools) | — | 6 | 5 | — |
-| `darter` (groups of 1 or 2) | — | 14 | 16 | — |
-| `mackerel` (groups of 1 to 3) | — | — | 12 | 14 |
-| `bonito` (packs) | — | — | — | 5 |
-| `tuna` | — | — | — | 3 |
-| `glowfry` | — | 6 | 4 | — |
-| `dotted_goby` | — | 10 | — | — |
-| `zebra_darter` | — | 8 | — | — |
-| `urchin_puff` | — | 6 | — | — |
-| `armor_shrimp` | — | — | 6 | — |
-| `ribbonfish` | — | — | 6 | — |
-| `leaf_drifter` [L] | — | — | 5 | — |
-| `inklet` | — | — | — | 5 |
-| `spark_eel` [L] | — | — | — | 5 |
-| `vent_snail` [L] | — | — | — | 4 |
+<!-- data:PreyTargets -->
+Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`, `glowfry`, `dotted_goby`, `zebra_darter`, `urchin_puff`, `armor_shrimp`.
 
-- **Nursery** scales with the players inside it, not with `n`: 6 plankton patches (of 6 to 10 motes) and 2 krill swarms, plus 2 patches and 1 swarm per player inside, up to document 03's caps of 12 patches and 5 swarms (24 and 10 in a Feeding Frenzy). It is not affected by `playerScale`.
+| ID | Tag | Counted as | Nursery | Sunlit Reef | Kelp Forest | Drop-off |
+|---|---|---|---|---|---|---|
+| `plankton` | [MVP] | Motes | 6 patches + 2 per player inside | 300 | 200 | 150 |
+| `krill` | [MVP] | Swarms | 2 + 1 per player inside | 8 | — | — |
+| `shrimp` | [MVP] | Groups of 1 to 3 | — | 30 | 35 | — |
+| `sardine` | [MVP] | Schools | — | 6 | 5 | — |
+| `darter` | [MVP] | Groups of 1 or 2 | — | 14 | 16 | — |
+| `mackerel` | [MVP] | Groups of 1 to 3 | — | — | 12 | 14 |
+| `bonito` | [MVP] | Packs | — | — | — | 5 |
+| `tuna` | [MVP] | Animals | — | — | — | 3 |
+| `glowfry` | [MVP] | Animals | — | 6 | 4 | — |
+| `dotted_goby` | [MVP] | Animals | — | 10 | — | — |
+| `zebra_darter` | [MVP] | Animals | — | 8 | — | — |
+| `urchin_puff` | [MVP] | Animals | — | 6 | — | — |
+| `armor_shrimp` | [MVP] | Animals | — | — | 6 | — |
+| `ribbonfish` | [MVP] | Animals | — | — | 6 | — |
+| `leaf_drifter` | [L] | Animals | — | — | 5 | — |
+| `inklet` | [MVP] | Animals | — | — | — | 5 |
+| `spark_eel` | [L] | Animals | — | — | — | 5 |
+| `vent_snail` | [L] | Animals | — | — | — | 4 |
+
+<!-- /data -->
+
+- **Nursery** scales with the players inside it, not with `n`: the base in its column, plus the stated number per player inside, up to document 03's caps of 12 patches and 5 swarms (24 and 10 in a Feeding Frenzy). It is not affected by `playerScale`.
+- **Individuals to groups.** A count of motes becomes patches at the mean patch size of document 03, section 2.1 (8 motes): 300 motes are 37.5 patches. Tuna swim alone, so animals are groups.
+- **Smaller spawn areas (tune).** A spawn area that is not the whole zone (a test arena, a cut map) multiplies every base count, every Nursery per-player count and every cap by `areaScale = area ÷ zone area`, both measured from above (document 03, section 6.1, data:ZoneAreas). On the real map `areaScale` is 1. Each scaled target and cap rounds to the nearest whole group, and every prey the zone allows keeps at least 1 group.
 - Trait prey targets ignore `playerScale` and `eventScale`.
 
 Predators and hazards per server:
