@@ -597,6 +597,7 @@ depth  WEST                                                              EAST
 | Home Current mouth | 335 | (−110, 201) · 30 | Where chapter 04's Home Current picks the player up. Section 6.7 gives the distances from here to the coves. |
 
 - The route passes 27 studs north of the Bubble Fountain. Krill Corner is 40 studs behind the Hatch Bed.
+- **Authoring:** the Hatch Bed is marked in Studio by one volume of kind `HatchBed` (chapter 09, section 9.1): a small Ball part centred on the egg at (−398, 340), floor 24, its look vector pointing east along the route. The first-run spawn reads it; nothing else does.
 - Predators never enter the Nursery, so chapter 04's scripted Barracuda waits on the Reef side: under a rock shelf on the Rim face at (−267, 295), 20 studs to the right of Little Arch's Reef end.
 - The whole route is in the west half of the Reef, which has no real Barracuda and no anemones (section 6.3).
 

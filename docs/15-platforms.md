@@ -129,6 +129,8 @@ scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 
 **Input mode** decides the control scheme, the hints and the assist strength. It is `UserInputService.PreferredInput`, re-read on every change (section 5). Values: `Touch`, `Keys`, `Pad`.
 
+**Control scheme IDs**, saved per input mode (chapter 09, section 12.2, `InputSettings.scheme`): `drag` (drag to swim, Touch, [MVP]), `two_thumb` (the two-thumb phone scheme, Touch, [L]), `keys` (mouse and keyboard, or keys only, Keys, [MVP]) and `pad` (Pad, [L]). The left-handed layout is a setting of a scheme, not a scheme.
+
 | | Phone | Tablet | Desktop | Handheld | TV |
 |---|---|---|---|---|---|
 | Usual input mode | Touch | Touch | Keys | Pad | Pad |

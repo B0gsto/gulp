@@ -117,7 +117,8 @@ Overlays: `Dashing`, `Puffed`, `Tucked`, `Jetting`, `Rampaging`, `Slowed`, `Camo
 
 1. A run **starts** when the centre leaves the owner's `CoveSafe` (`InCove` → `Swimming`). The run timer starts.
 2. A run is **armed for banking** once mass ≥ 1.
-3. Re-entering the own cove with mass < 1 cancels the run silently (back to `InCove`; not counted in any statistic).
+3. Re-entering the own cove with mass < 1 cancels the run silently (back to `InCove`; not counted in any statistic). Re-entering it with an armed run banks it at once (section 11.2); an armed run is never cancelled.
+   - **Build note, before the bank sequence exists** (Sprint 4 builds run start and gulp before banking): an armed run that re-enters the own cove stays a live run. The creature keeps its mass and traits, is as safe as any creature in its own cove, and carries on when it swims out. Nothing is paid or counted. When the bank sequence lands, this case banks as above.
 4. A run **ends** by banking (section 11), by being gulped without a revive (section 12), or by a suspended run expiring (section 16.5).
 
 ---
@@ -437,6 +438,8 @@ For a player, wild creature or predator target, `targetRadius` is its collision 
 | Range, × `mouthRadius` | 2.5 | 2.25 | 2.5 | 2.0 |
 | Pull (studs/s) | 12 | 10 | 12 | 6 |
 
+**What a client may claim.** With the assist, a prey bite is claimed at most `range × mouthRadius` from the mouth centre (2.5 × on touch and pad, the widest column), measured on the client's own smoothed rig and drawn prey. Without it, at most `mouthRadius + preyRadius`. `mouthRadius` here is the full value above, including `species.mouthMult`, the dash factor and the newcomer's first-run factor (chapter 04, section 4: ×1.6 in run 1, ×1.3 in run 2). The server's check (section 4.7; chapter 09, section 8.9) uses the same mouth centre and radius, always with the dash factor and the widest assist, and adds tolerance on top, so every bite this section allows is inside the server's reach.
+
 Two more assists ship at **[L]** behind live config flags and act on computer-controlled prey only: a **steering nudge** toward the nearest edible prey within 15° of the nose (up to 20% of the turn rate, on drag and pad), and a **dash snap** that bends a dash toward edible prey inside its reach (up to 12° on drag and pad, 8° on two-thumb, none on keys). The dash snap is the one exception to "a dash goes along the current facing" (section 7.1). No assist ever acts on another player.
 
 ### 4.2 Check order
@@ -447,7 +450,7 @@ Checks run in this order. The first failure decides the result.
 |---|---|---|
 | 1 | Eater's base state allows biting (section 0.6) and it is not `Tucked` | Nothing |
 | 2 | Target exists and has not already been eaten | Nothing |
-| 3 | Geometry hit (4.1) within the tolerance in 4.6 | Nothing |
+| 3 | Geometry hit (4.1) within the tolerance in 4.7 | Nothing |
 | 4 | Target is outside every safe volume (players, wild creatures, predators only) | Nothing; no collision inside safe volumes |
 | 5 | Target has no protection window (the first-run shield is one) and is not `Tucked` | Bump (section 6.2) |
 | 6 | `canEat` tier test, including tier 1 immunity, Puff and Spiny (section 0.4) | Bump. Prey too big for the eater also bumps. |
@@ -497,7 +500,7 @@ Each member of a school or swarm is its own prey item. One pass through a school
 
 | Kind of bite | Who detects it | Tolerance |
 |---|---|---|
-| Player eats prey or trait prey | The client claims; the server checks | Accept if `distance ≤ (mouthRadius + preyRadius) × 1.5 + 2 studs`, using the eater's last accepted position and the prey's server position rewound by the eater's latency, at most 0.25 s |
+| Player eats prey or trait prey | The client claims; the server checks | Accept if `distance(mouthCentre, prey) ≤ 2.5 × mouthRadius + preyRadius + preyWobble + 3 studs + 0.15 s × (eaterSpeed + preySpeed)`, with `mouthCentre` and `mouthRadius` as in 4.1 taken with the dash factor (×1.25) whether or not the eater dashed, on the eater's validated pose and the prey's server position at the claimed time, rewound at most 0.4 s. Chapter 09, section 8.9 owns the mechanism. |
 | Player eats player, wild creature or predator | The server, on its own tick. Clients never claim these. | Exact geometry on server positions, swept between ticks so a dash cannot skip past a target |
 | Predator eats player | The server | Exact geometry, swept |
 
@@ -767,14 +770,14 @@ Passive, plus a start bonus. The ability is called Rampage (ID `rampage`); "Fren
 
 | Time | Event |
 |---|---|
-| T+0.00 | The last pip is eaten with a slot free. The trait takes the lowest-numbered free slot. Codex "found" stamp saved. |
+| T+0.00 | The last pip is eaten with a slot free. The trait takes the first free slot, which is always the one after the last held trait (section 8.3: the held traits never have a gap). Codex "found" stamp saved. |
 | T+0.00 to T+0.50 | The trait's body feature grows in. Banner with the trait name and rarity colour, 1.5 s. |
 | T+0.50 | The effect becomes active |
 
 ### 8.3 Slots and shedding [MVP]
 
 - Three slots. No duplicate traits.
-- **Shed:** tap a filled slot, then hold the confirm ring 0.6 s. The trait is removed at once, its body feature pops off as bubbles, and its pips reset to 0.
+- **Shed:** tap a filled slot, then hold the confirm ring 0.6 s. The trait is removed at once, its body feature pops off as bubbles, and its pips reset to 0. The traits after it move down one slot, keeping their order, so the held traits always fill slots 1, 2, 3 from the left in the order gained, with no gap (chapter 08 shows them that way; the saved trait list has no holes).
 - Shedding is free, has no cooldown and gives nothing back.
 - Cannot shed while `Stunned`, `Hooked`, `Transit`, `Banking` or `Gulped`.
 - A shed trait can be regained in the same run by eating its prey again from 0 pips.
@@ -1265,7 +1268,7 @@ cap            = 8 hours (24 with Tide Watcher [L])
 ```
 
 - Document 05, section 3.3 owns the base table and the trait bonuses.
-- There is one cap and one pile. The pile fills at the same rate online and offline and stops when the time since the last claim reaches the cap.
+- There is one cap and one pile. The pile fills at the same rate online and offline and stops when the time since the last claim reaches the cap. The cap is a length of time, not an amount: after a rate change the pile keeps what each period earned at its own rate.
 - When the set of specimens changes (a bank or a release), the server first adds income up to that moment at the old rate, then switches to the new rate.
 - **Claim:** the owner touches or taps the Pearl clam in the cove. All of `pending` (rounded down) moves to Pearls and `lastClaim = now`.
 - **The one automatic payment** (canon 11): a new player's first specimen pays one hour of its income by itself, once per account, as a first-bank reward. Nothing else in the cove ever pays without a tap. Chapter 04, section 6.2 owns the amount and the timing.
@@ -1446,10 +1449,10 @@ A product that starts a Feeding Frenzy on the buyer's server only.
 | Rule | Value |
 |---|---|
 | Count | Three per UTC day |
-| Selection | Seeded by user ID and UTC day number. One Easy, one Medium and one Hard goal from chapter 03's list (canon 11); the one exception is an account's first day, which uses the fixed set `dg_eat_50`, `dg_tier3` and `dg_bank_snapper` (Easy, Easy, Medium). Where the list allows, the three also come from three different pools: **Eat** (eat N of a prey type; eat N prey in a zone), **Grow and bank** (reach tier N; bank with mass ≥ M; bank holding a trait), **World** (eat N prey during a tide event; ride a current; breach N times; dodge a predator; visit other coves **[L]**). Chapter 03, section 9 owns the list: it has no chain goal and no Bubble goal. |
+| Selection | Seeded by user ID and UTC day number. One Easy, one Medium and one Hard goal from chapter 03's list (canon 11); the one exception is an account's first day, which uses the fixed set `dg_eat_50`, `dg_tier3` and `dg_bank_snapper` (Easy, Easy, Medium). Where the list allows, the three also come from three different pools: **Eat** (eat N of a prey type; eat N prey in a zone), **Grow and bank** (reach tier N; bank with mass ≥ M; bank holding a trait), **World** (eat N prey during a tide event; ride a current; breach N times; dodge a predator; visit other coves **[L]**). Chapter 03, section 9 owns the list and gives each goal its pool (the Pool column: `eat`, `grow`, `world`): it has no chain goal and no Bubble goal. |
 | Fit to the player | A tier goal is never above the account's best tier + 1. A goal never needs content that has not shipped, a species the player does not own, or a purchase. At most one goal a day needs eating players, and only on a server with 6 or more players. |
 | Progress | Counts from the moment the goal is given. Carries across servers and sessions. |
-| Completion | Automatic. The reward is paid the moment the goal completes: the Pearls fly to the counter and there is no claim button (chapter 04, section 7.2), so nothing is left unpaid at reset. Document 05, section 3.5 owns the amounts. |
+| Completion | Automatic. The reward is paid the moment the goal completes: the Pearls fly to the counter and there is no claim button (chapter 04, section 7.2), so nothing is left unpaid at reset. Document 05, section 3.5 owns the amounts: base × rank multiplier, rounded down to a whole Pearl. |
 | All three done | A bonus reward (document 05). **[L]** The lifetime count of days with all three done gives four free decorations, at 3, 7, 14 and 28 days (chapter 03, section 13). |
 | Reset | 00:00 UTC. A player online at reset gets the new goals at once with a toast; old progress is dropped. |
 | Reroll | One free reroll per day on any unfinished goal **[MVP]**. One more per day by rewarded video where eligible **[L]**; the same Goal Reroll is also sold as a product (document 05 owns the price and limits). The new goal has the same difficulty, differs from the current three, and starts at 0. |
