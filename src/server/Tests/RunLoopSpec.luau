@@ -1,7 +1,7 @@
 --!strict
 -- Engine-side spec of RunLoopService (task S4-C4; docs/09, sections 5.3, 6.3 and 6.8; docs/02,
 -- sections 0.7 and 5.1). It needs one real player, so it runs in a play test through the RunTests
--- hook (section 16.3): the join placement, run start on leaving home and the silent cancel on
+-- hook (section 16.3): the join placement (from the profile's `stats.banks`), run start on leaving home and the silent cancel on
 -- coming back, a gulp with its `Phase` transitions, no respawn before "Swim again" (`RunAction`
 -- op 1), the tap refused before the gulp card is up, the respawn within 0.8 s of the tap, and
 -- the tier change events on growth and on loss. It ends with the creature at its cove, released to its owner.
@@ -15,6 +15,7 @@ local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
 local CreatureService = require("../Services/CreatureService")
+local DataService = require("../Services/DataService")
 local PlayerLifecycle = require("../Services/PlayerLifecycle")
 local RunLoopService = require("../Services/RunLoopService")
 
@@ -83,6 +84,16 @@ return function()
 				local run = assert(RunLoopService._test.run(slot))
 				expect(run.player).toBe(player)
 				expect(player:GetAttribute("Phase")).toBe(RunLoopService.state(slot))
+				-- Canon 5.5: never banked (`stats.banks == 0`) hatches in the Nursery, else the cove;
+				-- the cove too on a map with no Nursery. Only the first run of the session counts.
+				local profile = assert(DataService.get(player), "no profile for the player")
+				if run.generation == 1 then
+					local expected = RunRules.joinHome(profile.stats.banks > 0)
+					if #RunLoopService._test.nurseries() == 0 then
+						expected = "cove"
+					end
+					expect(run.home).toBe(expected)
+				end
 				-- A first run hatches at the HatchBed (09 §9.1) when the map has one.
 				local beds = RunLoopService._test.hatchBeds()
 				if run.home == "nursery" and #beds > 0 then

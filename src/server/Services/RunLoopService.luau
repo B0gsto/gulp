@@ -36,6 +36,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
 local CreatureService = require("./CreatureService")
+local DataService = require("./DataService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
@@ -284,9 +285,13 @@ end
 --- Called by PlayerLifecycle just before `CreatureService.spawn`: creates the slot's RunState
 --- (`Phase = cove`) and returns where the creature appears (09 §6.3 Join row).
 function RunLoopService.join(player: Player, slot: Slot): CFrame
-	-- TODO(B20, S4-C6): `hasBanked` from the profile (DataService); until it lands every account
-	-- is treated as never banked, so every join starts in the Nursery.
-	local hasBanked = false
+	-- Canon 5.5: an account that has never banked (`stats.banks == 0`, 09 §12.2) hatches in the
+	-- Nursery; any other starts at its cove. PlayerLifecycle loads the profile before the slot.
+	local profile = DataService.get(player)
+	if profile == nil then
+		Log.warn(TAG, `join: no profile for {player.UserId}; treated as never banked`)
+	end
+	local hasBanked = profile ~= nil and profile.stats.banks > 0
 	local home: Home = RunRules.joinHome(hasBanked)
 	local at = if home == "nursery" then nurseryCFrame() else nil
 	if at == nil then
