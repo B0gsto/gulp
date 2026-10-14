@@ -8,6 +8,7 @@
 -- stand-in is the whole change. Names and sizes do not change (08 §15).
 local TweenService = game:GetService("TweenService")
 
+local Screen = require("./Screen")
 local Theme = require("./Theme")
 
 local Draw = {}
@@ -63,7 +64,7 @@ function Draw.stroke(thickness: number, colour: Color3?, contextual: boolean?): 
 	})
 end
 
---- A text label in rpx. `style`: "display" (Fredoka One) or "body" (Nunito ExtraBold).
+--- A text label in rpx (drawn at no fewer whole pixels than `size` x the scale). `style`: "display" (Fredoka One) or "body" (Nunito ExtraBold).
 function Draw.text(
 	props: Props,
 	size: number,
@@ -71,11 +72,15 @@ function Draw.text(
 	outline: number?
 ): TextLabel
 	local label = Draw.new("TextLabel", props) :: TextLabel
-	label.TextSize = size
+	-- 08 §1.5: rounded up to whole pixels at the current scale; Screen keeps it so on rescale.
+	label:SetAttribute(Screen.TEXT_RPX, size)
+	label.TextSize = Screen.textSize(size)
 	label.FontFace = if style == "body" then Theme.FONT_BODY else Theme.FONT_DISPLAY
 	label.TextWrapped = false
 	if outline then
-		Draw.stroke(outline, Theme.INK, true).Parent = label
+		local stroke = Draw.stroke(Screen.strokeSize(outline), Theme.INK, true)
+		stroke:SetAttribute(Screen.STROKE_RPX, outline)
+		stroke.Parent = label
 	end
 	return label
 end

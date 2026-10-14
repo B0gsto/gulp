@@ -177,41 +177,61 @@ function MassBar.new(parent: Instance): MassBar
 		Parent = bar,
 	}, { Draw.corner() }) :: Frame
 
+	-- The numbers sit on a dark plate at each end of the bar, so the white digits and their dark
+	-- 2 rpx stroke (08 §1.5) read on any fill colour or world behind (review: weak on teal).
+	local function plate(name: string, anchorX: number, x: UDim): Frame
+		return Draw.new("Frame", {
+			Name = name,
+			AnchorPoint = Vector2.new(anchorX, 0.5),
+			Position = UDim2.new(x, UDim.new(0.5, 0)),
+			Size = UDim2.fromOffset(0, BAR_H + 6),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundColor3 = Theme.INK,
+			BackgroundTransparency = 0.35,
+			ZIndex = 5,
+			Parent = bar,
+		}, {
+			Draw.corner(),
+			Draw.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }),
+		}) :: Frame
+	end
+	local massPlate = plate("MassPlate", 0, UDim.new(0, -2))
 	local mass = Draw.text({
 		Name = "Mass",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.5, 0),
-		Size = UDim2.fromOffset(110, 34),
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = Theme.WHITE,
 		Text = "0",
 		ZIndex = 6,
-		Parent = bar,
+		Parent = massPlate,
 	}, Theme.TEXT.number, "display", Theme.STROKE_TEXT)
 	local massScale = Draw.new("UIScale", { Parent = mass }) :: UIScale
 
-	local goal = Draw.new("Frame", {
-		Name = "Goal",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(110, 28),
-		ZIndex = 6,
-		Parent = bar,
-	}) :: Frame
+	local goal = plate("Goal", 1, UDim.new(1, 2))
+	goal.ZIndex = 5
+	Draw.new("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = goal,
+	})
+	-- The mass still needed is a number too: Number 28, like the mass (08 §1.5 and §3.4).
 	local goalText = Draw.text({
 		Name = "ToGo",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.new(1, -22, 1, 0),
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		LayoutOrder = 2,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = Theme.WHITE,
 		Text = "",
 		ZIndex = 6,
 		Parent = goal,
-	}, Theme.TEXT.small, "display", Theme.STROKE_TEXT)
+	}, Theme.TEXT.number, "display", Theme.STROKE_TEXT)
 	local arrow = Draw.new("Frame", {
 		Name = "UI_HUD_GoalArrow",
-		AnchorPoint = Vector2.new(1, 0.5),
+		LayoutOrder = 1,
 		Size = UDim2.fromOffset(20, 20),
 		ZIndex = 6,
 		Parent = goal,
@@ -320,7 +340,6 @@ function MassBar.new(parent: Instance): MassBar
 				goalText.Text = shortText(state.toGo)
 				arrow.Visible = true
 			end
-			arrow.Position = UDim2.new(1, -(goalText.TextBounds.X + 4), 0.5, 0)
 			nextRing.Visible = not state.max
 			crown.Visible = state.max
 			local goalFill = UDim2.fromScale(state.fill, 1)

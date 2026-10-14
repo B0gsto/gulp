@@ -67,6 +67,8 @@ local function chevrons(parent: Instance, size: number, z: number)
 	end
 end
 
+local WEDGE_TRANSPARENCY = 0.75
+
 function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 	local root = Draw.new(
 		"Frame",
@@ -118,8 +120,9 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		UDim2.fromScale(0.3, 0.26),
 		{ Name = "Highlight", BackgroundTransparency = 0.45, ZIndex = 4, Parent = face }
 	)
-	-- The wedge sits under the symbol, light enough that the button still reads (08 §3.7).
-	local setWedge = Draw.wedge(face, 136, Theme.DIM, 0.6, 4)
+	-- The dark wedge of 08 §3.7 sits under the symbol and stays light (25% navy), so the orange
+	-- face and the navy chevrons read at every phase of the cooldown (review: 40% went brown).
+	local setWedge = Draw.wedge(face, 136, Theme.INK, WEDGE_TRANSPARENCY, 4)
 	chevrons(face, 136 * 0.62, 5)
 	Draw.slot("UI_HUD_DashButton", face, 7)
 
@@ -142,7 +145,7 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		{ Name = "Icon", ZIndex = 3, Parent = tile }
 	)
 	Draw.stroke(Theme.STROKE_ICON).Parent = icon
-	local setTileWedge = Draw.wedge(icon, 64, Theme.DIM, 0.6, 3)
+	local setTileWedge = Draw.wedge(icon, 64, Theme.INK, WEDGE_TRANSPARENCY, 3)
 	chevrons(icon, 40, 4)
 
 	-- Ready again: `UI_Common_RingPulse`.

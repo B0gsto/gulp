@@ -6,7 +6,10 @@
 --   HudHarness:Invoke("pose")       drag ring, a dash cooldown, mass pops and an off-screen home
 --   HudHarness:Invoke("open", "S11" | "S12")   and   HudHarness:Invoke("close", "S11" | "S12")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 
 local CreatureRig = require("../Render/CreatureRig")
 local Outlines = require("../Render/Outlines")
@@ -69,12 +72,20 @@ local function outlineDemo(on: boolean)
 				part.CanCollide = false
 			end
 		end
-		local at = camera.CFrame * CFrame.new(if i == 1 then 9 else -10, -3, -30)
+		-- Placed through the (simulated) screen, which sits at the top left of the real viewport,
+		-- so both stay whole inside the shot: the edible one right of the keep-clear box and near
+		-- enough that its lime outline (06 §13.2) reads, the dangerous one upper left.
+		local layout = Screen.layout()
+		local w, h = layout.fullSize.width * layout.scale, layout.fullSize.height * layout.scale
+		local ray = if i == 1
+			then camera:ViewportPointToRay(w * 0.8, h * 0.5)
+			else camera:ViewportPointToRay(w * 0.2, h * 0.4)
+		local at = ray.Origin + ray.Direction * (if i == 1 then 20 else 32)
 		rig.model:PivotTo(
-			CFrame.lookAt(at.Position, camera.CFrame.Position) * CFrame.Angles(0, math.rad(80), 0)
+			CFrame.lookAt(at, camera.CFrame.Position) * CFrame.Angles(0, math.rad(80), 0)
 		)
 		rig.model.Parent = workspace
-		CreatureRig.applyScale(rig, if i == 1 then 1.2 else 2.4)
+		CreatureRig.applyScale(rig, if i == 1 then 2 else 2.4)
 		CreatureRig.setOutline(rig, kind, Outlines.colour(kind))
 		CreatureRig.refitOutline(rig)
 		table.insert(demo, rig)
@@ -110,7 +121,10 @@ local function measure(): string
 			local stroke = o:FindFirstChildOfClass("UIStroke")
 			table.insert(
 				out,
-				`{label} text {o.TextSize}{if stroke then ` stroke {stroke.Thickness}` else ""} drawn {math.round(
+				`{label} text {o:GetAttribute("TextRpx") or o.TextSize}->{o.TextSize}{if stroke
+					then ` stroke {string.format("%.2f", stroke.Thickness)}`
+					else ""} drawn {math.round(o.TextBounds.Y)}px={string.format(
+					"%.1f",
 					o.TextBounds.Y / scale
 				)}`
 			)
@@ -151,6 +165,17 @@ local function measure(): string
 		table.insert(out, `Dash on screen {if inside then "yes" else "no"}`)
 	end
 	size("Home", "GulpWorld", "Disc")
+	-- 08 §3.12 keep-out: the gap between the home marker's rect and the drag ring, in rpx.
+	local marker, dragRing = find("GulpWorld", "Marker"), find("GulpWorld", "UI_HUD_DragRing")
+	if marker and dragRing then
+		local c = (marker.AbsolutePosition + marker.AbsoluteSize / 2) / scale
+		local rc = (dragRing.AbsolutePosition + dragRing.AbsoluteSize / 2) / scale
+		local mr = HudLayout.homeRect(c.X, c.Y)
+		local rr = HudLayout.ringRect(rc.X, rc.Y)
+		local gx = math.max(rr.x - (mr.x + mr.width), mr.x - (rr.x + rr.width))
+		local gy = math.max(rr.y - (mr.y + mr.height), mr.y - (rr.y + rr.height))
+		table.insert(out, `home-ring gap {math.round(math.max(gx, gy))}`)
+	end
 	text("homeDist", "GulpWorld", "Distance")
 	text("pop", "GulpWorld", "Pop")
 	bottomGap("SwimAgain", "GulpMoments", "SwimAgain")

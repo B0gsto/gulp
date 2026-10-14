@@ -242,19 +242,49 @@ function HudLayout.homeOnEllipse(content: Size, angle: number): (number, number)
 	return content.width / 2 + ax * math.cos(angle), content.height / 2 + ay * math.sin(angle)
 end
 
---- The rect the home marker and its distance label take with the marker centred on (x, y).
+-- What the marker draws around its centre: the pointer orbits 48 rpx out (its tip 60), the
+-- glow is 1.3 x the marker, and the distance chip hangs 4 rpx under the marker.
+HudLayout.HOME_REACH = 48 + HudLayout.HOME.pointer / 2
+HudLayout.HOME_CHIP_GAP = 4
+
+--- The rect the home marker takes with its centre on (x, y): the pointer's whole orbit, the
+--- glow and the distance chip under it.
 function HudLayout.homeRect(x: number, y: number): Rect
 	local h = HudLayout.HOME
+	local reach = math.max(HudLayout.HOME_REACH, h.size * 1.3 / 2)
+	local bottom = math.max(reach, h.size / 2 + HudLayout.HOME_CHIP_GAP + h.labelHeight)
 	return {
-		x = x - h.size / 2,
-		y = y - h.size / 2,
-		width = h.size,
-		height = h.size + h.labelHeight,
+		x = x - reach,
+		y = y - reach,
+		width = 2 * reach,
+		height = reach + bottom,
 	}
 end
 
+--- The drag ring's area (08 §3.16) as a rect, from a pose's ring centre.
+function HudLayout.ringRect(ringX: number, ringY: number): Rect
+	local r = HudLayout.DRAG.ring / 2
+	return { x = ringX - r, y = ringY - r, width = 2 * r, height = 2 * r }
+end
+
+--- Everything the off-screen home marker keeps clear of (08 §3.12 and §1.5): the mass bar, the
+--- dash and ability hit areas and, while a touch steers, the drag ring (content-box rpx).
+function HudLayout.homeAvoid(screenClass: ScreenClass, rects: HudRects, ring: Rect?): { Rect }
+	local min = HudLayout.minTarget(screenClass)
+	local avoid = {
+		rects.massBar,
+		rects.dashHit,
+		HudLayout.hitRect(rects.ability, min),
+	}
+	if ring then
+		table.insert(avoid, ring)
+	end
+	return avoid
+end
+
 --- The off-screen home marker (08 §3.12): on the ellipse in the direction of home, slid along it
---- the shortest way until the marker and its label clear every `avoid` rect by 16 rpx.
+--- the shortest way until the marker, its pointer and its label clear every `avoid` rect by
+--- 16 rpx.
 --- Returns the centre and the angle used.
 function HudLayout.homeMarker(
 	content: Size,

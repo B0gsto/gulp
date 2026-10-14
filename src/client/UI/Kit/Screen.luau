@@ -129,8 +129,31 @@ local function measure(): (Reading, Size, Rect, Rect)
 	return reading, screen, safeArea, topbar
 end
 
+-- docs/08 section 1.5: a label made by `Draw.text` keeps its size in rpx in the `TextRpx`
+-- attribute; its TextSize is that size rounded up so the drawn pixels never fall under it.
+local TEXT_RPX = "TextRpx"
+Screen.TEXT_RPX = TEXT_RPX
+-- The same for a text stroke (`UIStroke` under a label): its rpx in `StrokeRpx`, drawn in
+-- whole pixels.
+local STROKE_RPX = "StrokeRpx"
+Screen.STROKE_RPX = STROKE_RPX
+
+local function applyText(root: Instance, scale: number)
+	for _, d in root:GetDescendants() do
+		local rpx = d:GetAttribute(TEXT_RPX)
+		if type(rpx) == "number" and (d:IsA("TextLabel") or d:IsA("TextButton")) then
+			(d :: any).TextSize = ScreenScale.textRpx(rpx, scale)
+		end
+		local stroke = d:GetAttribute(STROKE_RPX)
+		if type(stroke) == "number" and d:IsA("UIStroke") then
+			d.Thickness = ScreenScale.wholePxRpx(stroke, scale)
+		end
+	end
+end
+
 local function applyLayer(layer: Layer, layout: Layout)
 	layer.uiScale.Scale = layout.scale
+	applyText(layer.root, layout.scale)
 	local sim = simulated
 	if layer.safe then
 		local frame = layout.safeFrame
@@ -276,6 +299,20 @@ end
 --- The current interface scale (rpx to px).
 function Screen.scale(): number
 	return requireLayout().scale
+end
+
+--- The TextSize for text of `rpx` at the current scale (rounded up to whole pixels, docs/08
+--- section 1.5); `rpx` itself before `start()`.
+function Screen.textSize(rpx: number): number
+	local layout = currentLayout
+	return if layout then ScreenScale.textRpx(rpx, layout.scale) else rpx
+end
+
+--- The thickness for a text stroke of `rpx` at the current scale (whole pixels, docs/08
+--- section 1.5); `rpx` itself before `start()`.
+function Screen.strokeSize(rpx: number): number
+	local layout = currentLayout
+	return if layout then ScreenScale.wholePxRpx(rpx, layout.scale) else rpx
 end
 
 --- The raw device values of the last recompute, for the `sess_device` log (docs/15, 2.2).

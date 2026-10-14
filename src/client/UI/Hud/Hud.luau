@@ -186,7 +186,14 @@ function Hud.update(f: Tick)
 				dx, dy = -dx, -dy
 			end
 			local angle = math.atan2(dy, dx)
-			local hx, hy, used = HudLayout.homeMarker(content, angle, { r.dash, r.ability })
+			-- The drag ring in content-box rpx, while a touch steers (08 §3.12 keep-out).
+			local ring: HudLayout.Rect? = nil
+			if f.inputMode == "Touch" and d.active then
+				local pose = HudLayout.dragRing(d.ox, d.oy, d.tx, d.ty, layout.fullSize)
+				ring = HudLayout.ringRect(pose.ringX - origin.x, pose.ringY - origin.y)
+			end
+			local avoid = HudLayout.homeAvoid(layout.screenClass, r, ring)
+			local hx, hy, used = HudLayout.homeMarker(content, angle, avoid)
 			local _ = used
 			b.home.place({
 				x = hx + origin.x,

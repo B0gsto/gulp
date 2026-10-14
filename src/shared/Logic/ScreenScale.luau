@@ -157,6 +157,32 @@ function ScreenScale.scale(
 	)
 end
 
+--- The TextSize (rpx) to give a label so that text of `rpx` drawn at `scale` keeps at least
+--- ceil(rpx x scale) whole pixels. The engine draws a scaled TextSize floored to whole pixels,
+--- so a 22 rpx label at scale 0.542 (11.9 px) would draw 11 px, 20 rpx, under the 22 rpx floor
+--- of docs/08 section 1.5. Rounding up holds the floor at every scale.
+function ScreenScale.textRpx(rpx: number, scale: number): number
+	if scale <= 0 then
+		return rpx
+	end
+	local px = math.ceil(rpx * scale - 1e-6)
+	return math.max(rpx, math.ceil(px / scale))
+end
+
+--- A length of `rpx` rounded up to whole pixels at `scale`, in rpx: a text stroke of 2 rpx at
+--- scale 0.542 (1.08 px) draws 2 px, so the dark outline of docs/08 section 1.5 never thins out.
+function ScreenScale.wholePxRpx(rpx: number, scale: number): number
+	if scale <= 0 then
+		return rpx
+	end
+	return math.max(1, math.ceil(rpx * scale - 1e-6)) / scale
+end
+
+--- The whole pixels the engine draws a `textSize` rpx label at `scale` (floored).
+function ScreenScale.drawnPx(textSize: number, scale: number): number
+	return math.floor(textSize * scale + 1e-6)
+end
+
 --- The safe frame inside a device safe area of the given size, relative to its top left: the TV
 --- margins on a TV, then the ultrawide cap, centred.
 function ScreenScale.safeFrame(screenClass: ScreenClass, safeAreaSize: Size): Rect

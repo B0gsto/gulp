@@ -172,6 +172,63 @@ describe("HudLayout.homeMarker (docs/08 section 3.12)", function()
 	end)
 end)
 
+describe(
+	"HudLayout.homeMarker keep-out on every screen class (docs/08 sections 3.12, 3.16)",
+	function()
+		for name, layout in SCREENS do
+			local content = layout.contentSize
+			local origin = layout.contentOrigin
+			local full = layout.fullSize
+			local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
+			local box = { x = 0, y = 0, width = content.width, height = content.height }
+			-- Desktop has no drag ring; touch screens try the harness pose and a few thumb spots.
+			local rings: { Rect? } = { nil }
+			if layout.screenClass ~= "Desktop" then
+				rings = {}
+				for _, at in
+					{
+						{ 230, full.height - 210 },
+						{ 120, full.height - 120 },
+						{ 300, full.height / 2 },
+						{ 160, 200 },
+					}
+				do
+					local pose = HudLayout.dragRing(at[1], at[2], at[1] + 60, at[2] - 40, full)
+					table.insert(
+						rings,
+						HudLayout.ringRect(pose.ringX - origin.x, pose.ringY - origin.y)
+					)
+				end
+			end
+			it(
+				`{name}: the marker, pointer and chip clear every HUD element and stay inside`,
+				function()
+					for _, ring in rings do
+						local avoid = HudLayout.homeAvoid(layout.screenClass, rects, ring)
+						for deg = 0, 357, 3 do
+							local x, y = HudLayout.homeMarker(content, math.rad(deg), avoid)
+							local r = HudLayout.homeRect(x, y)
+							expect(inside(r, box)).toBe(true)
+							for _, a in avoid do
+								expect(HudLayout.overlaps(r, HudLayout.grow(a, HudLayout.GAP_MIN))).toBe(
+									false
+								)
+							end
+						end
+					end
+				end
+			)
+		end
+		it("the marker rect holds the pointer's orbit and the distance chip", function()
+			local r = HudLayout.homeRect(0, 0)
+			expect(r.x <= -HudLayout.HOME_REACH).toBe(true)
+			expect(r.y + r.height >= 36 + HudLayout.HOME_CHIP_GAP + HudLayout.HOME.labelHeight).toBe(
+				true
+			)
+		end)
+	end
+)
+
 describe("HudLayout screens S11 and S12 (docs/08 sections 4.4 and 4.5)", function()
 	for name, layout in SCREENS do
 		local content = layout.contentSize
