@@ -29,6 +29,7 @@ class FishFit:
         k = self.k
         self.bounds = (-0.85 * k, 0.0, 0.6 * k, 1.0 * k)   # where one spine bone hands over to the next
         self.blend = 0.12 * k
+        self.blends = (0.12 * k, 0.32 * k, 0.12 * k, 0.12 * k)   # the mid-body hand-over is wide: no crease when the halves bend apart
         self.girth_y, self.girth_reach = -0.3 * k, 0.55 * k
         self.jaw_y = -0.95 * k
 
@@ -79,8 +80,8 @@ class FishFit:
         return out
 
     def spine_weights(self, y):
-        h = self.blend
         for i, b in enumerate(self.bounds):
+            h = self.blends[i]
             if y < b - h:
                 return {SPINE_ORDER[i]: 1.0}
             if y <= b + h:
@@ -275,11 +276,11 @@ def fish_idle_pose(phase, k=1.0):
     twice, and the pectorals scull ten times on the bible's 6-frame beat in a figure eight
     (flap, then feather a quarter beat later), so the fish looks held up by its fins."""
     a = 2.0 * math.pi * phase
-    bob = 0.05 * k * math.sin(a)
+    bob = 0.15 * k * math.sin(a)                    # 06 7.4: 0.15 studs up and down, eased
     rise = math.cos(a)                              # the bob's speed, -1..1
     drag = math.cos(a - 0.6)                        # the same, 3 frames late
     s = 10.0 * a
-    flap, feather = 20.0 * _flutter(s), 10.0 * math.cos(s)
+    flap, feather = 34.0 * _flutter(s), 18.0 * math.cos(s)
     breathe = 0.5 - 0.5 * math.cos(2.0 * a)
     pose = {}
     for bone in ("Spine2", "Spine3"):
@@ -289,11 +290,11 @@ def fish_idle_pose(phase, k=1.0):
     _put(pose, "Girth_L", loc=(0.012 * k * breathe, 0.0, 0.0))
     _put(pose, "Girth_R", loc=(-0.012 * k * breathe, 0.0, 0.0))
     _put(pose, "Spine2", rot=(0.0, 0.0, 0.6 * math.sin(2.0 * a)))
-    _put(pose, "Spine1", rot=(1.4 * rise, 0.0, -0.4 * math.sin(2.0 * a)))
-    _put(pose, "Spine4", rot=(-2.2 * drag, 0.0, 2.6 * math.sin(2.0 * a - 1.0)))
-    _put(pose, "TailFin", rot=(-3.2 * math.cos(a - 1.0), 2.0 * math.sin(2.0 * a - 2.2), 4.5 * math.sin(2.0 * a - 1.8)))
+    _put(pose, "Spine1", rot=(4.0 * rise, 0.0, -0.8 * math.sin(2.0 * a)))
+    _put(pose, "Spine4", rot=(-5.0 * drag, 0.0, 5.0 * math.sin(2.0 * a - 1.0)))
+    _put(pose, "TailFin", rot=(-8.0 * math.cos(a - 1.0), 4.0 * math.sin(2.0 * a - 2.2), 9.0 * math.sin(2.0 * a - 1.8)))
     _put(pose, "Dorsal", rot=(-3.0 + 3.0 * math.sin(a - 0.8), 2.5 * math.sin(2.0 * a - 1.4), 0.0))
-    _put(pose, "Jaw", rot=(3.0 * breathe, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(5.0 * breathe, 0.0, 0.0))
     _put(pose, "Pec_L", rot=(feather, flap, 0.0))
     _put(pose, "Pec_R", rot=(feather, -flap, 0.0))
     return pose
@@ -319,9 +320,9 @@ def fish_dash_pose(frame, k=1.0):
     # each bone holds the C for its lag, then follows: the wave runs down the body.
     bend = lambda lag: ease_keys(max(frame - lag, min(frame, 2.0)), DASH_BEND)
     fins = ease_keys(frame - 1.0, DASH_FINS)
-    _put(pose, "Spine2", rot=(0.0, 0.0, 9.0 * bend(0.0)))
-    _put(pose, "Spine1", rot=(0.0, 0.0, 7.0 * bend(0.0)))
-    _put(pose, "Spine3", rot=(0.0, 0.0, -12.0 * bend(0.5)))
+    _put(pose, "Spine2", rot=(0.0, 0.0, 7.0 * bend(0.0)))
+    _put(pose, "Spine1", rot=(0.0, 0.0, 10.0 * bend(0.0)))
+    _put(pose, "Spine3", rot=(0.0, 0.0, -10.0 * bend(0.5)))
     _put(pose, "Spine4", rot=(0.0, 0.0, -13.0 * bend(1.2)))
     _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), -15.0 * bend(2.0)))
     pose["Pec_L"] = {"rot": (0.0, -6.0 * min(fins, 0.0), 26.0 * fins)}
@@ -343,7 +344,7 @@ def fish_bite_pose(frame, k=1.0):
     stretch = ease_keys(frame, [(0, 1.0), (1, 0.93, "in"), (2, 1.08, "snap"), (4, 1.15), (6, 0.97, "io"), (8, 1.0, "io")])
     lunge = ease_keys(frame, [(0, 0.0), (1, -0.05 * k, "in"), (2, 0.36 * k, "snap"), (4, 0.22 * k, "io"), (6, -0.02 * k, "io"), (8, 0.0, "io")])
     nod = ease_keys(frame, [(0, -2.0), (1, -7.0, "in"), (2, 6.0, "snap"), (4, 0.0, "io"), (6, -1.5, "io"), (8, 0.0, "io")])
-    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.08, "snap"), (4, 0.045, "io"), (7, 0.0, "io")])
+    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.14, "snap"), (4, 0.07, "io"), (7, 0.0, "io")])
     brake = ease_keys(frame - 1.0, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.35, "io"), (7, 0.0, "io")])
     flick = lambda lag: ease_keys(frame - lag, BITE_FLICK)
     pose = fish_stretch_pose(stretch, k)
@@ -351,6 +352,7 @@ def fish_bite_pose(frame, k=1.0):
     _put(pose, "Jaw", rot=(jaw, 0.0, 0.0))
     _put(pose, "Girth_L", loc=(bulge, 0.0, 0.0))
     _put(pose, "Girth_R", loc=(-bulge, 0.0, 0.0))
+    _put(pose, "Girth_Bot", loc=(0.0, 0.0, -0.5 * bulge))
     _put(pose, "Pec_L", rot=(0.0, 12.0 * brake, -24.0 * brake))
     _put(pose, "Pec_R", rot=(0.0, -12.0 * brake, 24.0 * brake))
     _put(pose, "Dorsal", rot=(8.0 * brake, 0.0, 0.0))
@@ -365,8 +367,8 @@ FISH_CLIPS = {
     "A_Fish_Swim": (fish_swim_pose, [(0, "phase 0"), (4, "1/4"), (8, "1/2"), (12, "3/4")]),
     "A_Fish_SwimFast": (fish_swimfast_pose, [(0, "phase 0"), (2, "1/4"), (4, "1/2"), (6, "3/4")]),
     "A_Fish_Idle": (fish_idle_pose, [(0, "phase 0"), (15, "bob top"), (30, "1/2"), (45, "bob low")]),
-    "A_Fish_Dash": (fish_dash_pose, [(0, "start"), (2, "squash 85%, C"), (4, "snap 125%"), (8, "hold"),
+    "A_Fish_Dash": (fish_dash_pose, [(0, "start"), (1, "wind-up"), (2, "squash 85%, C"), (4, "snap 125%"), (8, "hold"),
                                      (10, "overshoot 95%"), (14, "settled")]),
-    "A_Fish_Bite": (fish_bite_pose, [(0, "jaw opening"), (1, "wind-up"), (2, "snap, lunge 12%"), (4, "stretch 115%"),
-                                     (6, "rebound"), (8, "settled")]),
+    "A_Fish_Bite": (fish_bite_pose, [(0, "jaw opening"), (1, "wind-up"), (2, "snap, lunge, cheeks"), (3, "cheeks"),
+                                     (4, "stretch 115%"), (6, "rebound"), (8, "settled")]),
 }

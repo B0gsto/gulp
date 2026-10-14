@@ -6,7 +6,7 @@ _Idle, _Dash and _Bite).
 
     Blender --background --python assets/source/species/minnow/build.py
 
-The Minnow juvenile at body scale 1.0 (3.0 long, 1.1 tall, 0.7 wide; 06 section 6.2): a slightly
+The Minnow juvenile at body scale 1.0 (3.0 long, 0.7 wide; 06 section 6.2; about 1.37 tall, see below): a slightly
 fat teardrop with a big round head, very large eyes, one small back fin and a short tail with a
 shallow fork (the fork grows into the adult's signature; 06 3.2, 03 "Minnow"). It sits on the
 family skeleton (rigs.FishFit, 18 deform bones and 10 weightless sockets; the export writes the
@@ -14,7 +14,8 @@ socket table beside the FBX) and carries the five family clips of rigs.FISH_CLIP
 A_Fish_*.fbx and, by the clips-rbxm step, as click-free Roblox .rbxm files. LODs and outline
 shells come from the run.py steps lod and shell (versions.py). Body depth: the deepest section
 (back to belly, fins left out) over the body length (nose to tail root) is printed by the build;
-the depth range of a juvenile is set by the species' size row (3.0 x 1.1 here).
+the S2-A1 review sets it to 45-50%, so the height grows past the 1.1 of the 06/07 size row
+(flagged for the owner: the row needs the new height).
 
 The dark block is the bible's Minnow dark #922700 (L* about 33, inside 06 4.1's 35). The yellow
 tail is the Minnow's ID mark (03), so it may cover up to 10% of the surface (06 4.1).
@@ -50,7 +51,8 @@ TEXTURE = "species_juv"                       # 06 section 5.6: 256 x 256, 60 px
 TEX = texgen.TEXTURE_CLASSES[TEXTURE][0]
 PAINT = 2 * TEX                               # painted at twice the size, then filtered down
 
-LENGTH, HEIGHT, WIDTH = 3.0, 1.1, 0.7         # 06 section 6.2
+LENGTH, WIDTH = 3.0, 0.7                      # 06 section 6.2 (height: below, from the body depth)
+DEPTH = 1.26                                  # body depth / 0.92 of the trial: 47% of the body length (S2-A1 review)
 Y_NOSE, Y_BODY_END = -1.5, 0.95
 Y_TAIL_ROOT, Y_TAIL_TIP = 0.86, 1.5
 HEAD_END = 0.40                               # body fraction where the head (and the cheek) ends: 42% of body length
@@ -85,12 +87,12 @@ def _rear(t, waist, start=0.38, power=1.35):
 
 def top(y):
     t = _t(y)
-    return 0.40 * _front(t) * _rear(t, 0.27, 0.40, 1.3) - 0.03 * (1.0 - _front(t))   # the back falls away behind mid-body, under the fin
+    return DEPTH * (0.40 * _front(t) * _rear(t, 0.27, 0.40, 1.3) - 0.03 * (1.0 - _front(t)))   # the back falls away behind mid-body, under the fin
 
 
 def bot(y):
     t = _t(y)
-    return 0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t))
+    return DEPTH * (0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t)))
 
 
 def half_w(y):
@@ -121,7 +123,9 @@ def body_part(segs, rings):
     return meshgen.loft(out, (0.0, Y_NOSE, -0.03), (0.0, Y_BODY_END + 0.04, 0.0))
 
 
-Z_LO, Z_HI = -0.555, 0.545      # the bounding height of 1.1: the pectorals' lowest tip, the back fin's top
+Z_HI = max(top(Y_NOSE + i * 0.01) for i in range(246)) + 0.17     # the back fin's top, 0.17 over the back
+Z_LO = -max(bot(Y_NOSE + i * 0.01) for i in range(246)) - 0.035    # the pectorals' lowest tip, just under the belly
+HEIGHT = Z_HI - Z_LO            # about 1.37: the 07/06 size row's 1.1 grows with the 45-50% body depth (flagged)
 
 
 def on_flank(y, z, inset):
@@ -129,12 +133,12 @@ def on_flank(y, z, inset):
 
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
-EYE_Y, EYE_Z = -1.05, 0.12
-EYE_R = 1.46 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0    # well over the 34% row: big cartoon eyes (art-director loops)
+EYE_Y, EYE_Z = -1.05, 0.15
+EYE_R = 0.36 * (top(EYE_Y) + bot(EYE_Y)) / 2.0           # eye diameter 36% of the head height (06 3.3: about 34%)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
 PUPIL_COS = math.cos(math.asin(0.56))                       # pupil 60% of the eye diameter as seen (the eyeball sits 0.02 into the head)
-PEC = (on_flank(-0.52, -0.25, 0.03), -0.52, -0.25)
+PEC = (on_flank(-0.52, -0.31, 0.03), -0.52, -0.31)
 DORSAL = (-0.30, 0.50)                                      # fore and aft ends of the back fin's root: set back, where the back line falls away, so the fin stands clear of it in side view
 MOUTH_END = -1.27                                           # the closed smile runs back to here
 
@@ -397,14 +401,14 @@ def paint(P, N, part):
     s = np.where(b, s + 0.4 * brow, s)                                                   # wet highlight on the brow
     # The smile: short, thick and upturned on the side of the head, below and in front of the eye and
     # clear of the snout tip, sitting on a cream lip patch so it still reads at 48 px.
-    my, mz, half, k = -1.23, -0.22, 0.18, 3.2          # clear of the belly line, under the front of the eye
+    my, mz, half, k = -1.23, -0.27, 0.18, 3.2          # clear of the belly line, under the front of the eye
     curve = mz + k * (y - my) ** 2                         # corners turn up
-    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.068 - 0.8 * (y - my) ** 2)   # 2 px thick at 48 px
+    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.085 - 0.8 * (y - my) ** 2)   # 0.17 studs: 2.7 px thick at 48 px (16 px a stud)
     corner_z = mz + k * half ** 2
     ends = np.minimum(np.hypot(y - (my - half), z - corner_z), np.hypot(y - (my + half), z - corner_z))
-    mouth = mouth | (b & (ends < 0.042))                  # round corners
+    mouth = mouth | (b & (ends < 0.05))                  # round corners
     # a thin cream lip line under the smile, so it holds at 48 px
-    lip_patch = b & ~mouth & (np.abs(y - my) < half * 0.95) & (z < curve - 0.06) & (z > curve - 0.115)
+    lip_patch = b & ~mouth & (np.abs(y - my) < half * 0.95) & (z < curve - 0.075) & (z > curve - 0.13)
     put(lip_patch, "light")
     s = np.where(lip_patch, s + 0.4, s)
     # the snout tip, where the nose's UV fan meets, stays one plain colour (no streaks)
@@ -721,7 +725,7 @@ def eye_x_card():
 # ---------------------------------------------------------------- the asset
 
 def build():
-    fit = rigs.FishFit(LENGTH, half_h, half_w, EYE, PEC, (0.0, 0.18, HEIGHT / 2.0))   # Sock_FinDorsal at the back fin's top
+    fit = rigs.FishFit(LENGTH, half_h, half_w, EYE, PEC, (0.0, 0.18, Z_HI))   # Sock_FinDorsal at the back fin's top
     arm = meshgen.build_armature("RIG_Fish", fit.bones())
     md, part_of_vertex = minnow_meshdata(RES, fit)
     body = meshgen.skin(md.to_object(NAME, "GEO"), arm)

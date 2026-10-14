@@ -43,6 +43,7 @@ import rigs
 
 DOC = os.path.join(common.REPO_DIR, "docs", "07-asset-list.md")
 PREVIEW_SIZE = 384            # 06 15.5: a 2-second, 384-pixel clip
+STRIP_SIZE = 640              # key-pose strips larger, so every pose reads whole
 PREVIEW_SECONDS = 2
 STRIP_VIEWS = ("Side", "Top")  # the fish wave is sideways, so it reads from the top
 CLIP_VIEW = "ThreeQuarter"
@@ -240,15 +241,17 @@ def preview(spec, report, validation_ok):
             arm.animation_data.action = clip["action"]
             length = clip["end"] - clip["start"]
             keys = clip.get("keys") or [(clip["start"], "")]
+            scene.render.resolution_x = scene.render.resolution_y = STRIP_SIZE
             rows = [{"view": v, "frames": _render_set(objs, v, [clip["start"] + k for k, _ in keys], tmp, name + "_k")}
                     for v in STRIP_VIEWS]
+            scene.render.resolution_x = scene.render.resolution_y = PREVIEW_SIZE
             # 2 seconds at 30 fps: a loop repeats, an action plays and then holds its last frame
             seq = [clip["start"] + (i % length if clip.get("loop") else min(i, length)) for i in range(PREVIEW_SECONDS * common.FPS)]
             unique = sorted(set(seq))
             rendered = dict(zip(unique, _render_set(objs, CLIP_VIEW, unique, tmp, name + "_c")))
             rows_ok = [r for r in report.rows if r["subject"] == name]
             base = os.path.join(common.review_dir(name), common.today())
-            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE,
+            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE, "strip_size": STRIP_SIZE,
                    "labels": ["f%d %s" % (k, lab) for k, lab in keys], "rows": rows,
                    "clip_frames": [rendered[f] for f in seq], "fps": common.FPS,
                    "footer": ["%s  %d frames%s  %s  RIG_%s" % (name, length, " loop" if clip.get("loop") else "",
