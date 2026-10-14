@@ -68,11 +68,9 @@ local UNLOCK_TARGET: { [string]: { number } } = {
 }
 local UNLOCK_TOLERANCE = 0.30 -- 09 §16.2
 -- Gaps this sim found that are the owner's to settle (balance is never changed here). A listed
--- gap is printed, not failed; the gate fails if it closes, so the entry is then removed.
---   eel: on the real accrual rule (CoveIncome from the moment of the bank, 09 §13.2) the regular
---   player earns about 3,700 Pearls on day 1, not 05 §5.4's 2,998 (05 §5.2 assumption 4 starts a
---   specimen tomorrow), so the median Eel is day 1, not day 2 (task S5-C6 report).
-local OWNER_GAPS: { [string]: boolean } = { eel = true }
+-- gap is printed, not failed; the gate fails if it closes, so the entry is then removed. None
+-- now: the day-1 Eel (task S5-C6) was settled by the Eel's price (chapter 14, section 4).
+local OWNER_GAPS: { [string]: boolean } = {}
 
 -- 05 §2.2 result table: catches per minute of an average player in the tier's home zone.
 local BITES: { [number]: { [string]: number } } = {
@@ -774,6 +772,11 @@ for id in OWNER_GAPS do
 		`GAP (owner): {id} median day {fmt(regular.unlock[id].median)} against canon section 7; see OWNER_GAPS`
 	)
 end
+out(
+	`Day 1 earned (means): casual {fmt(cohorts.Casual.day[1].earned)}, regular {fmt(
+		regular.day[1].earned
+	)}, heavy {fmt(cohorts.Heavy.day[1].earned)}`
+)
 out(`Cove ceiling (05 §6.2): {fmt(RATE_CEILING)} Pearls/h; highest seen {fmt(regular.maxRate, 1)}`)
 print(table.concat(lines, "\n"))
 
