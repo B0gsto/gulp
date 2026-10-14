@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "source": "docs/06-art-bible.md section 4 (and the preview light of section 15.3). Edit the bible first, then this file, then run assets/source/_shared/blender/palette.py to rewrite gulp_palette.gpl.",
+  "water": {
+    "nursery": {"surface": "#9FF0E6", "fog": "#4CCFD2", "deep": "#2FAFC0", "fog_lstar": 77, "floor_sand": "#F6E3B4"},
+    "reef": {"surface": "#6FDDEE", "fog": "#1E9FD0", "deep": "#1783BF", "fog_lstar": 61, "floor_sand": "#F2D9A0", "floor_rock": "#C9A98F"},
+    "kelp": {"surface": "#8FE0A0", "fog": "#238A72", "deep": "#17604F", "fog_lstar": 52, "floor_silt": "#8FA07A", "floor_rock": "#5F7F6F"},
+    "dropoff_upper": {"surface": "#3FA3E0", "fog": "#1B6FBF", "deep": "#124E9C", "fog_lstar": 46, "floor_slate": "#4F6FA0"},
+    "dropoff_deep": {"fog": "#0B2A66", "deep": "#081C4D", "fog_lstar": 19, "floor_slate": "#2F4A80"},
+    "trench": {"fog": "#060F33", "deep": "#1A0F45", "fog_lstar": 6, "floor_basalt": "#1F1F4A"},
+    "cove": {"surface": "#7FE0E0", "fog": "#3E8FA8", "deep": "#2E6F8E", "fog_lstar": 56, "floor_stone": "#D9B48F"},
+    "above_surface": {"sky_top": "#4FB8FF", "fog": "#BFE9FF", "fog_lstar": 89}
+  },
+  "creatures": {
+    "minnow": {"light": "#FFE2A8", "mid": "#FF9A3D", "dark": "#C2491D", "accent": "#FFD23D"},
+    "puffer": {"light": "#FFF6D6", "mid": "#FFD84A", "dark": "#B8791F", "accent": "#FF8C5A"},
+    "eel": {"light": "#E0D6FF", "mid": "#8A6BF0", "dark": "#3B2A8C", "accent": "#FFE066"},
+    "turtle": {"light": "#FFF1C2", "mid": "#7CCB7A", "mid_shell": "#D9933D", "dark": "#7A4A1E", "accent": "#FFE08A"},
+    "squid": {"light": "#FFD1E0", "mid": "#FF6FA3", "dark": "#B8336B", "accent": "#FFF0A8"},
+    "shark": {"light": "#F2F7FA", "mid": "#8FA9C4", "dark": "#3D5878", "accent": "#FFB38A"},
+    "plankton": {"light": "#FFFFFF", "mid": "#D9FFE8"},
+    "krill": {"light": "#FFD9CC", "mid": "#FF8C7A", "dark": "#C24A4A"},
+    "shrimp": {"light": "#FFE6D1", "mid": "#FFB48A", "dark": "#C2693D"},
+    "sardine": {"light": "#F2F8FC", "mid": "#BFD9E8", "dark": "#5C9AD9"},
+    "darter": {"light": "#FFF6C9", "mid": "#FFD23D", "dark": "#2F7F8C", "accent": "#FF7A5C"},
+    "mackerel": {"light": "#E8F2F0", "mid": "#2FA89A", "dark": "#16574F"},
+    "bonito": {"light": "#E6EEF5", "mid": "#6F8FD9", "dark": "#23366B"},
+    "tuna": {"light": "#F0F4F8", "mid": "#4F6FD0", "dark": "#162657", "accent": "#FFD23D"},
+    "gull": {"light": "#FFFFFF", "mid": "#C9D3DA", "dark": "#5A6670", "accent": "#F2A65A"},
+    "moray": {"light": "#E6E0A0", "mid": "#A8A23D", "dark": "#4A4A1F", "accent": "#FFF2D9"},
+    "barracuda": {"light": "#F2F6F8", "mid": "#C7D3D9", "dark": "#3A4750", "accent": "#FFD23D"},
+    "grouper": {"light": "#F0D9B0", "mid": "#C4764A", "dark": "#5F3320"},
+    "old_scar": {"light": "#F5F8FA", "mid": "#B9C4CC", "dark": "#4A5560", "accent": "#FFD9D0"},
+    "jelly_bloom": {"light": "#FFFFFF", "mid": "#FFC2E2", "dark": "#7A5CC2"},
+    "anemone": {"light": "#FFE6F0", "mid": "#FF8FB8", "dark": "#A83D6B", "accent": "#FFF2A8"}
+  },
+  "rarity": {
+    "common": "#C9D6DF",
+    "uncommon": "#2ED3C6",
+    "rare": "#4D8DFF",
+    "epic": "#A862FF",
+    "mythic": "#FFB01F"
+  },
+  "signal": {
+    "can_eat": "#A6FF3D",
+    "can_eat_alt": "#FFF23D",
+    "can_eat_you": "#FF3B4E",
+    "can_eat_you_alt": "#FF3DC8",
+    "pulse_white": "#FFFFFF",
+    "home": "#FFC46B",
+    "safe_not_yours": "#FFF1DC",
+    "pearl": "#FFE9F2",
+    "pearl_shade": "#FFB8D9"
+  },
+  "named": {
+    "ember_crack": "#FF7A1F",
+    "hook_float_red": "#D2564B"
+  },
+  "ui": {
+    "ink": "#14213D",
+    "panel": "#FFF8E7",
+    "panel_shade": "#F2E3C4",
+    "primary": "#FFC93D",
+    "primary_shade": "#E09A1F",
+    "secondary": "#3DD6D0",
+    "secondary_shade": "#1FA3A8",
+    "destructive": "#FF6B5E",
+    "text_on_dark": "#FFFFFF",
+    "disabled": "#B8C4CC",
+    "screen_dim": "#0B1530"
+  },
+  "preview": {
+    "key_light": "#FFF6D9",
+    "ambient_reef": "#6FB6D9"
+  }
+}
