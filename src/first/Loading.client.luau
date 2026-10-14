@@ -39,6 +39,7 @@ local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -72,9 +73,14 @@ local CONFIG = table.freeze({
 	dotEvery = 0.5, -- s between dots (tune)
 	dotWave = 16, -- rpx of up-and-down drift (tune)
 	dotsMax = 12, -- the dot pool (tune)
+	dotsAtStart = 9, -- dots already on screen at the first frame, so the middle is never empty
+	dotLane = 0.65, -- share of dots that come in near the Fry's height
+	dotLaneHalf = 0.11, -- share of the height: half the width of that lane
 	splitBubbles = 26, -- bubbles in the exit (tune)
 	-- The stand-in look (no bible value: presentation only, replaced by the `UI_Load_*` art).
 	logoY = 0.22, -- share of the height: the logo's centre, in the top third (04 §2.2)
+	logoWidth = 0.3, -- share of the width the drawn word spans (04 §2.2)
+	logoTextSize = 100, -- the size the word is set at, then scaled to `logoWidth`
 	logoStroke = 0.042, -- share of the logo box height: about 6% of the cap height
 	logoShadow = 0.06, -- share of the logo box height: the drop shadow's offset down
 	chompPop = 0.15, -- the Fry's scale pop on a bite, on top of its growth
@@ -91,6 +97,7 @@ local CONFIG = table.freeze({
 	bubbleSize = 62, -- rpx, a progress bubble
 	bubbleGap = 23, -- rpx between progress bubbles
 	slowIcon = 92, -- rpx, the spinner's diameter (the slow sign's height inside its pill)
+	slowGap = 32, -- rpx between the slow sign's pill and the bubble row
 })
 
 -- 04 §2.3's minimum set under chapter 07 names, found under ReplicatedStorage.Assets (09 §3.1).
@@ -135,10 +142,18 @@ local COLOUR = table.freeze({
 local player = Players.LocalPlayer
 
 -- Studio only, for screenshots (set in Edit before Play): `DevHold` keeps the screen up after the
--- creature arrives; `DevSkip` (seconds) moves J forward to show the slow-load states.
+-- creature arrives; `DevSkip` (seconds) moves J forward to show the slow-load states;
+-- `DevNoProfile` treats the profile as never loaded (the J 20 dim); `DevProgress` (0 to 1) holds
+-- the bubble row at that share. `DevAutopilot`, read each frame, steers the Fry to the nearest dot
+-- and prints its scale on each bite.
 local studio = RunService:IsStudio()
-local skip = script:GetAttribute("DevSkip")
-local devSkip = if studio and type(skip) == "number" then skip else 0
+local function devNumber(name: string): number?
+	local value = script:GetAttribute(name)
+	return if studio and type(value) == "number" then value else nil
+end
+local devSkip = devNumber("DevSkip") or 0
+local devProgress = devNumber("DevProgress")
+local devNoProfile = studio and script:GetAttribute("DevNoProfile") == true
 
 local function j(): number
 	return os.clock() - startedAt + devSkip
@@ -252,34 +267,37 @@ end
 local dotLayer = frame("Dots", background, COLOUR.white, 1)
 dotLayer.Size = UDim2.fromScale(1, 1)
 
--- The logo: top third, 30% of the screen width (stand-in for `UI_Load_Logo`, 560 x 240): white
--- with a faint sea-glass fade, a thick navy outline and a soft navy shadow under it.
-local function wordmark(name: string, colour: Color3, transparency: number): (TextLabel, UIStroke)
+-- The logo: top third, the word spanning 30% of the screen width (stand-in for `UI_Load_Logo`):
+-- white with a faint sea-glass fade, a thick navy outline and a soft navy shadow under it. The
+-- word is set at a fixed size in a box its own size, then a UIScale stretches it to the width
+-- (TextScaled stops at size 100, which left the word at about 17% of a laptop screen).
+local function wordmark(
+	name: string,
+	colour: Color3,
+	transparency: number
+): (TextLabel, UIStroke, UIScale)
 	local label = Instance.new("TextLabel")
 	label.Name = name
 	label.BackgroundTransparency = 1
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
-	label.Size = UDim2.fromScale(0.3, 0.3)
 	label.FontFace = Font.fromEnum(Enum.Font.FredokaOne) -- 06 §12.3 display face
 	label.Text = "GULP" -- the wordmark, never translated (08 §13.11)
 	label.TextColor3 = colour
 	label.TextTransparency = transparency
-	label.TextScaled = true
+	label.TextSize = CONFIG.logoTextSize
 	label.ZIndex = 3
 	label.Parent = background
-	local aspect = Instance.new("UIAspectRatioConstraint")
-	aspect.AspectRatio = 560 / 215 -- a little wider than the art, so the word fills the width
-	aspect.DominantAxis = Enum.DominantAxis.Width
-	aspect.Parent = label
 	local outline = Instance.new("UIStroke")
 	outline.Color = COLOUR.ink
 	outline.Transparency = transparency
 	outline.LineJoinMode = Enum.LineJoinMode.Round
 	outline.Parent = label
-	return label, outline
+	local scale = Instance.new("UIScale")
+	scale.Parent = label
+	return label, outline, scale
 end
-local logoShadow, logoShadowStroke = wordmark("LogoShadow", COLOUR.ink, 0.65) -- navy at 35%
-local logo, logoStroke = wordmark("Logo", COLOUR.white, 0)
+local logoShadow, logoShadowStroke, logoShadowScale = wordmark("LogoShadow", COLOUR.ink, 0.65) -- navy at 35%
+local logo, logoStroke, logoScale = wordmark("Logo", COLOUR.white, 0)
 gradient(logo, 90).Color = ColorSequence.new(COLOUR.white, COLOUR.logoLow)
 
 -- The Fry (stand-in for `UI_Load_Mascot`): body, belly, tail and a big eye with a highlight,
@@ -421,9 +439,8 @@ end
 
 -- The slow sign (04 §2.4 at J 30; stand-in for `UI_Loading_SlowIcon`): a spinning ring and a
 -- signal icon with one bar lit, on a faint navy pill. No text.
-local slow = frame("Slow", background, COLOUR.ink, 0.8)
-slow.AnchorPoint = Vector2.new(0.5, 0.5)
-slow.Position = UDim2.fromScale(0.5, 0.765)
+local slow = frame("Slow", background, COLOUR.ink, 0.72)
+slow.AnchorPoint = Vector2.new(0.5, 1) -- placed above the bubble row in `layout`
 slow.Visible = false
 slow.ZIndex = 3
 round(slow)
@@ -446,7 +463,7 @@ gradient(spinnerStroke, 0).Transparency = NumberSequence.new({
 })
 local signalBars: { Frame } = {}
 for i = 1, 3 do
-	local bar = frame("Bar", slow, COLOUR.white, if i == 1 then 0 else 0.65)
+	local bar = frame("Bar", slow, COLOUR.white, if i == 1 then 0 else 0.4)
 	bar.AnchorPoint = Vector2.new(0.5, 1)
 	bar.ZIndex = 3
 	round(bar, UDim.new(0.5, 0))
@@ -512,8 +529,24 @@ local function layout()
 	local size = gui.AbsoluteSize
 	width, height = math.max(size.X, 1), math.max(size.Y, 1)
 	rpx = math.min(width, height) / 720
-	local logoHeight = width * 0.3 * 215 / 560
-	logoStroke.Thickness = math.max(2, CONFIG.logoStroke * logoHeight)
+	-- The word's own bounds at its set size (TextBounds once the font is in, else measured).
+	local bounds = logo.TextBounds
+	if bounds.X < 1 then
+		bounds = TextService:GetTextSize(
+			"GULP",
+			CONFIG.logoTextSize,
+			Enum.Font.FredokaOne,
+			Vector2.new(4096, 4096)
+		)
+	end
+	local logoScaleBy = CONFIG.logoWidth * width / math.max(bounds.X, 1)
+	local logoHeight = bounds.Y * logoScaleBy
+	for _, label in { logo, logoShadow } do
+		label.Size = UDim2.fromOffset(bounds.X, bounds.Y)
+	end
+	logoScale.Scale, logoShadowScale.Scale = logoScaleBy, logoScaleBy
+	-- The stroke is in the label's units: the UIScale stretches it with the word.
+	logoStroke.Thickness = math.max(2, CONFIG.logoStroke * logoHeight) / logoScaleBy
 	logoShadowStroke.Thickness = logoStroke.Thickness
 	logo.Position = UDim2.fromScale(0.5, CONFIG.logoY)
 	logoShadow.Position = UDim2.new(0.5, 0, CONFIG.logoY, CONFIG.logoShadow * logoHeight)
@@ -529,9 +562,11 @@ local function layout()
 		b.disc.Size = UDim2.fromOffset(disc, disc)
 		b.rim.Thickness = math.max(1.5, 4 * rpx)
 	end
-	-- The slow sign, in shares of the icon height `h`: the ring at the left, the bars at the right.
+	-- The slow sign, in shares of the icon height `h`: the ring at the left, the bars at the right,
+	-- its pill `slowGap` above the bubble row.
 	local h = CONFIG.slowIcon * rpx
-	slow.Size = UDim2.fromOffset(h * 2.5, h * 1.3)
+	slow.Size = UDim2.fromOffset(h * 2.75, h * 1.3)
+	slow.Position = UDim2.new(0.5, 0, 0.9, -(disc * 0.5 + CONFIG.slowGap * rpx))
 	for _, r in { ringTrack, spinner } do
 		r.Size = UDim2.fromOffset(h, h)
 		r.Position = UDim2.fromOffset(h * 0.8, h * 0.65)
@@ -539,8 +574,8 @@ local function layout()
 	spinnerStroke.Thickness = math.max(2, 6.5 * rpx)
 	trackStroke.Thickness = spinnerStroke.Thickness
 	for i, bar in signalBars do
-		bar.Size = UDim2.fromOffset(h * 0.16, h * (0.15 + 0.2 * i))
-		bar.Position = UDim2.fromOffset(h * (1.6 + 0.26 * (i - 1)), h * 1.025)
+		bar.Size = UDim2.fromOffset(h * 0.22, h * (0.25 + 0.25 * i))
+		bar.Position = UDim2.fromOffset(h * (1.68 + 0.34 * (i - 1)), h * 1.15)
 	end
 	for _, dot in dots do
 		dot.disc.Size = UDim2.fromOffset(CONFIG.dotSize * rpx, CONFIG.dotSize * rpx)
@@ -553,6 +588,7 @@ local function layout()
 	end
 end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+logo:GetPropertyChangedSignal("TextBounds"):Connect(layout) -- the font arrives after the first frame
 
 -- First frame: ours up, then the default screen away (09 §6.10, V32).
 gui.Parent = player:WaitForChild("PlayerGui")
@@ -604,12 +640,19 @@ local inputConnections = {
 	end),
 }
 
-local function spawnDot(now: number)
+-- A new dot at `x`: most come in on the Fry's lane, the rest anywhere in the middle band.
+local function spawnDot(now: number, x: number?)
 	for _, dot in dots do
 		if not dot.alive then
 			dot.alive = true
-			dot.x = width + CONFIG.dotSize * rpx
-			dot.y = height * (0.32 + 0.48 * math.random())
+			dot.x = x or width + CONFIG.dotSize * rpx
+			if math.random() < CONFIG.dotLane then
+				local lane = height * CONFIG.dotLaneHalf
+				dot.y =
+					math.clamp(fryY + (math.random() * 2 - 1) * lane, height * 0.32, height * 0.8)
+			else
+				dot.y = height * (0.32 + 0.48 * math.random())
+			end
 			dot.rate = 1.3 + 0.9 * math.random() -- each dot waves at its own pace
 			dot.phase = now * dot.rate + math.random() * 6.28
 			local glow = CONFIG.dotGlow * (0.85 + 0.3 * math.random())
@@ -637,10 +680,15 @@ local function puff(x: number, y: number, now: number)
 	end
 end
 
+local bites = 0
 local function eat(dot: Dot, now: number, y: number)
 	dot.alive = false
 	dot.disc.Visible = false
 	growth = math.min(growth + CONFIG.growPerDot, CONFIG.growMax)
+	bites += 1
+	if studio and script:GetAttribute("DevAutopilot") == true then
+		print(string.format("[Loading] bite %d, Fry scale %.2f", bites, 1 + growth))
+	end
 	chompAt = now
 	puff(dot.x, y, now)
 	if biteSound then
@@ -649,6 +697,15 @@ local function eat(dot: Dot, now: number, y: number)
 end
 
 local function stepToy(dt: number, now: number)
+	if studio and script:GetAttribute("DevAutopilot") == true then
+		local best = math.huge
+		for _, dot in dots do
+			local d = if dot.alive then (dot.x - fryX) ^ 2 + (dot.y - fryY) ^ 2 else math.huge
+			if d < best then
+				best, targetX, targetY = d, dot.x, dot.y
+			end
+		end
+	end
 	-- The Fry closes a share of the gap to the thumb each second, capped in speed.
 	local follow = 1 - math.exp(-CONFIG.fryFollow * dt)
 	local dx, dy = (targetX - fryX) * follow, (targetY - fryY) * follow
@@ -756,6 +813,15 @@ local function stepToy(dt: number, now: number)
 	end
 end
 
+-- The first frame already has dots spread ahead of the Fry, as if they had been drifting a while.
+do
+	local now = os.clock()
+	for i = 1, CONFIG.dotsAtStart do
+		local share = (i - 0.5 + 0.6 * (math.random() - 0.5)) / CONFIG.dotsAtStart
+		spawnDot(now, width * (0.38 + 0.6 * share))
+	end
+end
+
 -- Minimum set -----------------------------------------------------------------------------------
 
 local mode: string? = nil -- "full" | "partial" | "minimal" (see the header)
@@ -860,7 +926,8 @@ end
 
 local fillInfo = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local function showProgress()
-	local share = if mode then 1 else (stepsDone + (if shellReady() then 1 else 0)) / stepsTotal
+	local share = devProgress
+		or if mode then 1 else (stepsDone + (if shellReady() then 1 else 0)) / stepsTotal
 	local lit = math.floor(share * CONFIG.bubbles + 1e-6)
 	for i, b in bubbles do
 		if i <= lit and not b.full then
@@ -871,7 +938,7 @@ local function showProgress()
 		end
 	end
 	-- 04 §2.4 at J 20: the profile is late (the server sets `Slot` once it has loaded).
-	local late = j() >= CONFIG.dimAt and player:GetAttribute("Slot") == nil
+	local late = j() >= CONFIG.dimAt and (devNoProfile or player:GetAttribute("Slot") == nil)
 	if late ~= dimmed then
 		dimmed = late
 		for _, b in bubbles do
