@@ -3,7 +3,8 @@
 -- It starts last, so every service is ready before the first join, and replays the players who
 -- joined during start-up.
 --
--- Join:  slot (and the `Slot` attribute), profile, policy, cove; then, once the client has sent
+-- Join:  profile (DataService.load; no profile, no play: the player is kicked), slot (and the
+--        `Slot` attribute), policy, cove; then, once the client has sent
 --        ClientReady (it waits for `workspace.PersistentLoaded` first, spike F4), the creature,
 --        then `onReady`. ClientReady may arrive before the join steps finish; it is kept.
 -- Leave: `onLeaving` (settlement), the creature is removed, then the slot is freed.
@@ -18,6 +19,7 @@ local SlotPool = require(ReplicatedStorage.Shared.Logic.SlotPool)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
+local DataService = require("./DataService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
@@ -65,7 +67,7 @@ local function spawnCreature(player: Player)
 	stageOf[player] = "spawned"
 	WorldIndex.sendWorldInfo(player) -- once, after ClientReady (09 §5.3, §9.1)
 	CreatureService.spawn(player)
-	-- TODO(B20, S4-C6): the first state push (DataService) goes here, before onReady.
+	DataService.pushAll(player) -- the first state push, before onReady
 	PlayerLifecycle.onReady:fire(player, slot)
 end
 
@@ -73,11 +75,20 @@ local function join(player: Player)
 	if slotOf[player] or player.Parent ~= Players then
 		return -- replayed twice, or already gone
 	end
-	-- TODO(B20, S4-C6): load the profile first; section 13.1 gives the slot once it is loaded.
+	-- The profile first (09 §12.4: without one there is no creature); section 13.1 gives the
+	-- slot once it is loaded. `load` yields, and kicks when there is no profile.
+	if not DataService.load(player) then
+		return
+	end
+	if slotOf[player] or player.Parent ~= Players then
+		DataService.release(player) -- replayed twice while loading, or gone
+		return
+	end
 	-- TODO(B22, S5-C2): pass the cove rule of section 13.1 to SlotPool.take as the preference.
 	local slot = SlotPool.take(pool)
 	if not slot then
 		Log.error(TAG, `no free slot for {player.UserId}`)
+		DataService.release(player)
 		player:Kick("This server is full.") -- TODO(B33): through Loc
 		return
 	end
@@ -115,12 +126,14 @@ local function leave(player: Player)
 	readyAsked[player] = nil
 	local slot = slotOf[player]
 	if not slot then
+		DataService.release(player) -- left between the profile and the slot
 		return
 	end
-	-- TODO(B19, B20): leave settlement (RunLoopService.suspendOnLeave, profile release) runs
-	-- from onLeaving; section 13.1 frees the slot only after it.
+	-- TODO(B19): leave settlement (RunLoopService.suspendOnLeave) runs from onLeaving; section
+	-- 13.1 frees the slot only after it. The profile is released after settlement (12.5).
 	PlayerLifecycle.onLeaving:fire(player, slot)
 	CreatureService.remove(slot)
+	DataService.release(player)
 	slotOf[player], playerAt[slot], stageOf[player], policyOf[player] = nil, nil, nil, nil
 	SlotPool.free(pool, slot)
 end
