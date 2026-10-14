@@ -98,6 +98,24 @@ local function dependencyScript(): boolean
 	return bad == 0
 end
 
+-- Section 4.4, "Only EconomyService changes Pearls": no other server file writes `pearls`.
+local function pearlScript(): boolean
+	local files, bad = 0, 0
+	for _, path in Files.walk(DependencyRules.PEARL_ROOT, ".luau") do
+		if DependencyRules.pearlRuleApplies(path) then
+			files += 1
+			for _, violation in DependencyRules.pearlWrites(fs.readFile(path)) do
+				bad += 1
+				say(
+					`  {path}:{violation.line}: {violation.token}: only EconomyService changes Pearls`
+				)
+			end
+		end
+	end
+	say(`  pearl rule: {files} server files checked, {bad} writes outside EconomyService`)
+	return bad == 0
+end
+
 -- Section 4.4, Selene half: the pure roots linted against plain Luau.
 local function dependencySelene(): boolean
 	local roots: { string } = {}
@@ -128,6 +146,7 @@ local STEPS: { Step } = {
 			return run("stylua", { "--check", "src", "tests", "tools" })
 				and run("selene", { "src" })
 				and dependencyScript()
+				and pearlScript()
 				and dependencySelene()
 		end,
 	},
@@ -167,7 +186,11 @@ local STEPS: { Step } = {
 			-- Regenerate and compare with what was on disk, so this also works on a tree with
 			-- uncommitted work. On a clean checkout it equals `git diff --exit-code`.
 			local before = snapshot(GENERATED_ROOT)
-			if not run("lune", { "run", "tools/gen/content" }) then
+			-- Content from the bible's tables; the English string table from assets/loc (18.1).
+			if
+				not run("lune", { "run", "tools/gen/content" })
+				or not run("lune", { "run", "tools/gen/strings" })
+			then
 				return false
 			end
 			local after = snapshot(GENERATED_ROOT)

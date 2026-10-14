@@ -563,7 +563,7 @@ Completing a goal sends its Pearls flying to the counter with `SFX_GoalDone`. No
 | 12 | Revive offer | Second or later death on the account, when the lost creature had 30 mass or more (canon 5.5) | 6:00 onward | On the gulped screen: the creature as a ghost and a "25" Robux button. There is no timer and no ring: the offer stays until the player takes it or chooses to respawn (canon 5.5). Document 05 owns the price. | [MVP] |
 | 13 | First species purchase | Pearls reach 500 | 6:00 to 9:00 | The silhouette's ring fills and it lights up in colour wherever the player is (HUD ping with the Pufferfish icon). At the cove, tapping it buys with a 0.6 s hold. The Pufferfish hatches on the Home Stone. | [MVP] |
 | 14 | Ability button | First run as Pufferfish | 6:30 to 9:30 | The button appears beside the dash button. It pulses once, the first time a red-outlined creature comes within 30 studs. | [MVP] |
-| 15 | Next species | Pufferfish bought | Same | The Eel silhouette replaces it on the wall with a ring at Pearls / 3,000 | [MVP] |
+| 15 | Next species | Pufferfish bought | Same | The Eel silhouette replaces it on the wall with a ring at Pearls / 3,500 | [MVP] |
 | 16 | Kelp Forest | First time within 80 studs of a current that leads there | 8:00 onward | The current is visible (canon). No prompt. | [MVP] |
 | 17 | Server leaderboard | First time at tier 3 in run 2 or later | 4:00 onward | A chip with the player's rank on this server | [MVP] |
 | 18 | Visiting coves | First time within 40 studs of another player's cove mouth after the second bank | 8:00 onward | The mouth shows a bubble icon | [L] |
@@ -617,7 +617,7 @@ Target: collecting and leaving the cove within 12 seconds of control **(tune)**.
 
 | Item | Design |
 |---|---|
-| Goal of the day | The Eel (3,000 Pearls; canon: day 2). Its silhouette ring is the first thing in view after the clam. |
+| Goal of the day | The Eel (3,500 Pearls; canon: day 2). Its silhouette ring is the first thing in view after the clam. |
 | Streak [L] | Day 2 stamp. A missed day never sets the calendar back: the next box simply waits (canon section 11). Nothing is sold to protect a streak. |
 | Daily goals | Three new goals at 00:00 UTC |
 | New this session | Kelp Forest goals can now appear, which sends day-2 players to a new zone |

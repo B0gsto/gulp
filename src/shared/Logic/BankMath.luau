@@ -3,34 +3,32 @@
 -- canon 5.4 and 5.5; docs/02, sections 0.7, 11 and 12.2; docs/05, sections 3.1 and 3.2;
 -- docs/09, section 13.4). Pure numbers, so it runs in Lune.
 --
--- 05 §3.1 and §3.2 give the numbers as formulas, so they live in Config/Defaults.bank.
+-- The mass bands and their rates come from Data/Generated/BankRates (canon 5.4 data:BankRates),
+-- the scraps shares from Scraps (canon 5.5 data:Scraps); the Deep Pockets multiplier and the
+-- run thresholds, which the bible gives in prose, from Config/Defaults.bank.
 local Defaults = require("../Config/Defaults")
+local Index = require("../Data/Index")
 local TraitRules = require("./TraitRules")
 
 local BankMath = {}
 
 local B = Defaults.bank
-BankMath.FULL_RATE_MASS = B.fullRateMass
-BankMath.CEILING_MASS = B.ceilingMass
-BankMath.FULL_RATE = B.fullRate
-BankMath.LOW_RATE = B.lowRate
 BankMath.DEEP_POCKETS = B.deepPockets
-BankMath.SCRAPS_RATE = B.scrapsRate
-BankMath.SCRAPS_RATE_EARLY = B.scrapsRateEarly
-BankMath.EARLY_DEATHS = B.earlyDeaths
 BankMath.ARMED_MASS = B.armedMass
 BankMath.SPECIMEN_TIER = B.specimenTier
 
---- Base Pearls for banking `mass` (05 §3.1): 3 per mass to 1,200, 1 per mass to 3,000, nothing
---- above. Mass below 0 pays nothing.
+--- Base Pearls for banking `mass` (canon 5.4, 05 §3.1): each band of data:BankRates pays its rate
+--- for the mass inside it (3 per mass to 1,200, 1 per mass to 3,000, nothing above). Mass below 0
+--- pays nothing.
 function BankMath.base(mass: number): number
-	local low = math.clamp(mass, 0, BankMath.FULL_RATE_MASS)
-	local high = math.clamp(
-		mass - BankMath.FULL_RATE_MASS,
-		0,
-		BankMath.CEILING_MASS - BankMath.FULL_RATE_MASS
-	)
-	return BankMath.FULL_RATE * low + BankMath.LOW_RATE * high
+	local total = 0
+	for _, band in Index.BankRates.list do
+		local top = if band.upTo then math.min(mass, band.upTo) else mass
+		if top > band.from then
+			total += band.pearlsPerMass * (top - band.from)
+		end
+	end
+	return total
 end
 
 --- Pearls a bank pays (05 §3.1): the base × 1.5 with Crystal × 2 with Deep Pockets, rounded down.
@@ -40,12 +38,17 @@ function BankMath.bank(mass: number, crystal: boolean, deepPockets: boolean): nu
 	return math.floor(BankMath.base(mass) * mult)
 end
 
---- The scraps share (canon 5.5): 50% while the account has died fewer than three times before,
---- then 10%.
+--- The scraps share (canon 5.5 data:Scraps): 50% while the account has died fewer than three
+--- times before, then 10%. `deathsBefore` counts earlier deaths, so this death is number
+--- `deathsBefore + 1`.
 function BankMath.scrapsRate(deathsBefore: number): number
-	return if deathsBefore < BankMath.EARLY_DEATHS
-		then BankMath.SCRAPS_RATE_EARLY
-		else BankMath.SCRAPS_RATE
+	local share = 0
+	for _, row in Index.Scraps.list do
+		if deathsBefore + 1 >= row.fromDeath then
+			share = row.share
+		end
+	end
+	return share
 end
 
 --- Pearls a gulp pays (05 §3.2): the share of what the run would have banked, rounded down.
