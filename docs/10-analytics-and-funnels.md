@@ -605,10 +605,10 @@ That is 16 transaction types (limit before grouping: 20) and 70 SKUs at launch: 
 | Account age | Cumulative Pearls spent on species by then (canon) | Regular player's Pearls earned that day (chapter 05, section 5.4) | Cumulative Pearls earned |
 |---|---|---|---|
 | Day 1 | 500 | 2,998 | 2,998 |
-| Day 2 | 3,500 | 4,295 | 7,293 |
-| Day 5 | 15,500 | 6,835 | 26,235 |
-| Day 10 | 60,500 | 10,900 | 73,847 |
-| Day 30 | 310,500 | 21,690 | 407,249 |
+| Day 2 | 4,000 | 4,295 | 7,293 |
+| Day 5 | 16,000 | 6,835 | 26,235 |
+| Day 10 | 61,000 | 10,900 | 73,847 |
+| Day 30 | 311,000 | 21,690 | 407,249 |
 
 The MVP has two sinks (species and cove slots) and both are one-off purchases. Once a player owns everything their balance can only grow. This is expected at soft launch; see "Proposed canon changes".
 

@@ -438,15 +438,15 @@ Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
 |---|---|---|---|---|
 | `minnow` | Minnow | Free | [MVP] | No |
 | `puffer` | Pufferfish | 500 | [MVP] | No |
-| `eel` | Eel | 3,000 | [MVP] | No |
+| `eel` | Eel | 3,500 **(tune)** | [MVP] | Yes: 3,000 until task S5-C6 (chapter 14, section 4) |
 | `turtle` | Sea Turtle | 12,000 | [L] | No |
 | `squid` | Squid | 45,000 | [L] | No |
 | `shark` | Shark Pup | 250,000 (or the game pass) | [L] | No |
-| | **All five** | **310,500** | | |
+| | **All five** | **311,000** | | |
 
 <!-- /data -->
 
-The canon's species prices fit the pacing targets once cove income is retuned (section 5), so none of them changed.
+The canon's species prices fit the pacing targets once cove income is retuned (section 5). One changed since: the Eel, from 3,000 to 3,500, because with income counted from the moment of the bank (assumption 4 in section 5.2) a regular player could afford 3,000 on day 1, and the canon's day-2 Eel is the reason to come back on day 2 (chapter 14, section 4).
 
 ### 4.2 Cove slots **[MVP]**
 
@@ -529,12 +529,12 @@ There are no other Pearl sinks at launch. These deliberately cost nothing: relea
 
 | Launch sink | Pearls |
 |---|---|
-| Species | 310,500 |
+| Species | 311,000 |
 | Cove slots | 1,019,250 |
 | Decorations | 1,228,000 |
-| **Everything a Pearl can buy at launch** | **2,557,750** |
+| **Everything a Pearl can buy at launch** | **2,558,250** |
 
-In the MVP build only Pufferfish, Eel and slots exist (1,022,750 Pearls). That is enough for a soft launch that measures the first two weeks.
+In the MVP build only Pufferfish, Eel and slots exist (1,023,250 Pearls). That is enough for a soft launch that measures the first two weeks.
 
 ## 5. Progression model
 
@@ -559,7 +559,7 @@ All are assumptions to replace with data from the soft launch.
 1. The player logs in every day and buys nothing with Robux. No rewarded video, no passes, no Crystal multiplier.
 2. Time to each tier follows the canon targets (section 2.4).
 3. A run is one of four types. Each has a length, a chance to end in a bank, and a time of death if it does not. The run-value table in 5.3 gives the arithmetic.
-4. A specimen banked today starts earning tomorrow. This slightly understates day 1 and day 2.
+4. A specimen earns from the moment it is banked, as the game does it (`CoveIncome`, chapter 09, section 13.2): income during the day's own sessions is collected at the next claim. Re-derived with `tests/sim/economy.sim.luau` (task S5-C6), this lifts the day-1 total to about 1,590, 3,660 and 7,900 Pearls (casual, regular, heavy), against the 1,427, 2,998 and 6,251 of the day tables in section 5.4, which were made with the old assumption (a specimen starts earning tomorrow) and were not re-run. The Eel's price moved to 3,500 so that the regular player still buys it on day 2 (section 4.1); `economy.sim` is now the check for every unlock day.
 5. The cove always keeps its best specimens. When it is full, the worst one is released for the refund in 3.10.
 6. Codex rewards arrive as `total × (1 − e^(−day ÷ 12))`: fast at first, then slowing.
 7. Spending rule: buy the next species the moment it is affordable. Spend up to 20% of all Pearls earned so far on slots, but only when the cove is full and after the Pufferfish is bought. Spend 5% on decorations from day 5. After the Shark Pup, spend 70% on slots and 30% on decorations.
@@ -719,7 +719,7 @@ Columns: **Banking** includes scraps. **Cove** is yesterday's closing cove incom
 | Milestone | Canon target (non-paying daily player) | Casual | Regular | Heavy |
 |---|---|---|---|---|
 | Pufferfish (500) | End of first session | Day 1 | Day 1 | Day 1 |
-| Eel (3,000) | Day 2 | Day 3 | Day 2 | Day 1 |
+| Eel (3,500; the day tables used 3,000) | Day 2 | Day 3 | Day 2 | Day 1 |
 | Sea Turtle (12,000) | Day 4 or 5 | Day 9 | Day 4 | Day 3 |
 | Squid (45,000) | About day 10 | Day 23 | Day 10 | Day 6 |
 | Shark Pup (250,000) | About day 30 | Day 71 | Day 30 | Day 17 |
@@ -888,7 +888,7 @@ The point of the table: **cove income has a hard ceiling.** Slots stop at 30 (40
 | Heavy | 60 | 93,479 | 4,560 | 30 | 6 | 3,733,684 | 1,175,934 |
 | Heavy | 90 | 94,819 | 4,560 | 30 | 6 | 6,564,249 | 4,006,499 |
 
-| Player | Day all launch slots are owned | Day the whole launch catalogue (2,557,750 Pearls) is paid for | Reef Rank 50 |
+| Player | Day all launch slots are owned | Day the whole launch catalogue (2,558,250 Pearls) is paid for | Reef Rank 50 |
 |---|---|---|---|
 | Casual | After day 120 | After day 120 | After day 120 |
 | Regular | Day 73 | Day 89 | About day 225 |

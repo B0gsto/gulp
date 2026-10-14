@@ -191,7 +191,7 @@ Six at launch. Each is one rig with a juvenile mesh (tiers 1 to 3) and an adult 
 |---|---|---|---|---|
 | `minnow` | **Minnow** (starter) | Free | Balanced | **Dart:** dash cooldown is 2.0 s instead of 2.5 s |
 | `puffer` | **Pufferfish** | 500 | Slow, safe | **Puff:** inflate for 2 s; counts as one tier higher for defence, 60% slower. 10 s cooldown |
-| `eel` | **Eel** | 3,000 | Fast, thin, tight turns | **Slip:** can pass through eel holes (shortcuts only eels fit); dash is 30% longer |
+| `eel` | **Eel** | 3,500 | Fast, thin, tight turns | **Slip:** can pass through eel holes (shortcuts only eels fit); dash is 30% longer |
 | `turtle` | **Sea Turtle** | 12,000 | Slow, tanky | **Shell:** tuck in for 2.5 s; cannot be eaten, cannot move. 14 s cooldown |
 | `squid` | **Squid** | 45,000 | Bursty, poor turning | **Jet:** fast backwards jet that leaves a small ink puff. 6 s cooldown |
 | `shark` | **Shark Pup** | 250,000, or a game pass | Aggressive | **Rampage:** eating 3 prey within 4 s gives +25% speed for 5 s; starts each run at tier 2 |
