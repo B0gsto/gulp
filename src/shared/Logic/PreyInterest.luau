@@ -17,16 +17,13 @@
 --   4 Keyframes, Near and Mid only: the full record again every 2 s, on the staggered ticks where
 --     (groupId + slot) % 20 == tick % 20; one missed through the byte cap is sent at the latest
 --     KEY_LATE ticks after the last one.
---   5 Far keep-alive: on its staggered tick a Far group with nothing sent for KEEPALIVE_QUIET
---     ticks gets one delta record (see the deviation note below).
+--   5 Far keep-alive (8.5): two keep-alive ticks per 2 s, the staggered tick and the tick 10
+--     later ((groupId + slot) % 10 == tick % 10, so every 1 s). On each, a Far group with nothing
+--     sent for KEEPALIVE_QUIET ticks (0.5 s) gets one delta record. Longest silence with no loss
+--     1.4 s, with one lost packet 2.4 s, under the client's 3 s drop.
 --   6 One packet of at most 900 bytes. When the due records do not fit, they are ordered nearest
 --     band first, then by error ÷ threshold (full records of new groups first within a band); what
 --     does not fit waits for the next tick (its send state is left as it was).
---
--- Deviation (reported): 8.5 sends the Far keep-alive only "if nothing else was sent in the last
--- 2 s". With a 2 s stagger period that allows a 3.5 s silence (a delta at 0.5 s after a stagger
--- tick, the next keep-alive skipped at 2.0 s, sent at 4.0 s), past the client's 3 s drop. Here the
--- quiet window is KEEPALIVE_QUIET = 0.5 s, so the longest silence of a Far group is 2.5 s.
 --
 -- Send state per (slot, group), about 29 bytes (8.2 lists 18; this keeps the scatter, flags and an
 -- f64 send time as well): known (gen + 1, or 0), fullLeft, sentQ (3 × u16), sentV (3 × i8),
@@ -51,7 +48,8 @@ PreyInterest.THRESHOLD_MID = 3.0
 PreyInterest.THRESHOLD_FAR = 8.0
 PreyInterest.KEY_PERIOD = 20 -- ticks: keyframe every 2 s at 10 Hz
 PreyInterest.KEY_LATE = 24 -- ticks: a keyframe deferred by the byte cap goes out by then
-PreyInterest.KEEPALIVE_QUIET = 5 -- ticks (deviation, see the header)
+PreyInterest.KEEPALIVE_QUIET = 5 -- ticks (tune) 8.5: a Far keep-alive skips if anything went out in the last 0.5 s
+PreyInterest.KEEPALIVE_PERIOD = 10 -- ticks: a Far group has a keep-alive tick every 1 s (8.5)
 PreyInterest.FORGET_AFTER = 25 -- ticks of silence after which the client is assumed to have dropped it
 PreyInterest.FULL_REPEAT = 2 -- a new group's full record goes in two consecutive packets
 PreyInterest.SCATTER_STEP = 13 -- quantised scatter (0 to 255) change that counts in Near (tune)
@@ -65,6 +63,7 @@ local FAR2 = FAR * FAR
 local KEY_PERIOD = PreyInterest.KEY_PERIOD
 local KEY_LATE = PreyInterest.KEY_LATE
 local KEEPALIVE_QUIET = PreyInterest.KEEPALIVE_QUIET
+local KEEPALIVE_PERIOD = PreyInterest.KEEPALIVE_PERIOD
 local FORGET_AFTER = PreyInterest.FORGET_AFTER
 local SCATTER_STEP = PreyInterest.SCATTER_STEP
 local SIDE = SpatialGrid.SIDE
@@ -307,7 +306,7 @@ function PreyInterest.updatePlayer(
 						if kind == 0 then
 							-- Over the threshold, or a Far keep-alive (ranked by its small error).
 							local keepAlive = band == 2
-								and staggered
+								and (g + slot) % KEEPALIVE_PERIOD == tick % KEEPALIVE_PERIOD
 								and tick - lastTick >= KEEPALIVE_QUIET
 							if ratio > 1 or keepAlive then
 								kind = REC_DELTA

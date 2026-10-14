@@ -112,12 +112,14 @@ describe("PreyInterest", function()
 			for k = 3, #nearTicks do
 				expect((nearTicks[k] - (near + 1)) % 20).toBe(0)
 			end
-			-- Far: deltas only on its staggered tick, never more than 25 ticks of silence.
-			expect(#farTicks >= 2).toBe(true)
+			-- Far (8.5): a keep-alive delta every 1 s, on (far + 1) % 10, when the group was quiet
+			-- for 0.5 s; never more than 14 ticks of silence.
+			expect(#farTicks >= 4).toBe(true)
 			for k = 2, #farTicks do
-				expect(farTicks[k] - farTicks[k - 1] <= 25).toBe(true)
-				expect((farTicks[k] - (far + 1)) % 20).toBe(0)
+				expect(farTicks[k] - farTicks[k - 1] <= 14).toBe(true)
+				expect((farTicks[k] - (far + 1)) % 10).toBe(0)
 			end
+			expect(farTicks[#farTicks] - farTicks[2]).toBe(10 * (#farTicks - 2))
 		end
 	)
 
