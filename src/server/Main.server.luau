@@ -10,6 +10,10 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 type Service = Types.Service
 
+-- Creates every remote of docs/09, section 5.3 before any service runs, so clients waiting in
+-- Net/Client find them even while no service has registered a handler yet.
+require(script.Parent.Net.Server)
+
 local loaded: { Service } = {
 	-- No services yet: each one is added here by the task that writes it.
 }
