@@ -4,9 +4,11 @@ depth 5 to 55, 160 long, used four times at B000, B090, B180, B270).
 
     Blender --background --python assets/source/env/rim/pass/build.py
 
-A tunnel straight through the Rim: a level corridor 64 wide from depth 55 (a 5-stud sill above the Reef
-floor) to depth 5 under a 17-stud rock lintel, so nothing can jump the Rim (03 6.7). Its walls are dented
-outward only (never narrower than 64), its upper corners rounded (radius 13) like a worn arch. The 12
+A gap straight through the Rim: a level corridor 64 wide from depth 55 (a 5-stud sill above the Reef
+floor), its walls dented outward only (never narrower than 64). Review loop 1: it must read as a gap in
+the ring, so above depth 5 it is open to the sky with flaring, rounded sides, except a 36-stud natural
+rock bridge over the middle of its length (r 462 to 498), under which 03 6.7's depth 5 to 55 holds.
+03 6.7 says the whole pass is depth 5 to 55; the owner decides whether the open notch stands. The 12
 degrees of Rim it replaces is cut into two meshes along the corridor's centre line: _01 the west half
 (left, seen from the Reef), _02 the east half. One rock field runs across both, so the lintel and the sill
 meet without a step; the outer ends are recessed like every Rim piece's. Origins: the centre of each
@@ -51,9 +53,11 @@ def corridor_check(objs, offs):
         wmin = min(widths)
         roof = min(u for u, d in heights)
         floor = max(d for u, d in heights)
-        ok = 64.0 - 0.05 <= wmin <= 72.0 and roof >= 25.0 - 0.6 and abs(floor - 25.0) < 0.6
+        open_up = sum(1 for u, d in heights if u > 500.0)
+        ok = 64.0 - 0.05 <= wmin <= 72.0 and roof >= 25.0 - 0.6 and abs(floor - 25.0) < 0.6 and 0 < open_up < len(heights)
         report.add(PRIMARY, "corridor", ok, "narrowest %.1f studs across at depths 19 to 52 (64 to 72; above depth 17 the upper corners round off, radius 12); roof over the middle 32 at depth %.1f or higher, floor at depth %.1f (03 6.7: 5 to 55), "
-                   "measured at 13 stations over the Rim's 160" % (wmin, 30.0 - roof, 30.0 + floor))
+                   "measured at 13 stations over the Rim's 160; open to the sky at %d of %d rays (the bridge covers the rest)" % (
+                   wmin, 30.0 - roof, 30.0 + floor, open_up, len(heights)))
     return check
 
 
@@ -120,7 +124,7 @@ def build():
         "exports": [{"file": "meshes/%s.fbx" % n, "objects": [objs[n]]} for n in NAMES],
         "preview": {
             "main": [body],
-            "view_captions": {"Side": ["west half; the corridor runs left to right", "depth 5 to 55 under a 17-stud lintel"]},
+            "view_captions": {"Side": ["west half; the corridor runs left to right", "open above but for a 36-stud bridge"]},
             "lineup": [
                 {"label": "M_Env_Rim_Pass_01 west half", "objects": [body]},
                 {"label": "M_Env_Rim_Pass_02 east half", "objects": [objs[NAMES[1]]]},
@@ -134,14 +138,14 @@ def build():
                 {"title": "Between two cove pieces (E Pass, C07 and C08)", "objects": pv + neighbours,
                  "camera": {"location": (-150.0, 230.0, 25.0), "look_at": (0.0, 420.0, -25.0), "lens": 20.0},
                  "caption": ["flank ends recessed into a crease against _02"]},
-                {"title": "Looking out through the pass", "objects": pv,
-                 "camera": {"location": (0.0, 370.0, -30.0), "look_at": (0.0, 600.0, -30.0), "lens": 18.0},
-                 "caption": ["walls dented outward only; floor level at depth 55"]},
+                {"title": "Three-quarter, from above the Reef", "objects": pv,
+                 "camera": {"location": (-120.0, 300.0, 70.0), "look_at": (0.0, 470.0, -20.0), "lens": 20.0},
+                 "caption": ["a gap in the ring, open above, one rock bridge", "sides flare and round off toward the top"]},
                 {"title": "From above", "objects": pv + neighbours,
                  "camera": {"location": (0.0, 480.0, 330.0), "look_at": (0.0, 480.0, 0.0), "lens": 22.0},
                  "caption": ["12 degrees of Rim between two coves"]},
             ],
-            "texture": "%s (shared tile, S5-A1), one repeat per 32 studs, Reef tint" % ra.ROCK_TILE,
+            "texture": "%s (the Rim's own, written by the wall build), one repeat per 64 studs" % ra.ROCK_TILE,
         },
     }
 

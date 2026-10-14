@@ -100,7 +100,7 @@ def render():
         nt.links.new(mix.outputs[0], out.inputs["Surface"])
         fog_nodes.append((rng, emi))
 
-    def lit(name, image, tint, planar=False):
+    def lit(name, image, tint, planar=False, per_copy=False):
         mat = bpy.data.materials.new(name)
         mat.use_nodes = True
         nt = mat.node_tree
@@ -112,7 +112,7 @@ def render():
             geo = nt.nodes.new("ShaderNodeNewGeometry")
             sca = nt.nodes.new("ShaderNodeVectorMath")
             sca.operation = 'SCALE'
-            sca.inputs["Scale"].default_value = 1.0 / ra.TILE
+            sca.inputs["Scale"].default_value = 1.0 / 32.0      # 07 6.1: ground tiles repeat every 32 studs
             nt.links.new(geo.outputs["Position"], sca.inputs[0])
             nt.links.new(sca.outputs["Vector"], tex.inputs["Vector"])
         mul = nt.nodes.new("ShaderNodeVectorMath")
@@ -121,12 +121,20 @@ def render():
         dif = nt.nodes.new("ShaderNodeBsdfDiffuse")
         nt.nodes.new("ShaderNodeOutputMaterial")
         nt.links.new(tex.outputs["Color"], mul.inputs[0])
-        nt.links.new(mul.outputs["Vector"], dif.inputs["Color"])
+        if per_copy:                          # the layout's SurfaceAppearance.Color per placement
+            info = nt.nodes.new("ShaderNodeObjectInfo")
+            mul2 = nt.nodes.new("ShaderNodeVectorMath")
+            mul2.operation = 'MULTIPLY'
+            nt.links.new(mul.outputs["Vector"], mul2.inputs[0])
+            nt.links.new(info.outputs["Color"], mul2.inputs[1])
+            nt.links.new(mul2.outputs["Vector"], dif.inputs["Color"])
+        else:
+            nt.links.new(mul.outputs["Vector"], dif.inputs["Color"])
         fogged(mat, dif.outputs[0])
         return mat
 
     tex_dir = os.path.join(common.EXPORT_DIR, "textures")
-    rock = lit("Rock", os.path.join(tex_dir, ra.ROCK_TILE + ".png"), tilegen.tints(ra.ROCK_TILE)["reef"][2])
+    rock = lit("Rock", ra.rim_texture_file()[1], (1.0, 1.0, 1.0), per_copy=True)
     sand_reef = lit("SandReef", os.path.join(tex_dir, "T_Tile_Sand_Alb.png"), tilegen.tints("T_Tile_Sand_Alb")["reef"][2], planar=True)
     sand_kelp = lit("SandKelp", os.path.join(tex_dir, "T_Tile_Sand_Alb.png"), tilegen.tints("T_Tile_Sand_Alb")["kelp"][2], planar=True)
 
@@ -160,7 +168,9 @@ def render():
         return c
     rot = lambda b: Matrix.Rotation(-math.radians(b), 4, 'Z')
     for it in ra.layout():
-        inst(pieces[it["mesh"]], rot(it["bearing"]))
+        c = inst(pieces[it["mesh"]], rot(it["bearing"]))
+        k = int(it["tint"][1:3], 16) / 255.0
+        c.color = (k, k, k, 1.0)
         if it["mesh"] == "M_Env_Rim_Wall_02":
             inst(mouth, rot(it["bearing"]) @ Matrix.Translation(ra.cove_origin()))
     for it in ra.haze_layout():
@@ -264,7 +274,7 @@ def sheet():
     sh = Image.new("RGB", (W, H), (28, 30, 36))
     d = ImageDraw.Draw(sh)
     d.text((12, 14), "M_Env_Rim kit: Rim_Wall_02 x24 with M_Cove_Mouth, Wall_03 x6, Rim_Pass_01/_02 x4, Blue_Haze x28 (rimart.layout)", fill=(240, 240, 240), font=f20)
-    d.text((12, 44), "06 10.2 legacy fog: Reef FogEnd 400, Kelp 260 (FogStart 25%); rock = T_Tile_Rock_Alb x Reef tint; haze tinted with the zone fog",
+    d.text((12, 44), "06 10.2 legacy fog: Reef FogEnd 400, Kelp 260 (FogStart 25%); rock = T_Rim_Alb x per-copy tint; haze tinted with the zone fog",
            fill=(190, 190, 190), font=f15)
     for i, shot in enumerate(SHOTS):
         x = 12 + (i % cols) * (cell + 12)

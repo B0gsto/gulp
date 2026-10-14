@@ -6,7 +6,12 @@ row M_Env_Rim_Wall, 2,500 tris each, T_Tile_Rock_Alb; docs/03-content-catalog.md
 The Rim is pale rock (03 6.7) stacked in big rounded slabs (06 9.3 layer 1: calm, low-saturation
 masses), from r 400 to r 560, 12 studs above the surface, its foot buried to depth 100. Each piece is a
 closed loft along the ring (rimart.py: the ring frame, the profile, the pillow slabs), textured with the
-shared T_Tile_Rock_Alb (one repeat every 32 studs, box-projected on the ring's axes) under the Reef tint.
+Rim's own painted T_Rim_Alb (review loop 1: the floor tile T_Tile_Rock_Alb read as paving on a wall):
+three strata of large soft rock planes per 64-stud repeat with lit top edges and blue-violet creases,
+box-projected on the ring's axes, at least 15 L* darker and cooler than the Reef sand. 07 6.1 has no row
+for it yet (the owner adds one: T_Rim_Alb, 512 x 512). The top is humped (never under +12) and the faces
+bulge, differently on each piece; the layout gives every copy a SurfaceAppearance.Color tint so no two
+neighbours match (MeshParts cannot be mirrored).
 
   _01  plain span, 12 degrees (84 studs of inner face): the same rock as _02 with no mouth, so any cove
        slot can take either. 03's 24 coves leave no plain span on the ring today; it is the slot filler
@@ -122,6 +127,7 @@ def opening_check(wall, off):
 
 def build():
     mat = ra.rock_material()
+    tex_img = ra.rim_texture()
     objs, offs = {}, {}
     for name in NAMES:
         ob = ra.build_piece(name)
@@ -179,8 +185,10 @@ def build():
         "size_tol": 0.001,
         "facing": {"kind": "tag"},
         "meshes": [{"object": objs[n], "role": "body", "primary": n == PRIMARY, "uv_tile_studs": ra.TILE} for n in NAMES],
-        "extra_checks": [ra.piece_checks([objs[n] for n in NAMES if n != PRIMARY]), opening_check(wall2, offs[PRIMARY]), write_table],
+        "extra_checks": [ra.piece_checks([objs[n] for n in NAMES if n != PRIMARY]), opening_check(wall2, offs[PRIMARY]),
+                         ra.rim_texture_checks(tex_img), write_table],
         "exports": [{"file": "meshes/%s.fbx" % n, "objects": [objs[n]]} for n in NAMES],
+        "textures": [{"file": "textures/%s.png" % ra.ROCK_TILE, "write": lambda path: __import__("preyart").save_rgba(path, tex_img), "max": 512}],
         "preview": {
             "main": [wall2],
             "view_captions": {"Side": ["Reef side left; top 12 above the surface,", "foot buried to depth 100"],
@@ -191,7 +199,7 @@ def build():
                 {"label": "M_Env_Rim_Wall_03 buttress", "objects": [objs["M_Env_Rim_Wall_03"]]},
                 {"label": "tier-7 Minnow", "objects": [bpy.data.objects["REF_Minnow_T7"]]},
             ],
-            "lineup_caption": ["T_Tile_Rock_Alb under the Reef tint #ECEFFF (tilegen)"],
+            "lineup_caption": ["T_Rim_Alb: large rock planes, lit top edges, violet creases"],
             "extras": [
                 {"title": "Three coves, 11-degree pitch, from the Reef", "objects": seg,
                  "camera": {"location": (0.0, 255.0, -24.0), "look_at": (0.0, 400.0, -26.0), "lens": 20.0},
@@ -201,12 +209,12 @@ def build():
                  "caption": ["plain span, buttress over the joint, cove span"]},
                 {"title": "Snapped, from above", "objects": kit,
                  "camera": {"location": (-45.0, 470.0, 260.0), "look_at": (-45.0, 470.0, 0.0), "lens": 24.0},
-                 "caption": ["buttress swells 8 proud and 6 above the top"]},
+                 "caption": ["humped top (never under +12), bulging face"]},
                 {"title": "Mouth fit, front", "objects": [seg[1], seg[4]],
                  "camera": {"location": (0.0, 330.0, -30.0), "look_at": (0.0, 400.0, -30.0), "lens": 28.0},
                  "caption": ["face flat on the mouth plane under the stones", "opening 3 studs past the mouth outline"]},
             ],
-            "texture": "%s (shared tile, S5-A1), 512 x 512, one repeat per 32 studs, Reef tint" % ra.ROCK_TILE,
+            "texture": "%s 512 x 512, painted by script, one repeat per 64 studs, no tint (07 row to add)" % ra.ROCK_TILE,
         },
     }
 

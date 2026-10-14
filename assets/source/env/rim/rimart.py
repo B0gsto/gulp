@@ -33,13 +33,18 @@ import common  # noqa: E402
 # ---------------------------------------------------------------- sizes (03 6.1, 6.7)
 R_IN, R_OUT, R0 = 400.0, 560.0, 480.0
 TOP, BASE = 12.0, -100.0
-TILE = 32.0                       # 07 6.1: T_Tile_* repeat every 32 studs
+TILE = 64.0                       # T_Rim_Alb repeats every 64 studs (large rock planes; review loop 1)
 WALL_SPAN, JOINT_SPAN, PASS_SPAN = 12.0, 4.0, 12.0
 PASS_HALF_W, PASS_FLOOR, PASS_ROOF = 32.0, -55.0, -5.0     # 03 6.7: 64 wide, depth 5 to 55
 COVE_DEPTH = 30.0
 HAZE_R, HAZE_SPAN, HAZE_TOP, HAZE_BOTTOM, HAZE_THICK = 980.0, 15.0, 0.0, -200.0, 4.0
 HAZE_CUT_R = 620.0                # 13 3.2: the soft-launch edge east and south of the Reef (no Drop-off)
-ROCK_TILE = "T_Tile_Rock_Alb"
+ROCK_TILE = "T_Rim_Alb"           # review loop 1: the floor tile read as paving on a wall; no 07 row yet
+SAND = "#F2D9A0"                  # 06 4.2 Reef sand: the Rim reads at least 15 L* darker and cooler
+RIM_MID, RIM_MID2 = "#A2948F", "#978C8E"     # mid block, L* 62 / 59, cool grey-mauve
+RIM_LIGHT = "#E8DCCB"             # sunlit top edges of the planes (light, L* 88)
+RIM_DARK = "#4C4466"              # creases and undersides, blue-violet (dark, L* 31; 06 4.1 shadows to 250)
+PLACEMENT_TINTS = (1.0, 0.93, 1.0, 0.96, 0.9, 0.98)   # SurfaceAppearance.Color per copy (06 5.3: variation by tint)
 HAZE_MASK = "T_Haze_Mask"
 
 COVES = (("C01", 12), ("C02", 23), ("C03", 34), ("C04", 45), ("C05", 56), ("C06", 67), ("C07", 78),
@@ -108,7 +113,12 @@ def rows_of(marks):
 class Rock:
     """Pillow fields of one piece: inner face (s, z), top (s, d), outer face (s, z)."""
 
-    def __init__(self, seed, s0, s1, counts=(2, 3), amp_in=(1.6, 3.6), amp_out=(2.2, 4.4)):
+    def __init__(self, seed, s0, s1, counts=(2, 3), amp_in=(1.6, 3.6), amp_out=(2.2, 4.4), humps=(3.0, 6.0), bulge=(2.0, 4.0)):
+        rng = random.Random(seed + 7)
+        L = s1 - s0
+        self.humps = [(rng.uniform(s0 + 0.2 * L, s1 - 0.2 * L), rng.uniform(0.16, 0.3) * L, rng.uniform(*humps)) for _ in range(2)]
+        self.bulges = [(rng.uniform(s0 + 0.2 * L, s1 - 0.2 * L), rng.uniform(0.15, 0.28) * L, rng.uniform(-42.0, -12.0),
+                        rng.uniform(*bulge)) for _ in range(2)]
         self.inner = make_blocks(seed + 1, s0, s1, rows_of(jittered(seed + 2, [-120.0, -64.0, -42.0, -21.0, -1.0, 16.0], 3.5)), counts, amp_in)
         self.top = make_blocks(seed + 3, s0, s1, rows_of(jittered(seed + 4, [-10.0, 38.0, 82.0, 124.0, 175.0], 7.0)), counts, (0.4, 1.3))
         self.outer = make_blocks(seed + 5, s0, s1, rows_of(jittered(seed + 6, [-120.0, -72.0, -42.0, -15.0, 16.0], 4.0)), counts, amp_out)
@@ -123,17 +133,23 @@ class Rock:
                 best = max(best, amp * (1.0 - (1.0 - k) ** 2))
         return best
 
+    def hump(self, s):
+        return sum(h * math.exp(-((s - c) / w) ** 2) for c, w, h in self.humps)
+
+    def bulge(self, s, z):
+        return sum(b * math.exp(-((s - c) / w) ** 2 - ((z - zc) / 24.0) ** 2) for c, w, zc, b in self.bulges)
+
     def disp(self, kind, s, d, z):
         if kind == "inner":
-            return self.field(self.inner, s, z)
+            return self.field(self.inner, s, z) + self.bulge(s, z)
         if kind == "nose_in":
-            return 0.55 * self.field(self.inner, s, z) + 0.3 * self.field(self.top, s, 4.0)
+            return 0.55 * self.field(self.inner, s, z) + 0.3 * self.field(self.top, s, 4.0) + 0.75 * self.hump(s)
         if kind == "top":
-            return self.field(self.top, s, d)
+            return self.field(self.top, s, d) + self.hump(s) * (0.75 + 0.25 * math.sin(d / 25.0))
         if kind == "nose_out":
-            return 0.55 * self.field(self.outer, s, z) + 0.3 * self.field(self.top, s, 150.0)
+            return 0.55 * self.field(self.outer, s, z) + 0.3 * self.field(self.top, s, 150.0) + 0.6 * self.hump(s)
         if kind == "outer":
-            return self.field(self.outer, s, z) * smooth(BASE, BASE + 20.0, z)
+            return (self.field(self.outer, s, z) + 0.8 * self.bulge(s, z)) * smooth(BASE, BASE + 20.0, z)
         return 0.0
 
 
@@ -201,19 +217,19 @@ def loft(sections):
     return verts, faces
 
 
-def wall_sections(span_deg, seed, cove=False, s_range=None, end_recess=(True, True), columns=22, rock=None):
+def wall_sections(span_deg, seed, cove=False, s_range=None, end_recess=(True, True), columns=22, rock=None, **shape):
     L = math.radians(span_deg) * R0
     s0, s1 = s_range if s_range else (-L / 2.0, L / 2.0)
-    rock = rock or Rock(seed, -L / 2.0, L / 2.0)
+    rock = rock or Rock(seed, -L / 2.0, L / 2.0, **shape)
     prof = base_profile()
     secs = []
     for k in range(columns + 1):
         s = s0 + (s1 - s0) * k / columns
         w = 0.0
         if end_recess[0]:
-            w = max(w, 1.0 - smooth(0.0, 6.5, s - (-L / 2.0)))
+            w = max(w, 1.0 - smooth(0.0, 9.0, s - (-L / 2.0)))
         if end_recess[1]:
-            w = max(w, 1.0 - smooth(0.0, 6.5, L / 2.0 - s))
+            w = max(w, 1.0 - smooth(0.0, 9.0, L / 2.0 - s))
         secs.append(ring_section(s, prof, rock, w, cove))
     return secs
 
@@ -222,7 +238,7 @@ def joint_sections(seed, columns=16):
     """Wall_03: a rounded buttress swollen past the Rim's profile (so it covers a neighbour's end),
     tapering to a dome at both ends; the taper is scaled down toward the buried base."""
     L = math.radians(JOINT_SPAN) * R0
-    rock = Rock(seed, -L / 2.0, L / 2.0, counts=(1, 2), amp_in=(2.0, 3.6), amp_out=(2.0, 3.6))
+    rock = Rock(seed, -L / 2.0, L / 2.0, counts=(1, 2), amp_in=(2.0, 3.6), amp_out=(2.0, 3.6), humps=(1.5, 3.0), bulge=(1.0, 2.5))
     prof = base_profile()
     secs = []
     for k in range(columns + 1):
@@ -370,14 +386,96 @@ def bounds(ob, off=None):
     return lo, hi
 
 
+def rim_texture(n=512, seed=21):
+    """T_Rim_Alb, RGBA rows from the top, tiling both ways: three strata of large soft rock planes per
+    repeat, each split at staggered joints; each plane one broad gradient in the mid block, a light lit
+    band along its top edge, a blue-violet crease under it and at its joints (06 4.1, 5.2). No cobble:
+    planes are 20 to 40 studs wide on the wall."""
+    import numpy as np
+    rng = random.Random(seed)
+    tau = 2.0 * math.pi
+    c = (np.arange(n) + 0.5) / n
+    U, V = np.meshgrid(c, 1.0 - c)
+
+    def rgb(h):
+        h = h.lstrip("#")
+        return np.array([int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4)])
+
+    def sm(e0, e1, x):
+        t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
+        return t * t * (3.0 - 2.0 * t)
+
+    def mix(a, b, t):
+        return a * (1.0 - t[..., None]) + b * t[..., None]
+    marks = np.array([0.0, 0.34 + rng.uniform(-0.03, 0.03), 0.68 + rng.uniform(-0.03, 0.03), 1.0])
+    vv = (V + 0.03 * np.sin(tau * U + rng.uniform(0, tau)) + 0.018 * np.sin(tau * 2 * U + rng.uniform(0, tau))) % 1.0
+    row = np.clip(np.searchsorted(marks, vv, side="right") - 1, 0, 2)
+    t0, t1 = marks[row], marks[row + 1]
+    ty = (vv - t0) / (t1 - t0)
+    tx = np.zeros_like(U)
+    dj = np.ones_like(U)
+    grad = np.zeros_like(U)
+    for r in range(3):
+        k = rng.choice((2, 3))
+        start = rng.uniform(0, 1)
+        cuts = sorted((start + (i + rng.uniform(-0.12, 0.12)) / k) % 1.0 for i in range(k))
+        m = row == r
+        uu = (U[m] + 0.02 * np.sin(tau * V[m] * 3 + r)) % 1.0
+        cs = np.array(cuts + [cuts[0] + 1.0])
+        uq = np.where(uu < cs[0], uu + 1.0, uu)
+        idx = np.clip(np.searchsorted(cs, uq, side="right") - 1, 0, k - 1)
+        a, b = cs[idx], cs[idx + 1]
+        tx[m] = (uq - a) / (b - a)
+        dj[m] = np.minimum(uq - a, b - uq)
+        dirs = np.array([rng.uniform(-1, 1) for _ in range(k)])
+        grad[m] = 0.5 + 0.5 * (dirs[idx] * (tx[m] - 0.5) * 1.6)
+    brush = 0.5 + 0.25 * np.sin(tau * (2 * U + V) + 1.3) * np.sin(tau * (U - 2 * V) + 0.4)
+    col = mix(rgb(RIM_MID), rgb(RIM_MID2), np.clip(0.6 * grad + 0.4 * brush, 0, 1))
+    db = np.minimum(ty, 1.0 - ty) * (t1 - t0)                      # distance to the stratum line, in repeats
+    col = mix(col, rgb(RIM_LIGHT), sm(0.66, 0.8, ty) * (1.0 - sm(0.9, 0.95, ty)) * 0.97)
+    crease = np.maximum(1.0 - sm(0.006, 0.03, db), 1.0 - sm(0.006, 0.026, dj))
+    under = (1.0 - sm(0.0, 0.25, ty)) * 0.25                     # occlusion under each plane, violet
+    col = mix(col, rgb(RIM_DARK), np.clip(np.maximum(crease, under), 0, 1))
+    img = np.ones((n, n, 4))
+    img[..., :3] = col
+    return img
+
+
+def rim_texture_file():
+    """Paints T_Rim_Alb and writes the working copy the previews load; returns (img, path)."""
+    from preyart import save_rgba
+    img = rim_texture()
+    path = os.path.join(common.review_dir(ROCK_TILE), "%s_work.png" % ROCK_TILE)
+    save_rgba(path, img)
+    return img, path
+
+
+def rim_texture_checks(img):
+    def check(spec, report):
+        import numpy as np
+        import tilegen
+        lab = tilegen.lstar(img[..., :3])
+        mean = img[..., :3].reshape(-1, 3).mean(axis=0)
+        sand = np.array([int(SAND[i:i + 2], 16) / 255.0 for i in (1, 3, 5)])
+        dl = common.lstar(SAND) - float(tilegen.lstar(mean))
+        cool = mean[2] / mean[0] - sand[2] / sand[0]
+        report.add(ROCK_TILE, "darker and cooler than sand", dl >= 15.0 and cool > 0.1,
+                   "mean %s L* %.1f, %.1f below Reef sand %s; blue/red %.2f against sand's %.2f" % (
+                       tilegen.hexof(mean), float(tilegen.lstar(mean)), dl, SAND, mean[2] / mean[0], sand[2] / sand[0]))
+        dark, light = float((lab <= 40).mean()), float((lab >= 80).mean())
+        report.add(ROCK_TILE, "three values", 0.08 <= dark <= 0.2 and 0.12 <= light <= 0.3,
+                   "dark (L* 40 or less) %.0f%%, light (80 or more) %.0f%%, mid %.0f%% (06 4.1: 10-15 / 20-30 / 55-65, tuned for a wall)" % (
+                       100 * dark, 100 * light, 100 * (1 - dark - light)))
+        seam = max(float(np.abs(img[:, 0, :3] - img[:, -1, :3]).max()), float(np.abs(img[0, :, :3] - img[-1, :, :3]).max()))
+        report.add(ROCK_TILE, "tiles both ways", seam < 0.12, "largest colour step across the wrap %.3f" % seam)
+    return check
+
+
 def rock_material(name="MAT_Rim_Rock", zone="reef"):
-    """Preview stand-in for the SurfaceAppearance: T_Tile_Rock_Alb x the zone tint (tilegen), matte."""
+    """Preview stand-in for the SurfaceAppearance: T_Rim_Alb (painted, no tint), matte."""
     bpy, bmesh, Matrix, Vector = bpy_mods()
-    import tilegen
-    path = os.path.join(common.EXPORT_DIR, "textures", ROCK_TILE + ".png")
-    if not os.path.exists(path):
-        raise RuntimeError("%s is missing: run python3 assets/source/env/shared/tiles/build.py paint" % path)
-    tint = tilegen.tints(ROCK_TILE)[zone][2]
+    img, path = rim_texture_file()
+    tint = (1.0, 1.0, 1.0)
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -430,7 +528,12 @@ def layout():
         items.append({"slot": name, "mesh": "M_Env_Rim_Pass_02", "bearing": b, "note": "east half (right, seen from the Reef)"})
     for name, b in JOINTS:
         items.append({"slot": name, "mesh": "M_Env_Rim_Wall_03", "bearing": b, "note": "buttress over a gap or an end"})
-    return sorted(items, key=lambda it: it["bearing"])
+    items = sorted(items, key=lambda it: it["bearing"])
+    order = (0, 3, 1, 4, 2, 5)
+    for i, it in enumerate(items):           # neighbours never share a tint; no mirroring (MeshParts cannot)
+        t = PLACEMENT_TINTS[order[i % 6]]
+        it["tint"] = "#%02X%02X%02X" % ((int(round(255 * t)),) * 3)
+    return items
 
 
 def haze_layout():
@@ -548,13 +651,42 @@ def pass_cutter():
     return ob
 
 
+NOTCH_Y = ((352.0, 462.0), (498.0, 608.0))     # open to the sky; a 36-stud rock bridge stays between
+
+
+def notch_cutters():
+    """Review loop 1: the pass reads as a gap in the ring. Above the corridor the Rim is cut open to the
+    sky with rounded, flaring sides, except for a natural bridge over the middle of its length."""
+    hw = PASS_HALF_W + 0.7
+    side = ((0.0, PASS_ROOF - 3.0), (0.8, 0.0), (2.5, 5.0), (5.0, 9.0), (8.0, 14.0), (9.0, 40.0))
+    poly = [(hw + dx, z) for dx, z in side] + [(-hw - dx, z) for dx, z in side[::-1]]
+    out = []
+    for k, (y0, y1) in enumerate(NOTCH_Y):
+        secs = []
+        for j in range(9):
+            y = y0 + (y1 - y0) * j / 8
+            sec = []
+            for i, (x, z) in enumerate(poly):
+                bump = 1.2 * max(0.0, math.sin(y / 17.0 + i * 1.1)) if 0 < z < 30 else 0.0
+                sec.append((x + math.copysign(bump, x), y, z))
+            secs.append(sec)
+        m = len(poly)
+        verts = [p for sec in secs for p in sec]
+        faces = [(a * m + i, a * m + (i + 1) % m, (a + 1) * m + (i + 1) % m, (a + 1) * m + i) for a in range(8) for i in range(m)]
+        faces += [tuple(range(m)), tuple(8 * m + i for i in range(m))[::-1]]
+        ob = mesh_object("CUT_Notch%d" % k, verts, faces, collection="PREVIEW")
+        tidy(ob, triangulate=False)
+        out.append(ob)
+    return out
+
+
 def build_piece(name):
     """One Rim piece in the ring frame: tidy, triangulated, UVs, vertex colour, front tag."""
     if name == "M_Env_Rim_Wall_01":
-        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], columns=22))
+        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], columns=22, humps=(4.5, 8.0), bulge=(3.5, 6.0)))
         ob = mesh_object(name, v, f)
     elif name == "M_Env_Rim_Wall_02":
-        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], cove=True, columns=22))
+        v, f = loft(wall_sections(WALL_SPAN, SEEDS[name], cove=True, columns=22, humps=(2.5, 5.0), bulge=(2.0, 4.0)))
         ob = mesh_object(name, v, f)
         tidy(ob, triangulate=False)
         for cut in cove_cutters():
@@ -572,9 +704,9 @@ def build_piece(name):
         v, f = loft(secs)
         ob = mesh_object(name, v, f)
         tidy(ob, triangulate=False)
-        cut = pass_cutter()
-        boolean(ob, cut)
-        remove(cut)
+        for cut in [pass_cutter()] + notch_cutters():
+            boolean(ob, cut)
+            remove(cut)
     else:
         raise KeyError(name)
     tidy(ob)
@@ -638,8 +770,8 @@ def build_haze(name="M_Env_Blue_Haze"):
 
 
 def haze_mask(n=256, seed=11):
-    """T_Haze_Mask: RGBA, row 0 at the top. Alpha: dense at the floor, a soft gradient up the water
-    column, a lobed ragged top that clears before the surface; it wraps left to right so pieces join.
+    """T_Haze_Mask: RGBA, row 0 at the top. Alpha: dense at the floor, one long smooth fade up the water
+    column that clears before the surface (review loop 1 replaced the ragged top); it wraps left to right.
     RGB: white above, easing to 0.80 at the floor, so the zone fog tint darkens to the deep band there."""
     import numpy as np
     rng = random.Random(seed)
@@ -647,14 +779,12 @@ def haze_mask(n=256, seed=11):
     v = 1.0 - (np.arange(n) + 0.5) / n
     U, V = np.meshgrid(u, v)
     tau = 2.0 * math.pi
-    edge = 0.66 + sum(a * np.cos(tau * k * U + rng.uniform(0, tau)) for k, a in ((1, 0.03), (2, 0.045), (3, 0.035), (5, 0.022), (7, 0.008)))
-    folds = 1.0 + (0.05 * np.cos(tau * 3 * U + rng.uniform(0, tau)) + 0.03 * np.cos(tau * 4 * U + rng.uniform(0, tau))) * V
 
     def sm(e0, e1, x):
         t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
         return t * t * (3.0 - 2.0 * t)
-    body = (0.97 - 0.13 * sm(0.0, 0.7, V)) * folds
-    alpha = np.clip(body * (1.0 - sm(edge - 0.27, edge + 0.05, V)), 0.0, 1.0)
+    # review loop 1: one long smooth vertical fade, no ragged teeth; dense only near the floor
+    alpha = np.clip(0.92 - 0.06 * sm(0.0, 0.25, V), 0.0, 1.0) * (1.0 - sm(0.12, 0.93, V)) ** 1.15
     shade = 0.80 + 0.20 * sm(0.0, 0.8, V)
     img = np.zeros((n, n, 4))
     img[..., 0] = img[..., 1] = img[..., 2] = shade

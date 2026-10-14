@@ -9,8 +9,8 @@ the water darkens to deep blue and nothing passes r 1,000; docs/06-art-bible.md 
 inner face shows the mask; the back, rims and ends map to the mask's clear top corner. In Studio:
 SurfaceAppearance { ColorMap = T_Haze_Mask, AlphaMode = Transparency, Color = the zone's fog colour
 (06 4.2: Reef #1E9FD0, Kelp #238A72) (tune) }, CastShadow off, CanCollide off (the turn-back current is
-code). The mask is dense at the floor (it hides the floor's end), thins up the water column and ends in a
-lobed, soft, ragged top before the surface, so beyond it the legacy fog (06 10.2) carries on in the same
+code). The mask is dense at the floor (it hides the floor's end) and thins in one long smooth fade up the
+water column, clear before the surface (review loop 1 replaced 07's ragged top: it read as saw teeth), so beyond it the legacy fog (06 10.2) carries on in the same
 colour. Its RGB eases from white to 0.80 at the floor, so the tint darkens toward the zone's deep band.
 The mask wraps left to right and each piece spans exactly one repeat, so pieces join with no seam.
 
@@ -50,9 +50,18 @@ def mask_checks(img):
         report.add(ra.HAZE_MASK, "wraps left to right", seam <= max(inner, 0.01) * 1.5,
                    "alpha step across the wrap %.4f, largest step inside %.4f" % (seam, inner))
         report.add(ra.HAZE_MASK, "clear top", top < 0.01, "top rows alpha at most %.3f (the surface stays open water)" % top)
-        report.add(ra.HAZE_MASK, "dense floor", bottom > 0.9, "bottom rows alpha at least %.3f (the floor's end is hidden)" % bottom)
+        report.add(ra.HAZE_MASK, "dense floor", bottom > 0.85, "bottom rows alpha at least %.3f (the floor's end is hidden)" % bottom)
         report.add(ra.HAZE_MASK, "soft", step_v < 0.035 and inner < 0.035,
                    "largest alpha step %.4f down, %.4f across, per pixel (no hard line; 06 5.2 gradients large and soft)" % (step_v, inner))
+        import tilegen
+        half = int(np.argmin(np.abs(a[:, 0] - 0.5)))
+        for zone in ("reef", "kelp"):
+            fog = np.array(common.hex_to_srgb(ra.FOG[zone]))
+            top, floor, deep = fog * img[0, 0, :3], fog * img[-1, 0, :3], np.array(common.hex_to_srgb(ra.DEEP[zone]))
+            lt, lf, ld = (float(tilegen.lstar(c)) for c in (top, floor, deep))
+            report.add(ra.HAZE_MASK, "colour: %s" % zone, abs(lt - common.lstar(ra.FOG[zone])) < 0.5 and abs(lf - ld) < 8.0,
+                       "x %s fog: L* %.1f where it fades out (fog L* %.1f), %.1f at the floor (deep band %s L* %.1f); half opacity %.0f%% up"
+                       % (ra.FOG[zone], lt, common.lstar(ra.FOG[zone]), lf, ra.DEEP[zone], ld, 100.0 * (1 - half / float(a.shape[0]))))
     return check
 
 
@@ -139,7 +148,7 @@ def build():
             "extras": [
                 {"title": "Five pieces, Reef tint, from 140 studs", "objects": row,
                  "camera": {"location": (0.0, 840.0, -60.0), "look_at": (0.0, 980.0, -80.0), "lens": 14.0},
-                 "caption": ["the mask wraps: no seam between pieces", "ragged top clears before the surface"]},
+                 "caption": ["the mask wraps: no seam between pieces", "one long fade, clear before the surface"]},
                 {"title": "Kelp tint, looking along the edge", "objects": kelp,
                  "camera": {"location": (-180.0, 900.0, -70.0), "look_at": (60.0, 975.0, -90.0), "lens": 18.0},
                  "caption": ["#238A72 (06 4.2 Kelp fog)"]},
