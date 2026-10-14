@@ -214,6 +214,25 @@ local function measure(): string
 			`dock label text {dockLabel:GetAttribute("TextRpx")}->{dockLabel.TextSize}`
 		)
 	end
+	local pile = gui:FindFirstChild("Cove.PearlPile")
+	if pile and pile:IsA("BillboardGui") then
+		local adornee = pile.Adornee
+		if adornee and adornee:IsA("BasePart") then
+			local v, on = workspace.CurrentCamera:WorldToViewportPoint(adornee.Position)
+			table.insert(
+				out,
+				`pile world {math.round(v.X)},{math.round(v.Y)} z {math.round(v.Z)} on {on} parent {pile.Parent and pile.Parent.Name} kids {#pile:GetDescendants()}`
+			)
+		end
+		table.insert(
+			out,
+			`pile enabled {pile.Enabled} adornee {if adornee then adornee.Name else "none"} size {math.round(
+				pile.AbsoluteSize.X / scale
+			)}x{math.round(pile.AbsoluteSize.Y / scale)} at {math.round(pile.AbsolutePosition.X)},{math.round(
+				pile.AbsolutePosition.Y
+			)}`
+		)
+	end
 	size("Card", "GulpMoments", "Specimen")
 	text("card tier", "GulpMoments", "TierName")
 	text("card perHour", "GulpMoments", "PerHour")

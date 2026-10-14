@@ -152,7 +152,7 @@ local function render(holder: Frame, sp: string): CreatureRig.Rig?
 	local reach = math.max(size.X, size.Y, size.Z)
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 30
-	local eye = cf.Position + Vector3.new(reach * 1.55, reach * 0.42, reach * 1.25)
+	local eye = cf.Position + Vector3.new(reach * 1.2, reach * 0.34, reach * 0.98)
 	camera.CFrame = CFrame.lookAt(eye, cf.Position)
 	camera.Parent = view
 	view.CurrentCamera = camera

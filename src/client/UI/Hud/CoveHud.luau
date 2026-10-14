@@ -187,7 +187,7 @@ local function buildBubble(callbacks: Callbacks): (BillboardGui, Frame, TextLabe
 	}) :: BillboardGui
 	local body =
 		Draw.new("Frame", { Name = "Body", Size = UDim2.fromScale(1, 1), Parent = gui }) :: Frame
-	local scale = Draw.new("UIScale", { Parent = body }) :: UIScale
+	Draw.new("UIScale", { Name = "Fit", Parent = body })
 	local bubble = Draw.disc(C.bubble, Theme.WHITE, UDim2.new(0.5, 0, 0, C.bubble / 2 + 4), {
 		Name = "UI_Cove_IncomeBubble",
 		BackgroundTransparency = 0.35,
@@ -203,6 +203,7 @@ local function buildBubble(callbacks: Callbacks): (BillboardGui, Frame, TextLabe
 	Icons.pearl(40, bubble, UDim2.fromScale(0.5, 0.54), 3)
 	Draw.disc(14, Theme.WHITE, UDim2.fromScale(0.28, 0.24), { ZIndex = 6, Parent = bubble })
 	Draw.slot("UI_Cove_IncomeBubble", bubble, 7)
+	local press = Draw.new("UIScale", { Name = "Press", Parent = bubble }) :: UIScale
 	local label = Draw.text({
 		Name = "Amount",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -221,7 +222,7 @@ local function buildBubble(callbacks: Callbacks): (BillboardGui, Frame, TextLabe
 		ZIndex = 9,
 		Parent = body,
 	}) :: TextButton
-	Draw.bindPress(hit, scale, {
+	Draw.bindPress(hit, press, {
 		darken = function() end,
 		onRelease = callbacks.claim,
 		enabled = function()
@@ -392,8 +393,8 @@ function CoveHud.layout(layout: Screen.Layout)
 	local s = layout.scale
 	b.bubble.Size = UDim2.fromOffset(160 * s, 120 * s)
 	b.bubbleBody.Size = UDim2.fromOffset(160, 120)
-	local uiScale = b.bubbleBody:FindFirstChildOfClass("UIScale")
-	if uiScale then
+	local uiScale = b.bubbleBody:FindFirstChild("Fit")
+	if uiScale and uiScale:IsA("UIScale") then
 		uiScale.Scale = s
 	end
 end
