@@ -98,6 +98,24 @@ local function dependencyScript(): boolean
 	return bad == 0
 end
 
+-- Section 4.4, "Only EconomyService changes Pearls": no other server file writes `pearls`.
+local function pearlScript(): boolean
+	local files, bad = 0, 0
+	for _, path in Files.walk(DependencyRules.PEARL_ROOT, ".luau") do
+		if DependencyRules.pearlRuleApplies(path) then
+			files += 1
+			for _, violation in DependencyRules.pearlWrites(fs.readFile(path)) do
+				bad += 1
+				say(
+					`  {path}:{violation.line}: {violation.token}: only EconomyService changes Pearls`
+				)
+			end
+		end
+	end
+	say(`  pearl rule: {files} server files checked, {bad} writes outside EconomyService`)
+	return bad == 0
+end
+
 -- Section 4.4, Selene half: the pure roots linted against plain Luau.
 local function dependencySelene(): boolean
 	local roots: { string } = {}
@@ -128,6 +146,7 @@ local STEPS: { Step } = {
 			return run("stylua", { "--check", "src", "tests", "tools" })
 				and run("selene", { "src" })
 				and dependencyScript()
+				and pearlScript()
 				and dependencySelene()
 		end,
 	},

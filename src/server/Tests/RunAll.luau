@@ -21,6 +21,7 @@ local SPECS: { () -> () } = {
 	require("./BiteSpec"),
 	require("./DataSpec"),
 	require("./RunLoopSpec"),
+	require("./EconomySpec"),
 }
 
 local function runAll(): string
