@@ -53,6 +53,9 @@ describe("OutlineRules shell look (06 §13.2)", function()
 			expect(OutlineRules.thickness(10, "dangerous", false)).toBeCloseTo(0.9, 1e-9)
 			expect(OutlineRules.thickness(10, "edible", true)).toBeCloseTo(1.0, 1e-9)
 			expect(OutlineRules.thickness(0.5, "edible", false)).toBeCloseTo(0.12, 1e-9)
+			-- Prey: 10% of body height, no minimum (a 0.36-stud krill gets 0.036).
+			expect(OutlineRules.thickness(0.36, "edible", true)).toBeCloseTo(0.036, 1e-9)
+			expect(OutlineRules.thickness(0.5, "dangerous", true)).toBeCloseTo(0.075, 1e-9)
 		end
 	)
 

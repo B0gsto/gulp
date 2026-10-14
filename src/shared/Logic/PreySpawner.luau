@@ -9,20 +9,25 @@
 --           leashed inside the area they were spawned in.
 --   Rows.   One row per (zone, prey): normal prey from data:PreySpawns through PreySpawnMath
 --           (playerScale, the Nursery's per-player rule, Frenzy ×2, areaScale), trait prey from
---           TRAIT_ALIVE (02 §9.6, MVP rows; no playerScale or eventScale, areaScale applies).
---   Pass.   `pass` runs once a second (02 §9.5). Per row below target whose respawn delay has run,
---           it spawns one whole group (three of normal prey in a Feeding Frenzy, 02 §14.4)
---           at a point of one of the row's areas with no player within
+--           data:TraitPreySpawns (02 §9.6; no playerScale or eventScale, areaScale applies). A
+--           row's respawn delay is its prey's `PreyDef.respawn` (03 §2.1, §3.1; 02 §9.5).
+--   Pass.   `pass` runs on the first tick at or after each whole second since the last pass, so
+--           every 10th tick (02 §9.5, 09 §8.4 frame 3). Per row below target whose respawn delay
+--           has run, it spawns one whole group (three in a Feeding Frenzy: the tide's
+--           spawnRateMult, 02 §14.4) at a point of one of the row's areas with no player within
 --           60 studs (the farthest of 4 tries otherwise). Stragglers (a swarm or school down to two
 --           members, 02 §9.2) leave after 10 s with no player within 80 studs and no longer count,
 --           so the school respawns whole. A row above 150% of target (after a Frenzy) loses its
 --           groups that have no player within 80 studs, 10 per second in all. The crystal_jelly
---           drift (one group of five) appears every 300 s and leaves 240 s after it appeared.
---   Rate.   `setRate(mult)`: respawn delays of normal prey are divided by mult; mult > 1 is a
---           Feeding Frenzy, which also doubles normal targets and caps (02 §14.4). Trait prey are
---           unchanged.
--- Respawn delays and trait prey targets are copied from docs/03 §2.1 and §3.1 and 02 §9.6 because
--- the generated PreyDef and PreySpawns do not carry them yet (reported gap).
+--           drift (one group of `alive` members) appears every `respawn` s, counted from when the
+--           last one appeared, and leaves `lifetime` s after it appeared (03 §3.1).
+--   Tide.   `setTide(tideId?)`: respawn delays of normal prey are divided by the tide's
+--           spawnRateMult (canon data:Tides), which is also the spawns per row per pass. Only the
+--           `frenzy` tide doubles normal targets and caps (02 §14.4). Trait prey are unchanged.
+--   Events. `startEvent` keeps up to `PreyDef.alive` animals of an event prey alive, in whole
+--           groups, until `PreyDef.eventTotal` animals have been released (03 §3.1: lunar_fry 12
+--           at once in groups of 4, 40 per event; 09 §3.2), topping up on each pass;
+--           `clearEvents` ends it.
 local Formation = require("../Sim/Formation")
 local Index = require("../Data/Index")
 local PreySim = require("../Sim/PreySim")
@@ -42,46 +47,8 @@ PreySpawner.STRAGGLE_AFTER = 10 -- s
 PreySpawner.OVER_TARGET = 1.5
 PreySpawner.CULL_PER_PASS = 10
 PreySpawner.FADE_IN = 0.5 -- s: a new group cannot be eaten before it has faded in (02 §9.5)
-PreySpawner.JELLY_EVERY = 300 -- s (03 §3.1)
-PreySpawner.JELLY_STAY = 240
-PreySpawner.JELLY_COUNT = 5
-
--- docs/03 §2.1 and §3.1, "Respawn (s)" (gap: not in the generated PreyDef).
-local RESPAWN: { [string]: number } = {
-	plankton = 4,
-	krill = 12,
-	shrimp = 10,
-	sardine = 20,
-	darter = 25,
-	mackerel = 35,
-	bonito = 50,
-	tuna = 90,
-	glowfry = 30,
-	zebra_darter = 30,
-	dotted_goby = 25,
-	armor_shrimp = 60,
-	urchin_puff = 60,
-	ribbonfish = 60,
-	inklet = 120,
-	spark_eel = 120,
-	leaf_drifter = 120,
-	vent_snail = 180,
-}
--- docs/02 §9.6 data:PreyTargets, trait prey rows ("Animals" alive per server, by zone). The
--- generated PreySpawns has normal prey only (gap). Rows whose prey is not [MVP] are skipped.
-local TRAIT_ALIVE: { { zone: string, prey: string, alive: number } } = {
-	{ zone = "reef", prey = "glowfry", alive = 6 },
-	{ zone = "kelp", prey = "glowfry", alive = 4 },
-	{ zone = "reef", prey = "dotted_goby", alive = 10 },
-	{ zone = "reef", prey = "zebra_darter", alive = 8 },
-	{ zone = "reef", prey = "urchin_puff", alive = 6 },
-	{ zone = "kelp", prey = "armor_shrimp", alive = 6 },
-	{ zone = "kelp", prey = "ribbonfish", alive = 6 },
-	{ zone = "kelp", prey = "leaf_drifter", alive = 5 },
-	{ zone = "dropoff", prey = "inklet", alive = 5 },
-	{ zone = "dropoff", prey = "spark_eel", alive = 5 },
-	{ zone = "dropoff", prey = "vent_snail", alive = 4 },
-}
+PreySpawner.PASS_SLACK = 0.05 -- s: half a tick, so the pass keeps to every 10th tick
+PreySpawner.FRENZY_TIDE = "frenzy" -- the one tide that doubles normal targets (02 §14.4)
 
 export type Area = {
 	zone: string,
@@ -109,6 +76,14 @@ export type Row = {
 	readyAt: number,
 }
 
+export type EventRun = {
+	prey: string,
+	kind: number,
+	alive: number, -- animals kept alive at once
+	left: number, -- animals still to release
+	live: number, -- live animals, counted by each pass
+}
+
 export type Spawner = {
 	sim: PreySim.Sim,
 	rng: Rng.Rng,
@@ -117,12 +92,15 @@ export type Spawner = {
 	zoneScale: { [string]: number }, -- areaScale per zone (spawn area ÷ zone area, at most 1)
 	playersInside: { [string]: number },
 	players: number,
-	rate: number,
+	tide: string?, -- the running tide, nil = none
+	rate: number, -- the running tide's spawnRateMult (1 with none)
+	events: { EventRun }, -- event prey being released
 	rowOf: buffer, -- u16 per group: row index, 0 = not counted (event prey, jelly, straggler)
 	straggleAt: buffer, -- f64 per group: last time a player was near a straggler, 0 = not one
 	spawnedAt: buffer, -- f64 per group
 	nextPass: number,
 	jellyKind: number?,
+	jellyDef: PreyDef?,
 	jellyGroup: number, -- -1 = none
 	jellyGen: number,
 	jellyAt: number,
@@ -147,12 +125,15 @@ function PreySpawner.new(sim: PreySim.Sim, seed: number): Spawner
 		zoneScale = {},
 		playersInside = {},
 		players = 0,
+		tide = nil,
 		rate = 1,
+		events = {},
 		rowOf = buffer.create(G * 2),
 		straggleAt = buffer.create(G * 8),
 		spawnedAt = buffer.create(G * 8),
 		nextPass = 0,
 		jellyKind = nil,
+		jellyDef = nil,
 		jellyGroup = -1,
 		jellyGen = 0,
 		jellyAt = 0,
@@ -221,6 +202,7 @@ function PreySpawner.build(sp: Spawner)
 		local areas = areasFor(sp, def.zone, def.prey)
 		local prey = Index.Prey.byId[def.prey]
 		if #areas > 0 and prey and prey.scope == "MVP" then
+			assert(prey.respawn, `PreySpawner: {def.prey} has no respawn delay`)
 			table.insert(sp.rows, {
 				zone = def.zone,
 				prey = def.prey,
@@ -228,7 +210,7 @@ function PreySpawner.build(sp: Spawner)
 				def = prey,
 				spawnDef = def,
 				alive = nil,
-				respawn = RESPAWN[def.prey] or 30,
+				respawn = prey.respawn :: number,
 				trait = false,
 				areas = areas,
 				target = 0,
@@ -237,10 +219,11 @@ function PreySpawner.build(sp: Spawner)
 			})
 		end
 	end
-	for _, t in TRAIT_ALIVE do
+	for _, t in Index.TraitPreySpawns.list do
 		local areas = areasFor(sp, t.zone, t.prey)
 		local prey = Index.TraitPrey.byId[t.prey]
 		if #areas > 0 and prey and prey.scope == "MVP" then
+			assert(prey.respawn, `PreySpawner: {t.prey} has no respawn delay`)
 			table.insert(sp.rows, {
 				zone = t.zone,
 				prey = t.prey,
@@ -248,7 +231,7 @@ function PreySpawner.build(sp: Spawner)
 				def = prey,
 				spawnDef = nil,
 				alive = t.alive,
-				respawn = RESPAWN[t.prey] or 60,
+				respawn = prey.respawn :: number,
 				trait = true,
 				areas = areas,
 				target = 0,
@@ -258,7 +241,13 @@ function PreySpawner.build(sp: Spawner)
 		end
 	end
 	local jelly = Index.TraitPrey.byId.crystal_jelly
-	sp.jellyKind = if jelly and jelly.scope == "MVP" then Formation.kindOf("crystal_jelly") else nil
+	local live = jelly ~= nil
+		and jelly.scope == "MVP"
+		and jelly.respawn ~= nil
+		and jelly.lifetime ~= nil
+		and jelly.alive ~= nil
+	sp.jellyKind = if live then Formation.kindOf("crystal_jelly") else nil
+	sp.jellyDef = if live then jelly else nil
 	PreySpawner.retarget(sp)
 end
 
@@ -273,10 +262,19 @@ function PreySpawner.setPlayers(sp: Spawner, n: number, insideByZone: { [string]
 	end
 end
 
---- Respawn multiplier (PreyService.setSpawnRate): 3 in a Feeding Frenzy, else 1.
-function PreySpawner.setRate(sp: Spawner, mult: number)
-	assert(mult > 0, "PreySpawner.setRate: bad multiplier")
-	sp.rate = mult
+--- The running tide (PreyService.setTide), nil for none. Its spawnRateMult (canon data:Tides)
+--- divides the respawn delays of normal prey and sets the spawns per row per pass; only the
+--- `frenzy` tide doubles the targets and caps of normal prey (02 §9.5, §14.4).
+function PreySpawner.setTide(sp: Spawner, tideId: string?)
+	local rate = 1
+	if tideId then
+		local tide = Index.Tides.byId[tideId]
+		assert(tide, `PreySpawner.setTide: unknown tide {tideId}`)
+		assert(tide.spawnRateMult > 0, "PreySpawner.setTide: bad spawnRateMult")
+		rate = tide.spawnRateMult
+	end
+	sp.tide = tideId
+	sp.rate = rate
 	PreySpawner.retarget(sp)
 end
 
@@ -284,7 +282,7 @@ end
 function PreySpawner.retarget(sp: Spawner)
 	local situation = sp.situation
 	situation.players = sp.players
-	situation.frenzy = sp.rate > 1
+	situation.frenzy = sp.tide == PreySpawner.FRENZY_TIDE
 	for _, row in sp.rows do
 		local scale = sp.zoneScale[row.zone] or 1
 		if row.spawnDef then
@@ -376,6 +374,16 @@ local function spawnRow(
 end
 
 -- Removes group g through the callback, and un-counts it.
+local spawnEventGroups: (
+	sp: Spawner,
+	run: EventRun,
+	now: number,
+	px: { number },
+	py: { number },
+	pz: { number },
+	n: number
+) -> number
+
 local function removeGroup(sp: Spawner, g: number, now: number)
 	local sim = sp.sim
 	local rowIndex = buffer.readu16(sp.rowOf, g * 2)
@@ -394,6 +402,49 @@ local function removeGroup(sp: Spawner, g: number, now: number)
 		onRemoved(g, buffer.readu8(sim.buffers.gen, g))
 	end
 	PreySim.remove(sim, g)
+end
+
+-- Spawns whole groups of a running event's prey (flag bit4) while they fit under its animals alive
+-- at once and its animals left, round-robin over its zones that have spawn areas. Counts the new
+-- animals into `run.live` and out of `run.left`. Returns the groups spawned.
+spawnEventGroups = function(
+	sp: Spawner,
+	run: EventRun,
+	now: number,
+	px: { number },
+	py: { number },
+	pz: { number },
+	n: number
+): number
+	local def = Formation.defOf(run.kind) :: PreyDef
+	local zones: { string } = {}
+	local areasOf: { { Area } } = {}
+	for _, zone in def.zones do
+		local areas = areasFor(sp, zone, run.prey)
+		if #areas > 0 then
+			table.insert(zones, zone)
+			table.insert(areasOf, areas)
+		end
+	end
+	local made = 0
+	while #zones > 0 and run.left > 0 do
+		local size = math.min(Rng.int(sp.rng, def.groupMin, def.groupMax), run.left)
+		if run.live + size > run.alive then
+			break
+		end
+		local k = made % #zones + 1
+		local area, x, y, z = pickPoint(sp, areasOf[k], zones[k], px, py, pz, n)
+		local g = PreySim.spawn(sp.sim, run.kind, area.home, x, y, z, size, true)
+		if g == nil then
+			break
+		end
+		buffer.writeu16(sp.rowOf, g * 2, 0)
+		buffer.writef64(sp.spawnedAt, g * 8, now)
+		run.live += size
+		run.left -= size
+		made += 1
+	end
+	return made
 end
 
 --- Fills every row to its target at once (server start). Players' positions as in `pass`.
@@ -427,7 +478,7 @@ function PreySpawner.pass(
 	pz: { number },
 	n: number
 ): number
-	if now < sp.nextPass then
+	if now < sp.nextPass - PreySpawner.PASS_SLACK then
 		return 0
 	end
 	sp.nextPass = now + PreySpawner.PASS_EVERY
@@ -437,10 +488,22 @@ function PreySpawner.pass(
 	local straggle2 = PreySpawner.STRAGGLE_RADIUS * PreySpawner.STRAGGLE_RADIUS
 	local culls = PreySpawner.CULL_PER_PASS
 
-	-- Stragglers and culls over 150% of target.
+	-- Stragglers and culls over 150% of target; live event groups counted per event.
+	local events = sp.events
+	for _, run in events do
+		run.live = 0
+	end
 	for g = 0, PreySim.MAX_GROUPS - 1 do
-		if buffer.readu8(b.kind, g) == 0 then
+		local kind = buffer.readu8(b.kind, g)
+		if kind == 0 then
 			continue
+		end
+		if #events > 0 and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT) then
+			for _, run in events do
+				if run.kind == kind then
+					run.live += PreySim.aliveCount(sim, g)
+				end
+			end
 		end
 		local since = buffer.readf64(sp.straggleAt, g * 8)
 		local rowIndex = buffer.readu16(sp.rowOf, g * 2)
@@ -473,17 +536,25 @@ function PreySpawner.pass(
 
 	-- Crystal Jelly drift.
 	if sp.jellyKind then
-		if sp.jellyGroup >= 0 and now - sp.jellyAt >= PreySpawner.JELLY_STAY then
+		local jellyDef = sp.jellyDef :: PreyDef
+		if sp.jellyGroup >= 0 and now - sp.jellyAt >= (jellyDef.lifetime :: number) then
 			if PreySim.isLive(sim, sp.jellyGroup, sp.jellyGen) then
 				removeGroup(sp, sp.jellyGroup, now)
 			end
 			sp.jellyGroup = -1
 		end
 		if now >= sp.jellyNext then
-			local jelly = Formation.defOf(sp.jellyKind :: number) :: PreyDef
-			local zone = jelly.zones[Rng.int(sp.rng, 1, #jelly.zones)]
-			local areas = areasFor(sp, zone, jelly.id)
-			if #areas > 0 then
+			local jelly = jellyDef
+			-- A random zone of the jelly's that has spawn areas.
+			local zones: { string } = {}
+			for _, z in jelly.zones do
+				if #areasFor(sp, z, jelly.id) > 0 then
+					table.insert(zones, z)
+				end
+			end
+			local zone = if #zones > 0 then zones[Rng.int(sp.rng, 1, #zones)] else nil
+			local areas = if zone then areasFor(sp, zone, jelly.id) else {}
+			if zone and #areas > 0 then
 				local area, x, y, z = pickPoint(sp, areas, zone, px, py, pz, n)
 				local g, gen = PreySim.spawn(
 					sim,
@@ -492,7 +563,7 @@ function PreySpawner.pass(
 					x,
 					y,
 					z,
-					PreySpawner.JELLY_COUNT
+					jelly.alive :: number
 				)
 				if g then
 					buffer.writeu16(sp.rowOf, g * 2, 0)
@@ -500,12 +571,17 @@ function PreySpawner.pass(
 					sp.jellyGroup, sp.jellyGen, sp.jellyAt = g, gen, now
 				end
 			end
-			sp.jellyNext = now + PreySpawner.JELLY_EVERY
+			sp.jellyNext = now + (jelly.respawn :: number)
 		end
 	end
 
-	-- One group per row below target whose delay has run; three for normal prey in a Frenzy
-	-- (02 §14.4, "Three spawns per pass instead of one").
+	-- Event prey: top each running event up to its animals alive at once.
+	for _, run in events do
+		spawnEventGroups(sp, run, now, px, py, pz, n)
+	end
+
+	-- One group per row below target whose delay has run; the tide's spawnRateMult per pass for
+	-- normal prey (three in a Feeding Frenzy, 02 §14.4 "Three spawns per pass instead of one").
 	local spawned = 0
 	local frenzyBurst = math.max(1, math.floor(sp.rate))
 	for rowIndex, row in sp.rows do
@@ -551,11 +627,13 @@ function PreySpawner.edibleAt(sp: Spawner, g: number, t: number): boolean
 	return t >= buffer.readf64(sp.spawnedAt, g * 8) + PreySpawner.FADE_IN
 end
 
---- Spawns `groups` groups of event prey `preyId` (flag bit4) in its zones' areas. Returns how many.
-function PreySpawner.spawnEvent(
+--- Starts releasing event prey `preyId` (flag bit4): up to `PreyDef.alive` animals at once (all of
+--- `eventTotal` when it has no alive count), in whole groups, topped up by each pass until
+--- `PreyDef.eventTotal` animals have been released (03 §3.1). Spawns the first groups now and
+--- returns how many groups.
+function PreySpawner.startEvent(
 	sp: Spawner,
 	preyId: string,
-	groups: number,
 	now: number,
 	px: { number },
 	py: { number },
@@ -564,39 +642,24 @@ function PreySpawner.spawnEvent(
 ): number
 	local kind = Formation.kindOf(preyId)
 	local def = if kind then Formation.defOf(kind) else nil
-	if kind == nil or def == nil then
+	if kind == nil or def == nil or def.eventTotal == nil then
 		return 0
 	end
-	-- Round-robin over the prey's zones that have spawn areas.
-	local zones: { string } = {}
-	local areasOf: { { Area } } = {}
-	for _, zone in def.zones do
-		local areas = areasFor(sp, zone, preyId)
-		if #areas > 0 then
-			table.insert(zones, zone)
-			table.insert(areasOf, areas)
-		end
-	end
-	local made = 0
-	for k = 1, if #zones > 0 then groups else 0 do
-		local zone = zones[(k - 1) % #zones + 1]
-		local areas = areasOf[(k - 1) % #zones + 1]
-		do
-			local area, x, y, z = pickPoint(sp, areas, zone, px, py, pz, n)
-			local size = Rng.int(sp.rng, def.groupMin, def.groupMax)
-			local g = PreySim.spawn(sp.sim, kind, area.home, x, y, z, size, true)
-			if g then
-				buffer.writeu16(sp.rowOf, g * 2, 0)
-				buffer.writef64(sp.spawnedAt, g * 8, now)
-				made += 1
-			end
-		end
-	end
-	return made
+	local total = def.eventTotal :: number
+	local run: EventRun = {
+		prey = preyId,
+		kind = kind,
+		alive = math.min(def.alive or total, total),
+		left = total,
+		live = 0,
+	}
+	table.insert(sp.events, run)
+	return spawnEventGroups(sp, run, now, px, py, pz, n)
 end
 
---- Removes every event prey group (the tide ended). Returns how many.
+--- Removes every event prey group and ends every event (the tide ended). Returns how many.
 function PreySpawner.clearEvents(sp: Spawner, now: number): number
+	table.clear(sp.events)
 	local b = sp.sim.buffers
 	local n = 0
 	for g = 0, PreySim.MAX_GROUPS - 1 do

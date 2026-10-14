@@ -82,7 +82,7 @@ describe("PreySpawner", function()
 			PreySpawner.pass(sp, 22, NONE, NONE, NONE, 0)
 			expect(krill.count).toBe(before)
 			-- Frenzy: targets double (up to the doubled cap) and delays are a third.
-			PreySpawner.setRate(sp, 3)
+			PreySpawner.setTide(sp, "frenzy")
 			expect(krill.target >= before).toBe(true)
 		end
 	)
@@ -90,7 +90,7 @@ describe("PreySpawner", function()
 	it("spawns three groups of a normal row per pass in a Frenzy, one of a trait row", function()
 		local sp = reefSpawner()
 		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
-		PreySpawner.setRate(sp, 3)
+		PreySpawner.setTide(sp, "frenzy")
 		local shrimp = rowOf(sp, "shrimp")
 		local goby = rowOf(sp, "dotted_goby")
 		expect(shrimp.target - shrimp.count >= 3).toBe(true)
@@ -100,7 +100,7 @@ describe("PreySpawner", function()
 		PreySpawner.pass(sp, 1, NONE, NONE, NONE, 0)
 		expect(shrimp.count).toBe(before + 3)
 		expect(goby.count).toBe(gobyBefore + 1)
-		PreySpawner.setRate(sp, 1)
+		PreySpawner.setTide(sp, nil)
 		PreySpawner.pass(sp, 2, NONE, NONE, NONE, 0)
 		expect(shrimp.count <= before + 3).toBe(true)
 	end)
@@ -160,18 +160,94 @@ describe("PreySpawner", function()
 		end
 	)
 
-	it("spawns and clears event prey, and runs the crystal_jelly drift", function()
+	it("releases event prey in animals: alive at once in whole groups, up to its total", function()
 		local sp, sim = reefSpawner()
 		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
-		local base = sim.liveGroups
-		expect(PreySpawner.spawnEvent(sp, "lunar_fry", 4, 0, NONE, NONE, NONE, 0)).toBe(4)
-		expect(PreySpawner.clearEvents(sp, 1)).toBe(4)
-		expect(sim.liveGroups).toBe(base)
+		local fry = Index.TraitPrey.byId.lunar_fry
+		local alive, total, size = fry.alive :: number, fry.eventTotal :: number, fry.groupMax
+		expect(fry.groupMin).toBe(size)
+		local b = sim.buffers
+		local function eventAnimals(): (number, number)
+			local animals, groups = 0, 0
+			for g = 0, PreySim.MAX_GROUPS - 1 do
+				if
+					buffer.readu8(b.kind, g) ~= 0
+					and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT)
+				then
+					animals += PreySim.aliveCount(sim, g)
+					groups += 1
+				end
+			end
+			return animals, groups
+		end
+		-- 03 §3.1: 12 at once in groups of 4 is 3 groups.
+		expect(PreySpawner.startEvent(sp, "lunar_fry", 0, NONE, NONE, NONE, 0)).toBe(alive // size)
+		expect((eventAnimals())).toBe(alive)
+		-- Eat every event group each second; each pass tops up until the total is out.
+		local released = alive
+		for second = 1, 10 do
+			for g = 0, PreySim.MAX_GROUPS - 1 do
+				if
+					buffer.readu8(b.kind, g) ~= 0
+					and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT)
+				then
+					PreySim.remove(sim, g)
+				end
+			end
+			PreySpawner.pass(sp, second, NONE, NONE, NONE, 0)
+			local animals = eventAnimals()
+			expect(animals <= alive).toBe(true)
+			released += animals
+		end
+		expect(released).toBe(total)
+		PreySpawner.startEvent(sp, "lunar_fry", 11, NONE, NONE, NONE, 0)
+		PreySpawner.clearEvents(sp, 11)
+		PreySpawner.pass(sp, 12, NONE, NONE, NONE, 0)
+		local _, groups = eventAnimals()
+		expect(groups).toBe(0)
+	end)
+
+	it("runs the crystal_jelly drift on the data's timing and size", function()
+		local sp, sim = reefSpawner()
+		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
+		local def = Index.TraitPrey.byId.crystal_jelly
 		PreySpawner.pass(sp, 1, NONE, NONE, NONE, 0)
 		expect(sp.jellyGroup >= 0).toBe(true)
 		local jelly = sp.jellyGroup
-		expect(PreySim.aliveCount(sim, jelly)).toBe(5)
-		PreySpawner.pass(sp, 1 + 240, NONE, NONE, NONE, 0)
+		expect(PreySim.aliveCount(sim, jelly)).toBe(def.alive :: number)
+		PreySpawner.pass(sp, 1 + (def.lifetime :: number) - 1, NONE, NONE, NONE, 0)
+		expect(PreySim.isLive(sim, jelly, sp.jellyGen) and sp.jellyGroup == jelly).toBe(true)
+		PreySpawner.pass(sp, 1 + (def.lifetime :: number), NONE, NONE, NONE, 0)
 		expect(PreySim.isLive(sim, jelly, sp.jellyGen) and sp.jellyGroup == jelly).toBe(false)
+		PreySpawner.pass(sp, 1 + (def.respawn :: number) - 1, NONE, NONE, NONE, 0)
+		expect(sp.jellyGroup).toBe(-1)
+		PreySpawner.pass(sp, 1 + (def.respawn :: number), NONE, NONE, NONE, 0)
+		expect(sp.jellyGroup >= 0).toBe(true)
+	end)
+
+	it("doubles targets only for the frenzy tide, and runs a pass every 10th tick", function()
+		local sp = reefSpawner()
+		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
+		local shrimp = rowOf(sp, "shrimp")
+		local normal = shrimp.target
+		PreySpawner.setTide(sp, "moon_tide")
+		expect(shrimp.target).toBe(normal)
+		expect(sp.rate).toBe(Index.Tides.byId.moon_tide.spawnRateMult)
+		PreySpawner.setTide(sp, "frenzy")
+		expect(shrimp.target > normal).toBe(true)
+		PreySpawner.setTide(sp, nil)
+		-- Ticks of 0.1 s summed in floating point: a pass on every 10th tick.
+		local passes, now = {}, 0
+		local fresh = reefSpawner()
+		PreySpawner.fill(fresh, 0, NONE, NONE, NONE, 0)
+		for tick = 1, 100 do
+			now += 0.1
+			local next = fresh.nextPass
+			PreySpawner.pass(fresh, now, NONE, NONE, NONE, 0)
+			if fresh.nextPass ~= next then
+				table.insert(passes, tick)
+			end
+		end
+		expect(passes).toEqual({ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 })
 	end)
 end)

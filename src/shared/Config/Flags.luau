@@ -86,6 +86,39 @@ function Flags.string(key: string): string
 	return value
 end
 
+export type TierValues = { Smooth: number, Balanced: number, Pretty: number }
+
+-- `{"Smooth":a,"Balanced":b,"Pretty":c}` (any order, any spacing) → the three finite numbers.
+local function parseTiers(raw: string): TierValues?
+	local function field(name: string): number?
+		local text = string.match(raw, `"{name}"%s*:%s*(%-?[%d%.]+)`)
+		local n = if text then tonumber(text) else nil
+		return if n and math.abs(n) < math.huge then n else nil
+	end
+	local smooth, balanced, pretty = field("Smooth"), field("Balanced"), field("Pretty")
+	if smooth == nil or balanced == nil or pretty == nil then
+		return nil
+	end
+	return { Smooth = smooth, Balanced = balanced, Pretty = pretty }
+end
+
+--- The current value of a per-graphics-tier JSON key (`tune.quality.*`, 09 §17.4): a JSON object
+--- with a number for each of Smooth, Balanced and Pretty. A value that does not parse falls back
+--- to the default and logs once. A new table each call: read it when the tier changes, not per
+--- frame.
+function Flags.tiers(key: string): TierValues
+	local parsed = parseTiers(Flags.string(key))
+	if parsed then
+		return parsed
+	end
+	Log.once(
+		"warn",
+		TAG,
+		`"{key}" is not a \{ Smooth, Balanced, Pretty \} object; using the default`
+	)
+	return parseTiers(defaultOf(key) :: string) :: TierValues -- safe: the defaults are checked by spec
+end
+
 --- Takes the value live config holds for `key`. Returns true when it was used. A missing (nil)
 --- or wrongly typed value puts the key back on its default and logs once; a key this build does
 --- not know is ignored and logged once, because the dashboard may be ahead of the code.

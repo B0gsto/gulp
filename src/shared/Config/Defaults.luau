@@ -112,6 +112,16 @@ local live: { [string]: LiveValue } = {
 
 	-- tune.*: tolerances that can be widened without a release.
 	["tune.bite.baseTolerance"] = 3.0, -- studs; 09 §8.9
+
+	-- tune.quality.*: JSON `{ Smooth, Balanced, Pretty }` per key (09 §17.4), the per-tier
+	-- numbers of 09 §15.1. Read with Flags.tiers.
+	["tune.quality.preyMeshes"] = '{"Smooth":80,"Balanced":150,"Pretty":250}', -- 09 §8.8, §15.1
+	["tune.quality.preyMeshDistance"] = '{"Smooth":150,"Balanced":250,"Pretty":350}', -- studs
+	["tune.quality.preyVisible"] = '{"Smooth":250,"Balanced":400,"Pretty":800}',
+	["tune.quality.farPreyEmitters"] = '{"Smooth":30,"Balanced":60,"Pretty":60}',
+	["tune.quality.particleEmitters"] = '{"Smooth":40,"Balanced":80,"Pretty":150}',
+	["tune.quality.outlinesEdible"] = '{"Smooth":8,"Balanced":20,"Pretty":20}', -- 09 §8.8
+	["tune.quality.outlinesDangerous"] = '{"Smooth":4,"Balanced":10,"Pretty":10}',
 }
 Defaults.live = table.freeze(live)
 

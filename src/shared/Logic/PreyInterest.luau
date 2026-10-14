@@ -17,16 +17,12 @@
 --   4 Keyframes, Near and Mid only: the full record again every 2 s, on the staggered ticks where
 --     (groupId + slot) % 20 == tick % 20; one missed through the byte cap is sent at the latest
 --     KEY_LATE ticks after the last one.
---   5 Far keep-alive: on its staggered tick a Far group with nothing sent for KEEPALIVE_QUIET
---     ticks gets one delta record (see the deviation note below).
+--   5 Far keep-alive (8.5): on its staggered tick (every 2 s) a Far group with nothing sent for
+--     KEEPALIVE_QUIET ticks (0.5 s) gets one delta record. Longest silence with no loss 2.4 s,
+--     with one lost packet 4.4 s, under the client's 5 s drop for Far groups (PreyMirror).
 --   6 One packet of at most 900 bytes. When the due records do not fit, they are ordered nearest
 --     band first, then by error ÷ threshold (full records of new groups first within a band); what
 --     does not fit waits for the next tick (its send state is left as it was).
---
--- Deviation (reported): 8.5 sends the Far keep-alive only "if nothing else was sent in the last
--- 2 s". With a 2 s stagger period that allows a 3.5 s silence (a delta at 0.5 s after a stagger
--- tick, the next keep-alive skipped at 2.0 s, sent at 4.0 s), past the client's 3 s drop. Here the
--- quiet window is KEEPALIVE_QUIET = 0.5 s, so the longest silence of a Far group is 2.5 s.
 --
 -- Send state per (slot, group), about 29 bytes (8.2 lists 18; this keeps the scatter, flags and an
 -- f64 send time as well): known (gen + 1, or 0), fullLeft, sentQ (3 × u16), sentV (3 × i8),
@@ -51,11 +47,11 @@ PreyInterest.THRESHOLD_MID = 3.0
 PreyInterest.THRESHOLD_FAR = 8.0
 PreyInterest.KEY_PERIOD = 20 -- ticks: keyframe every 2 s at 10 Hz
 PreyInterest.KEY_LATE = 24 -- ticks: a keyframe deferred by the byte cap goes out by then
-PreyInterest.KEEPALIVE_QUIET = 5 -- ticks (deviation, see the header)
+PreyInterest.KEEPALIVE_QUIET = 5 -- ticks (tune) 8.5: a Far keep-alive skips if anything went out in the last 0.5 s
 PreyInterest.FORGET_AFTER = 25 -- ticks of silence after which the client is assumed to have dropped it
 PreyInterest.FULL_REPEAT = 2 -- a new group's full record goes in two consecutive packets
 PreyInterest.SCATTER_STEP = 13 -- quantised scatter (0 to 255) change that counts in Near (tune)
-PreyInterest.KNOWS_WITHIN = 30 -- ticks: `knows` is true for 3 s after the last record (the client's drop)
+PreyInterest.KNOWS_WITHIN = 50 -- ticks: `knows` is true for 5 s after the last record (the client drops Far groups after 5 s)
 
 local G = PreySim.MAX_GROUPS
 local NEAR2 = PreyInterest.NEAR * PreyInterest.NEAR
@@ -160,7 +156,7 @@ function PreyInterest.forget(state: State, g: number)
 end
 
 --- True when slot `slot`'s client knows group `g` at generation `gen`: it was sent a record for it
---- within the last 3 s (8.7: a PreyEvent goes to every player who knows the group).
+--- within the last 5 s (8.7: a PreyEvent goes to every player who knows the group).
 function PreyInterest.knows(
 	state: State,
 	slot: number,

@@ -282,7 +282,8 @@ export type PreyDef = { id: string, wire: number, scope: Scope, tier: number, ma
 	respawn: number?,               -- s (03 §2.1, §3.1 "Respawn (s)"); nil for event prey
 	lifetime: number?,              -- crystal_jelly: s a drift stays (240)
 	alive: number?,                 -- trait prey: most alive per server (03 §3.1)
-	eventTotal: number? }           -- event prey: released per event (lunar_fry 40, marrow 60)
+	eventTotal: number? }           -- event prey: animals released per event (lunar_fry 40, marrow 60);
+	                                -- `alive` is animals at once too (lunar_fry 12, 3 groups of 4)
 	-- Acceleration is not a column: PreySim derives it (8.4, step 3)
 
 export type TraitDef = { id: string, wire: number, scope: Scope, rarity: Rarity,
@@ -855,7 +856,7 @@ Population. Chapter 02 owns the live targets (section 9.6, data:PreyTargets) and
 | Trait prey ([MVP] rows of 02 §9.6; a roaming `crystal_jelly` drift adds one group of 5) | 52 | 1 to 5 | 56 |
 | **Total** | **299** | | **≈ 1,390** |
 
-Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate (normal prey respawn delays are divided by the tide's `spawnRateMult`, 3, and the spawner makes three spawns per row per pass instead of one) and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. Only the `frenzy` tide doubles targets and caps; a spawn rate above 1 on its own does not (chapter 02, section 14.4). That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. The Frenzy spawns no event prey, and tides never overlap (canon section 10), so the worst case the soak checks adds Moon Tide's 12 `lunar_fry` groups at once (4 members each, chapter 03, section 3.1) to the Frenzy count: 557 groups and about 2,760 members, still inside `MAX_GROUPS`. This is a conservative bound, not a state the game can reach: a Frenzy and a Moon Tide never run at once. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
+Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate (normal prey respawn delays are divided by the tide's `spawnRateMult`, 3, and the spawner makes three spawns per row per pass instead of one) and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. Only the `frenzy` tide doubles targets and caps; a spawn rate above 1 on its own does not (chapter 02, section 14.4). That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. The Frenzy spawns no event prey, and tides never overlap (canon section 10), so the worst case the soak checks adds Moon Tide's `lunar_fry` at once (12 animals in 3 groups of 4, chapter 03, section 3.1) to the Frenzy count: 548 groups and about 2,720 members, still inside `MAX_GROUPS`. This is a conservative bound, not a state the game can reach: a Frenzy and a Moon Tide never run at once. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
 
 ### 8.2 Server data layout
 
@@ -925,7 +926,7 @@ For each player at 10 Hz, visit grid cells within 600 studs and classify each gr
 | Near | 0 to 150 studs | 1.0 stud, or flags or scatter changed | Individual meshes |
 | Mid | 150 to 350 | 3.0 studs | Individual meshes out to the graphics tier's prey mesh distance (150, 250, 350 studs on Smooth, Balanced, Pretty; section 15.1) while the pool allows, else particles. On Smooth the whole Mid band is particles |
 | Far | 350 to 600 | 8.0 studs | One particle cluster per group |
-| Out | > 600 | Never. The client drops a group it has not heard about for 3 s | Nothing |
+| Out | > 600 | Never. The client drops a Near or Mid group it has not heard about for 3 s, a Far group after 5 s **(tune)** | Nothing |
 
 **Dead reckoning.** The server knows what it last sent to this player (`sentPos`, `sentVel`, `sentTick`). It predicts where the client now believes the group is (`sentPos + sentVel × elapsed`) and sends an update only if the real position differs by more than the band's threshold. A school cruising in a straight line costs zero bytes.
 
@@ -935,7 +936,7 @@ A group new to a player is sent as a **full record** in two consecutive packets;
 
 - Only groups in the **Near and Mid** bands get a keyframe: their full record again every 2 s.
 - Keyframes are **staggered**: a group's keyframe for a player falls on the ticks where `(groupId + slot) % 20` equals `tick % 20`, so each tick carries about a twentieth of them instead of all at once.
-- A **Far** group gets no keyframe. It has two keep-alive ticks per 2 s, its staggered tick and the tick 10 later (`(groupId + slot) % 10` equals `tick % 10`, so every 1 s). On each, if nothing else was sent to that player for it in the last 0.5 s (`KEEPALIVE_QUIET`, 5 ticks, **(tune)**), it gets one delta record, which keeps the client from dropping it (the 3 s rule above). Tolerance: with no loss the longest silence is 1.4 s (a record sent 0.4 s before a keep-alive tick skips that tick; the next is 1.0 s later). With **one lost packet** it is 2.4 s, under the 3 s drop with 0.6 s to spare for a keep-alive that waits a tick for room in a full packet. Two lost packets in a row can drop a Far group; the server then sends a full record once the group has been silent for `FORGET_AFTER` (2.5 s), so a far particle cluster blinks out for about 2 s. That is the accepted risk. Near and Mid keyframes fall on the staggered tick, so a group that moves out into the Far band starts inside the same bound.
+- A **Far** group gets no keyframe. On its staggered tick (every 2 s), if nothing else was sent to that player for it in the last 0.5 s (`KEEPALIVE_QUIET`, 5 ticks, **(tune)**), it gets one delta record, which keeps the client from dropping it. The client's drop rule is per band: a Near or Mid group is dropped after 3 s of silence, a Far group after 5 s (`DROP_AFTER_FAR`, **(tune)**), because a Far group is drawn as particles and a few seconds of staleness there is harmless. Tolerance: with no loss the longest silence is 2.4 s (a record sent 0.4 s before a keep-alive tick skips that tick; the next is 2.0 s later). With **one lost packet** it is 4.4 s, under the 5 s drop. Two lost packets in a row can drop a Far group; the server then sends a full record once the group has been silent for `FORGET_AFTER` (2.5 s), so a far particle cluster blinks out briefly. That is the accepted risk. A 1 s keep-alive with the 3 s drop was tried (task S3-C3) and pushed the worst player's Frenzy average in `prey_soak.sim` past 4,500 B/s (16.2). Near and Mid keyframes fall on the staggered tick, so a group that moves out into the Far band starts inside the same bound.
 
 ### 8.6 Byte budget
 
@@ -949,7 +950,7 @@ A group new to a player is sent as a **full record** in two consecutive packets;
 | Engine replication of other creatures | not ours to cap | estimate 5 to 14 kB/s (**U2**) |
 | **Total received** | | **target ≤ 30 kB/s average, ≤ 50 kB/s peak** |
 
-Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 60 Near and Mid groups every 2 s (30 × 22 B = 0.66 kB/s), keep-alive deltas for 60 quiet Far groups every 1 s (60 × 13 B = 0.78 kB/s; at most one per group per second, 8.5), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.8 kB/s. In a Frenzy the group counts double and so, roughly, does the stream: about 5.6 kB/s here, under the 9.0 kB/s cap.
+Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 60 Near and Mid groups every 2 s (30 × 22 B = 0.66 kB/s), keep-alive deltas for 60 quiet Far groups every 2 s (30 × 13 B = 0.4 kB/s), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.4 kB/s. In a Frenzy the group counts double and so, roughly, does the stream: about 5 kB/s here, under the 9.0 kB/s cap.
 
 ### 8.7 Packet formats
 
@@ -1247,7 +1248,7 @@ end
 - After launch the :30 slot is the flexible one (canon 10). A limited-time tide replaces its Feeding Frenzy when live config names one and the slot falls inside its window (`live.limitedTideId`, `live.limitedTideStart`, `live.limitedTideEnd`, section 17.4). Server and clients read the same forwarded keys, so they still agree without a message.
 - Skew between Roblox servers' clocks is not documented (**U23**). It does not matter in play because no player is on two servers at once.
 
-`TideService` polls `TideClock.at` once a second and fires `onPhase` on change. `PreyService` listens: `frenzy` sets the respawn multiplier to 3; `moon_tide` spawns `lunar_fry` groups in `PreySpawn` volumes flagged for it and removes them when it ends.
+`TideService` polls `TideClock.at` once a second and fires `onPhase` on change. `PreyService` listens and calls `setTide(tideId)` at a phase start and `setTide(nil)` at its end: during `frenzy` respawn delays are divided by the tide's `spawnRateMult` (3), the spawner makes three spawns per row per pass and normal-prey targets and caps double (section 8.1); `moon_tide` spawns `lunar_fry` (12 at once, in groups of 4) in `PreySpawn` volumes flagged for it and removes them when it ends.
 
 ### 11.2 Call the Tide
 
