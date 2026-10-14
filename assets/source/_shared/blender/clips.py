@@ -217,8 +217,12 @@ def check(spec, clip, report):
 def _render_set(objs, view, frames, folder, prefix):
     previewlib.show_only(objs)
     previewlib.show_helpers(False)
+    pts = []
+    for f in sorted(set(frames)):          # one still camera that frames every pose: motion shows against it,
+        bpy.context.scene.frame_set(f)     # and a stretch or a lunge cannot leave the cell
+        pts += previewlib.world_points(objs)
     bpy.context.scene.frame_set(frames[0])
-    previewlib.fit_camera(view, objs, margin=1.5)   # once, at the first frame: motion shows against a still camera
+    previewlib.fit_camera(view, objs, margin=1.3, pts=pts)
     out = []
     for i, f in enumerate(frames):
         bpy.context.scene.frame_set(f)
