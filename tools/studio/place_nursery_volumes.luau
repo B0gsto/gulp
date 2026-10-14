@@ -8,10 +8,11 @@
 -- one `NurseryPath` volume per route row (`PointId` = the row ID): Balls at Swarm A, Swarm B, the
 -- Glow Grotto's mouth and the Home Current mouth; Blocks along the plankton trail, Little Arch
 -- (the Gap) and both legs of the Elbow; a thin Block for the kelp curtain; an upright Cylinder at
--- the Elbow's bend.
+-- the Elbow's bend. Last, the Lagoon's `SafeNursery` Block (NurseryRoute.lagoon, task S6-C2), so
+-- the half-mass rule of 05 §2.1 holds along the route.
 --
--- Idempotent: every part under Workspace.Volumes whose Kind is HatchBed or NurseryPath is
--- replaced. Nothing else is touched. Returns one summary line.
+-- Idempotent: every part under Workspace.Volumes whose Kind is HatchBed or NurseryPath, and the
+-- `SafeNursery_Lagoon` part, is replaced. Nothing else is touched (other SafeNursery volumes stay). Returns one summary line.
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,14 +29,19 @@ end
 local removed = 0
 for _, part in folder:GetDescendants() do
 	local kind = part:GetAttribute("Kind")
-	if part:IsA("BasePart") and (kind == "HatchBed" or kind == NurseryRoute.KIND) then
+	local ours = kind == "HatchBed"
+		or kind == NurseryRoute.KIND
+		or part.Name == "SafeNursery_Lagoon"
+	if part:IsA("BasePart") and ours then
 		part:Destroy()
 		removed += 1
 	end
 end
 
 local placed = 0
-for _, v in NurseryRoute.volumes() do
+local volumes = NurseryRoute.volumes()
+table.insert(volumes, NurseryRoute.lagoon())
+for _, v in volumes do
 	local part = Instance.new("Part")
 	part.Name = v.name
 	part.Shape = (Enum.PartType :: any)[v.shape]

@@ -19,6 +19,7 @@ local HeightFieldMath = require(ReplicatedStorage.Shared.Logic.HeightFieldMath)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local NurseryRoute = require(ReplicatedStorage.Shared.Logic.NurseryRoute)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
+local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
 local CollisionGroups = require("../World/CollisionGroups")
 local HeightField = require("../World/HeightField")
@@ -152,6 +153,17 @@ for _, v in NurseryRoute.volumes() do
 		})
 	end
 end
+-- The Nursery Lagoon's SafeNursery Block of ci.project.json (03 §6.2; NurseryRoute.lagoon).
+do
+	local v = NurseryRoute.lagoon()
+	table.insert(VOLUMES, {
+		name = v.name,
+		shape = SHAPES[v.shape],
+		cf = CFrame.new(table.unpack(v.frame)),
+		size = Vector3.new(v.size[1], v.size[2], v.size[3]),
+		attrs = { Kind = v.kind },
+	})
+end
 
 -- Authors the arena's volumes and revive points again when Main has already read them, then
 -- initialises this VM's WorldIndex from them.
@@ -218,7 +230,7 @@ return function()
 		it("read the tagged parts and destroyed them", function()
 			expect(#CollectionService:GetTagged("Volume")).toBe(0)
 			expect(#WorldIndex.volumesOf("Zone")).toBe(3)
-			expect(#WorldIndex.volumesOf("SafeNursery")).toBe(1)
+			expect(#WorldIndex.volumesOf("SafeNursery")).toBe(2) -- the arena ball, the Lagoon
 			expect(#WorldIndex.volumesOf("CoveMouth")).toBe(24)
 			expect(#WorldIndex.volumesOf("CoveInterior")).toBe(24)
 			expect(#WorldIndex.volumesOf("Hazard")).toBe(1)
@@ -280,6 +292,26 @@ return function()
 			expect(WorldIndex.nurseryPathAt(gx, -4, gz)).toBe(nil) -- above the arch's opening
 			expect(WorldIndex.nurseryPathAt(0, -50, 0)).toBe(nil)
 		end)
+
+		it(
+			"puts the first-run route inside the SafeNursery up to Little Arch (02 §4.4, 03 §6.2)",
+			function()
+				-- BiteService gives Nursery prey its tier share only inside a SafeNursery volume, so the
+				-- script's prey from the Hatch Bed to the kelp curtain (and the Gap's tunnel) must be in
+				-- one; past the Nursery's end, the Reef end of Little Arch, the share must stop.
+				local nurseries = WorldIndex.volumesOf("SafeNursery")
+				local function inside(s: number, y: number): boolean
+					local x, z = NurseryRoute.pointAt(s)
+					return VolumeMath.firstContaining(nurseries, x, y, z) ~= nil
+				end
+				for s = 0, 130, 2 do
+					expect(inside(s, -18)).toBe(true)
+				end
+				expect(VolumeMath.firstContaining(nurseries, -322, -18, 301) ~= nil).toBe(true) -- Grotto
+				expect(inside(140, -18)).toBe(false) -- the Elbow
+				expect(inside(60, 2)).toBe(false) -- above the surface
+			end
+		)
 
 		it("answers floorY over the floor, the rock and open map", function()
 			expect(WorldIndex.floorY(0, 0)).toBeCloseTo(FLOOR_TOP, 0.02)

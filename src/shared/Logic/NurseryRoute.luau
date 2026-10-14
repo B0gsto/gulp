@@ -3,7 +3,7 @@
 -- out in the place (task S6-D1; docs/03, section 6.2 data:NurseryPath owns the places; docs/04,
 -- section 3.5 owns the distances; docs/09, section 9.1 `NurseryPath` and `HatchBed`). Tables and
 -- numbers only, so it runs in Lune; tools/studio/place_nursery_volumes.luau, the CI arena and the
--- tutorial read it.
+-- tutorial read it. `lagoon` is the Nursery's `SafeNursery` volume of the CI arena.
 --
 -- The route starts at the Hatch Bed facing east and runs along one arc (radius 140, 45° to the
 -- left) to the kelp curtain, then straight through Little Arch and the two legs of the Elbow to
@@ -192,6 +192,23 @@ function NurseryRoute.volumes(): { Volume }
 		table.insert(out, volumeOf(def))
 	end
 	return out
+end
+
+--- The Nursery Lagoon's `SafeNursery` volume (03 §6.2; 09 §9.1): a Block bounding the oval, from
+--- the surface to depth 30, its length along the line from the centre to Little Arch's Nursery
+--- end, so the whole route to the kelp curtain lies inside. The CI arena carries it (ci.project.json)
+--- so a play test's Nursery prey gets the tier share of 02 §4.4 (task S6-C2).
+function NurseryRoute.lagoon(): Volume
+	local arch = row("little_arch")
+	local dx, dz = arch.x - N.lagoonX, arch.z - N.lagoonZ
+	local length = math.sqrt(dx * dx + dz * dz)
+	return {
+		name = "SafeNursery_Lagoon",
+		kind = "SafeNursery",
+		shape = "Block",
+		frame = facing(N.lagoonX, -N.lagoonDepth / 2, N.lagoonZ, dx / length, dz / length),
+		size = { N.lagoonWidth, N.lagoonDepth, N.lagoonLength },
+	}
 end
 
 return table.freeze(NurseryRoute)
