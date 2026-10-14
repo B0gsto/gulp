@@ -21,7 +21,7 @@ export type InputMode = "Touch" | "Keys" | "Pad"
 -- docs/15 section 3.3.
 local KEYS: { [Action]: Enum.KeyCode } = {
 	swim = Enum.KeyCode.W,
-	dash = Enum.KeyCode.Space,
+	dash = Enum.KeyCode.Q,
 	ability = Enum.KeyCode.E,
 }
 local PAD: { [Action]: Enum.KeyCode } = {

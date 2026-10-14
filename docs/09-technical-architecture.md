@@ -235,6 +235,7 @@ The world place is **partially managed**: Rojo owns code and data modules; Studi
     "ServerScriptService": { "$ignoreUnknownInstances": true, "Server": { "$path": "src/server" } },
     "StarterPlayer": {
       "$ignoreUnknownInstances": true,
+      "$properties": { "EnableMouseLockOption": false },   // Roblox Shift Lock off: Shift swims down (chapter 02, section 2.3)
       "StarterPlayerScripts": { "$ignoreUnknownInstances": true, "Client": { "$path": "src/client" } }
     },
     "Players": { "$properties": { "CharacterAutoLoads": false } }
@@ -551,7 +552,7 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 |---|---|---|---|---|
 | **StateStore** | MVP | Mirror of the player's own saved and run state, fed by `State` patches | Local copy | `get(path)`, `observe(path, fn)` |
 | **QualityController** | MVP | Device detection and graphics tier, as specified in chapter 15: the screen class (sections 2.2 and 5.2; `GuiService.ViewportDisplaySize` first, recomputed when the viewport changes) and the tier Smooth, Balanced or Pretty (section 6: start sample, step down, memory guard, cut order; the step-up probe and `lastGoodTier` are [L]). Sends `Telemetry` | Screen class, current tier | `screenClass(): ScreenClass`, `tier(): Tier`, `onTierChanged`, `onScreenClassChanged` |
-| **InputController** | MVP: drag to swim, mouse and keyboard. L: gamepad, the two-thumb scheme, the left-handed layout | Turns raw input into one `SwimInput`. The input mode (`Touch`, `Keys`, `Pad`) is `UserInputService.PreferredInput`, re-read on every change (chapter 15, sections 2.2 and 5.1); it picks the scheme, the hints and the client-side assist set, and the server never trusts it | Bindings, scheme setting per input mode | `read(): SwimInput`, `mode(): InputMode`, `onModeChanged`, `onDash`, `onAbility`, `setScheme(id)` |
+| **InputController** | MVP: drag to swim, the two Keys schemes (free cursor, the default, and locked mouse look). L: gamepad, the two-thumb scheme, the left-handed layout | Turns raw input into one `SwimInput`. The input mode (`Touch`, `Keys`, `Pad`) is `UserInputService.PreferredInput`, re-read on every change (chapter 15, sections 2.2 and 5.1); it picks the scheme, the hints and the client-side assist set, and the server never trusts it | Bindings, scheme setting per input mode | `read(): SwimInput`, `mode(): InputMode`, `onModeChanged`, `onDash`, `onAbility`, `setScheme(id)` |
 | **MovementController** | MVP | Runs `SwimModel` each frame and drives the own root part; sends `Ability` | Local swim state | `setStatus(effect, seconds)`, `velocity(): Vector3` |
 | **CameraController** | MVP | Scriptable follow camera, zoom by tier, death and cove cameras | `workspace.CurrentCamera` | `setMode(mode)`, `shake(amount)` |
 | **CreatureController** | MVP | Builds and animates a rig for every streamed-in creature; smoothing; scale; mesh swap; the Leviathan crest; trait visuals; outline shells (section 8.8); nameplates | Rig per creature | `rigOf(slot)`, `localMouth(): (Vector3, number)` |
@@ -730,7 +731,7 @@ Animations play through an `Animator` under an `AnimationController` in the clie
 | Default (Humanoid) behaviour | Replacement | Owner |
 |---|---|---|
 | Avatar loading and appearance | Never loaded. `CharacterAutoLoads = false` | PlayerLifecycle |
-| Control scripts, touch thumbstick, jump button | `InputController` reads `UserInputService` directly. A stub `PlayerModule` in `StarterPlayerScripts` stops the default one from loading (**U1**, S9) | InputController |
+| Control scripts, touch thumbstick, jump button | `InputController` reads `UserInputService` directly. A stub `PlayerModule` in `StarterPlayerScripts` stops the default one from loading (**U1**, S9). The project file sets `StarterPlayer.EnableMouseLockOption = false`, so Roblox's Shift Lock never takes Shift (chapter 02, section 2.3) | InputController |
 | Camera follow, zoom, occlusion | `CameraType = Scriptable` gives full control (**V32**); `CameraController` sets `CFrame` and `Focus` every frame; occlusion by one sphere-cast (radius 1.0, chapter 02, section 3.5) from the look-at point to the desired camera position against `workspace.Collision`, the World shell; a ray in the `World` group would miss it, because that group does not collide with itself | CameraController |
 | Health and health bar | No health. A creature is alive, protected or gulped. Plated's single save is a flag in `CreatureState` | CreatureService |
 | Death and respawn (`Humanoid.Died`, `RespawnTime`) | `RunLoopService.gulp` and the table in 6.3 | RunLoopService |
@@ -1336,9 +1337,11 @@ export type RunSnapshot = {
 -- Device-shaped settings are saved once per input mode, so a phone setting never lands on a PC (chapter 15)
 export type InputSettings = {
 	scheme: string,                      -- control scheme ID (chapter 15, section 2.2): "drag" (drag to swim) or "two_thumb" [L]
-	                                     -- on touch; "keys" on keys; "pad" [L] on pad
+	                                     -- on touch; "keys" (free cursor, default) or "keys_locked" (locked mouse look) on keys;
+	                                     -- "pad" [L] on pad
 	lookSpeed: number,                   -- sensitivity; range per input mode (chapter 15, section 10 item 7).
-	                                     -- On touch this is the drag sensitivity of "drag" (0.5 to 1.5)
+	                                     -- On touch this is the drag sensitivity of "drag" (0.5 to 1.5).
+	                                     -- On keys it is the mouse look speed, used by "keys_locked" only
 	twoThumbLookSpeed: number,           -- [L] touch only: how fast the view turns in "two_thumb" (0.5 to 2.0, default 1.0;
 	                                     -- chapter 15, section 3.1). A second saved value, not shared with lookSpeed.
 	                                     -- Present but unused on keys and pad

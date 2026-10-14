@@ -155,7 +155,7 @@ Soft-launch slice (chapter 13, section 3.2): every row.
 ### 5.6 Controls principle
 
 - **Phone (default, "drag to swim"):** one thumb. Touch and drag anywhere: the creature swims in the dragged direction (screen up = up, screen left/right = turn). Release to coast to a stop. A dash button and an ability button sit under the right thumb. The camera follows on its own.
-- **PC:** swim where you look. Mouse aims, W swims forward, S brakes, A/D strafe, Space dashes, E uses the ability.
+- **PC (default, "free cursor"):** the mouse is never locked. The cursor's distance left or right of screen centre turns the creature; Space swims up, Shift swims down. W swims forward, S brakes, A/D strafe, Q or the left mouse button dashes, E or the right mouse button uses the ability. The camera follows on its own. Locked mouse look (swim where you look) is in settings.
 - **Gamepad:** left stick swims, right stick looks, A dashes, X uses the ability.
 - An optional two-thumb phone scheme (move stick plus look drag) is in settings.
 

@@ -154,7 +154,7 @@ Seven prompt types cover the whole FTUE. Each has a glyph set per input type. Ga
 | Pips | `UI_Hud_TraitPips` | Five empty dots around trait slot 1; each fills with a pop | Same | Same | Same |
 | Home marker | `UI_HUD_HomeMarker` | A cave icon pinned to the screen edge in the direction of the cove, with a pulsing ring | Same | Same | Same |
 | Bubble trail | `FX_HomeTrail` | A line of pearl-white bubbles, one every 6 studs, drifting along the route | Same | Same | Same |
-| Dash pulse | `UI_HUD_DashButton` | The dash button swells to 1.3× and back twice a second with a white ring | Button under right thumb | Space key cap | A button glyph |
+| Dash pulse | `UI_HUD_DashButton` | The dash button swells to 1.3× and back twice a second with a white ring | Button under right thumb | Q key cap | A button glyph |
 
 Danger uses the canon red outline plus a red screen-edge glow (`UI_HUD_DangerEdge`) on the side the predator is on, which leaves the home marker uncovered (08 §7).
 
@@ -660,7 +660,7 @@ Target: collecting and leaving the cove within 12 seconds of control **(tune)**.
 | The same, twice or more | From then on: spawn in the Nursery with the kelp curtain open, the home marker on, and no scripted prey or chase. The first-run shield does not restart: only what is left of its 240 s of play time applies. |
 | Disconnect after the first bank | The FTUE is complete. Next join uses the welcome-back flow; any cliffhanger items not yet shown are already in the cove. |
 | New device, same account | The profile belongs to the account, so there is no tutorial. |
-| New input type on any device | The first time an account plays with touch, keyboard and mouse, or gamepad **[L]**, a controls hint for that input shows for 5 s at the start of the first run (`seen_controls[inputType]`). The keyboard and mouse hint shows the arrow keys alongside W (chapter 15, section 3.3). |
+| New input type on any device | The first time an account plays with touch, keyboard and mouse, or gamepad **[L]**, a controls hint for that input shows for 5 s at the start of the first run (`seen_controls[inputType]`). The keyboard and mouse hint shows the arrow keys alongside W, and Space and Shift for swim up and swim down (chapter 15, section 3.3). |
 | Joining a friend or a private server [L] | Same FTUE. Friends can enter the Nursery; they cannot eat the newcomer's scripted prey. |
 | Developer reset | In Studio and for user IDs on the developer list, the developer command `/ftue reset` clears `ftue.*`, and `/ftue overlay` shows T, J and the stage on screen. Text chat is off in the MVP, so these are not chat commands; document 09 owns how developers run them. |
 

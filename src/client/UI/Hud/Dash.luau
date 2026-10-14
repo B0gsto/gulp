@@ -1,6 +1,6 @@
 --!strict
 -- HUD.Dash (docs/08 section 3.7; docs/15 sections 3.1 to 3.3): the 136 rpx dash button on touch,
--- the 80 x 96 hint tile on desktop (display only: Space and the left mouse button dash, 15 §3.3).
+-- the 80 x 96 hint tile on desktop (display only: Q and the left mouse button dash, 15 §3.3).
 -- Stand-ins for `UI_HUD_DashButton` (normal, pressed), `UI_HUD_CooldownHalf` x 2,
 -- `UI_Common_RingPulse` and `UI_HUD_HintTile`. Key caps under the tile are stage 2 (08 §15).
 local Draw = require("../Kit/Draw")
