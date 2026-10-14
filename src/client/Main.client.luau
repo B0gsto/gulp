@@ -23,12 +23,18 @@ local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local Client = require(script.Parent.Net.Client)
+local InputController = require(script.Parent.Controllers.InputController)
+local MovementController = require(script.Parent.Controllers.MovementController)
 
 -- Controllers have the shape of services (section 4.2), so the two loaders treat them alike.
 type Controller = Types.Service
 
+-- Section 4.5's order; each task adds its controller here: StateStore, QualityController,
+-- InputController, CameraController, CreatureController, MovementController, PreyRenderer,
+-- PredatorController, TideController, AudioController, UIController, TutorialDirector.
 local loaded: { Controller } = {
-	-- No controllers yet: each one is added here by the task that writes it.
+	InputController,
+	MovementController,
 }
 
 for _, controller in loaded do
