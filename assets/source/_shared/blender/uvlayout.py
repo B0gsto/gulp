@@ -10,8 +10,19 @@ import bmesh
 import texgen
 
 
+def _uv_joined(f, g, edge, uv):
+    for v in edge.verts:
+        a = next(l[uv].uv for l in f.loops if l.vert == v)
+        b = next(l[uv].uv for l in g.loops if l.vert == v)
+        if abs(a.x - b.x) > 1e-6 or abs(a.y - b.y) > 1e-6:
+            return False
+    return True
+
+
 def parts_uvs(mesh):
-    """UVs per connected part: [[(u, v), ...], ...]."""
+    """UVs per UV island: faces joined across an edge where both faces' UVs agree at both of the
+    edge's ends (S4-A3: a part may carry a UV seam, as the body with its mouth interior does,
+    whose faces are joined to the lips but laid out in the mouth region): [[(u, v), ...], ...]."""
     bm = bmesh.new()
     bm.from_mesh(mesh)
     uv = bm.loops.layers.uv.active
@@ -26,7 +37,7 @@ def parts_uvs(mesh):
             uvs.extend(tuple(l[uv].uv) for l in cur.loops)
             for e in cur.edges:
                 for o in e.link_faces:
-                    if o.index not in seen:
+                    if o.index not in seen and _uv_joined(cur, o, e, uv):
                         seen.add(o.index)
                         stack.append(o)
         out.append(uvs)

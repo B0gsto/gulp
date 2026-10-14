@@ -201,6 +201,7 @@ export type TideDef = {
 	wire: number,
 	scope: Scope,
 	fallback: string?,
+	outOfBuild: boolean?, -- slice build only: the rotation names it, the build leaves it out (09 §11.1)
 	spawnRateMult: number,
 	eventPrey: { string },
 }
@@ -300,6 +301,9 @@ export type GoalDef = {
 	difficulty: "Easy" | "Medium" | "Hard",
 	reward: string, -- R1 to R5: chapter 05's Pearl reward step
 	needs: string?, -- the condition for offering it; nil when it needs nothing
+	kind: string, -- the event counted (chapter 03, section 9: eat_prey, reach_tier, bank_mass …)
+	subject: string?, -- prey, zone, tide or predator ID, tier, rarity or trait count; nil when none
+	pool: "eat" | "grow" | "world", -- chapter 02's goal pool (section 15.3)
 }
 
 export type LandmarkDef = {

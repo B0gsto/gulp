@@ -132,6 +132,7 @@ class MeshData:
     def __init__(self):
         self.verts, self.faces = [], []
         self.vcols, self.fcols, self.uvs, self.weights, self.tags = [], [], [], [], []
+        self.corner_uvs = {}    # face index -> a UV per corner, where a face needs its own (a UV seam)
 
     def add_part(self, part, colour, uv=None, weights=None, face_colours=None, tag=0, clamp=None):
         """colour, uv and weights are constants or functions of (point, param).
@@ -166,11 +167,12 @@ class MeshData:
         col = mesh.color_attributes.new(common.COLOR_ATTR, 'BYTE_COLOR', 'CORNER')
         uv = mesh.uv_layers.new(name=common.UV_NAME)
         for poly in mesh.polygons:
-            for li in poly.loop_indices:
+            own = self.corner_uvs.get(poly.index)
+            for c, li in enumerate(poly.loop_indices):
                 vi = mesh.loops[li].vertex_index
                 hexcode = self.fcols[poly.index] or self.vcols[vi]
                 col.data[li].color_srgb = (*common.hex_to_srgb(hexcode), 1.0)
-                u, v = self.uvs[vi]
+                u, v = own[c] if own else self.uvs[vi]
                 uv.data[li].uv = (min(1.0, max(0.0, u)), min(1.0, max(0.0, v)))
         mesh.attributes.active_color_name = common.COLOR_ATTR
         mesh.attributes.default_color_name = common.COLOR_ATTR

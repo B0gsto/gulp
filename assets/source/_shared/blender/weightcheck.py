@@ -1,7 +1,7 @@
 """Skin-weight check for a Fish-family body (task S1-A3; docs/06-art-bible.md sections 6.5, 7.1 and
 7.5): measures the skin at the poses where weights show their faults, the dash squash (85%, with
 the C-bend) and stretch (125%) and the bite (jaw wide, the snap with the 12% lunge, the 115%
-stretch), and renders them with the weights as colour and the edge loops as wire.
+stretch), and (S4-A3) the extremes of the gulp, hit, stunned, tier-up and gulped clips, and renders them with the weights as colour and the edge loops as wire.
 
 A build turns it on with spec["weight_check"] = {"body": <skinned body object>, "rings": n,
 "segs": n} (the body is the first part of the mesh, lofted by fishbody.FishBody.part). Then:
@@ -53,6 +53,26 @@ def poses(k=1.0):
         ("Bite f1: jaw wide", rigs.fish_bite_pose(1, k)),
         ("Bite f2: snap, 12% lunge", rigs.fish_bite_pose(2, k)),
         ("Bite f4: stretch 115%", rigs.fish_bite_pose(4, k)),
+        ("Gulp f1: full gape", rigs.fish_gulp_pose(1, k)),
+        ("Gulp f2: gape held, squash", rigs.fish_gulp_pose(2, k)),
+        ("Gulp f4: head 110%", rigs.fish_gulp_pose(4, k)),
+        ("Gulp f7: swallow bulge", rigs.fish_gulp_pose(7, k)),
+        ("Gulp f9: bulge back", rigs.fish_gulp_pose(9, k)),
+        ("Gulp f11: bulge at the tail", rigs.fish_gulp_pose(11, k)),
+        ("Hit f1: knock", rigs.fish_hit_pose(1, k)),
+        ("Hit f2: squash 80%", rigs.fish_hit_pose(2, k)),
+        ("Hit f3: shudder", rigs.fish_hit_pose(3, k)),
+        ("Stunned f5: roll, sway", rigs.fish_stunned_pose(0.25, k)),
+        ("Stunned f15: roll, sway", rigs.fish_stunned_pose(0.75, k)),
+        ("Stunned f10: bob, see-saw", rigs.fish_stunned_pose(0.5, k)),
+        ("TierUp f2: into the squash", rigs.fish_tierup_pose(2, k)),
+        ("TierUp f3: squash 75%, crouch", rigs.fish_tierup_pose(3, k)),
+        ("TierUp f5: pop", rigs.fish_tierup_pose(5, k)),
+        ("TierUp f6: pop 130%, arch", rigs.fish_tierup_pose(6, k)),
+        ("TierUp f12: wag", rigs.fish_tierup_pose(12, k)),
+        ("Gulped f4: stretch 140%", rigs.fish_gulped_pose(4, k)),
+        ("Gulped f6: shrinking", rigs.fish_gulped_pose(6, k)),
+        ("Gulped f8: drawn in", rigs.fish_gulped_pose(8, k)),
     ]
 
 

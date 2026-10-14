@@ -36,7 +36,9 @@ def extent(pts):
     return lo, hi
 
 
-def fit_camera(view, objs, margin=1.2):
+def fit_camera(view, objs, margin=1.2, pts=None):
+    """Ortho camera `view` framing `objs` as posed now, or the points `pts` (clips.py passes the
+    points of every frame of a clip, so nothing leaves the frame as it moves)."""
     scene = bpy.context.scene
     look, up = template.VIEWS[view]
     cam = bpy.data.objects.get("CAM_" + view)
@@ -44,7 +46,7 @@ def fit_camera(view, objs, margin=1.2):
         data = bpy.data.cameras.new("CAM_" + view)
         data.type, data.clip_start, data.clip_end = 'ORTHO', 0.1, 400.0
         cam = template.link(bpy.data.objects.new("CAM_" + view, data), "PREVIEW")
-    pts = world_points(objs)
+    pts = pts if pts is not None else world_points(objs)
     lo, hi = extent(pts)
     centre = (lo + hi) / 2.0
     m = template.look_matrix(look, up)

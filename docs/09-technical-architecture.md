@@ -319,7 +319,7 @@ export type PreyMotionDef = { id: string, scope: Scope, draw: string,   -- 06 §
 		regroupS: number?, bankDeg: number?, turns: number?, pauseS: number?, rollStuds: number?,
 		uncurlS: number?, deeperStuds: number?, jetStuds: number?, inkS: number? } }
 
-export type TideDef = { id: string, wire: number, scope: Scope, fallback: string?,
+export type TideDef = { id: string, wire: number, scope: Scope, fallback: string?, outOfBuild: boolean?,
 	spawnRateMult: number, eventPrey: { string } }
 
 export type ProductDef = { id: string,   -- chapter 05 purchase ID, unchanged: pass_<name>, prod_<name>,
@@ -359,7 +359,10 @@ export type RankRewardDef = { rank: number, title: string?, decoration: string?,
 export type GoalDef = { id: string, wire: number, scope: Scope,   -- dg_<name> (chapter 03, section 9)
 	text: string, target: number, difficulty: "Easy" | "Medium" | "Hard",
 	reward: string,                  -- R1 to R5: chapter 05's Pearl reward step
-	needs: string? }                 -- the condition for offering it; nil when it needs nothing
+	needs: string?,                  -- the condition for offering it; nil when it needs nothing
+	kind: string,                    -- the event counted: chapter 03's Kind column (eat_prey, reach_tier, bank_mass …)
+	subject: string?,                -- prey, zone, tide or predator ID, tier, rarity or trait count; nil when none
+	pool: "eat" | "grow" | "world" } -- chapter 02's goal pool (section 15.3); the picker draws three different pools where it can
 
 export type LandmarkDef = { id: string, wire: number, scope: Scope, zone: string,   -- lm_<name>: chapter 03's landmark IDs (sections 6.2 to 6.6)
 	x: number, z: number, depth: number,                                   -- found within 40 studs (cdx_places)
@@ -517,13 +520,13 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
 | **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
-| **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
+| **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `isProtected(slot): boolean` (any protection window open: revive, reconnect, newcomer shield), `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
 | **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
 | **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setTide(tideId?)` (respawn delays ÷ the tide's `spawnRateMult`; targets and caps ×2 only for `frenzy`, chapter 02, section 14.4), `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)` |
 | **PredatorService** | MVP | Predator state machines, telegraphs, strikes; hazard volume checks; wild creatures [L] (section 9.3) | Predator buffers (32 slots) | `list(): {PredatorView}`, `gather(x,y,z)` (Whale Fall), `tryEat(slot, predatorId, t): boolean`, `onGulp: Signal<Slot, string>` |
 | **BiteService** | MVP | Validates bite claims on prey, players and edible predators; applies results | Bite sequence and rate state | Remote handler only, plus `onPlayerEaten: Signal<Slot, Slot>` |
-| **RunLoopService** | MVP | Run lifecycle: start, bank, gulp, revive, suspend, resume, settle (sections 12.5 and 13.4) | `RunState` per slot | `start(player)`, `bank(player)`, `gulp(slot, by: string)`, `offerRevive(player)`, `suspendOnLeave(player)`, `resume(player): boolean`, `settleExpired(player)`, `state(slot): RunPhase` |
+| **RunLoopService** | MVP | Run lifecycle: start, bank, gulp, revive, suspend, resume, settle (sections 12.5 and 13.4) | `RunState` per slot | `join(player, slot)` (places a joining player's creature: the Join row of 6.3), `startRun(player)` (named so it does not clash with every service's `start()` lifecycle function, 4.3), `bank(player)`, `gulp(slot, by: string)`, `offerRevive(player)`, `suspendOnLeave(player)`, `resume(player): boolean`, `settleExpired(player)`, `state(slot): RunPhase` |
 | **TideService** | MVP | Tide phase from the UTC clock; Call the Tide override [L] | Override queue | `current(): TideState`, `callTide(player): boolean`, `onPhase: Signal<TideState>` |
 | **CoveService** | MVP | Cove assignment, specimens, income accrual, income claim (only on the owner's tap, section 13.2), Cove Boost [L], visits and Bubbles [L] | `coveOwner[Slot]` | `claimIncome(player)`, `boost(player)`, `addSpecimen(player, rec): AddResult`, `release(player, specimenId)`, `view(viewer, ownerSlot)`, `leaveBubble(viewer, ownerSlot)` |
 | **ShopService** | MVP | Pearl purchases; Robux prompts; `ProcessReceipt`; game pass ownership; the two-minute rule | Pass ownership cache | `buyWithPearls(player, sku): boolean`, `owns(player, passId): boolean`, `canSell(player): boolean` |
@@ -558,7 +561,7 @@ Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedS
 | `ClientReady` | Reliable | C→S | none | 1 per session |
 | `Bite` | Reliable | C→S | 8 to 40 bytes (8.9) | 12/s (20) |
 | `Ability` | Reliable | C→S | 6 bytes: `op` u8 (1 dash, 2 ability press, 3 ability release for held abilities such as Shell), `seq` u8, `timeMs` u32 (the client's estimate of server time when pressed). The client starts its dash at once and reports it with op 1; the server's dash window (7.1) opens only from that message | 4/s (6) |
-| `RunAction` | Reliable | C→S | op + up to 2 numbers | 5/s (8) |
+| `RunAction` | Reliable | C→S | op + up to 2 numbers. Op 1 **Swim again**, no numbers: accepted only while `Phase = dead` and the gulp card is up (chapter 02, section 12.1); the server pays scraps and respawns (6.3). There is no timeout: the card waits for the tap, and leaving settles the run. Other ops are added with the features that need them, each listed here | 5/s (8) |
 | `CoveAction` | Reliable | C→S | op + up to 2 scalars | 5/s (8) |
 | `ShopAction` | Reliable | C→S | op + sku string ≤ 32 chars | 3/s (5) |
 | `GoalAction` | Reliable | C→S | op + index | 2/s (4) |
@@ -566,7 +569,7 @@ Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedS
 | `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: step number (integer) | 2/s (4) |
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
-| `State` | Reliable | S→C | path string, value | n/a |
+| `State` | Reliable | S→C | path string, value. A path is dot-separated keys, a segment of digits indexing an array (`cove.slots`, `goals.list.2.progress`); at most 128 characters and 8 segments. The first segment is a top-level key of the profile (12.2: `pearls`, `cove`, `goals`, `tokens` …) or `config`, the root of the live config keys forwarded to clients (17.4: `config.flag.tideEvents`). Profile keys sit at the top level next to `config`; there are no other roots, and no profile key may be named `config` | n/a |
 | `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady`; the decoder rejects more than 1,024 volumes, more than 16 attributes on a volume or a string over 256 characters **(tune)** | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
 | `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
@@ -623,8 +626,8 @@ The model is built once per session and reused. Destroying and rebuilding it on 
 | Event | Server steps | Time budget |
 |---|---|---|
 | Join | Build, place in the cove, assign, own, `Phase = cove`. One exception: an account that has never banked is placed in the Nursery for its first run (canon 5.5, chapter 04); every later run starts at the cove | Creature controllable within 1.0 s of `ClientReady` (measured in Studio: 0.34–0.91 s from `ClientReady` to the client's `CharacterAdded`, spike F5; re-measured on a real server with the real map, 6.11) |
-| Run start | Player swims out of the cove mouth; `RunLoopService.start` sets `Phase = run` | Instant |
-| Gulped | `Phase = dead`; `SetNetworkOwner(nil)`; anchor; move to cove spawn; reset size to tier 1 (or tier 2 for `shark`); wait for the client's 0.8 s gulp effect; unanchor; `SetNetworkOwner(player)`; `Phase = cove`; `MovementValidator.grace(slot, 2)` | 2.0 s total, canon limit 3 s |
+| Run start | Player swims out of the cove mouth; `RunLoopService.startRun` sets `Phase = run` | Instant |
+| Gulped | `Phase = dead`; `SetNetworkOwner(nil)`; anchor. The server then waits for the "Swim again" tap (`RunAction` op 1, 5.3) with no timeout (chapter 02, section 12.1: the gulp card waits for a tap); a player who leaves first is settled at leave (scraps paid). On the tap: pay scraps; move to cove spawn; reset size to tier 1 (or tier 2 for `shark`); wait for the client's respawn fade (0.3 s out, 0.3 s in, chapter 02, section 12.4); unanchor; `SetNetworkOwner(player)`; `Phase = cove`; `MovementValidator.grace(slot, 2)` | Counted from the tap, not the gulp: control again within 0.8 s of the tap (02 §12.4), budget 2.0 s, canon limit 3 s |
 | Revive | Same as gulped but placed by the return rule below (the gulp position, or a revive point), traits kept, mass × 0.7 (the tier is derived again from the new mass), `Protected = true` for 3 s | 1.0 s |
 | Resume a suspended run (12.5): after Continue on the card, or at once with no card for an account that has never banked | Place by the return rule below (the stored position, or a revive point); restore mass, traits and progress; `Phase = run`; `Protected = true` for 3 s | 1.0 s |
 | Bank | No teleport; the player is already in the cove | Instant |
@@ -1024,7 +1027,7 @@ Delta record, 13 bytes: `groupId` u16 (0), `qx` u16 (2), `qy` u16 (4), `qz` u16 
 
 Size: 8 bytes for a player or predator bite, 12 to 40 for prey. Anything else is malformed.
 
-**`BiteResult`** (server → claimant, reliable), 9 bytes: `seq` u16 (0), `acceptedMask` u8 (2), `reason` u8 (3: 0 none, 1 gone, 2 range, 3 tier, 4 time, 5 rate, 6 state, 7 safe zone, 8 protected), `newMass` f32 (4), `newTier` u8 (8).
+**`BiteResult`** (server → claimant, reliable), 9 bytes: `seq` u16 (0), `acceptedMask` u8 (2), `reason` u8 (3: 0 none, 1 gone, 2 range, 3 tier, 4 time, 5 rate, 6 state, 7 safe zone, 8 protected, 9 repeat), `newMass` f32 (4), `newTier` u8 (8).
 
 **`PredatorState`** (server → client, unreliable): header `seq` u16, `timeMs` u32, `n` u8, pad u8, then n × 14 bytes: `id` u8, `kind` u8, `state` u8, `qx` `qy` `qz` u16 × 3, `qvx` `qvy` `qvz` i8 × 3, `targetSlot` u8, `stateTimer` u8 (units of 0.05 s).
 
@@ -1066,16 +1069,27 @@ Distance check, using only server-held data:
 
 ```text
 (ex,ey,ez, lx,ly,lz) = MovementValidator.poseAt(slot, tc)      -- interpolated from the pose ring
-mouth  = eaterPos + look × (1.5 × bodyScale)                   -- front of a body 3.0 × bodyScale long (tune)
+r      = 1.2 × bodyScale × species.mouthMult × 1.25 × firstRun   -- 02 §4.1 mouthRadius, dash factor always on
+nose   = eaterPos + look × (1.5 × bodyScale × species.lengthMult) -- 02 §0.2: half the body length
+mouth  = nose + look × (0.5 × r)                                -- 02 §4.1 mouthCentre
 prey   = PreyService.memberPosAt(g, i, tc)                     -- group history + Formation.offset
-reach  = 0.9 × bodyScale × assist                              -- mouth radius (tune) × the widest gulp assist
+reach  = assist × r                                            -- the widest gulp assist range, 2.5
        + PreyDef.radius + PreyDef.wobble
        + 3.0                                                   -- base tolerance, studs (tune)
        + 0.15 × (eaterSpeed + preySpeed)                       -- 150 ms of relative motion (tune)
 accept if |mouth − prey| ≤ reach
 ```
 
-`bodyScale` is the smooth value for the eater's mass at `tc` (section 6.8). `assist` is 2.5, the range of the touch column in chapter 15, section 4.3: the server never trusts the input type a client states, so it validates every prey bite against the widest assist set. For a newcomer it is multiplied by the first-run mouth factor of chapter 04, section 4 (×1.6 in run 1, ×1.3 in run 2), read from the profile. No assist ever applies to a bite on a player (10.3).
+`bodyScale` is the smooth value for the eater's mass at `tc` (section 6.8). The mouth centre and radius are chapter 02's (section 4.1), so the server and the client measure from the same point with the same sphere. Two inputs the server cannot trust are taken at their widest: `assist` is 2.5, the range of the touch column in chapter 15, section 4.3 (the server never trusts the input type a client states), and the dash factor 1.25 is always applied (a claim can arrive up to 0.4 s after a dash ended, and the rig the client bit with lags the root). `firstRun` is the first-run mouth factor of chapter 04, section 4 (×1.6 in run 1, ×1.3 in run 2, else 1), read from the profile. No assist ever applies to a bite on a player (10.3).
+
+**Every honest claim is inside the reach.** A client claims a prey bite only when the prey is within `max(r_c + preyRadius, 2.5 × r_c)` of its mouth centre (02 §4.1), where `r_c` is the client's mouth radius, at most `r`. Since `2.5 × r_c ≤ 2.5 × r` and `r_c + preyRadius ≤ 2.5 × r + preyRadius`, the server's `reach` exceeds the widest claim. The server's centre sits `0.5 × (r − r_c)` ahead of the client's (0 in a dash, when `r_c = r`), so measured from the server's centre the widest claim is `2.5 × r_c + 0.5 × (r − r_c)`, and the margin is `2 × (r − r_c) + PreyDef.radius + PreyDef.wobble + 3.0 + 0.15 × (eaterSpeed + preySpeed)`, never negative because `r_c ≤ r`. That margin is what covers the client's smoothed rig and dead-reckoned prey being off the server's pose and prey history at `tc`. Worked at tier 7 (`bodyScale` 6.5, `mouthMult` and `lengthMult` 1.0, run 3 or later):
+
+| Case | Client's widest claim, from its own centre | Centre shift | Server reach | Margin |
+|---|---|---|---|---|
+| Swimming at rest (speed 0) | `2.5 × 1.2 × 6.5 = 19.5` studs | `0.5 × (9.75 − 7.8) = 0.98` | `2.5 × 9.75 + preyRadius + 3.0 = 27.4 + preyRadius` | ≥ 6.9 studs |
+| Dashing (speed `38 × 2.2 = 83.6`) | `2.5 × 9.75 = 24.4` studs | 0 | `24.4 + preyRadius + 3.0 + 0.15 × 83.6 = 39.9 + preyRadius` | ≥ 15.5 studs |
+
+**What the reach does not catch.** The reach is never tightened to catch cheats: an honest bite must never be rejected. So a client claiming bites from further than it may is rejected by distance only beyond about 1.4 times its widest honest claim at tier 7 at rest (`(27.4 − 0.98) / 19.5`), 1.6 times in a tier-7 dash and 2.2 times at tier 1 at rest (`(6.75 − 0.15) / 3.0`), less for larger prey **(tune)**. Reach cheats inside that band are caught mainly by the server's reject counters by reason and the guard rules (section 14; risk R5, section 20), not by the distance check alone.
 
 The client's own idea of where its mouth was is never sent, so it cannot be forged. A rejected claim more than three times out of reach adds 2 suspicion. Mass gained is `PreyDef.mass × TraitService.massMult(slot)`; the client is told the result and never computes it. Bites are never logged one by one (chapter 10, section 2.4): the server counts accepted and rejected claims by reason and reports them on the run-end events.
 
@@ -1095,6 +1109,7 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 | `EelHole` | — | Zone bounds check |
 | `Hazard` | `HazardId`; for a cycling `vent`, `CycleOffset` in seconds (0 to 8). A vent with no `CycleOffset` always erupts (section 9.4) | Hazard pass |
 | `GullSky`, `MorayHole`, `PredatorNode` | `PredatorId`, `Next` | PredatorService |
+| `HatchBed` | — (one small Ball part; only its centre and the part's look vector are kept) | `RunLoopService.join`: where an account that has never banked hatches for its first run, facing along the look vector (chapter 04, section 3.5; chapter 03, section 6.2 places it at (−398, 340), floor 24, facing east). Exactly one per place with a Nursery |
 | `RevivePoint` | `PointId`: `rp_01` to `rp_12` (chapter 03, section 6.11) | `RunLoopService`: where a revived or resumed creature returns (section 6.3) |
 
 A `RevivePoint` is a small Ball part; only its centre is kept. `WorldIndex` stores the 12 centres with the volume table and does not send them to clients. `tools/studio/check_place.luau` fails if any of the 12 IDs is missing, sits away from its row in the generated `RevivePoints` table, or lies inside the collision shell or a `Hazard` volume.
@@ -1180,9 +1195,10 @@ The server decides. The eater's client claims contact with a `Bite` message (`op
 | 4 | Victim is not `Protected` and not in Shell. `Protected` covers the 3 s after a revive, the 3 s after resuming a suspended run, and the **first-run shield**: an account that has never banked cannot be eaten by anything until its first bank, for at most 240 s of play time **(tune)**, counted in `newcomer.shieldUsed` and never restarted by a rejoin | protected |
 | 5 | `eaterTier ≥ victimTier + 1`, where `victimTier` gains +1 during Puff and +1 with Spiny | tier |
 | 6 | Distance with lag compensation (10.3) | range |
-| 7 | **Newcomer bubble:** if no player has ever bitten this account (`newcomer.biteAbsorbed` is false), the bite is absorbed once: the flag is set and saved, the victim is thrown 30 studs clear with 3 s of protection and loses nothing, the eater gains nothing | protected |
-| 8 | If the victim has unused Plated: the bite is consumed, the victim survives with 1.5 s protection and a knock-away, the eater gains nothing | protected |
-| 9 | Otherwise the victim is gulped; the eater gains 30% of the victim's mass **(tune)**. Bonefed raises that gain by 25%; Spots does not apply to eating players (canon 9). The feed guard of chapter 02 halves the gain each time the same eater eats the same victim within 10 minutes | — |
+| 7 | **Repeat guard** (chapter 02, section 4.2, check 7): this eater has not gulped this same victim in the last 90 s **(tune)**. The victim bumps. | repeat |
+| 8 | **Newcomer bubble:** if no player has ever bitten this account (`newcomer.biteAbsorbed` is false), the bite is absorbed once: the flag is set and saved, the victim is thrown 30 studs clear with 3 s of protection and loses nothing, the eater gains nothing | protected |
+| 9 | If the victim has unused Plated: the bite is consumed, the victim survives with 1.5 s protection and a knock-away, the eater gains nothing | protected |
+| 10 | Otherwise the victim is gulped; the eater gains 30% of the victim's mass **(tune)**. Bonefed raises that gain by 25%; Spots does not apply to eating players (canon 9). The feed guard of chapter 02 halves the gain each time the same eater eats the same victim within 10 minutes | — |
 
 The newcomer rules come from canon 5.2; chapter 04, section 4 owns their detail. Their state is in the profile (`newcomer` in section 12.2), not the session, so leaving and rejoining cannot re-arm the shield or the bubble. A shielded creature still bumps: the `Creature` collision group is unchanged.
 
@@ -1244,7 +1260,7 @@ end
 
 - **Clock source:** `Workspace:GetServerTimeNow()` on both sides. It is a Unix timestamp, monotonic, and on a client it is that client's estimate of server time, independent of the device clock (**V29**). Roblox recommends it for starting events at the right real-world time.
 - Clients draw the countdown and switch lighting from their own evaluation; no packet announces a scheduled tide. Gameplay effects (spawn rate, event prey) are applied by the server only.
-- An event whose scope tag is not in the build uses its `fallback` from `TideDef`. `whale_fall.fallback = "moon_tide"`: until Whale Fall ships at launch, the :45 slot in the MVP build runs a second Moon Tide (canon 10).
+- An event whose scope tag is not in the build, or that the build leaves out (`TideDef.outOfBuild`), uses its `fallback` from `TideDef`, followed until a tide that runs. `whale_fall.fallback = "moon_tide"`: until Whale Fall ships at launch, the :45 slot in the MVP build runs a second Moon Tide (canon 10). `moon_tide.fallback = "frenzy"` serves the slice: the slice build (`lune run tools/gen/content -- --slice`) keeps every tide row, because the rotation names all of them, and marks the rows outside the slice `outOfBuild = true`, so all four slots resolve to `frenzy` (chapter 13, section 3.2). The full build never writes `outOfBuild`.
 - After launch the :30 slot is the flexible one (canon 10). A limited-time tide replaces its Feeding Frenzy when live config names one and the slot falls inside its window (`live.limitedTideId`, `live.limitedTideStart`, `live.limitedTideEnd`, section 17.4). Server and clients read the same forwarded keys, so they still agree without a message.
 - Skew between Roblox servers' clocks is not documented (**U23**). It does not matter in play because no player is on two servers at once.
 
@@ -1304,7 +1320,8 @@ export type RunSnapshot = {
 
 -- Device-shaped settings are saved once per input mode, so a phone setting never lands on a PC (chapter 15)
 export type InputSettings = {
-	scheme: string,                      -- control scheme: "drag" or "two_thumb" [L] on touch; one scheme on keys and pad
+	scheme: string,                      -- control scheme ID (chapter 15, section 2.2): "drag" (drag to swim) or "two_thumb" [L]
+	                                     -- on touch; "keys" on keys; "pad" [L] on pad
 	lookSpeed: number,                   -- sensitivity; range per input mode (chapter 15, section 10 item 7).
 	                                     -- On touch this is the drag sensitivity of "drag" (0.5 to 1.5)
 	twoThumbLookSpeed: number,           -- [L] touch only: how fast the view turns in "two_thumb" (0.5 to 2.0, default 1.0;
@@ -1555,14 +1572,15 @@ function CoveIncome.rate(specimens: { SpecimenRecord }): number            -- Pe
 	return total
 end
 
-function CoveIncome.accrue(pending: number, accruedAt: number, now: number, rate: number, capHours: number)
-	local dt = math.clamp(now - accruedAt, 0, capHours * 3600)
-	local newPending = math.min(pending + rate * dt / 3600, rate * capHours)
-	return math.max(newPending, pending), math.max(accruedAt, now)          -- never decreases
+function CoveIncome.accrue(pending: number, accruedAt: number, now: number, rate: number,
+		lastClaimAt: number, capHours: number)
+	local stop = math.min(now, lastClaimAt + capHours * 3600)               -- 02 §13.2: counted only while now − lastClaim < cap
+	local dt = math.max(0, stop - accruedAt)
+	return pending + rate * dt / 3600, math.max(accruedAt, now)             -- never decreases
 end
 ```
 
-`capHours` is 8, or 24 with `pass_tide_watcher`: the pile stops growing after that many hours unclaimed, online or offline. `accrue` is called at session start, before any change to the specimen list (so the old rate applies to the old period), on claim, and at session end. Accruing only moves Pearls into the pile.
+`capHours` is 8, or 24 with `pass_tide_watcher`: the pile stops growing once that many hours have passed since the last claim, online or offline. The cap is a time window, not an amount (chapter 02, section 13.2 owns the rule): after a rate change the pile holds what each period earned at the rate it had, so it can be more or less than `rate × capHours` at the new rate. `accrue` is called at session start, before any change to the specimen list (so the old rate applies to the old period), on claim, and at session end. Accruing only moves Pearls into the pile. `lastClaimAt` is `cove.lastClaim.at`; the first-bank payment (chapter 04, section 6, step 6.3) writes `lastClaim` like a claim, so every cove with income has one. A profile without it is treated as `lastClaimAt = accruedAt`, and `CoveService` writes `lastClaim = { amount = 0, at = now }` the first time a specimen is added to it.
 
 **Income is claimed by tapping, never automatically (canon 11).** Pearls leave the pile only when the owner taps it in the cove or taps the welcome-back card; both send `CoveAction` with the claim op. Joining, banking and leaving do not claim. A claim grants `floor(pending)` through `EconomyService.grant(player, n, "CoveIncome")`, keeps the fraction, and records `lastClaim`.
 
@@ -1574,7 +1592,7 @@ Worked check: a tier 5 specimen with Spots and Plated earns 30 × (1 + 0.10 + 0.
 
 - `now` is always the Roblox server's `os.time()`. No client-supplied time is ever read, so changing a phone's clock does nothing.
 - `dt` is clamped to zero from below and `accruedAt` only moves forward, so a server with a slow clock cannot wind a profile back and re-pay a period.
-- The pile is capped at `rate × capHours`, so a server with a fast clock can over-pay at most one cap.
+- The pile stops `capHours` after `lastClaim.at`, so a server with a fast clock can over-pay at most one cap window.
 - `os.time()` is not used for anything that needs sub-second precision; that is `GetServerTimeNow`.
 
 ### 13.4 Banking and scraps
