@@ -85,7 +85,7 @@ describe("Codec/Bite (09 §8.7, §8.9)", function()
 		expect(Bite.valid(edited(0, 4))).toBe(false) -- op 4
 		expect(Bite.valid(edited(1, 0))).toBe(false) -- count 0
 		expect(Bite.valid(edited(1, 9))).toBe(false) -- count 9
-		expect(Bite.valid(edited(9, 3))).toBe(false) -- groupId 768 or more (high byte of target 0)
+		expect(Bite.valid(edited(9, 3))).toBe(false) -- groupId 768 (high byte of target 0), not below 640
 		expect(Bite.valid(edited(10, 24))).toBe(false) -- member 24
 		expect(Bite.valid(edited(0, 2))).toBe(false) -- a player bite of 20 bytes
 		local player = Bite.encodePlayer(0, 0, 1)

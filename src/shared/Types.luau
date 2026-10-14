@@ -84,6 +84,8 @@ export type PreyDef = {
 	behaviour: "drift" | "swarm" | "hop" | "school" | "solo" | "run" | "pack",
 	cruiseSpeed: number,
 	fleeSpeed: number,
+	turnRate: number, -- °/s; 0 = turns in any direction (03 §2.1, §3.1)
+	fleeBurst: number, -- s; 0 = does not flee (03 §2.1, §3.1)
 	fleeRadius: number,
 	scatterGain: number,
 	radius: number,

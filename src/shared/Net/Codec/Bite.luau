@@ -94,7 +94,7 @@ function Bite.accepts(length: number): boolean
 end
 
 --- True when the payload is well formed (14.2, steps 2 and 3): a known op; a prey bite's length
---- is 8 + 4n for its count n, each target with a group ID below MAX_GROUPS (640) and a member below 24; a
+--- is 8 + 4n for its count n, each target with a group ID below 640 and a member below 24; a
 --- player bite is 8 bytes naming slot 1 to 24; a predator bite is 8 bytes. Never throws.
 function Bite.valid(b: buffer): boolean
 	local length = buffer.len(b)

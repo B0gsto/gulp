@@ -58,7 +58,7 @@ end
 
 local function edgeFull(): Full
 	local r = PreyState.newFull()
-	r.groupId, r.gen, r.kind = 511, 255, 255
+	r.groupId, r.gen, r.kind = 639, 255, 255
 	r.qx, r.qy, r.qz = Quantize.QX_MAX, Quantize.QY_MAX, Quantize.QZ_MAX
 	r.qvx, r.qvy, r.qvz = -127, 127, -127
 	r.scatter, r.flags, r.count, r.alive, r.seed = 255, PreyState.FLAGS_MASK, 24, 0xFFFFFF, 65535
@@ -101,7 +101,7 @@ describe("Codec/PreyState (09 §8.7)", function()
 		zero.kind, zero.count = 1, 1
 		local fulls = { edgeFull(), zero }
 		local d = PreyState.newDelta()
-		d.qvx, d.qvy, d.qvz, d.groupId = 127, -127, 0, 511
+		d.qvx, d.qvy, d.qvz, d.groupId = 127, -127, 0, 639
 		local b = pack(65536 + 3, 4294967295, fulls, { d, PreyState.newDelta() })
 		expect(PreyState.valid(b)).toBe(true)
 		local seq, timeMs = PreyState.header(b)

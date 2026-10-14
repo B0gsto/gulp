@@ -864,7 +864,7 @@ Prey are data on the server and drawn by clients (canon section 14). The server 
 - Prey do not detect a creature in `Camo` or inside an ink cloud.
 - Prey never leave their zone. At a zone edge they turn back, even while fleeing.
 - Prey never harm a player. Prey too big to eat bump.
-- **Simulation rate:** a prey group with a player within 150 studs updates at 10 Hz. Others update at 2 Hz as a single group point.
+- **Simulation rate:** a prey group with a player within 700 studs updates at 10 Hz. That is beyond the 600 studs at which any player can see prey, so every prey a player sees behaves in full. Others update once a second as a single group point. Chapter 09, section 8.4 owns this mechanism and its budget.
 - "Speed ×" in the tables below is relative to the canon swim speed of a player **of the prey's own tier** (tier 0 uses tier 1). A player always out-swims lower-tier prey, roughly matches same-tier prey, and closes the gap with a dash.
 
 ### 9.2 Prey behaviours [MVP]
