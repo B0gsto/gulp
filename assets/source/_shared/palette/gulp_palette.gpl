@@ -124,6 +124,11 @@ Columns: 8
 255 184 217	signal.pearl_shade
 255 122  31	named.ember_crack
 210  86  75	named.hook_float_red
+232 157 147	named.nursery_rim_mid
+214 137 154	named.nursery_rim_mid_rose
+245 174 152	named.nursery_rim_mid_peach
+253 213 199	named.nursery_rim_light
+ 84  66 127	named.nursery_rim_dark
  20  33  61	ui.ink
 255 248 231	ui.panel
 242 227 196	ui.panel_shade

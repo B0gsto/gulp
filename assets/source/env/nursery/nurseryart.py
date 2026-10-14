@@ -15,19 +15,19 @@ the 128-stud grid continue the sand pattern across the seam (a turned chunk stil
 an adaptive triangulation (greedy insertion on Blender's constrained Delaunay), so the triangles go where the sand
 has shape and the calm sand (06 9.1: about 60% of a view) costs little.
 
-Rim pieces (07 6.2: 1,000 tris each). Low rounded banks of rock that enclose the pool. Each is a
-closed slab whose top is a height field over the arc's plan: a wide, shallow wedge from below the sand at the toe
-up to a domed crest (39 degrees on average), with a few broad, low rock masses fused onto it by a soft
-maximum (rounded creases where they meet, no overhang, no stacked boulders), running 12 studs past each joint
-and diving there under its neighbour; decimated to budget. The crest stands 4 to 7 studs above the surface (the Rim's own
-top is 12, 03 6.1); the outer face runs down to depth 86, below the Kelp (70), Reef (60) and Ledge (70 to 100)
-floors beside the bulge, onto a flat buried base. The toe reaches 32 studs into the pool from the waterline: the
-oval of 03 6.2 is the sand floor's outline, the toe line. Each piece is an arc concave toward the pool (-Y, its
-front): Rim_01 follows the long sides of the oval (toe radius 140, about the curvature at the ends of its short
-axis, 142), Rim_02 its ends (64, against 66). Texture (review loop 4): T_Tile_CoralRock_Alb, the warm lumpy coral rock of the S5-A1
-ground set, on the bank's own surface parametrisation (u along the arc, v over the surface from the toe), one
-repeat per 160 studs, slid so the visible face falls between the texture's pits, a SurfaceAppearance.Color
-tint per copy. The 07 row named T_Tile_Rock_Alb, which read as paving on a wall (S5-A2 loop 1); the Rim's own T_Rim_Alb read as cold dry-stone cobbles in the pastel pool.
+Rim pieces (07 6.2: 1,000 tris each). Low rounded banks of coral rock that enclose the pool. Each is a closed slab
+whose top is a height field over the arc's plan: from a toe buried in the sand 32 studs into the pool, up a soft foot
+into a round dome (steepest 52 degrees), then a round shoulder over the outer face down to depth 86, below the Kelp
+(70), Reef (60) and Ledge (70 to 100) floors beside the bulge, onto a flat buried base. Independent review loop 1
+(06 16.1 lines 1, 5, 8, 9, 15, 18): each piece has its own uneven crest, a tall dome and a low saddle in different
+places (4 to 12 above the surface; the Rim's own top is 12, 03 6.1), and a few broad rock masses of its own fused on
+both faces by a soft maximum; within 5 studs of each joint both neighbours take one shared joint profile, and past
+the joint each runs on 12 studs and dives under its neighbour, so a ring of pieces is one continuous bank with no
+notch at a joint. The oval of 03 6.2 is the sand floor's outline, the toe line. Each piece is an arc concave toward
+the pool (-Y, its front): Rim_01 follows the long sides of the oval (toe radius 140), Rim_02 its ends (64).
+Texture: the rim cell of T_EnvNursery_Alb, a gradient map (three flat pastel coral blocks, a soft violet dark, a
+rose-to-peach mid and a pale peach light, with two broad gradients), mapped by each vertex's exposure, not the
+shared T_Tile_CoralRock_Alb (other zones use it; its polygon cells and pits read as cobbles here).
 
 T_EnvNursery_Alb (07 6.2: the pastel atlas for the Nursery pieces, 512 x 512): one opaque cell per later piece
 (S7-A1 and the deferred landmarks), each painted in three value blocks (06 4.1, 5.2): a pastel mid block in the
@@ -58,10 +58,6 @@ SAND_TILE = 32.0              # 07 6.1: ground tiles repeat every 32 studs
 SAND = "T_Tile_Sand_Alb"
 FLOOR_TRIS = 2950             # target for the whole closed slab (06 6.3: 3,000)
 
-ROCK = "T_Tile_CoralRock_Alb"  # review loop 4: the warm coral rock, not the Rim's cool faceted T_Rim_Alb (read as
-                              # dry-stone cobbles and cold in the pastel pool in loops 1 to 4)
-ROCK_TILE = 160.0             # one repeat per 160 studs here (the floors: 32): two or three of its masses show on a
-                              # piece's face (3.2 px per stud; review loops 5 and 6: larger)
 CREST_MIN = 4.0               # the crest stays above the surface by at least this much along the whole span
 FOOT_IN = -34.0               # the pool face reaches this far down (8 below the sand level)
 BOTTOM = -86.0                # flat buried base
@@ -367,10 +363,22 @@ def floor_checks(objs):
 
 RIMS = {
     # radius and span at the waterline (d 0); the toe, 32 studs into the pool, follows the oval: radius 142 on its long
-    # sides, 66 at its ends (03 6.2: 220 x 170)
+    # sides, 66 at its ends (03 6.2: 220 x 170). Independent review loop 1 (06 16.1 lines 1 and 18): each piece has its
+    # own uneven crest, a tall rounded dome and a low saddle at different places, and rock masses of its own on both
+    # faces; within BAND of each joint both pieces take the one shared joint profile, so a ring is one bank.
+    #   crest: (s as a share of the span, rise over the joint crest, half-width in studs)
+    #   masses: (s share, d, half-length along s, half-width across, height)
     "M_Env_Nursery_Rim_01": {"seed": 611, "radius": 172.0, "span": 64.0, "target": 940,
+                             "crest": [(-0.15, 4.4, 11.0), (0.22, -2.7, 7.5)],
+                             "crest_shift": [(-0.12, -2.5, 12.0), (0.25, 2.0, 9.0)],
+                             "masses": [(0.08, -13.0, 12.0, 8.0, 3.0), (-0.32, -21.0, 8.0, 6.0, 2.0),
+                                        (-0.05, 33.0, 14.0, 11.0, 4.0), (0.28, 29.0, 9.0, 9.0, 3.0)],
                              "title": "gentle arc", "caption": "the oval's long sides: toe radius 140, waterline 172, 64 studs"},
     "M_Env_Nursery_Rim_02": {"seed": 622, "radius": 96.0, "span": 50.0, "target": 940,
+                             "crest": [(-0.17, -2.9, 6.5), (0.13, 4.5, 8.0)],
+                             "crest_shift": [(0.12, -2.0, 9.0)],
+                             "masses": [(-0.14, -17.0, 9.0, 7.0, 2.6), (0.30, -9.0, 6.0, 5.0, 1.8),
+                                        (0.06, 31.0, 12.0, 12.0, 3.6)],
                              "title": "tight arc", "caption": "the oval's ends: toe radius 64, waterline 96, 50 studs"},
 }
 RIM_NAMES = tuple(RIMS)
@@ -390,13 +398,6 @@ def unbend(co, Rf):
     return math.atan2(co[0], co[1] + Rf) * Rf, r - Rf, co[2]
 
 
-def ease(t):
-    """Half linear, half cosine: soft at both ends, steepest at 1.29 times the average slope."""
-    import numpy as np
-    t = np.clip(t, 0.0, 1.0)
-    return 0.5 * t + 0.5 * (0.5 - 0.5 * np.cos(math.pi * t))
-
-
 def smax(a, b, k):
     """Soft maximum: the larger surface wins, with a rounded crease `k` studs wide where two masses meet."""
     import numpy as np
@@ -404,46 +405,63 @@ def smax(a, b, k):
     return b + (a - b) * hh + k * hh * (1.0 - hh)
 
 
-TOE, TOP, OUTER = -32.0, 10.0, 56.0      # unbent d: the sand toe, the top of the crest, the outer foot
-CREST_Z = 3.0                 # the crest line before its humps (review loop 4: lower and rounder)
+TOE, OUTER = -32.0, 60.0      # unbent d: the sand toe, the outer foot
+UNDER = -46.0                 # under the sand the bank rounds down from the toe to the base here (no cut wall)
+TOE_Z = -31.0                 # the toe, buried 5 below the sand
+JOINT_CREST = 7.0             # the shared joint profile: its crest height above the surface ...
+JOINT_AT = 14.0               # ... and its unbent d (the waterline then falls at d 0)
+POOL_K = 2.3                  # the pool face: 1 - (1 - t)^k (1 + k t), soft at the foot, a round dome at the top
+OUTER_Q = 1.7                 # the outer face: crest - drop * u^q, a round shoulder over a steep buried foot
+BAND = 5.0                    # within BAND of a joint both neighbours are exactly the joint profile
+RAMP = 11.0                   # a piece's own shape then grows in over RAMP studs
 END = 12.0                    # a piece runs this far past each joint, diving under its neighbour
+SAND_Z = -SAND_DEPTH          # the pool face shows above the sand ...
+OUTER_FLOOR_Z = -66.0         # ... and the outer face above the Reef, Kelp and Ledge floors beside the bulge (60 to 70)
+MASS_K = 1.6                  # the rounded crease where a mass meets the bank
+RIM_TOP = 12.0                # 03 6.1: the Rim's own top above the surface
+NOTCH_MAX = 0.75              # a saddle at a joint shallower than this is no notch
+CREST_VARY = 0.25             # independent review loop 1: the crest varies by at least 25% of its peak along a piece
 
 
-def rim_profile(D):
-    """The bank across (review loops 2 to 4: a low, wide bank into the sand, not stacked masses or a slab): one
-    smooth curve with no kink, flat at the buried toe (z -31, 32 studs into the pool from the waterline), rising
-    at 39 degrees on average to a round crest at +3 (the humps lift it to 4 to 7), then falling as smoothly
-    down the outer face to the buried base."""
+def rim_weight(name, S):
+    """1 where the piece shows its own shape, 0 within BAND of a joint (and past it), smooth in between."""
+    h = RIMS[name]["span"] / 2.0
+    return smooth(h - BAND, h - BAND - RAMP, abs_(S))
+
+
+def abs_(x):
     import numpy as np
-
-    def cos_ease(t):
-        t = np.clip(t, 0.0, 1.0)
-        return 0.5 - 0.5 * np.cos(math.pi * t)
-    pool = -31.0 + (CREST_Z + 31.0) * cos_ease((D - TOE) / (TOP - TOE))
-    outer = CREST_Z - (CREST_Z - BOTTOM) * cos_ease((D - TOP) / (OUTER - TOP)) ** 2.2      # a broad, round top
-    return np.where(D < TOP, pool, outer)
+    return np.abs(np.asarray(x, dtype=float))
 
 
-def rim_masses(seed, L):
-    """Rock masses on the bank [(s, d, rs, rd, height)]: broad, low, few (review loop 2), so the bank reads as a few
-    rounded rocks fused together, with soft creases between them; they shrink toward the ends."""
-    rng = random.Random(seed)
-    h = L / 2.0
-    out = []
-
-    def row(count, d, rd, hgt, grow, jit=3.0):
-        for i in range(count):
-            s_ = -h + (i + 0.5) * L / count + rng.uniform(-jit, jit)
-            out.append((s_, d + rng.uniform(-2.0, 2.0), L / count * 0.5 + grow * rng.uniform(0.8, 1.2),
-                        rd * rng.uniform(0.9, 1.1), hgt * rng.uniform(0.8, 1.15)))
-    n = 2 if L < 50 else 3
-    row(n, -17.0, 13.0, 2.4, 6.0)          # the slope: broad, low swellings
-    row(n + 1, -4.0, 10.0, 2.0, 3.0)       # under the crest, offset from the slope's
-    row(n, 9.0, 9.0, 3.0, 5.0)             # the crest humps, 4 to 7 above the surface
-    row(2 if L < 50 else 3, 30.0, 14.0, 4.0, 4.0)      # the outer face
-    s_ = rng.uniform(-0.3, 0.3) * L                    # one low rock at the toe, sunk in the sand
-    out.append((s_, -27.0, rng.uniform(7.0, 9.0), 7.0, 2.4))
+def _gauss(S, items, L):
+    import numpy as np
+    out = np.zeros_like(np.asarray(S, dtype=float))
+    for frac, amp, wid in items:
+        out = out + amp * np.exp(-((S - frac * L) / wid) ** 2)
     return out
+
+
+def rim_crest(name, S):
+    """(crest height above the surface, crest d) along the piece: the joint profile's, plus the piece's own domes
+    and saddles, faded to nothing within BAND of each joint."""
+    cfg = RIMS[name]
+    L = cfg["span"]
+    w = rim_weight(name, S)
+    return JOINT_CREST + w * _gauss(S, cfg["crest"], L), JOINT_AT + w * _gauss(S, cfg["crest_shift"], L)
+
+
+def rim_profile(D, C, dc):
+    """The bank across, no kink and no cut wall: from the base under the sand, round up to the flat buried toe, up the
+    pool face (steepest 52 degrees, a third of the way up) into a round dome at (dc, C), then a round shoulder over the
+    outer face down to the buried base."""
+    import numpy as np
+    t = np.clip((D - TOE) / (dc - TOE), 0.0, 1.0)
+    under = np.clip((TOE - D) / (TOE - UNDER), 0.0, 1.0)
+    pool = TOE_Z + (C - TOE_Z) * (1.0 - (1.0 - t) ** POOL_K * (1.0 + POOL_K * t)) - (TOE_Z - BOTTOM) * under ** 1.7
+    u = np.clip((D - dc) / (OUTER - dc), 0.0, 1.0)
+    outer = C - (C - BOTTOM) * u ** OUTER_Q
+    return np.where(D < dc, pool, outer)
 
 
 def rim_height(name, S, D):
@@ -452,23 +470,56 @@ def rim_height(name, S, D):
     cfg = RIMS[name]
     L = cfg["span"]
     h = L / 2.0
+    C, dc = rim_crest(name, S)
+    B = rim_profile(D, C, dc)
+    w = rim_weight(name, S)
     rng = random.Random(cfg["seed"] + 7)
-    B = rim_profile(D)
-    # slow irregularity along the span
-    B = B + sum(rng.uniform(0.5, 0.9) * np.sin(2 * math.pi * S / rng.uniform(26, 48) + rng.uniform(0, 6.3))
-                * np.sin(2 * math.pi * D / rng.uniform(40, 70) + rng.uniform(0, 6.3)) for _ in range(3))
+    # slow irregularity along the span (piece-own, so it fades at the joints too)
+    B = B + w * sum(rng.uniform(0.4, 0.8) * np.sin(2 * math.pi * S / rng.uniform(22, 40) + rng.uniform(0, 6.3))
+                    * np.sin(2 * math.pi * D / rng.uniform(30, 60) + rng.uniform(0, 6.3)) for _ in range(3))
     f = B
-    for sc, dc, rs, rd, hgt in rim_masses(cfg["seed"], L):
-        k = smooth(h + END, h - 6.0, abs(sc))                       # masses shrink toward the ends
-        r2 = ((S - sc) / rs) ** 2 + ((D - dc) / rd) ** 2
-        cap = hgt * k * (1.6 * np.sqrt(np.clip(1.0 - r2, 0.0, 1.0)) - 0.6)
-        f = smax(f, B + cap, 1.4)
-    # review loop 5: past each joint the piece runs on END studs and dives there, a rounded nose sinking 40 studs
-    # (below the sand on the pool side) under its neighbour, which is at full height over the same stretch. The
-    # crest therefore runs on unbroken across a joint, and a lone piece ends in rounded noses, not cut walls.
+    for frac, dm, rs, rd, hgt in cfg["masses"]:
+        r2 = ((S - frac * L) / rs) ** 2 + ((D - dm) / rd) ** 2
+        # a dome of `hgt` (plus the crease) at full weight; with no weight it sits more than the crease below the
+        # bank, so the soft maximum leaves the joint profile exactly as it is
+        cap = w * (hgt + 1.01 * MASS_K) * 1.6 * np.sqrt(np.clip(1.0 - r2, 0.0, 1.0)) - 0.6 * hgt * w - 1.01 * MASS_K
+        f = smax(f, B + cap, MASS_K)
+    # past each joint the piece runs on END studs and dives, a rounded nose sinking to the base under its neighbour
+    # (which is exactly the joint profile over the first BAND studs and its own shape after that): no cut end wall
     x = np.clip((np.abs(S) - h) / END, 0.0, 1.0)
-    f = f - 40.0 * (1.0 - np.cos(0.5 * math.pi * x)) ** 1.5
+    f = f - (f - BOTTOM) * (1.0 - np.cos(0.5 * math.pi * x)) ** 1.5
     return np.maximum(f, BOTTOM + 1.0)
+
+
+def crest_line(name, ss, step=0.25):
+    """Highest point of the bank across each s of `ss`, from the height field."""
+    import numpy as np
+    ds = np.arange(TOE, OUTER + 1e-6, step)
+    S, D = np.meshgrid(np.asarray(ss, dtype=float), ds, indexing="ij")
+    return rim_height(name, S, D).max(axis=1)
+
+
+def joint_report():
+    """Every neighbour pair (A's +s end on B's -s end), unbent at scale 1: the visible bank is max(A, B). Returns
+    [(pair, notch, gap)]: notch, how far the visible crest within BAND + RAMP / 2 of the joint dips below the lower of
+    its two ends there (a notch is a dip lower than both sides); gap, how far the visible surface falls below the
+    joint profile within BAND of the joint."""
+    import numpy as np
+    out = []
+    ds = np.arange(TOE, OUTER + 1e-6, 0.5)
+    win = BAND + RAMP / 2.0
+    for a in RIM_NAMES:
+        for b in RIM_NAMES:
+            ha, hb = RIMS[a]["span"] / 2.0, RIMS[b]["span"] / 2.0
+            ss = np.arange(ha - win, ha + win + 1e-6, 0.25)                # A's frame; B's s = s - ha - hb
+            S, D = np.meshgrid(ss, ds, indexing="ij")
+            vis = np.maximum(rim_height(a, S, D), rim_height(b, S - ha - hb, D))
+            crest = vis.max(axis=1)
+            notch = float(max(0.0, min(crest[0], crest[-1]) - crest.min()))
+            band = np.abs(ss - ha) <= BAND
+            gap = float(max(0.0, (rim_profile(D, JOINT_CREST, JOINT_AT)[band] - vis[band]).max()))
+            out.append(("%s>%s" % (a[-2:], b[-2:]), notch, gap))
+    return out
 
 
 def build_rim(name, target=None):
@@ -481,9 +532,9 @@ def build_rim(name, target=None):
     Rf, L = cfg["radius"], cfg["span"]
     h = L / 2.0 + END
     target = target or cfg["target"]
-    ns, nd = int(2 * h / 0.8), int((OUTER - TOE + 2.0) / 0.8)
+    ns, nd = int(2 * h / 0.8), int((OUTER - UNDER) / 0.8)
     ss = np.linspace(-h, h, ns + 1)
-    ds = np.linspace(TOE - 2.0, OUTER, nd + 1)
+    ds = np.linspace(UNDER, OUTER, nd + 1)
     S, D = np.meshgrid(ss, ds, indexing="ij")
     Z = rim_height(name, S, D)
     verts, faces = [], []
@@ -506,12 +557,14 @@ def build_rim(name, target=None):
             faces.append((vid(i, j, True), vid(i, j + 1, True), vid(i, j + 1, False), vid(i, j, False)))
     ob = ra.mesh_object(name, verts, faces)
     ra.tidy(ob, triangulate=False)
-    for _ in range(4):
+    target -= CUT_TRIS
+    for _ in range(6):
         ra.apply_mod(ob, 'DECIMATE', decimate_type='COLLAPSE', ratio=min(1.0, target / float(max(1, ra.tri_count(ob)))),
                      use_collapse_triangulate=True)
-        if ra.tri_count(ob) <= RIM_TRIS - 10:
+        if ra.tri_count(ob) <= RIM_TRIS - 10 - CUT_TRIS:
             break
         target -= 30
+    cut_value_lines(ob, Rf)
     ra.tidy(ob)
     drop_loose(ob)
     flatten_base(ob)
@@ -519,8 +572,32 @@ def build_rim(name, target=None):
     for p in ob.data.polygons:
         p.material_index = 0
     rim_uvs(ob, Rf, name)
-    ra.finish(ob, front_fn=lambda co: unbend(co, Rf)[1] < 4.0 and co.z > FOOT_IN - 2.0)
+    ra.finish(ob, front_fn=lambda co: unbend(co, Rf)[1] < -4.0 and co.z > -60.0)    # the pool face and the toe under it
     return ob
+
+
+CUT_TRIS = 110                # triangles kept back for the two cuts below
+
+
+def cut_value_lines(ob, Rf):
+    """An edge loop along the sand line on the pool face (z -26) and along the neighbouring floors' level on the
+    outer face (z -66): the value map's buried band meets the dark block exactly there, so the dark foot keeps one
+    width whatever the triangles (a triangle across the line would stretch it). Vertices within 0.5 of a line are
+    moved onto it first, so the cut leaves no sliver."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    for z0, side in ((SAND_Z, -1), (OUTER_FLOOR_Z, 1)):
+        on_side = [v for v in bm.verts if (unbend(v.co, Rf)[1] - JOINT_AT) * side > 0 and v.co.z > BOTTOM + 0.5]
+        for v in on_side:
+            if abs(v.co.z - z0) < 0.5:
+                v.co.z = z0
+        faces = [f for f in bm.faces if all((unbend(v.co, Rf)[1] - JOINT_AT) * side > 0 for v in f.verts)]
+        geom = list({e for f in faces for e in f.edges}) + faces + list({v for f in faces for v in f.verts})
+        bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-4, plane_co=(0.0, 0.0, z0), plane_no=(0.0, 0.0, 1.0))
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.update()
 
 
 def drop_loose(ob):
@@ -544,97 +621,158 @@ def flatten_base(ob):
     ob.data.update()
 
 
+RIM_CELL = "rim_bank"
+# the rim cell's bands, in pixels from the cell's bottom (64 x 256 cell, value up the cell; independent review loop 1:
+# three flat pastel coral blocks and two broad gradients, no pits, no seams). Rows below 16 are the buried band
+# (outside the value count): faces under the sand, under the neighbouring floors, the walls and the base. It fades
+# from the dark block at the line to the mid block's foot colour, so on a review sheet the hidden bulk does not read
+# as a dark block and the foot has no hard lower edge.
+RIM_BANDS = {"inset": 8, "buried": 16, "dark": 42, "mid": 192, "top": 248}
+RIM_SHARE = {"dark": 0.115, "light": 0.26}   # 06 4.1: dark 10-15%, light 20-30% of the visible bank (the noses add dark)
+
+
+def rim_cell_uv(px, b):
+    """Cell pixel (px from its left, b from its bottom) -> atlas UV (Blender, v up)."""
+    x0, y0, w, h = ATLAS_CELLS[RIM_CELL]
+    return (x0 + px) / float(N), 1.0 - (y0 + h - b) / float(N)
+
+
+def rim_exposure(name, s, d, z, nz):
+    """How lit a point of the bank is: 0 at the sand line on the pool face and at the neighbouring floors' level on
+    the outer face, rising with height (the pool face is measured against the water surface, so its light block starts
+    just under the waterline, where a player sees it), plus a little for faces turned up to the sun. Below 0: buried."""
+    import numpy as np
+    C, dc = rim_crest(name, np.asarray(s, dtype=float))
+    top = (C - SAND_Z) / (0.0 - SAND_Z)                       # the pool side's value at the crest
+    pool = (z - SAND_Z) / (0.0 - SAND_Z)
+    outer = (z - OUTER_FLOOR_Z) / (C - OUTER_FLOOR_Z) * top
+    k = smooth(dc - 3.0, dc + 3.0, d)                         # the two agree at the crest; blend across it
+    e = pool * (1.0 - k) + outer * k
+    return np.where(e < 0.0, e, e + 0.15 * (nz - 0.7) * smooth(0.0, 0.15, e))
+
+
+def rim_hue(name, s, d):
+    """The second broad gradient, across the cell: peach (0) to rose (1), slow along the bank and up it."""
+    import numpy as np
+    rng = random.Random(RIMS[name]["seed"] + 31)
+    n = 0.65 * np.sin(2 * math.pi * s / rng.uniform(34, 44) + rng.uniform(0, 6.3)) \
+        + 0.35 * np.sin(2 * math.pi * d / rng.uniform(44, 60) + rng.uniform(0, 6.3))
+    return 0.5 + 0.45 * np.tanh(1.6 * n)
+
+
 def rim_uvs(ob, Rf, name):
-    """Review loop 3: the bank is mapped by its own surface, not by a box projection (whose switch between axes
-    left a seam along every few triangles): u runs along the arc at each point's radius, v is the distance over
-    the surface from the toe, up the pool face and over the crest, so the rock texture lies on the bank in one piece with
-    its lit tops uphill on the pool side. Walls and base (buried or under a neighbour) are projected flat. The scale
-    is then set so the median face carries one repeat per ROCK_TILE studs."""
+    """Independent review loop 1 (06 16.1 lines 5, 8, 9, 15): the bank is painted from T_EnvNursery_Alb's rim cell,
+    a gradient map, not a tiling rock texture. v runs up the cell with each vertex's exposure: the least lit 12% of
+    the visible bank (its foot at the sand, the outer face low down) takes the dark band, the best lit 25% (the crest,
+    the upper pool face just under the waterline, the top of the outer face) the light band, and the rest the mid band,
+    in rank order, so each block's own gradient runs up the bank; u takes the slow peach-to-rose drift. Buried faces,
+    walls and base go to the buried band. Every UV stays 8 px inside the cell, so no cell edge crosses a face. The
+    band edges are set by measuring the shares as validate does (seven samples a triangle) and correcting."""
     import numpy as np
     me = ob.data
     while me.uv_layers:
         me.uv_layers.remove(me.uv_layers[0])
     uvl = me.uv_layers.new(name=common.UV_NAME).data
-    L = RIMS[name]["span"]
-    h = L / 2.0 + END
-    s_grid = np.linspace(-h - 1.0, h + 1.0, int(2 * h) + 3)
-    d_grid = np.linspace(TOE - 2.0, OUTER, int((OUTER - TOE + 2.0) / 0.25) + 1)
-    Sg, Dg = np.meshgrid(s_grid, d_grid, indexing="ij")
-    Zg = rim_height(name, Sg, Dg)
-    seg = np.sqrt(np.diff(Dg, axis=1) ** 2 + np.diff(Zg, axis=1) ** 2)
-    Vg = np.concatenate([np.zeros((len(s_grid), 1)), np.cumsum(seg, axis=1)], axis=1)
-
-    def path(s_, d):
-        k = min(max(np.searchsorted(s_grid, s_) - 1, 0), len(s_grid) - 2)
-        t = (s_ - s_grid[k]) / (s_grid[k + 1] - s_grid[k])
-        return (1 - t) * np.interp(d, d_grid, Vg[k]) + t * np.interp(d, d_grid, Vg[k + 1])
     vs = me.vertices
+    nv = len(vs)
+    sdz = np.array([unbend(v.co, Rf) for v in vs])
+    nz = np.array([v.normal.z for v in vs])
+    e = rim_exposure(name, sdz[:, 0], sdz[:, 1], sdz[:, 2], nz)
+    hue = rim_hue(name, sdz[:, 0], sdz[:, 1])
+    top_poly = []
     for poly in me.polygons:
-        pts = [unbend(vs[me.loops[li].vertex_index].co, Rf) for li in poly.loop_indices]
-        top = all(p[2] > BOTTOM + 0.5 for p in pts) and all(
-            abs(p[2] - float(rim_height(name, np.array(p[0]), np.array(p[1])))) < 0.6 for p in pts)
-        for li, (s_, d, z) in zip(poly.loop_indices, pts):
+        pts = [sdz[i] for i in poly.vertices]
+        top_poly.append(all(p[2] > BOTTOM + 0.5 for p in pts) and all(
+            abs(p[2] - float(rim_height(name, np.array(p[0]), np.array(p[1])))) < 0.6 for p in pts))
+    area = np.zeros(nv)
+    for poly, top in zip(me.polygons, top_poly):
+        if top:
+            for i in poly.vertices:
+                area[i] += poly.area / len(poly.vertices)
+    vis = (area > 0) & (e >= 0.0)
+    order = np.argsort(e[vis])
+    cum = np.cumsum(area[vis][order])
+    rank = np.zeros(nv)
+    idx = np.nonzero(vis)[0][order]
+    rank[idx] = (cum - 0.5 * area[vis][order]) / cum[-1]
+    B = RIM_BANDS
+    me.calc_loop_triangles()
+    # the shares are set on what a ring shows: past BAND beyond a joint a piece is under its neighbour
+    h_vis = RIMS[name]["span"] / 2.0 + BAND
+    tris = [(t.vertices[:], t.area) for t in me.loop_triangles
+            if top_poly[t.polygon_index] and abs(sum(sdz[i][0] for i in t.vertices) / 3.0) <= h_vis]
+    import validate
+    samples = validate._SAMPLES
+
+    def vpx(qd, ql):
+        out = np.where(rank < qd, B["buried"] + (B["dark"] - B["buried"] - 0.5) * rank / qd,
+                       np.where(rank < ql, B["dark"] + 0.5 + (B["mid"] - B["dark"] - 1.0) * (rank - qd) / (ql - qd),
+                                B["mid"] + 0.5 + (B["top"] - B["mid"] - 0.5) * (rank - ql) / (1.0 - ql)))
+        bur = B["inset"] + (B["buried"] - B["inset"]) * np.clip(1.0 + e / 0.25, 0.0, 1.0)
+        return np.where(vis, out, np.where(area > 0, bur, B["inset"] + 0.5))
+
+    def shares(v):
+        acc = {"dark": 0.0, "mid": 0.0, "light": 0.0}
+        for (a, b_, c), ar in tris:
+            for w in samples:
+                x = w[0] * v[a] + w[1] * v[b_] + w[2] * v[c]
+                if x < B["buried"]:
+                    continue
+                acc["dark" if x < B["dark"] else "mid" if x < B["mid"] else "light"] += ar
+        tot = sum(acc.values()) or 1.0
+        return {k: x / tot for k, x in acc.items()}
+    qd, ql = RIM_SHARE["dark"], 1.0 - RIM_SHARE["light"]
+    for _ in range(12):
+        sh = shares(vpx(qd, ql))
+        qd = min(0.3, max(0.02, qd + 0.9 * (RIM_SHARE["dark"] - sh["dark"])))
+        ql = min(0.95, max(qd + 0.2, ql - 0.9 * (RIM_SHARE["light"] - sh["light"])))
+    v = vpx(qd, ql)
+    print("[nursery] %s value bands at ranks %.3f / %.3f: dark %.1f%%, mid %.1f%%, light %.1f%%"
+          % (name, qd, ql, 100 * sh["dark"], 100 * sh["mid"], 100 * sh["light"]))
+    ob["rim_value_shares"] = [round(100 * x, 1) for x in (sh["dark"], sh["mid"], sh["light"])]
+    w = ATLAS_CELLS[RIM_CELL][2]
+    pu = B["inset"] + 0.5 + (w - 2 * B["inset"] - 1.0) * hue
+    for poly, top in zip(me.polygons, top_poly):
+        for li in poly.loop_indices:
+            i = me.loops[li].vertex_index
             if top:
-                u, w = s_ * (Rf + d) / Rf, path(s_, d)
-            elif abs(poly.normal.z) > 0.7:
-                u, w = s_, d
+                uvl[li].uv = rim_cell_uv(pu[i], v[i])
             else:
-                u, w = (s_ if abs(abs(s_) - h) > 0.5 else d), z
-            uvl[li].uv = (u / ROCK_TILE, w / ROCK_TILE)
-    ratios = []
-    for poly in me.polygons:
-        if poly.area < 1.0:
-            continue
-        us = [uvl[li].uv.copy() for li in poly.loop_indices]
-        a = sum(abs((us[k].x - us[0].x) * (us[k + 1].y - us[0].y) - (us[k + 1].x - us[0].x) * (us[k].y - us[0].y)) / 2.0
-                for k in range(1, len(us) - 1))
-        if a > 1e-9:
-            ratios.append((poly.area / a) ** 0.5)
-    ratios.sort()
-    k = ratios[len(ratios) // 2] / ROCK_TILE if ratios else 1.0
-    for dd in uvl:
-        dd.uv = (dd.uv.x * k, dd.uv.y * k)
-    # review loop 6: slide the texture so the visible pool face and crest fall between its dark pits
-    seen = [uvl[li].uv for poly in me.polygons for li in poly.loop_indices
-            if poly.normal.z > -0.2 and unbend(vs[me.loops[li].vertex_index].co, Rf)[1] < TOP + 4.0
-            and vs[me.loops[li].vertex_index].co.z > -(SAND_DEPTH + 1.0)]
-    if seen:
-        u0, u1 = min(p.x for p in seen), max(p.x for p in seen)
-        v0, v1 = min(p.y for p in seen), max(p.y for p in seen)
-        ou, ov, share = pit_free_offset(u0, u1, v0, v1)
-        for dd in uvl:
-            dd.uv = (dd.uv.x + ou, dd.uv.y + ov)
-        ob["pit_share"] = share
+                uvl[li].uv = rim_cell_uv(w / 2.0, B["inset"] + 0.5)
 
 
-_PITS = {}
+def rim_sampler(img):
+    """For validate's value check: (block, sRGB) of the atlas texel at (u, v); the rim cell's buried band and every
+    other cell are 'none', outside the count."""
+    x0, y0, w, h = ATLAS_CELLS[RIM_CELL]
+    B = RIM_BANDS
+
+    def sample(u, v):
+        r = min(N - 1, max(0, int((1.0 - v) * N)))
+        c = min(N - 1, max(0, int(u * N)))
+        if not (x0 <= c < x0 + w and y0 <= r < y0 + h):
+            return "none", (0.0, 0.0, 0.0)
+        b = y0 + h - 1 - r + 0.5
+        block = "none" if b < B["buried"] else "dark" if b < B["dark"] else "mid" if b < B["mid"] else "light"
+        return block, tuple(float(x) for x in img[r, c, :3])
+    return sample
 
 
-def pit_free_offset(u0, u1, v0, v1, n=64):
-    """The UV offset (in whole 1/n steps) that puts the fewest of the rock texture's pits (its darkest 4%) inside the
-    rectangle [u0, u1] x [v0, v1] of the visible faces; returns (du, dv, share of that rectangle that is pit)."""
-    import numpy as np
-    import tilegen
-    if ROCK not in _PITS:
-        img = tilegen.PAINTERS[ROCK]()
-        L = tilegen.lstar(np.clip(img, 0, 1))
-        _PITS[ROCK] = (L < np.percentile(L, 4.0)).astype(float)[::-1]       # rows from v = 0 (Blender UVs)
-    dark = _PITS[ROCK]
-    size = dark.shape[0]
-    big = np.tile(dark, (3, 3))
-    ii = np.pad(big.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
-    w = max(1, min(2 * size, int(round((u1 - u0) * size))))
-    hgt = max(1, min(2 * size, int(round((v1 - v0) * size))))
-    best = None
-    for a in range(n):
-        for b in range(n):
-            du, dv = a / float(n), b / float(n)
-            x0 = int(round(((u0 + du) % 1.0) * size))
-            y0 = int(round(((v0 + dv) % 1.0) * size))
-            tot = ii[y0 + hgt, x0 + w] - ii[y0, x0 + w] - ii[y0 + hgt, x0] + ii[y0, x0]
-            if best is None or tot < best[0]:
-                best = (tot, du, dv)
-    return best[1], best[2], float(best[0]) / (w * hgt)
+def rim_uv_check(objs):
+    """No texture cell edge crosses a rim face: every UV 8 px or more inside the rim cell."""
+    def check(spec, report):
+        x0, y0, w, h = ATLAS_CELLS[RIM_CELL]
+        ins = RIM_BANDS["inset"] - 1e-3
+        for ob in objs:
+            uv = ob.data.uv_layers[0].data
+            px = [(d.uv.x * N - x0, (1.0 - d.uv.y) * N - y0) for d in uv]
+            lo_x, hi_x = min(p[0] for p in px), max(p[0] for p in px)
+            lo_y, hi_y = min(p[1] for p in px), max(p[1] for p in px)
+            ok = lo_x >= ins and hi_x <= w - ins and lo_y >= ins and hi_y <= h - ins
+            report.add(ob.name, "UVs inside the rim cell", ok,
+                       "cell %s of %s at (%d, %d) %d x %d: UVs %.1f to %.1f across, %.1f to %.1f down (8 px margin)"
+                       % (RIM_CELL, ATLAS, x0, y0, w, h, lo_x, hi_x, lo_y, hi_y))
+    return check
 
 
 def surface_samples(ob, off, Rf, per=12):
@@ -683,6 +821,20 @@ def rim_checks(objs, offs):
             ext = [p[0] for p in pts if p[2] > -26.0 and p[1] < 20.0]
             report.add(ob.name, "face reaches the joints", min(ext) <= -h - 2.0 and max(ext) >= h + 2.0,
                        "pool face and crest run from s %.1f to %.1f of +-%.1f (neighbours overlap there)" % (min(ext), max(ext), h))
+            vary = (max(mids) - min(mids)) / max(mids)
+            report.add(ob.name, "uneven crest", vary >= CREST_VARY and max(mids) <= RIM_TOP,
+                       "the crest rises and falls by %.0f%% of its peak along the piece (at least %.0f%%; a dome to %.1f, a "
+                       "saddle at %.1f; never above the Rim's top, %.0f)" % (100 * vary, 100 * CREST_VARY, max(mids), min(mids), RIM_TOP))
+        rows = joint_report()
+        worst_notch, worst_gap = max(r[1] for r in rows), max(r[2] for r in rows)
+        report.add(objs[0].name, "joints: one bank", worst_notch <= NOTCH_MAX and worst_gap <= 0.05,
+                   "every neighbour pair (%s): the visible crest dips at most %.2f below both sides of a joint (limit %.2f), "
+                   "the visible bank at most %.2f under the shared joint profile" % (
+                       ", ".join(r[0] for r in rows), worst_notch, NOTCH_MAX, worst_gap))
+        for ob in objs:
+            d_, m_, l_ = ob.get("rim_value_shares", (0, 0, 0))
+            report.add(ob.name, "three values on the bank", 10 <= d_ <= 15 and 55 <= m_ <= 65 and 20 <= l_ <= 30,
+                       "dark %.1f%%, mid %.1f%%, light %.1f%% of the visible bank (06 4.1)" % (d_, m_, l_))
     return check
 
 
@@ -694,7 +846,7 @@ WARM = "#FFF6D9"
 ATLAS_CELLS = {               # (x, y, w, h) in pixels, top-left origin; meshes keep UVs 8 px inside a cell
     "coral_bubble": (0, 0, 128, 128), "coral_knob": (128, 0, 128, 128), "coral_brain": (256, 0, 128, 128),
     "buoy": (384, 0, 128, 128),
-    "arch_coral": (0, 128, 256, 256),
+    "arch_coral": (0, 128, 192, 256), "rim_bank": (192, 128, 64, 256),
     "grass_gold": (256, 128, 64, 256), "grass_olive": (320, 128, 64, 256),
     "ring_coral": (384, 128, 128, 64), "shell_lights": (384, 192, 128, 64),
     "coral_crust": (384, 256, 128, 128),
@@ -704,7 +856,8 @@ ATLAS_CELLS = {               # (x, y, w, h) in pixels, top-left origin; meshes 
 CELL_USE = {
     "coral_bubble": "M_Env_Nursery_Coral_01 (pink bubble coral)", "coral_knob": "M_Env_Nursery_Coral_02 (peach knob coral)",
     "coral_brain": "M_Env_Nursery_Coral_03 (lilac brain coral)", "buoy": "M_Env_Nursery_GlowBuoy (float; glow by cap)",
-    "arch_coral": "M_Env_Nursery_LM_LittleArch (pink coral, wraps both ways)", "grass_gold": "M_Env_Nursery_GrassTuft_01",
+    "arch_coral": "M_Env_Nursery_LM_LittleArch (pink coral, wraps both ways)",
+    "rim_bank": "M_Env_Nursery_Rim_01-02 (gradient map: value up the cell, peach to rose across)", "grass_gold": "M_Env_Nursery_GrassTuft_01",
     "grass_olive": "M_Env_Nursery_GrassTuft_02", "ring_coral": "M_Env_Nursery_LM_ThreeRings (wraps across)",
     "shell_lights": "Little Arch shell lights", "coral_crust": "Little Arch tunnel and coral feet (shaded crust)",
     "clam_shell": "M_Env_Nursery_LM_SleepyClam shell", "clam_mantle": "Sleepy Clam mantle",
@@ -713,7 +866,7 @@ CELL_USE = {
 MIDS = {   # review loop 1: pastel mids (L* 64 to 78, saturation 25 to 45%) in the 06 9.3 coral hues. 06 4.1's water
            # contrast rule is a creature rule; scenery may sit near the fog's lightness
     "coral_bubble": "#F4A3B5", "coral_knob": "#F7B48E", "coral_brain": "#C3A6EC", "arch_coral": "#F29AAE",
-    "ring_coral": "#F5A78F", "buoy": "#F2A0A8", "shell_lights": "#F4B79E", "coral_crust": "#D99AC0",
+    "ring_coral": "#F5A78F", "buoy": "#F2A0A8", "shell_lights": "#F4B79E", "coral_crust": "#D99AC0", "rim_bank": "#E89D93",
     "grass_gold": "#CDBB6E", "grass_olive": "#A9BF72", "clam_shell": "#A99BE0", "clam_mantle": "#9AA3EC",
     "sign_shell": "#F5AE86", "post_drift": "#B8957A",
 }
@@ -721,6 +874,15 @@ LIGHTS = {     # pale warm lights (L* 85 or more), each at least 0.06 from every
     "pink": "#FFD9CC", "peach": "#FFE0BF", "lilac": "#EBDDFC", "cream": "#F6E6C2", "gold": "#F2E6A6",
     "mint": "#C8F4E6", "sand": "#F3E0B4",
 }
+# the rim cell (independent review loop 1, 06 16.1 line 8: pastel coral, not muddy brown): the 06 9.3 coral hues
+# (#FF7F9F pink, #FFA35C orange, #B48CFF violet) taken pastel. Mid 66 to 77 L*, light 87 to 90, dark 33; the sand
+# (#F6E3B4) is 91, so the bank's largest block sits 14 to 25 L* under it, and its dark foot meets it.
+RIM_PAINT = {
+    "dark": "#54427F",                                         # soft violet, L* 33
+    "mid": (("#DC8D86", "#F5AE98"), ("#D6899A", "#F1A8A9")),   # (low, high): peach column, rose column
+    "light": (("#FAD0C1", "#FFDACA"), ("#F7CEC9", "#FCD7D1")),
+}
+RIM_BLOCKS = {"dark": "#54427F", "mid": "#E89D93", "light": "#FDD5C7"}   # each block's middle, for validate (L* 33, 72, 88)
 SHARE = {"dark": 0.11, "light": 0.26}      # 06 4.1: dark 10-15%, light 20-30% (review loop 3: darks toward the low end)
 
 
@@ -948,6 +1110,33 @@ def _grain(w, h, name, rng):
     return _blocks(name, LIGHTS["cream"], 0.6 * np.cos(2 * math.pi * (x - 0.1)), lscore, dscore)
 
 
+def paint_rim_cell(w, h):
+    """The rim's gradient map (64 x 256): bands up the cell (RIM_BANDS) from the buried band and the dark block
+    (one flat soft violet) through the mid block (rose-mauve at its foot to peach at its top, 11 L*) to the light
+    block (87 to 90 L*); across the cell, the peach column to the rose column at the same lightness. Brush-soft band
+    edges (3 px); no marks, so nothing reads as pits, cells or seams."""
+    import numpy as np
+    import tilegen
+    B = RIM_BANDS
+    b = (h - 1 - np.arange(h) + 0.5)[:, None] * np.ones((1, w))          # pixels from the bottom
+    t = np.clip((np.arange(w)[None, :] + 0.5 - B["inset"]) / (w - 2.0 * B["inset"]), 0.0, 1.0) * np.ones((h, 1))
+
+    def col(pair_a, pair_b, g):
+        lo = tilegen.mix(_hex(pair_a[0]), _hex(pair_b[0]), t)
+        hi = tilegen.mix(_hex(pair_a[1]), _hex(pair_b[1]), t)
+        return tilegen.mix(lo, hi, np.clip(g, 0.0, 1.0))
+    mid = col(RIM_PAINT["mid"][0], RIM_PAINT["mid"][1], (b - B["dark"]) / (B["mid"] - B["dark"]))
+    light = col(RIM_PAINT["light"][0], RIM_PAINT["light"][1], (b - B["mid"]) / (B["top"] - B["mid"]))
+    dark = np.broadcast_to(_hex(RIM_PAINT["dark"]), (h, w, 3))
+    buried = tilegen.mix(col(RIM_PAINT["mid"][0], RIM_PAINT["mid"][1], np.zeros((h, w))), dark,
+                         smooth(B["inset"], B["buried"], b))       # the dark foot fades out under the sand
+    img = np.where((b < B["buried"])[..., None], buried, np.where((b < B["dark"])[..., None], dark,
+                                                                  np.where((b < B["mid"])[..., None], mid, light)))
+    for c in range(3):
+        img[..., c] = _blur(img[..., c], 1, wrap=False)
+    return img
+
+
 def paint_atlas(seed=71):
     """T_EnvNursery_Alb, RGB floats (512, 512, 3), rows from the top. Opaque: every cell fills its rectangle,
     so the 8 px bake margin (06 5.5) is the cell's own colour."""
@@ -960,6 +1149,7 @@ def paint_atlas(seed=71):
         "coral_brain": lambda w, h: _brain(w, h, "coral_brain", rng),
         "buoy": lambda w, h: _buoy(w, h),
         "arch_coral": lambda w, h: _lumps(w, h, "arch_coral", LIGHTS["pink"], rng, 12, holes=0.035),
+        "rim_bank": lambda w, h: paint_rim_cell(w, h),
         "grass_gold": lambda w, h: _blades(w, h, "grass_gold", LIGHTS["gold"]),
         "grass_olive": lambda w, h: _blades(w, h, "grass_olive", LIGHTS["gold"]),
         "ring_coral": lambda w, h: _lumps(w, h, "ring_coral", LIGHTS["peach"], rng, 4),
@@ -1022,16 +1212,16 @@ def _hue(c):
     return np.where(mx - mn < 1e-6, 0.0, h)
 
 
-def rock_material(name="MAT_Nursery_Rim"):
-    """Preview stand-in for the rim's SurfaceAppearance: T_Tile_CoralRock_Alb on the mesh UVs, no tint, matte."""
+def rim_material(name="MAT_Nursery_Rim"):
+    """Preview stand-in for the rim's SurfaceAppearance: T_EnvNursery_Alb (its rim cell) on the mesh UVs, matte."""
     import bpy
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
     nt.nodes.clear()
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = bpy.data.images.load(os.path.join(common.EXPORT_DIR, "textures", ROCK + ".png"), check_existing=True)
-    tex.extension = 'REPEAT'
+    tex.image = bpy.data.images.load(atlas_path(), check_existing=True)
+    tex.extension = 'EXTEND'
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     bsdf.inputs["Roughness"].default_value = 0.85          # T_Shared_Rgh (06 5.1)
     out = nt.nodes.new("ShaderNodeOutputMaterial")

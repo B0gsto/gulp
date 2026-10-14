@@ -50,7 +50,7 @@ SHOTS = [
     ("bowl", 450.0, (-8.0, 14.0, -19.0), (-78.0, 82.0, -27.0), 20.0, False,
      "Krill Corner bowl (Floor_03) and the north-west rim"),
     ("crest", 450.0, (-70.0, -18.0, -5.0), (-140.0, -30.0, 1.5), 20.0, False,
-     "Just under the surface: the crest breaks it 4 to 7 high"),
+     "Just under the surface: the crest breaks it 4 to 12 high"),
     ("plan", None, (0.0, 0.0, 600.0), (0.0, 0.0, 0.0), ("ortho", 400.0), True,
      "Plan, no fog: chunks 03 04 / 02 01 on the 128 grid, rim walked round the oval"),
     ("overview", None, (250.0, -280.0, 185.0), (-10.0, 10.0, -22.0), 24.0, True,
@@ -199,7 +199,7 @@ def render():
 
     tex_dir = os.path.join(common.EXPORT_DIR, "textures")
     sand_tex = os.path.join(tex_dir, na.SAND + ".png")
-    rock = lit("Rock", os.path.join(tex_dir, na.ROCK + ".png"), (1.0, 1.0, 1.0), per_copy=True)
+    rock = lit("Rock", na.atlas_path(), (1.0, 1.0, 1.0), per_copy=True)     # the rim cell of T_EnvNursery_Alb
     sand = lit("SandNursery", sand_tex, tilegen.tints(na.SAND)["nursery"][2])
     silt = lit("SandOuter", sand_tex, tilegen.tints(na.SAND)["kelp"][2])
 
@@ -370,7 +370,7 @@ def sheet():
     t = meta["tris"]
     foot1 = "Triangles: " + ", ".join("%s %d" % (k.replace("M_Env_Nursery_", ""), v) for k, v in sorted(t.items())) + \
         "  (06 6.3 / 07 6.2: floor chunk 3,000; rim 1,000)"
-    foot2 = "Textures: T_Tile_Sand_Alb 512 (Nursery tint), T_Tile_CoralRock_Alb 512 (tint per copy), T_EnvNursery_Alb 512 (06 5.6: 512 tiling / zone atlas)" \
+    foot2 = "Textures: T_Tile_Sand_Alb 512 (Nursery tint), T_EnvNursery_Alb 512 (rims: its rim cell, tint per copy; 06 5.6: 512 tiling / zone atlas)" \
         "    %s    commit %s" % (common.today(), common.git_commit())
     d.text((12, SHEET - 44), foot1, fill=(200, 200, 200), font=f14)
     d.text((12, SHEET - 24), foot2, fill=(200, 200, 200), font=f14)

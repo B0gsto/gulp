@@ -812,7 +812,7 @@ Counts are unique meshes. All [MVP] unless tagged.
 
 | Zone | Floor and walls | Kit pieces | Unique to the zone |
 |---|---|---|---|
-| **Nursery Lagoon** | 4 sand chunks, 2 low rim pieces | 3 round pastel corals, 2 sea-grass tufts, 3 smooth pebbles, 2 shells | A ring of lantern warm-white (`#FFF1DC`) glow buoys marking the safe edge; water so shallow the surface ripples show on the sand |
+| **Nursery Lagoon** | 4 sand chunks, 2 low rim pieces (pastel coral, from the 9.3 coral hues: mid `#E89D93` with a broad gradient from rose `#D6899A` to peach `#F5AE98`, light `#FDD5C7`, dark soft violet `#54427F` at the foot; the sand `#F6E3B4` stays 13 L\* or more above the mid) | 3 round pastel corals, 2 sea-grass tufts, 3 smooth pebbles, 2 shells | A ring of lantern warm-white (`#FFF1DC`) glow buoys marking the safe edge; water so shallow the surface ripples show on the sand |
 | **Sunlit Reef** | 8 sand chunks, 6 reef-rock blocks, 4 arches and tunnels | 12 corals (brain, staghorn, fan, tube, table; 3 sizes), 4 sponges, 3 sea grasses, `anemone` [L], 2 eel-hole rings | Crevices for `urchin_puff`, caves for `glowfry`, bait `hook`s hanging from the surface |
 | **Kelp Forest** | 6 silt chunks, 4 mossy boulders, 3 root mounds with moray holes | Kelp plant in 3 heights (40, 80, 140 studs), canopy leaf cards, 3 ferns, 2 fallen logs | The canopy: a broken ceiling of leaves with shafts of light between |
 | **The Drop-off** | 8 cliff modules, 4 ledges, 3 overhangs, 2 floor shelves | 4 dark sponges, 3 sea whips, 2 tube-worm clusters, nine `vent` chimneys at the Chimneys, each 12 studs tall (cold stone in the MVP, lit at launch [L]) | The Tin Pickle wreck (home of `spark_eel` [L]), the pale bowl of Whale's Rest (the Whale Fall site [L]), current streams |
