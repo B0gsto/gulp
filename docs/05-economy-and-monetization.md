@@ -21,7 +21,7 @@ Pearls are the only persistent currency. They do three jobs:
 
 Pearls never buy power inside a run. There is no shop item that adds mass, speed, traits or protection for Pearls.
 
-The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,000 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. Over the first 30 days more than two thirds of a regular player's Pearls come from the cove (68%), and 78% on day 30 itself (section 5.6). This is intended.
+The cove is the growth engine. A player's banking income is roughly flat from week to week, because the time it takes to reach each tier is fixed by the canon. The species price ladder (500 → 3,500 → 12,000 → 45,000 → 250,000) rises about fivefold per step, so only an income that grows can pay for it. That growing income is the cove: more slots, holding better specimens. A bank therefore pays twice: a modest Pearl payout now, and a specimen that earns every hour afterwards. Over the first 30 days more than two thirds of a regular player's Pearls come from the cove (68%), and 78% on day 30 itself (section 5.6). This is intended.
 
 ### 1.2 What can never be bought
 
@@ -559,7 +559,7 @@ All are assumptions to replace with data from the soft launch.
 1. The player logs in every day and buys nothing with Robux. No rewarded video, no passes, no Crystal multiplier.
 2. Time to each tier follows the canon targets (section 2.4).
 3. A run is one of four types. Each has a length, a chance to end in a bank, and a time of death if it does not. The run-value table in 5.3 gives the arithmetic.
-4. A specimen earns from the moment it is banked, as the game does it (`CoveIncome`, chapter 09, section 13.2): income during the day's own sessions is collected at the next claim. Re-derived with `tests/sim/economy.sim.luau` (task S5-C6), this lifts the day-1 total to about 1,590, 3,660 and 7,900 Pearls (casual, regular, heavy), against the 1,427, 2,998 and 6,251 of the day tables in section 5.4, which were made with the old assumption (a specimen starts earning tomorrow) and were not re-run. The Eel's price moved to 3,500 so that the regular player still buys it on day 2 (section 4.1); `economy.sim` is now the check for every unlock day.
+4. A specimen earns from the moment it is banked, as the game does it (`CoveIncome`, chapter 09, section 13.2): income during the day's own sessions is collected at the next claim. The first draft started a specimen's income the next day, which gave day-1 totals of 1,427, 2,998 and 6,251 Pearls; with the real rule `tests/sim/economy.sim.luau` (task S5-C6) gives about 1,590, 3,660 and 7,900 (casual, regular, heavy; section 5.4). The Eel's price moved to 3,500 so that the regular player still buys it on day 2 (section 4.1); `economy.sim` is now the check for every unlock day.
 5. The cove always keeps its best specimens. When it is full, the worst one is released for the refund in 3.10.
 6. Codex rewards arrive as `total × (1 − e^(−day ÷ 12))`: fast at first, then slowing.
 7. Spending rule: buy the next species the moment it is affordable. Spend up to 20% of all Pearls earned so far on slots, but only when the cove is full and after the Pufferfish is bought. Spend 5% on decorations from day 5. After the Shark Pup, spend 70% on slots and 30% on decorations.
@@ -605,133 +605,133 @@ Each player's mix of runs, and the banking income that follows:
 
 ### 5.4 Day-by-day tables
 
-The three tables are the simulation's output and were not re-run after run A0 was corrected from 80 to 79 mass (section 5.3). On the days that use A0 the Banking column still shows the old rate: 594 where the mix table now gives 587 (casual, days 1 to 3), 1,583 for 1,564 (regular, day 1) and 3,802 for 3,780 (heavy, day 1). From then on every Cumulative and Balance figure is high by about 22 Pearls (casual), 19 (regular) and 22 (heavy). Section 5.5 records what that moves: no unlock day, and one rank day for the casual player.
+The three tables are produced by `tests/sim/economy.sim.luau` (task S5-C6; `ECONOMY_SIM_TABLES=1 lune run tools/test/runner -- sim` prints them): 2,000 scripted players per profile on the generated data tables, with the profiles of section 5.1 (one 15-minute session a day; two 20-minute sessions about 12 hours apart; three 30-minute sessions with gaps of 5, 5 and 12.5 hours; 85% of each session in runs), the run types and mixes of section 5.3, the assumptions of section 5.2 (income counted from the moment of the bank) and the Eel at 3,500. Each figure is the mean over the players, except **Slots** and **Rank**, which are medians; an unlock is listed on the median day it happens. Daily rewards and the day's Codex are paid at the end of the day's first session. They replace the hand-built tables of the first draft, which started a specimen's income the next day and priced the Eel at 3,000.
 
-Columns: **Banking** includes scraps. **Cove** is yesterday's closing cove income per hour × hours collected. **Daily rewards** are goals, streak and tide bonuses. **One-time** is Codex, Reef Rank rewards and release refunds. **Balance** is Pearls in hand after the day's purchases. **Cove/h** is the cove's income per hour at the end of the day.
+Columns: **Banking** includes scraps. **Cove** is the income claimed that day (the pile is claimed at the start of each session, section 3.4), plus the first-bank reward on day 1. **Daily rewards** are goals, streak and tide bonuses. **One-time** is Codex, Reef Rank rewards and release refunds. **Balance** is Pearls in hand after the day's purchases. **Cove/h** is the cove's income per hour at the end of the day.
 
 **Casual: one 15-minute session a day**
 
 | Day | Banking | Cove | Daily rewards | One-time | Total | Cumulative | Balance | Slots | Cove/h | Rank | Unlocks |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 594 | 0 | 428 | 405 | 1,427 | 1,427 | 927 | 6 | 20 | 3 | **Pufferfish** |
-| 2 | 594 | 160 | 514 | 357 | 1,625 | 3,051 | 2,551 | 6 | 40 | 4 |  |
-| 3 | 594 | 320 | 621 | 247 | 1,782 | 4,833 | 1,333 | 6 | 60 | 4 | **Eel** |
-| 4 | 708 | 480 | 621 | 363 | 2,172 | 7,006 | 2,306 | 7 | 80 | 5 | Slot 7 |
-| 5 | 708 | 637 | 739 | 211 | 2,294 | 9,300 | 4,600 | 7 | 109 | 5 |  |
-| 6 | 708 | 874 | 879 | 354 | 2,815 | 12,115 | 6,810 | 7 | 129 | 6 |  |
-| 7 | 708 | 1,030 | 1,242 | 220 | 3,200 | 15,316 | 8,510 | 8 | 156 | 6 | Slot 8 |
-| 8 | 708 | 1,250 | 642 | 371 | 2,972 | 18,287 | 11,481 | 8 | 176 | 7 |  |
-| 9 | 708 | 1,409 | 685 | 184 | 2,985 | 21,272 | 2,466 | 8 | 176 | 7 | **Sea Turtle** |
-| 10 | 708 | 1,409 | 765 | 172 | 3,054 | 24,326 | 3,010 | 9 | 176 | 7 | Slot 9 |
-| 11 | 742 | 1,409 | 765 | 362 | 3,278 | 27,604 | 6,287 | 9 | 214 | 8 |  |
-| 12 | 742 | 1,709 | 898 | 152 | 3,501 | 31,104 | 9,788 | 9 | 231 | 8 |  |
-| 13 | 742 | 1,850 | 1,068 | 143 | 3,803 | 34,907 | 13,062 | 9 | 231 | 8 |  |
-| 14 | 742 | 1,850 | 1,408 | 380 | 4,380 | 39,288 | 15,042 | 10 | 249 | 9 | Slot 10 |
-| 15 | 742 | 1,992 | 770 | 87 | 3,592 | 42,879 | 18,634 | 10 | 269 | 9 |  |
-| 16 | 742 | 2,150 | 770 | 140 | 3,803 | 46,683 | 21,849 | 10 | 287 | 9 |  |
-| 17 | 742 | 2,292 | 860 | 114 | 4,009 | 50,691 | 22,857 | 11 | 287 | 9 | Slot 11 |
-| 18 | 742 | 2,292 | 860 | 338 | 4,233 | 54,924 | 27,090 | 11 | 324 | 10 |  |
-| 19 | 742 | 2,592 | 1,003 | 102 | 4,440 | 59,364 | 30,896 | 11 | 324 | 10 |  |
-| 20 | 742 | 2,592 | 1,193 | 117 | 4,645 | 64,009 | 35,541 | 11 | 342 | 10 |  |
-| 21 | 742 | 2,734 | 1,573 | 73 | 5,122 | 69,131 | 36,913 | 12 | 342 | 10 | Slot 12 |
-| 22 | 742 | 2,734 | 813 | 89 | 4,378 | 73,509 | 40,583 | 12 | 379 | 10 |  |
-| 23 | 742 | 3,034 | 813 | 380 | 4,969 | 78,478 | 552 | 12 | 397 | 11 | **Squid** |
-| 24 | 742 | 3,175 | 956 | 61 | 4,935 | 83,412 | 5,487 | 12 | 397 | 11 |  |
-| 25 | 742 | 3,175 | 956 | 98 | 4,971 | 88,384 | 9,714 | 12 | 415 | 11 |  |
-| 26 | 742 | 3,317 | 1,056 | 75 | 5,190 | 93,574 | 10,404 | 13 | 415 | 11 | Slot 13 |
-| 27 | 742 | 3,317 | 1,256 | 52 | 5,367 | 98,941 | 15,244 | 13 | 452 | 11 |  |
-| 28 | 742 | 3,617 | 1,656 | 369 | 6,385 | 105,325 | 21,628 | 13 | 452 | 12 |  |
-| 29 | 742 | 3,617 | 899 | 87 | 5,345 | 110,671 | 26,387 | 13 | 470 | 12 |  |
-| 30 | 742 | 3,758 | 899 | 45 | 5,445 | 116,115 | 31,832 | 13 | 470 | 12 |  |
+| 1 | 810 | 10 | 364 | 401 | 1,586 | 1,586 | 1,086 | 6 | 30 | 3 | **Pufferfish** |
+| 2 | 670 | 236 | 490 | 359 | 1,755 | 3,341 | 2,757 | 6 | 54 | 4 |  |
+| 3 | 659 | 428 | 583 | 323 | 1,993 | 5,335 | 1,231 | 6 | 60 | 5 | **Eel** |
+| 4 | 782 | 477 | 553 | 309 | 2,121 | 7,456 | 2,270 | 7 | 101 | 5 | Slot 7 |
+| 5 | 744 | 801 | 706 | 316 | 2,566 | 10,022 | 4,321 | 7 | 133 | 6 |  |
+| 6 | 757 | 1,056 | 880 | 279 | 2,972 | 12,995 | 6,708 | 7 | 153 | 6 |  |
+| 7 | 753 | 1,225 | 1,153 | 280 | 3,411 | 16,406 | 8,859 | 8 | 177 | 7 | Slot 8 |
+| 8 | 756 | 1,415 | 622 | 281 | 3,075 | 19,480 | 6,691 | 8 | 184 | 7 |  |
+| 9 | 750 | 1,470 | 640 | 242 | 3,103 | 22,583 | 2,326 | 8 | 192 | 7 | **Sea Turtle** |
+| 10 | 752 | 1,538 | 678 | 243 | 3,211 | 25,794 | 3,975 | 9 | 211 | 8 | Slot 9 |
+| 11 | 791 | 1,686 | 737 | 240 | 3,453 | 29,247 | 7,179 | 9 | 223 | 8 |  |
+| 12 | 788 | 1,784 | 848 | 217 | 3,637 | 32,884 | 10,275 | 9 | 235 | 8 |  |
+| 13 | 778 | 1,877 | 1,044 | 204 | 3,903 | 36,787 | 12,487 | 10 | 255 | 9 | Slot 10 |
+| 14 | 780 | 2,037 | 1,330 | 203 | 4,350 | 41,137 | 16,086 | 10 | 272 | 9 |  |
+| 15 | 785 | 2,175 | 708 | 198 | 3,866 | 45,004 | 19,605 | 10 | 284 | 9 |  |
+| 16 | 789 | 2,267 | 728 | 182 | 3,966 | 48,969 | 22,432 | 10 | 298 | 9 |  |
+| 17 | 787 | 2,384 | 750 | 171 | 4,091 | 53,060 | 24,994 | 11 | 317 | 10 | Slot 11 |
+| 18 | 784 | 2,537 | 849 | 173 | 4,343 | 57,404 | 28,573 | 11 | 332 | 10 |  |
+| 19 | 776 | 2,653 | 947 | 170 | 4,545 | 61,949 | 32,647 | 11 | 343 | 10 |  |
+| 20 | 789 | 2,742 | 1,072 | 151 | 4,754 | 66,703 | 35,963 | 11 | 357 | 10 |  |
+| 21 | 786 | 2,855 | 1,556 | 140 | 5,337 | 72,040 | 35,371 | 12 | 374 | 10 | Slot 12 |
+| 22 | 785 | 2,991 | 779 | 157 | 4,712 | 76,751 | 27,576 | 12 | 389 | 11 |  |
+| 23 | 789 | 3,111 | 789 | 164 | 4,853 | 81,605 | 16,679 | 12 | 400 | 11 | **Squid** |
+| 24 | 783 | 3,201 | 833 | 155 | 4,972 | 86,577 | 10,293 | 12 | 413 | 11 |  |
+| 25 | 779 | 3,300 | 915 | 127 | 5,121 | 91,698 | 10,721 | 13 | 427 | 11 | Slot 13 |
+| 26 | 785 | 3,412 | 1,009 | 130 | 5,337 | 97,035 | 13,844 | 13 | 441 | 12 |  |
+| 27 | 793 | 3,529 | 1,153 | 143 | 5,618 | 102,653 | 18,451 | 13 | 452 | 12 |  |
+| 28 | 787 | 3,617 | 1,675 | 161 | 6,240 | 108,893 | 23,875 | 13 | 461 | 12 |  |
+| 29 | 785 | 3,685 | 855 | 132 | 5,457 | 114,349 | 27,998 | 13 | 471 | 12 |  |
+| 30 | 779 | 3,770 | 775 | 113 | 5,437 | 119,786 | 31,764 | 13 | 483 | 12 |  |
 
 **Regular: two 20-minute sessions a day**
 
 | Day | Banking | Cove | Daily rewards | One-time | Total | Cumulative | Balance | Slots | Cove/h | Rank | Unlocks |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 1,583 | 0 | 630 | 785 | 2,998 | 2,998 | 2,498 | 6 | 60 | 4 | **Pufferfish** |
-| 2 | 1,796 | 960 | 819 | 720 | 4,295 | 7,293 | 2,593 | 7 | 119 | 5 | **Eel**, Slot 7 |
-| 3 | 2,025 | 1,901 | 952 | 879 | 5,757 | 13,050 | 8,350 | 7 | 156 | 7 |  |
-| 4 | 2,025 | 2,501 | 1,088 | 736 | 6,350 | 19,400 | 1,200 | 8 | 192 | 8 | **Sea Turtle**, Slot 8 |
-| 5 | 2,025 | 3,067 | 1,241 | 501 | 6,835 | 26,235 | 4,823 | 9 | 247 | 8 | Slot 9 |
-| 6 | 2,025 | 3,950 | 1,411 | 694 | 8,081 | 34,316 | 12,904 | 9 | 302 | 9 |  |
-| 7 | 2,025 | 4,834 | 1,854 | 689 | 9,403 | 43,718 | 19,032 | 10 | 338 | 10 | Slot 10 |
-| 8 | 2,221 | 5,400 | 1,197 | 390 | 9,209 | 52,927 | 25,241 | 11 | 375 | 10 | Slot 11 |
-| 9 | 2,221 | 6,000 | 1,197 | 602 | 10,021 | 62,947 | 34,300 | 11 | 412 | 11 |  |
-| 10 | 2,221 | 6,600 | 1,360 | 718 | 10,900 | 73,847 | 0 | 11 | 448 | 12 | **Squid** |
-| 11 | 2,221 | 7,160 | 1,428 | 359 | 11,168 | 85,015 | 6,515 | 12 | 448 | 12 | Slot 12 |
-| 12 | 2,221 | 7,160 | 1,533 | 665 | 11,579 | 96,594 | 13,015 | 13 | 520 | 13 | Slot 13 |
-| 13 | 2,221 | 8,320 | 1,826 | 264 | 12,631 | 109,225 | 25,014 | 13 | 558 | 13 |  |
-| 14 | 2,221 | 8,920 | 2,266 | 655 | 14,063 | 123,288 | 32,624 | 14 | 558 | 14 | Slot 14 |
-| 15 | 2,320 | 8,920 | 1,449 | 232 | 12,921 | 136,209 | 44,899 | 14 | 630 | 14 |  |
-| 16 | 2,320 | 10,080 | 1,449 | 651 | 14,500 | 150,710 | 58,674 | 14 | 665 | 15 |  |
-| 17 | 2,320 | 10,640 | 1,632 | 244 | 14,835 | 165,545 | 65,518 | 15 | 665 | 15 | Slot 15 |
-| 18 | 2,320 | 10,640 | 1,632 | 194 | 14,786 | 180,331 | 79,564 | 15 | 738 | 15 |  |
-| 19 | 2,320 | 11,800 | 1,752 | 621 | 16,493 | 196,823 | 95,232 | 15 | 738 | 16 |  |
-| 20 | 2,320 | 11,800 | 2,075 | 211 | 16,406 | 213,229 | 101,818 | 16 | 772 | 16 | Slot 16 |
-| 21 | 2,320 | 12,360 | 2,575 | 589 | 17,844 | 231,073 | 118,769 | 16 | 810 | 17 |  |
-| 22 | 2,320 | 12,960 | 1,638 | 193 | 17,111 | 248,184 | 135,025 | 16 | 845 | 17 |  |
-| 23 | 2,320 | 13,520 | 1,638 | 223 | 17,701 | 265,885 | 140,841 | 17 | 880 | 17 | Slot 17 |
-| 24 | 2,320 | 14,080 | 1,768 | 552 | 18,720 | 284,605 | 158,625 | 17 | 918 | 18 |  |
-| 25 | 2,320 | 14,680 | 1,836 | 210 | 19,046 | 303,651 | 176,719 | 17 | 952 | 18 |  |
-| 26 | 2,320 | 15,240 | 1,971 | 148 | 19,679 | 323,330 | 195,413 | 17 | 952 | 18 |  |
-| 27 | 2,320 | 15,240 | 2,241 | 673 | 20,474 | 343,804 | 200,863 | 18 | 988 | 19 | Slot 18 |
-| 28 | 2,320 | 15,800 | 2,884 | 79 | 21,083 | 364,887 | 220,892 | 18 | 1,025 | 19 |  |
-| 29 | 2,320 | 16,400 | 1,764 | 188 | 20,672 | 385,559 | 240,531 | 18 | 1,060 | 19 |  |
-| 30 | 2,320 | 16,960 | 1,764 | 646 | 21,690 | 407,249 | 0 | 18 | 1,095 | 20 | **Shark Pup** |
+| 1 | 1,919 | 312 | 612 | 818 | 3,661 | 3,661 | 2,676 | 6 | 59 | 4 | **Pufferfish** |
+| 2 | 1,970 | 1,265 | 809 | 829 | 4,873 | 8,534 | 3,334 | 7 | 138 | 6 | **Eel**, Slot 7 |
+| 3 | 2,189 | 2,344 | 983 | 759 | 6,275 | 14,809 | 8,184 | 8 | 192 | 7 | Slot 8 |
+| 4 | 2,143 | 3,207 | 1,064 | 732 | 7,145 | 21,954 | 2,985 | 8 | 231 | 8 | **Sea Turtle** |
+| 5 | 2,132 | 3,932 | 1,200 | 685 | 7,950 | 29,904 | 7,806 | 9 | 280 | 9 | Slot 9 |
+| 6 | 2,147 | 4,637 | 1,440 | 643 | 8,867 | 38,770 | 13,947 | 10 | 331 | 9 | Slot 10 |
+| 7 | 2,141 | 5,403 | 1,871 | 603 | 10,018 | 48,789 | 22,362 | 10 | 366 | 10 |  |
+| 8 | 2,374 | 6,101 | 1,167 | 595 | 10,237 | 59,026 | 30,085 | 11 | 418 | 11 | Slot 11 |
+| 9 | 2,301 | 6,800 | 1,212 | 572 | 10,885 | 69,911 | 37,783 | 12 | 462 | 11 | Slot 12 |
+| 10 | 2,323 | 7,532 | 1,352 | 549 | 11,756 | 81,667 | 14,146 | 12 | 493 | 12 | **Squid** |
+| 11 | 2,312 | 7,990 | 1,390 | 523 | 12,215 | 93,882 | 11,385 | 13 | 533 | 13 | Slot 13 |
+| 12 | 2,312 | 8,651 | 1,543 | 509 | 13,016 | 106,898 | 22,285 | 13 | 560 | 13 |  |
+| 13 | 2,314 | 9,047 | 1,805 | 486 | 13,653 | 120,550 | 32,136 | 14 | 594 | 14 | Slot 14 |
+| 14 | 2,329 | 9,643 | 2,299 | 461 | 14,731 | 135,282 | 43,619 | 14 | 627 | 14 |  |
+| 15 | 2,417 | 10,147 | 1,412 | 447 | 14,422 | 149,704 | 55,805 | 14 | 661 | 15 |  |
+| 16 | 2,421 | 10,760 | 1,443 | 410 | 15,034 | 164,738 | 65,513 | 15 | 710 | 15 | Slot 15 |
+| 17 | 2,398 | 11,500 | 1,600 | 409 | 15,907 | 180,646 | 79,190 | 15 | 745 | 15 |  |
+| 18 | 2,428 | 12,055 | 1,623 | 395 | 16,502 | 197,147 | 91,872 | 15 | 784 | 16 |  |
+| 19 | 2,394 | 12,719 | 1,780 | 373 | 17,266 | 214,414 | 103,804 | 16 | 829 | 16 | Slot 16 |
+| 20 | 2,397 | 13,399 | 2,051 | 374 | 18,221 | 232,635 | 119,241 | 16 | 864 | 17 |  |
+| 21 | 2,367 | 13,957 | 2,598 | 354 | 19,276 | 251,911 | 133,968 | 16 | 902 | 17 |  |
+| 22 | 2,434 | 14,594 | 1,585 | 354 | 18,967 | 270,878 | 147,163 | 17 | 946 | 17 | Slot 17 |
+| 23 | 2,386 | 15,257 | 1,614 | 333 | 19,590 | 290,468 | 163,524 | 17 | 980 | 18 |  |
+| 24 | 2,396 | 15,795 | 1,769 | 343 | 20,302 | 310,770 | 180,072 | 17 | 1,014 | 18 |  |
+| 25 | 2,428 | 16,364 | 1,790 | 326 | 20,907 | 331,677 | 193,746 | 18 | 1,054 | 18 | Slot 18 |
+| 26 | 2,406 | 17,013 | 1,954 | 330 | 21,703 | 353,381 | 198,758 | 18 | 1,092 | 19 |  |
+| 27 | 2,379 | 17,581 | 2,244 | 315 | 22,520 | 375,901 | 172,582 | 18 | 1,122 | 19 |  |
+| 28 | 2,418 | 18,048 | 2,842 | 329 | 23,637 | 399,538 | 105,330 | 18 | 1,149 | 19 | **Shark Pup** |
+| 29 | 2,396 | 18,478 | 1,749 | 318 | 22,941 | 422,479 | 42,979 | 18 | 1,175 | 20 |  |
+| 30 | 2,394 | 18,888 | 1,765 | 308 | 23,356 | 445,835 | 12,749 | 18 | 1,199 | 20 |  |
 
 **Heavy: 90 minutes a day**
 
 | Day | Banking | Cove | Daily rewards | One-time | Total | Cumulative | Balance | Slots | Cove/h | Rank | Unlocks |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 3,802 | 0 | 720 | 1,729 | 6,251 | 6,251 | 1,551 | 7 | 119 | 6 | **Pufferfish**, **Eel**, Slot 7 |
-| 2 | 4,910 | 2,138 | 1,080 | 1,565 | 9,693 | 15,944 | 9,744 | 8 | 209 | 8 | Slot 8 |
-| 3 | 4,910 | 3,769 | 1,309 | 1,621 | 11,608 | 27,552 | 7,452 | 9 | 335 | 10 | **Sea Turtle**, Slot 9 |
-| 4 | 4,910 | 6,030 | 1,463 | 1,399 | 13,801 | 41,354 | 18,854 | 10 | 408 | 11 | Slot 10 |
-| 5 | 6,384 | 7,335 | 1,640 | 1,561 | 16,920 | 58,274 | 29,861 | 11 | 490 | 13 | Slot 11 |
-| 6 | 6,384 | 8,811 | 2,024 | 1,280 | 18,499 | 76,773 | 2,435 | 11 | 612 | 14 | **Squid** |
-| 7 | 6,384 | 11,007 | 2,576 | 1,289 | 21,256 | 98,030 | 18,878 | 12 | 688 | 15 | Slot 12 |
-| 8 | 6,384 | 12,393 | 1,728 | 1,299 | 21,804 | 119,834 | 35,092 | 13 | 918 | 16 | Slot 13 |
-| 9 | 6,384 | 16,515 | 1,800 | 1,176 | 25,875 | 145,709 | 53,923 | 14 | 1,034 | 17 | Slot 14 |
-| 10 | 6,384 | 18,603 | 2,002 | 1,136 | 28,125 | 173,834 | 73,392 | 15 | 1,111 | 18 | Slot 15 |
-| 11 | 6,924 | 19,998 | 2,079 | 1,150 | 30,151 | 203,985 | 93,036 | 16 | 1,306 | 19 | Slot 16 |
-| 12 | 6,924 | 23,517 | 2,296 | 1,215 | 33,951 | 237,937 | 125,290 | 16 | 1,464 | 20 |  |
-| 13 | 6,924 | 26,343 | 2,668 | 1,171 | 37,106 | 275,042 | 149,540 | 17 | 1,464 | 21 | Slot 17 |
-| 14 | 6,924 | 26,343 | 3,360 | 1,163 | 37,790 | 312,832 | 185,441 | 17 | 1,616 | 22 |  |
-| 15 | 6,924 | 29,079 | 2,232 | 1,275 | 39,509 | 352,342 | 208,975 | 18 | 1,690 | 23 | Slot 18 |
-| 16 | 6,924 | 30,420 | 2,304 | 477 | 40,125 | 392,466 | 247,093 | 18 | 1,842 | 23 |  |
-| 17 | 6,924 | 33,156 | 2,464 | 1,129 | 43,673 | 436,139 | 0 | 19 | 1,842 | 24 | **Shark Pup**, Slot 19 |
-| 18 | 6,924 | 33,156 | 2,541 | 1,169 | 43,790 | 479,930 | 0 | 20 | 1,994 | 25 | Slot 20 |
-| 19 | 6,924 | 35,892 | 2,788 | 1,134 | 46,738 | 526,667 | 0 | 21 | 2,146 | 26 | Slot 21 |
-| 20 | 6,924 | 38,628 | 3,220 | 386 | 49,158 | 575,825 | 0 | 22 | 2,224 | 26 | Slot 22 |
-| 21 | 6,924 | 40,023 | 3,920 | 1,081 | 51,948 | 627,773 | 0 | 23 | 2,376 | 27 | Slot 23 |
-| 22 | 6,924 | 42,759 | 2,592 | 429 | 52,703 | 680,477 | 0 | 23 | 2,528 | 27 |  |
-| 23 | 6,924 | 45,495 | 2,592 | 1,152 | 56,163 | 736,640 | 0 | 24 | 2,528 | 28 | Slot 24 |
-| 24 | 6,924 | 45,495 | 2,849 | 1,124 | 56,392 | 793,031 | 0 | 24 | 2,680 | 29 |  |
-| 25 | 6,924 | 48,231 | 2,926 | 463 | 58,544 | 851,576 | 22,353 | 24 | 2,754 | 29 |  |
-| 26 | 6,924 | 49,572 | 3,116 | 1,240 | 60,852 | 912,428 | 0 | 25 | 2,828 | 30 | Slot 25 |
-| 27 | 6,924 | 50,913 | 3,588 | 206 | 61,631 | 974,059 | 41,091 | 25 | 2,906 | 30 |  |
-| 28 | 6,924 | 52,308 | 4,368 | 1,205 | 64,805 | 1,038,864 | 2,455 | 26 | 2,980 | 31 | Slot 26 |
-| 29 | 6,924 | 53,649 | 2,880 | 382 | 63,834 | 1,102,698 | 47,139 | 26 | 3,132 | 31 |  |
-| 30 | 6,924 | 56,385 | 2,880 | 1,134 | 67,323 | 1,170,021 | 0 | 27 | 3,132 | 32 | Slot 27 |
+| 1 | 4,340 | 1,104 | 720 | 1,741 | 7,905 | 7,905 | 2,706 | 7 | 137 | 6 | **Pufferfish**, **Eel**, Slot 7 |
+| 2 | 5,223 | 3,358 | 1,078 | 1,685 | 11,344 | 19,249 | 4,898 | 8 | 276 | 8 | **Sea Turtle**, Slot 8 |
+| 3 | 5,121 | 5,955 | 1,342 | 1,554 | 13,971 | 33,221 | 12,117 | 9 | 391 | 10 | Slot 9 |
+| 4 | 5,163 | 7,921 | 1,471 | 1,534 | 16,089 | 49,310 | 25,081 | 10 | 469 | 12 | Slot 10 |
+| 5 | 6,708 | 9,782 | 1,688 | 1,520 | 19,698 | 69,008 | 36,415 | 12 | 626 | 13 | Slot 11, Slot 12 |
+| 6 | 6,556 | 12,706 | 2,040 | 1,425 | 22,726 | 91,734 | 10,937 | 13 | 776 | 15 | **Squid**, Slot 13 |
+| 7 | 6,529 | 15,510 | 2,632 | 1,361 | 26,033 | 117,767 | 30,461 | 13 | 916 | 16 |  |
+| 8 | 6,621 | 18,149 | 1,778 | 1,299 | 27,848 | 145,614 | 52,144 | 14 | 1,052 | 17 | Slot 14 |
+| 9 | 6,567 | 20,703 | 1,855 | 1,247 | 30,373 | 175,987 | 75,098 | 15 | 1,180 | 18 | Slot 15 |
+| 10 | 6,593 | 23,023 | 2,060 | 1,212 | 32,888 | 208,876 | 100,024 | 16 | 1,295 | 19 | Slot 16 |
+| 11 | 7,123 | 25,323 | 2,133 | 1,188 | 35,766 | 244,642 | 128,443 | 16 | 1,425 | 20 |  |
+| 12 | 7,093 | 27,758 | 2,351 | 1,127 | 38,328 | 282,970 | 157,298 | 17 | 1,547 | 21 | Slot 17 |
+| 13 | 7,077 | 29,890 | 2,719 | 1,128 | 40,814 | 323,784 | 188,959 | 17 | 1,646 | 21 |  |
+| 14 | 7,146 | 31,850 | 3,408 | 1,092 | 43,495 | 367,279 | 190,243 | 18 | 1,744 | 22 | Slot 18 |
+| 15 | 7,084 | 33,462 | 2,250 | 1,078 | 43,874 | 411,153 | 68,637 | 18 | 1,805 | 23 | **Shark Pup** |
+| 16 | 7,186 | 34,567 | 2,306 | 1,076 | 45,134 | 456,288 | 3,632 | 18 | 1,861 | 24 |  |
+| 17 | 7,096 | 35,656 | 2,525 | 1,045 | 46,322 | 502,610 | 811 | 18 | 1,919 | 25 |  |
+| 18 | 7,152 | 36,885 | 2,583 | 963 | 47,583 | 550,193 | 4,822 | 18 | 2,007 | 25 |  |
+| 19 | 7,094 | 38,847 | 2,806 | 891 | 49,638 | 599,831 | 10,018 | 20 | 2,145 | 26 | Slot 19, Slot 20 |
+| 20 | 7,177 | 41,600 | 3,209 | 881 | 52,867 | 652,698 | 13,814 | 21 | 2,298 | 27 | Slot 21 |
+| 21 | 7,071 | 44,423 | 3,983 | 843 | 56,320 | 709,018 | 17,617 | 22 | 2,434 | 27 | Slot 22 |
+| 22 | 7,100 | 46,925 | 2,605 | 849 | 57,479 | 766,497 | 21,563 | 23 | 2,558 | 28 | Slot 23 |
+| 23 | 7,045 | 49,200 | 2,649 | 846 | 59,740 | 826,237 | 25,942 | 24 | 2,668 | 28 | Slot 24 |
+| 24 | 7,026 | 51,269 | 2,880 | 828 | 62,002 | 888,239 | 30,135 | 24 | 2,773 | 29 |  |
+| 25 | 7,162 | 53,245 | 2,925 | 826 | 64,157 | 952,397 | 35,260 | 25 | 2,875 | 30 | Slot 25 |
+| 26 | 7,134 | 55,158 | 3,161 | 823 | 66,277 | 1,018,673 | 39,242 | 25 | 2,972 | 30 |  |
+| 27 | 7,135 | 56,960 | 3,599 | 803 | 68,497 | 1,087,171 | 44,682 | 26 | 3,065 | 31 | Slot 26 |
+| 28 | 7,094 | 58,689 | 4,443 | 796 | 71,022 | 1,158,193 | 48,856 | 26 | 3,154 | 31 |  |
+| 29 | 7,178 | 60,397 | 2,894 | 810 | 71,280 | 1,229,473 | 54,281 | 27 | 3,242 | 32 | Slot 27 |
+| 30 | 7,104 | 62,053 | 2,934 | 766 | 72,856 | 1,302,330 | 60,773 | 27 | 3,326 | 32 |  |
 
 ### 5.5 Milestones and the check against the canon
 
 | Milestone | Canon target (non-paying daily player) | Casual | Regular | Heavy |
 |---|---|---|---|---|
 | Pufferfish (500) | End of first session | Day 1 | Day 1 | Day 1 |
-| Eel (3,500; the day tables used 3,000) | Day 2 | Day 3 | Day 2 | Day 1 |
-| Sea Turtle (12,000) | Day 4 or 5 | Day 9 | Day 4 | Day 3 |
+| Eel (3,500) | Day 2 | Day 3 | Day 2 | Day 1 |
+| Sea Turtle (12,000) | Day 4 or 5 | Day 9 | Day 4 | Day 2 |
 | Squid (45,000) | About day 10 | Day 23 | Day 10 | Day 6 |
-| Shark Pup (250,000) | About day 30 | Day 71 | Day 30 | Day 17 |
+| Shark Pup (250,000) | About day 30 | After day 30 | Day 28 | Day 15 |
 | Slot 7 | — | Day 4 | Day 2 | Day 1 |
-| Slot 10 | — | Day 14 | Day 7 | Day 4 |
-| Slot 12 | — | Day 21 | Day 11 | Day 7 |
-| Slot 15 | — | Day 37 | Day 17 | Day 10 |
-| Slot 20 | — | Day 96 | Day 32 | Day 18 |
-| Slot 25 | — | After day 120 | Day 48 | Day 26 |
-| Slot 30 | — | After day 120 | Day 73 | Day 40 |
+| Slot 10 | — | Day 13 | Day 6 | Day 4 |
+| Slot 12 | — | Day 21 | Day 9 | Day 5 |
+| Slot 15 | — | Day 36 | Day 16 | Day 9 |
+| Slot 20 | — | After day 39 | Day 36 | Day 19 |
+| Slot 25 | — | After day 39 | After day 39 | Day 25 |
+| Slot 30 | — | After day 39 | After day 39 | Day 38 |
 
-The regular player meets every canon target: Pufferfish in the first session, Eel on day 2, Sea Turtle on day 4, Squid on day 10, Shark Pup on day 30. The casual player takes about 2.3 times as many days and the heavy player a little over half as many.
+The regular player meets every canon target: Pufferfish in the first session (about 5.5 minutes of play), Eel on day 2, Sea Turtle on day 4, Squid on day 10, Shark Pup on day 28. The casual player takes more than twice as many days (the Shark Pup comes after day 39) and the heavy player about half as many. `economy.sim` fails the gate when the regular player's day for any species is more than 30% off the canon (chapter 09, section 16.2).
 
 **The first session in detail.** An average new player, with all values (tune):
 
@@ -753,9 +753,9 @@ The starter set pays 425 for a full day against the 450 the model assumes for a 
 |---|---|---|---|
 | Sea Turtle | Day 4 or 5 | Day 3 | Day 4 |
 | Squid | About day 10 | Day 5 | Day 10 |
-| Shark Pup | About day 30 | Day 11 | Day 30 |
-| All 30 slots | — | Day 27 | Day 73 |
-| Pearls per day on day 30 | — | 203,974 | 21,690 |
+| Shark Pup | About day 30 | Day 11 | Day 28 (economy.sim) |
+| All 30 slots | — | Day 27 | After day 39 (economy.sim) |
+| Pearls per day on day 30 | — | 203,974 | 23,356 (economy.sim) |
 
 The anchors gave the Shark Pup away 19 days early and left a regular player owning every species and every slot before the end of week four. Cutting the cove base and the trait bonuses fixed the pacing without touching a single species price.
 
@@ -764,7 +764,7 @@ The anchors gave the Shark Pup away 19 days early and left a regular player owni
 1. Cove base per tier cut from 20 / 40 / 80 / 160 / 320 / 640 to 6 / 10 / 18 / 30 / 50 / 80.
 2. Trait bonuses cut from +25 / 50 / 100 / 200 / 400% to +10 / 20 / 35 / 60 / 100%.
 3. Slot prices set so that a 20% slot budget buys slot 12 by about day 11 and slot 18 by day 27.
-4. Daily goal, streak and Reef Rank rewards trimmed so that a regular player ends day 1 with 2,498 Pearls, short of the Eel's 3,000. The Eel then lands early on day 2.
+4. Daily goal, streak and Reef Rank rewards trimmed so that a regular player ends day 1 with 2,498 Pearls, short of the Eel's 3,000. The Eel then lands early on day 2. (First-draft model. With income counted from the bank the regular player ends day 1 with about 2,680 Pearls in hand, so the Eel now costs 3,500; section 4.1.)
 
 **Re-check after the consistency pass (13 October 2026).** The simulation was not re-run; each change was checked by hand against the day tables above. No species unlock day moved.
 
@@ -778,24 +778,24 @@ The anchors gave the Shark Pup away 19 days early and left a regular player owni
 | Crystal Jelly as a drift of five | None in the base model, which leaves the ×1.5 out. At the supply ceiling in section 2.1 a full server gives half a Crystal creature per player-hour. For a regular player that is at most one run in twenty, which adds at most about 5% to their banking and under 1% to their Pearls by day 30. |
 | Second Moon Tide at :45 in the MVP | None. Frenzy time is still 8 minutes an hour; Mythic supply is checked in section 2.1. |
 | Cove income is claimed by a tap, never automatically (canon section 11; section 3.4) | None. Hours collected per day were always an input (8, 16 and 18; section 5.1), and the model now states that the player claims on entering the cove (assumption 9). Check: the casual player's one session follows a gap of 23.75 hours, so the pile is at its 8-hour cap: 8 hours. The regular player's two sessions follow gaps of about 11.7 hours, both over the cap: 2 × 8 = 16 hours. The heavy player's three sessions follow gaps that total 22.5 hours, for example 5, 5 and 12.5: 5 + 5 + 8 = 18 hours. Income earned during a session and not tapped stays in the pile for the next claim; the day tables never counted it. No unlock day moves. |
-| Run A0 banks at 79 mass (237 Pearls), not 80 (240), so that its tier 3 specimen agrees with the canon tier table (section 5.3) | Not re-run; the day tables keep the old figures (section 5.4). Banking on A0 days falls by 1.2%: 7 Pearls a day on the casual player's days 1 to 3, 19 on the regular player's day 1 and 22 on the heavy player's day 1. The regular player ends day 1 with about 2,479 Pearls, not 2,498. The tightest unlock is the regular player's Squid on day 10, bought with 200 Pearls to spare, so no species day and no slot day moves. One rank day moves: the casual player's lifetime banked Pearls on day 14 fall from 9,706 to 9,685, under the 9,700 that rank 9 needs, so rank 9 and its 225 Pearls arrive on day 15, not day 14. The cove columns are unchanged: the simulation always counted an A0 specimen as tier 3 at 10 Pearls/h, which gives the casual player's 20, 40 and 60 Pearls/h on days 1 to 3 and the regular player's 60 on day 1. |
+| Run A0 banks at 79 mass (237 Pearls), not 80 (240), so that its tier 3 specimen agrees with the canon tier table (section 5.3) | Not re-run; the day tables keep the old figures (section 5.4). Banking on A0 days falls by 1.2%: 7 Pearls a day on the casual player's days 1 to 3, 19 on the regular player's day 1 and 22 on the heavy player's day 1. The regular player ends day 1 with about 2,479 Pearls, not 2,498. The tightest unlock is the regular player's Squid on day 10, bought with 200 Pearls to spare, so no species day and no slot day moves. One rank day moves: the casual player's lifetime banked Pearls on day 14 fall from 9,706 to 9,685, under the 9,700 that rank 9 needs, so rank 9 and its 225 Pearls arrive on day 15, not day 14. The cove columns are unchanged: the simulation always counted an A0 specimen as tier 3 at 10 Pearls/h, which gives the casual player's 20, 40 and 60 Pearls/h on days 1 to 3 and the regular player's 60 on day 1. Superseded: the day tables in section 5.4 are now `economy.sim`'s output, A0 at 79 mass included. |
 | The Reef Darter is no longer counted in the Drop-off (section 2.2) | None. Only the tier 3 Drop-off cell in section 2.3 changed (17.0 to 2.0), and no player in the model feeds there at tier 3: time to tier uses each tier's home zone (section 2.4). |
 
 ### 5.6 Where the Pearls come from
 
 | Player | Day | Pearls/day | Banking | Cove | Daily rewards | One-time | Cumulative earned | Slots | Cove Pearls/h | Rank |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Casual | 1 | 1,427 | 41% | 0% | 30% | 28% | 1,427 | 6 | 20 | 3 |
-| Casual | 10 | 3,054 | 23% | 46% | 25% | 5% | 24,326 | 9 | 176 | 7 |
-| Casual | 30 | 5,445 | 13% | 69% | 16% | 0% | 116,115 | 13 | 470 | 12 |
-| Regular | 1 | 2,998 | 52% | 0% | 21% | 26% | 2,998 | 6 | 60 | 4 |
-| Regular | 10 | 10,900 | 20% | 60% | 12% | 6% | 73,847 | 11 | 448 | 12 |
-| Regular | 30 | 21,690 | 10% | 78% | 8% | 2% | 407,249 | 18 | 1,095 | 20 |
-| Heavy | 1 | 6,251 | 60% | 0% | 11% | 27% | 6,251 | 7 | 119 | 6 |
-| Heavy | 10 | 28,125 | 22% | 66% | 7% | 4% | 173,834 | 15 | 1,111 | 18 |
-| Heavy | 30 | 67,323 | 10% | 83% | 4% | 1% | 1,170,021 | 27 | 3,132 | 32 |
+| Casual | 1 | 1,586 | 51% | 1% | 23% | 25% | 1,586 | 6 | 30 | 3 |
+| Casual | 10 | 3,211 | 23% | 48% | 21% | 8% | 25,794 | 9 | 211 | 8 |
+| Casual | 30 | 5,437 | 14% | 69% | 14% | 2% | 119,786 | 13 | 483 | 12 |
+| Regular | 1 | 3,661 | 52% | 9% | 17% | 22% | 3,661 | 6 | 59 | 4 |
+| Regular | 10 | 11,756 | 20% | 64% | 12% | 5% | 81,667 | 12 | 493 | 12 |
+| Regular | 30 | 23,356 | 10% | 81% | 8% | 1% | 445,835 | 18 | 1,199 | 20 |
+| Heavy | 1 | 7,905 | 55% | 14% | 9% | 22% | 7,905 | 7 | 137 | 6 |
+| Heavy | 10 | 32,888 | 20% | 70% | 6% | 4% | 208,876 | 16 | 1,295 | 19 |
+| Heavy | 30 | 72,856 | 10% | 85% | 4% | 1% | 1,302,330 | 27 | 3,326 | 32 |
 
-Over the first 30 days a regular player earns 407,249 Pearls: 277,893 from the cove (68%), 66,173 from banking (16%), 48,870 from daily rewards (12%) and 14,312 from one-time rewards (4%). They spend 310,500 on species, 65,250 on 12 slots and 31,499 on decorations.
+Over the first 30 days a regular player earns 445,835 Pearls: 313,419 from the cove (70%), 69,365 from banking (16%), 48,566 from daily rewards (11%) and 14,482 from one-time rewards (3%). They spend 311,000 on species, 65,250 on 12 slots and about 56,836 on decorations, and hold 12,749.
 
 The share from banking falls from about half on day 1 to a tenth on day 30. That is the price ladder at work (section 1.1), and it has one consequence worth stating plainly: **Deep Pockets is worth most in the first two weeks.** Section 8.2 prices it with that in mind.
 

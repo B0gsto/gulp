@@ -276,6 +276,15 @@ for _, band in { "R1", "R2", "R3", GoalRules.ALL_DONE_BAND } do
 	FULL_DAY += Index.RewardBands.byId[band].pearls
 end
 
+type DayRow = {
+	earned: number,
+	rate: number,
+	slots: number,
+	rank: number,
+	balance: number,
+	sources: { [string]: number }, -- cumulative by source
+}
+
 type Player = {
 	rng: Rng.Rng,
 	jitter: number, -- s added to every session start: the player's phase against the tides
@@ -301,7 +310,8 @@ type Player = {
 	unlockDay: { [string]: number },
 	pufferMinute: number?,
 	playedMinutes: number,
-	byDay: { { earned: number, rate: number, slots: number, rank: number } },
+	byDay: { DayRow },
+	slotDay: { [number]: number }, -- day each Pearl slot was bought
 	sources: { [string]: number },
 }
 
@@ -332,6 +342,7 @@ local function newPlayer(rng: Rng.Rng): Player
 		pufferMinute = nil,
 		playedMinutes = 0,
 		byDay = {},
+		slotDay = {},
 		sources = { banking = 0, cove = 0, daily = 0, oneTime = 0 },
 	}
 end
@@ -358,6 +369,7 @@ local function spend(p: Player, day: number)
 			p.pearls -= next.price
 			p.slotSpent += next.price
 			p.slots += 1
+			p.slotDay[p.slots] = day
 			next = Index.SlotPrices.bySlot[p.slots + 1]
 		end
 	end
@@ -523,7 +535,14 @@ local function playDay(p: Player, day: number, profile: Profile)
 			p.codexPaid = codexDue
 		end
 	end
-	p.byDay[day] = { earned = p.earned, rate = p.rate, slots = p.slots, rank = p.rank }
+	p.byDay[day] = {
+		earned = p.earned,
+		rate = p.rate,
+		slots = p.slots,
+		rank = p.rank,
+		balance = p.pearls,
+		sources = table.clone(p.sources),
+	}
 end
 
 ---------------------------------------------------------------------------------------------
@@ -543,11 +562,24 @@ local function mean(values: { number }): number
 	return total / math.max(1, #values)
 end
 
+type CohortDay = {
+	earned: number,
+	rate: number,
+	slots: number,
+	rank: number,
+	pearls: number,
+	balance: number,
+	slotsMedian: number,
+	rankMedian: number,
+	bySource: { [string]: number },
+}
+
 type Cohort = {
 	profile: Profile,
 	unlock: { [string]: { median: number?, p10: number?, p90: number?, reached: number } },
 	pufferMinute: number?,
-	day: { [number]: { earned: number, rate: number, slots: number, rank: number, pearls: number } },
+	day: { [number]: CohortDay },
+	slotMedian: { [number]: number? },
 	sources: { [string]: number },
 	maxRate: number,
 }
@@ -589,10 +621,16 @@ local function runCohort(profile: Profile, index: number): Cohort
 	local day = {}
 	local maxRate = 0
 	for d = 1, DAYS do
-		local earned, rate, slots, rank, pearls = {}, {}, {}, {}, {}
+		local earned, rate, slots, rank, pearls, balance = {}, {}, {}, {}, {}, {}
+		local bySource = { banking = 0, cove = 0, daily = 0, oneTime = 0 }
 		for _, p in players do
 			local row = p.byDay[d]
 			local before = if d > 1 then p.byDay[d - 1].earned else 0
+			table.insert(balance, row.balance)
+			for k in bySource do
+				local prev = if d > 1 then p.byDay[d - 1].sources[k] else 0
+				bySource[k] += (row.sources[k] - prev) / PLAYERS
+			end
 			table.insert(earned, row.earned)
 			table.insert(rate, row.rate)
 			table.insert(slots, row.slots)
@@ -606,6 +644,10 @@ local function runCohort(profile: Profile, index: number): Cohort
 			slots = mean(slots),
 			rank = mean(rank),
 			pearls = mean(pearls),
+			balance = mean(balance),
+			slotsMedian = percentile(slots, 0.5),
+			rankMedian = percentile(rank, 0.5),
+			bySource = bySource,
 		}
 	end
 	local sources = { banking = 0, cove = 0, daily = 0, oneTime = 0 }
@@ -614,8 +656,18 @@ local function runCohort(profile: Profile, index: number): Cohort
 			sources[k] += p.sources[k] / PLAYERS
 		end
 	end
+	local slotMedian: { [number]: number? } = {}
+	for slot = FREE_SLOTS + 1, Index.SlotPrices.list[#Index.SlotPrices.list].slot do
+		local days: { number } = {}
+		for _, p in players do
+			table.insert(days, p.slotDay[slot] or math.huge)
+		end
+		local v = percentile(days, 0.5)
+		slotMedian[slot] = if v == math.huge then nil else v
+	end
 	return {
 		profile = profile,
+		slotMedian = slotMedian,
 		unlock = unlock,
 		pufferMinute = if #minutes > 0 then percentile(minutes, 0.5) else nil,
 		day = day,
@@ -779,6 +831,61 @@ out(
 )
 out(`Cove ceiling (05 §6.2): {fmt(RATE_CEILING)} Pearls/h; highest seen {fmt(regular.maxRate, 1)}`)
 print(table.concat(lines, "\n"))
+
+-- ECONOMY_SIM_TABLES=1 prints 05 §5.4's day tables (means; slots and rank are medians; an
+-- unlock is listed on the median day it happens).
+if process.env.ECONOMY_SIM_TABLES == "1" then
+	-- Display names (canon section 7); SpeciesDef carries no name.
+	local SPECIES_NAME: { [string]: string } = {
+		puffer = "Pufferfish",
+		eel = "Eel",
+		turtle = "Sea Turtle",
+		squid = "Squid",
+		shark = "Shark Pup",
+	}
+	for _, profile in PROFILES do
+		local c = cohorts[profile.name]
+		local t = {
+			`\n**{profile.name}**\n`,
+			"| Day | Banking | Cove | Daily rewards | One-time | Total | Cumulative | Balance | Slots | Cove/h | Rank | Unlocks |",
+			"|---|---|---|---|---|---|---|---|---|---|---|---|",
+		}
+		for d = 1, REPORT_DAYS do
+			local row = c.day[d]
+			local unlocks: { string } = {}
+			for _, s in SPECIES_ORDER do
+				if c.unlock[s.id].median == d then
+					table.insert(unlocks, `**{SPECIES_NAME[s.id]}**`)
+				end
+			end
+			for slot = FREE_SLOTS + 1, Index.SlotPrices.list[#Index.SlotPrices.list].slot do
+				if c.slotMedian[slot] == d then
+					table.insert(unlocks, `Slot {slot}`)
+				end
+			end
+			local b = row.bySource
+			table.insert(
+				t,
+				`| {d} | {fmt(b.banking)} | {fmt(b.cove)} | {fmt(b.daily)} | {fmt(b.oneTime)} | {fmt(
+					row.pearls
+				)} | {fmt(row.earned)} | {fmt(row.balance)} | {row.slotsMedian} | {fmt(row.rate)} | {row.rankMedian} | {table.concat(
+					unlocks,
+					", "
+				)} |`
+			)
+		end
+		print(table.concat(t, "\n"))
+	end
+	print("\nMilestones (median day):")
+	for _, profile in PROFILES do
+		local c = cohorts[profile.name]
+		local parts: { string } = {}
+		for _, slot in { 7, 10, 12, 15, 20, 25, 30 } do
+			table.insert(parts, `slot {slot} {fmt(c.slotMedian[slot])}`)
+		end
+		print(`  {profile.name}: {table.concat(parts, ", ")}`)
+	end
+end
 
 describe("economy.sim (09 §16.2, 05 §5)", function()
 	it("reaches every tier within 25% of canon 5.1's time", function()
