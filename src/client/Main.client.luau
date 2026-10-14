@@ -4,20 +4,15 @@
 -- them. `init` sets up private state and must not yield or call another controller; `start`
 -- connects events and begins loops.
 
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- ClientReady (docs/09, sections 5.3 and 6.3): the server builds and hands over the creature only
--- after it. Persistent models (the collision shell) are not there yet when StarterPlayerScripts
--- start, so wait for `workspace.PersistentLoaded` first (spike F4: 3 to 341 ms). The event has
--- no "already fired" property and can fire before this script runs (seen with the small CI
--- arena), so the wait also ends when the shell itself is present: a Persistent model arrives
--- as one atomic unit (Roblox ModelStreamingMode docs; unverified here). A timeout guards a
--- place with no shell.
-local PERSISTENT_TIMEOUT = 10 -- seconds
-local persistentLoaded = false
-local persistentConnection = workspace.PersistentLoaded:Once(function()
-	persistentLoaded = true
-end)
+-- ClientReady (docs/09, sections 5.3, 6.3 and 6.6): the server builds and hands over the creature
+-- only after it, and the tutorial leaves S0_LOADING on it (04 §3.1). The loading screen
+-- (ReplicatedFirst.Boot.Loading) decides when: it sets its `LoadMode` attribute once the minimum
+-- set of 04 §2.3 is in, collision shell included, or once the slow-load rule of 04 §2.4 starts
+-- anyway. A timeout guards a place without the screen.
+local LOADING_TIMEOUT = 20 -- seconds
 
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -66,21 +61,19 @@ end
 
 do
 	local waitedFrom = os.clock()
-	local function ready(): boolean
-		return persistentLoaded or workspace:FindFirstChild("Collision") ~= nil
+	local boot = ReplicatedFirst:FindFirstChild("Boot")
+	local loading = if boot then boot:FindFirstChild("Loading") else nil
+	local function mode(): unknown
+		return if loading then loading:GetAttribute("LoadMode") else nil
 	end
-	while not ready() and os.clock() - waitedFrom < PERSISTENT_TIMEOUT do
+	while loading and mode() == nil and os.clock() - waitedFrom < LOADING_TIMEOUT do
 		task.wait()
 	end
-	persistentConnection:Disconnect()
-	if ready() then
-		local ms = math.round((os.clock() - waitedFrom) * 1000)
-		Log.info("Client", `ClientReady after {ms} ms (PersistentLoaded: {persistentLoaded})`)
+	local ms = math.round((os.clock() - waitedFrom) * 1000)
+	if mode() ~= nil then
+		Log.info("Client", `ClientReady after {ms} ms (load: {mode()})`)
 	else
-		Log.warn(
-			"Client",
-			`no PersistentLoaded after {PERSISTENT_TIMEOUT} s; sending ClientReady anyway`
-		)
+		Log.warn("Client", `no LoadMode from the loading screen after {ms} ms; ClientReady anyway`)
 	end
 	Client.send("ClientReady")
 end

@@ -94,6 +94,8 @@ One screen, no text other than the logo.
 | Sound | `MUS_Nursery` base layer fades in over 1 s. `SFX_Bite_Small` on each dot. |
 | Exit | When phases C and D are done the screen splits into bubbles (0.4 s) to reveal the egg. The size the 2D Fry reached is discarded. |
 
+The toy's feel **(tune)**: the Fry is 76 rpx long and closes 6/s of the gap to the thumb (at most 900 rpx/s); dots are 14 rpx, drift left at 150 rpx/s with a 16 rpx wave, about one every 0.5 s, at most 12 on screen. Until the art exists every element is drawn in code from flat shapes in the colours of chapter 06. Chapter 08, section 8.1 describes this screen differently (a bar, tips, a slow message at 10 s); chapter 14, section 4, entry 30 records the disagreement. The code follows this section.
+
 ### 2.3 What streams first
 
 | Set | Contents | Needed for | Budget (tune) |

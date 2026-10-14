@@ -6,6 +6,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -29,6 +30,7 @@ local loaded: { Service } = {
 	require(script.Parent.Services.BiteService),
 	require(script.Parent.Services.RunLoopService),
 	require(script.Parent.Services.CoveService),
+	require(script.Parent.Services.TutorialService),
 	require(script.Parent.Services.PlayerLifecycle), -- always last
 }
 
@@ -43,9 +45,9 @@ end
 -- execution run in their own VM, where requiring Tests/RunAll would load fresh copies of every
 -- module instead of the running services. This BindableFunction runs RunAll inside this VM:
 --   return game.ServerScriptService.Server.RunTests:Invoke()
--- Only in development places (dev cheats on) and the CI place; ServerScriptService never
--- replicates, so no client can reach it.
-local environment = Defaults.forGame(game.GameId)
+-- Only in development places (dev cheats on: GULP Dev, and an unlisted GameId in Studio only) and
+-- the CI place; ServerScriptService never replicates, so no client can reach it.
+local environment = Defaults.forGame(game.GameId, RunService:IsStudio())
 if environment.devCheats or environment.name == "ci" then
 	local hook = Instance.new("BindableFunction")
 	hook.Name = "RunTests"
@@ -101,4 +103,15 @@ if environment.devCheats or environment.name == "ci" then
 		return true
 	end
 	liveSet.Parent = script.Parent
+	-- Developer commands (Dev/Cheats; 04 §9 `/ftue reset`), dev cheats only, never CI:
+	-- `DevCommand:Invoke(userId, "/ftue reset")`. TutorialService.reset checks again itself.
+	if environment.devCheats then
+		local Cheats = require(script.Parent.Dev.Cheats)
+		local command = Instance.new("BindableFunction")
+		command.Name = "DevCommand"
+		command.OnInvoke = function(userId: number, text: string): string
+			return Cheats.invoke(userId, text)
+		end
+		command.Parent = script.Parent
+	end
 end
