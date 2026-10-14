@@ -1,0 +1,90 @@
+--!strict
+-- GENERATED, do not edit. Change the source table in the bible, then run
+-- `lune run tools/gen/content` (docs/09, section 3.2).
+-- Source: docs/03-content-catalog.md data:Species; docs/05-economy-and-monetization.md data:SpeciesPrices, data:Passes.
+-- Build: full.
+local Types = require("../../Types")
+
+local Species: { Types.SpeciesDef } = {
+	{
+		id = "minnow",
+		wire = 1,
+		scope = "MVP",
+		unlockPearls = 0,
+		speedMult = 1,
+		turnMult = 1,
+		radiusMult = 1,
+		dashCooldown = 2,
+		dashDurationMult = 1,
+		startTier = 1,
+		ability = "dart",
+	},
+	{
+		id = "puffer",
+		wire = 2,
+		scope = "MVP",
+		unlockPearls = 500,
+		speedMult = 0.88,
+		turnMult = 1.05,
+		radiusMult = 1,
+		dashCooldown = 2.5,
+		dashDurationMult = 1,
+		startTier = 1,
+		ability = "puff",
+	},
+	{
+		id = "eel",
+		wire = 3,
+		scope = "MVP",
+		unlockPearls = 3000,
+		speedMult = 1.06,
+		turnMult = 1.25,
+		radiusMult = 1,
+		dashCooldown = 2.5,
+		dashDurationMult = 1.3,
+		startTier = 1,
+		ability = "slip",
+	},
+	{
+		id = "turtle",
+		wire = 4,
+		scope = "L",
+		unlockPearls = 12000,
+		speedMult = 0.85,
+		turnMult = 0.85,
+		radiusMult = 1,
+		dashCooldown = 3,
+		dashDurationMult = 1,
+		startTier = 1,
+		ability = "shell",
+	},
+	{
+		id = "squid",
+		wire = 5,
+		scope = "L",
+		unlockPearls = 45000,
+		speedMult = 0.96,
+		turnMult = 0.75,
+		radiusMult = 1,
+		dashCooldown = 2.5,
+		dashDurationMult = 1,
+		startTier = 1,
+		ability = "jet",
+	},
+	{
+		id = "shark",
+		wire = 6,
+		scope = "L",
+		unlockPearls = 250000,
+		passId = "pass_shark_pup",
+		speedMult = 1.04,
+		turnMult = 0.9,
+		radiusMult = 1,
+		dashCooldown = 2.5,
+		dashDurationMult = 1,
+		startTier = 2,
+		ability = "rampage",
+	},
+}
+
+return table.freeze(Species)

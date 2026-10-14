@@ -30,14 +30,14 @@ All values are percent of the canon tier table or of the canon dash (2.2× speed
 <!-- data:Species -->
 Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
 
-| ID | Tag | Swim speed | Turn rate | Dash speed | Dash time | Dash cooldown | Mouth size | Start tier | Body at scale 1.0 (L × H × W) |
-|---|---|---|---|---|---|---|---|---|---|
-| `minnow` | [MVP] | 100% | 100% | 2.2× | 0.35 s | 2.0 s (Dart) | 100% | 1 | 3.0 × 1.1 × 0.7 |
-| `puffer` | [MVP] | 88% | 105% | 2.2× | 0.35 s | 2.5 s | 95% | 1 | 2.4 × 2.0 × 2.0 |
-| `eel` | [MVP] | 106% | 125% | 2.2× | 0.455 s (Slip) | 2.5 s | 80% | 1 | 5.0 × 0.8 × 0.6 |
-| `turtle` | [L] | 85% | 85% | 2.0× | 0.35 s | 3.0 s | 105% | 1 | 3.0 × 1.2 × 2.6 |
-| `squid` | [L] | 96% | 75% | 2.6× | 0.35 s | 2.5 s | 90% | 1 | 3.6 × 1.0 × 1.0 |
-| `shark` | [L] | 104% | 90% | 2.2× | 0.35 s | 2.5 s | 120% | 2 (mass 10) | 3.4 × 1.3 × 0.9 |
+| ID | Tag | Swim speed | Turn rate | Dash speed | Dash time | Dash cooldown | Mouth size | Start tier | Body at scale 1.0 (L × H × W) | Collision radius | Ability |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `minnow` | [MVP] | 100% | 100% | 2.2× | 0.35 s | 2.0 s (Dart) | 100% | 1 | 3.0 × 1.1 × 0.7 | 100% **(tune)** | `dart` |
+| `puffer` | [MVP] | 88% | 105% | 2.2× | 0.35 s | 2.5 s | 95% | 1 | 2.4 × 2.0 × 2.0 | 100% **(tune)** | `puff` |
+| `eel` | [MVP] | 106% | 125% | 2.2× | 0.455 s (Slip) | 2.5 s | 80% | 1 | 5.0 × 0.8 × 0.6 | 100% **(tune)** | `slip` |
+| `turtle` | [L] | 85% | 85% | 2.0× | 0.35 s | 3.0 s | 105% | 1 | 3.0 × 1.2 × 2.6 | 100% **(tune)** | `shell` |
+| `squid` | [L] | 96% | 75% | 2.6× | 0.35 s | 2.5 s | 90% | 1 | 3.6 × 1.0 × 1.0 | 100% **(tune)** | `jet` |
+| `shark` | [L] | 104% | 90% | 2.2× | 0.35 s | 2.5 s | 120% | 2 (mass 10) | 3.4 × 1.3 × 0.9 | 100% **(tune)** | `rampage` |
 
 <!-- /data -->
 
@@ -178,20 +178,21 @@ All eight prey are [MVP]. Prey are data on the server and drawn by clients (cano
 <!-- data:Prey -->
 Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`.
 
-| ID | Tag | Tier | Mass | Group size | Flee speed (% of same-tier player) | Flee speed (studs/s) | Turn rate (°/s) | Flee distance (studs) | Flee burst (s) | Respawn (s) |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `plankton` | [MVP] | 0 | 0.2 | Patch of 6 to 10 | 8% (drift only) | 2 | None | Does not flee | None | 4 |
-| `krill` | [MVP] | 1 | 1 | Swarm of 12 to 20 | 55% | 14 | 400 | 10 | 2 | 12 |
-| `shrimp` | [MVP] | 1 | 1.5 | 1 to 3 | 45% (hops) | 12 | Hops in any direction | 8 | 1.5 | 10 |
-| `sardine` | [MVP] | 2 | 4 | School of 8 to 14 | 75% | 21 | 300 | 18 | 3 | 20 |
-| `darter` | [MVP] | 3 | 10 | 1 or 2 | 85% | 25.5 | 480 | 20 | 3 | 25 |
-| `mackerel` | [MVP] | 4 | 25 | 1 to 3 | 95% | 30.4 | 120 | 28 | 4 | 35 |
-| `bonito` | [MVP] | 5 | 60 | Pack of 3 to 5 | 100% | 34 | 110 | 34 | 5 | 50 |
-| `tuna` | [MVP] | 6 | 150 | 1 | 110% | 39.6 | 90 | 50 | 6 | 90 |
+| ID | Tag | Tier | Mass | Group size | Flee speed (% of same-tier player) | Flee speed (studs/s) | Turn rate (°/s) | Flee distance (studs) | Flee burst (s) | Respawn (s) | Zones (section 2.3) | Behaviour (chapter 02, section 9.2) | Radius (studs) | Wobble (studs) | Scatter gain |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `plankton` | [MVP] | 0 | 0.2 | Patch of 6 to 10 | 8% (drift only) | 2 | None | Does not flee | None | 4 | `nursery`, `reef`, `kelp`, `dropoff`, `trench` | `drift` | 0.2 **(tune)** | 0.1 **(tune)** | 0 **(tune)** |
+| `krill` | [MVP] | 1 | 1 | Swarm of 12 to 20 | 55% | 14 | 400 | 10 | 2 | 12 | `nursery`, `reef` | `swarm` | 0.4 **(tune)** | 0.2 **(tune)** | 1 **(tune)** |
+| `shrimp` | [MVP] | 1 | 1.5 | 1 to 3 | 45% (hops) | 12 | Hops in any direction | 8 | 1.5 | 10 | `reef`, `kelp` | `hop` | 0.5 **(tune)** | 0.25 **(tune)** | 0 **(tune)** |
+| `sardine` | [MVP] | 2 | 4 | School of 8 to 14 | 75% | 21 | 300 | 18 | 3 | 20 | `reef`, `kelp` | `school` | 0.8 **(tune)** | 0.4 **(tune)** | 1 **(tune)** |
+| `darter` | [MVP] | 3 | 10 | 1 or 2 | 85% | 25.5 | 480 | 20 | 3 | 25 | `reef`, `kelp` | `solo` | 1.2 **(tune)** | 0.6 **(tune)** | 0 **(tune)** |
+| `mackerel` | [MVP] | 4 | 25 | 1 to 3 | 95% | 30.4 | 120 | 28 | 4 | 35 | `kelp`, `dropoff` | `run` | 1.8 **(tune)** | 0.9 **(tune)** | 0 **(tune)** |
+| `bonito` | [MVP] | 5 | 60 | Pack of 3 to 5 | 100% | 34 | 110 | 34 | 5 | 50 | `dropoff`, `trench` | `pack` | 2.75 **(tune)** | 1.38 **(tune)** | 1 **(tune)** |
+| `tuna` | [MVP] | 6 | 150 | 1 | 110% | 39.6 | 90 | 50 | 6 | 90 | `dropoff`, `trench` | `solo` | 4.25 **(tune)** | 1.5 **(tune)** | 0 **(tune)** |
 
 <!-- /data -->
 
 Notes (all tune):
+- **Radius** is the bite size of one member (chapter 09, section 8.9): half its length in section 2.2. **Wobble** is the most the client may shake a member for looks (chapter 09, section 8.1, at most 1.5 studs). **Scatter gain** is how far a group's formation spreads at full scatter: 1 doubles it, 0 for a group that does not scatter (chapter 09, section 8.1).
 - **Flee distance** is how close a creature that can eat it must come before it flees.
 - **Cruise speed** when calm is 40% of flee speed.
 - After a flee burst, prey is **tired** for 2 s and moves at cruise speed. This is the catch window for prey that is as fast as the player.
@@ -249,21 +250,21 @@ Mass for trait prey is not in canon; chapter 05, section 2.1 sets it (the same a
 <!-- data:TraitPrey -->
 Soft-launch slice (chapter 13, section 3.2): `glowfry`, `zebra_darter`, `dotted_goby`, `armor_shrimp`, `urchin_puff`.
 
-| ID | Tag | Tier | Mass | Gives | Rarity | Alive per server | Respawn (s) | Flee speed | Flee distance (studs) |
-|---|---|---|---|---|---|---|---|---|---|
-| `glowfry` | [MVP] | 1 | 1 | Glow | Common | 10 (6 Reef, 4 Kelp) | 30 | 60% | 10 |
-| `zebra_darter` | [MVP] | 2 | 4 | Stripes | Common | 8 | 30 | 85% | 18 |
-| `dotted_goby` | [MVP] | 1 | 1 | Spots | Common | 10 | 25 | 45% | 8 |
-| `armor_shrimp` | [MVP] | 2 | 4 | Plated | Uncommon | 6 | 60 | 40% | 8 |
-| `urchin_puff` | [MVP] | 2 | 4 | Spiny | Uncommon | 6 | 60 | 20% | 5 |
-| `ribbonfish` | [MVP] | 3 | 10 | Longfin | Uncommon | 6 | 60 | 80% | 22 |
-| `inklet` | [MVP] | 3 | 10 | Ink | Rare | 5 | 120 | 90% | 20 |
-| `spark_eel` | [L] | 4 | 25 | Spark | Rare | 5 | 120 | 95% | 24 |
-| `leaf_drifter` | [L] | 3 | 10 | Camo | Rare | 5 | 120 | 50% | 6 |
-| `crystal_jelly` | [MVP] | 3 | 10 | Crystal | Epic | 5 (one drift of five) | A new drift every 300, counted from when the last one appeared; jellies not eaten leave 240 after their drift appeared | 6 studs/s drift | Does not flee |
-| `vent_snail` | [L] | 4 | 25 | Ember | Epic | 4 | 180 | 10% (crawls) | Does not flee |
-| `lunar_fry` | [MVP] | 2 | 4 | Moonlit | Mythic | 12 (4 per moonbeam); 40 in total per event | Event only | 70% | 16 |
-| `marrow` | [L] | 3 | 40 | Bonefed | Mythic | 60 in total per event | Event only | 3 studs/s drift | Does not flee |
+| ID | Tag | Tier | Mass | Gives | Rarity | Alive per server | Respawn (s) | Flee speed | Flee distance (studs) | Zones (section 3.2) | Behaviour (chapter 02, section 9.3) | Group size | Radius (studs) | Wobble (studs) | Scatter gain |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `glowfry` | [MVP] | 1 | 1 | Glow | Common | 10 (6 Reef, 4 Kelp) | 30 | 60% | 10 | `reef`, `kelp` | `solo` | 1 **(tune)** | 0.45 **(tune)** | 0.23 **(tune)** | 0 **(tune)** |
+| `zebra_darter` | [MVP] | 2 | 4 | Stripes | Common | 8 | 30 | 85% | 18 | `reef` | `solo` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
+| `dotted_goby` | [MVP] | 1 | 1 | Spots | Common | 10 | 25 | 45% | 8 | `reef` | `hop` | 1 **(tune)** | 0.55 **(tune)** | 0.28 **(tune)** | 0 **(tune)** |
+| `armor_shrimp` | [MVP] | 2 | 4 | Plated | Uncommon | 6 | 60 | 40% | 8 | `kelp` | `hop` | 1 **(tune)** | 0.8 **(tune)** | 0.4 **(tune)** | 0 **(tune)** |
+| `urchin_puff` | [MVP] | 2 | 4 | Spiny | Uncommon | 6 | 60 | 20% | 5 | `reef` | `drift` | 1 **(tune)** | 0.7 **(tune)** | 0.35 **(tune)** | 0 **(tune)** |
+| `ribbonfish` | [MVP] | 3 | 10 | Longfin | Uncommon | 6 | 60 | 80% | 22 | `kelp` | `run` | 1 **(tune)** | 1.6 **(tune)** | 0.8 **(tune)** | 0 **(tune)** |
+| `inklet` | [MVP] | 3 | 10 | Ink | Rare | 5 | 120 | 90% | 20 | `dropoff` | `solo` | 1 **(tune)** | 1.1 **(tune)** | 0.55 **(tune)** | 0 **(tune)** |
+| `spark_eel` | [L] | 4 | 25 | Spark | Rare | 5 | 120 | 95% | 24 | `dropoff` | `solo` | 1 **(tune)** | 2 **(tune)** | 1 **(tune)** | 0 **(tune)** |
+| `leaf_drifter` | [L] | 3 | 10 | Camo | Rare | 5 | 120 | 50% | 6 | `kelp` | `drift` | 1 **(tune)** | 1.3 **(tune)** | 0.65 **(tune)** | 0 **(tune)** |
+| `crystal_jelly` | [MVP] | 3 | 10 | Crystal | Epic | 5 (one drift of five) | A new drift every 300, counted from when the last one appeared; jellies not eaten leave 240 after their drift appeared | 6 studs/s drift | Does not flee | `reef`, `kelp`, `dropoff` | `drift` | 5 | 1.4 **(tune)** | 0.7 **(tune)** | 0 **(tune)** |
+| `vent_snail` | [L] | 4 | 25 | Ember | Epic | 4 | 180 | 10% (crawls) | Does not flee | `dropoff` | `hop` | 1 **(tune)** | 1.2 **(tune)** | 0.6 **(tune)** | 0 **(tune)** |
+| `lunar_fry` | [MVP] | 2 | 4 | Moonlit | Mythic | 12 (4 per moonbeam); 40 in total per event | Event only | 70% | 16 | `reef`, `kelp`, `dropoff` | `school` | 4 | 0.75 **(tune)** | 0.38 **(tune)** | 1 **(tune)** |
+| `marrow` | [L] | 3 | 40 | Bonefed | Mythic | 60 in total per event | Event only | 3 studs/s drift | Does not flee | `dropoff` | `drift` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
 
 <!-- /data -->
 
@@ -356,20 +357,22 @@ All numbers beyond the canon behaviour line are (tune). "Detect" is how close a 
 <!-- data:Predators -->
 Soft-launch slice (chapter 13, section 3.2): `barracuda`, `jelly_bloom`, `current`.
 
-| ID | Tag | Name | Tier · eats | Zones | Count per server | Cruise / attack speed (studs/s) | Detect (studs) | Attack | Rest after attack (s) |
-|---|---|---|---|---|---|---|---|---|---|
-| `gull` | [MVP] | Gull | Eats tiers 1 to 2 | Sunlit Reef, surface only | Up to 3 dives at once | Dive 90 | A tier 1 or 2 creature within 6 studs of the surface for 2 s | Dives to depth 12; catch radius 5 | 8 |
-| `moray` | [MVP] | Moray | 4 · eats tier 3 and lower | Kelp Forest, in 8 holes | 8 (one per hole) | Lunge 70 | 14 from the hole | Lunges 18 studs out, pulls back in 1.2 s | 6 |
-| `barracuda` | [MVP] | Barracuda | 4 · eats tier 3 and lower | Reef (east half), Kelp | 3 (1 Reef, 2 Kelp) | 18 / 36 | 45 | Straight-line chase for 6 s, turn rate 80°/s | 5 |
-| `grouper` | [L] | Grouper | 5 · eats tier 4 and lower | The Drop-off | 4 (6 during Whale Fall) | 12 / 12 | 32 | Suction cone 32 long, 60° wide, pulls at 22 studs/s for 2.5 s | 6 |
-| `old_scar` | [MVP] | Old Scar | 7 · eats tier 6 and lower | The Drop-off, depth 110 and below | 1 | 22 / 40 | 90 | Chase for 8 s, turn rate 70°/s | 10 |
-| `jelly_bloom` | [MVP] | Jelly bloom | Hazard | Kelp, Drop-off | 6 blooms (4 Kelp, 2 Drop-off), 8 to 12 jellies each | Drifts at 3 | Touch | Stun 1.5 s, then 3 s of sting immunity | None |
-| `anemone` | [L] | Anemone | Hazard | Sunlit Reef | 24 | Fixed | Touch, radius 5 | Slow by 50% for 2 s | None |
-| `vent` | [L] | Thermal vent | Hazard | The Drop-off (the Chimneys) | 9 (3 always on, 6 cycling; rule below) | Fixed | Creature's centre inside the column: 10 wide (radius 5), 40 tall, rising from the chimney top | Burns 5% of current mass per second | None |
-| `hook` | [MVP] | Fishing hook | Hazard | Sunlit Reef, depth 8 to 20 | 8 | Fixed | Eating the bait | Yanked 30 studs up and out of the water; lose 20% of mass | Bait returns after 45 |
-| `current` | [MVP] | Current | Helper | Between zones | 6 named currents (section 6.8) | +60% speed for riders | Entering the stream | Carries creatures along its path | None |
+| ID | Tag | Name | Tier · eats | Zones | Count per server | Cruise / attack speed (studs/s) | Detect (studs) | Attack | Rest after attack (s) | Strike radius (studs) | Telegraph (s) | Give up after (s) | Mass when eaten | Effect | Magnitude | Effect time (s) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `gull` | [MVP] | Gull | Acts as tier 3 · eats tiers 1 to 2 | Sunlit Reef, surface only | Up to 3 dives at once | Dive 90 | A tier 1 or 2 creature within 6 studs of the surface for 2 s | Dives to depth 12; catch radius 5 | 8 | 5 | 1.5 | 0 | None | None | None | None |
+| `moray` | [MVP] | Moray | 4 · eats tier 3 and lower | Kelp Forest, in 8 holes | 8 (one per hole) | Lunge 70 | 14 from the hole | Lunges 18 studs out, pulls back in 1.2 s | 6 | 2.76 | 0.6 | 1.2 | None | None | None | None |
+| `barracuda` | [MVP] | Barracuda | 4 · eats tier 3 and lower | Reef (east half), Kelp | 3 (1 Reef, 2 Kelp) | 18 / 36 | 45 | Straight-line chase for 6 s, turn rate 80°/s | 5 | 2.76 **(tune)** | 0.8 | 6 | 25 | None | None | None |
+| `grouper` | [L] | Grouper | 5 · eats tier 4 and lower | The Drop-off | 4 (6 during Whale Fall) | 12 / 12 | 32 | Suction cone 32 long, 60° wide, pulls at 22 studs/s for 2.5 s | 6 | 3.84 | 1 | 2.5 | 60 | None | None | None |
+| `old_scar` | [MVP] | Old Scar | 7 · eats tier 6 and lower | The Drop-off, depth 110 and below | 1 | 22 / 40 | 90 | Chase for 8 s, turn rate 70°/s | 10 | 7.8 | 1 | 8 | None | None | None | None |
+| `jelly_bloom` | [MVP] | Jelly bloom | Hazard | Kelp, Drop-off | 6 blooms (4 Kelp, 2 Drop-off), 8 to 12 jellies each | Drifts at 3 | Touch | Stun 1.5 s, then 3 s of sting immunity | None | None | None | None | None | `stun` | 1 | 1.5 |
+| `anemone` | [L] | Anemone | Hazard | Sunlit Reef | 24 | Fixed | Touch, radius 5 | Slow by 50% for 2 s | None | None | None | None | None | `slow` | 0.5 | 2 |
+| `vent` | [L] | Thermal vent | Hazard | The Drop-off (the Chimneys) | 9 (3 always on, 6 cycling; rule below) | Fixed | Creature's centre inside the column: 10 wide (radius 5), 40 tall, rising from the chimney top | Burns 5% of current mass per second | None | None | None | None | None | `burn` | 0.05 | 0 |
+| `hook` | [MVP] | Fishing hook | Hazard | Sunlit Reef, depth 8 to 20 | 8 | Fixed | Eating the bait | Yanked 30 studs up and out of the water; lose 20% of mass | Bait returns after 45 | None | None | None | None | `yank` | 0.2 | 0.6 |
+| `current` | [MVP] | Current | Helper | Between zones | 6 named currents (section 6.8) | +60% speed for riders | Entering the stream | Carries creatures along its path | None | None | None | None | None | `push` | 0.6 | 0 |
 
 <!-- /data -->
+
+The last seven columns are copies, for the content data (chapter 09, section 3.2). **Strike radius**, **Telegraph** and **Give up after** come from chapter 02, section 9.4: the catch radius or mouth radius, the warning state (Shadow, WindUp, Telegraph, Inhale, Stalk) and how long the attack lasts. The Barracuda's strike radius is the mouth radius of its tier (1.2 × 2.3, chapter 02, section 0.2) **(tune)**. **Mass when eaten** is canon 5.2. For hazards, **Magnitude** is the stun (1 = no movement), the speed multiplier while slowed, the share of mass burned per second, the share of mass lost to the hook, or the speed added by a current; **Effect time** is how long it lasts after contact, 0 while inside it (chapter 02, section 10).
 
 **Thermal vent rule (tune).** This chapter owns it; chapter 02, section 10.3 copies it and adds only how the burn is ticked and the upward push.
 
@@ -898,16 +901,16 @@ Pearl amounts are chapter 05's (section 3.8) and are paid once per account. The 
 <!-- data:Codex -->
 Soft-launch slice (chapter 13, section 3.2): `cdx_species`, `cdx_tiers`, `cdx_traits`, `cdx_prey`.
 
-| ID | Category | Tag | Entries at MVP | Entries at launch | How an entry is filled | Pearls per entry (chapter 05) | Reward for completing the category |
-|---|---|---|---|---|---|---|---|
-| `cdx_species` | Species | [MVP] | 3 | 6 | Start a run as the species | None | Family Portrait decoration + Pearls R3 (175) |
-| `cdx_tiers` | Tiers | [MVP] | 21 | 42 | Reach the tier in a run as that species (no banking needed) | Tiers 2 to 7: 25 / 50 / 100 / 200 / 400 / 800 | Per species page (7 tiers): 500 Pearls + that species' Codex pattern (section 1.3). All pages: title "Leviathan Maker" + Pearls R5 (5,000) |
-| `cdx_traits` | Traits | [MVP] | 9 | 13 | Gain the trait in a run | Common 100, Uncommon 200, Rare 400, Epic 800, Mythic 1,500 | Trait Totem decoration + Pearls R4 (2,500) |
-| `cdx_prey` | Prey | [MVP] | 17 | 21 | Eat one | Ordinary prey 20, trait prey 30 | Prey Mobile decoration + Pearls R3 (175) |
-| `cdx_dangers` | Dangers | [L] | None | 9 | Come within 30 studs of it, or get caught by it | None | Danger Board decoration + Pearls R3 (175) |
-| `cdx_places` | Places | [L] | None | 30 | Swim within 40 studs of the landmark (entry key: its `lm_*` ID) | None | Sea Globe decoration + Pearls R3 (175) |
-| `cdx_tides` | Tides | [L] | None | 3 | Eat 10 prey during the event | None | Tide Chart decoration + Pearls R2 (125) |
-| `cdx_all` | Whole Codex | [L] | 50 | 124 | Complete every category above | None | Badge "Know-It-All" + title "Reef Scholar" + Pearls R5 (5,000) |
+| ID | Category | Tag | Entries at MVP | Entries at launch | How an entry is filled | Pearls per entry (chapter 05) | Reward for completing the category | Reward decoration (section 13) |
+|---|---|---|---|---|---|---|---|---|
+| `cdx_species` | Species | [MVP] | 3 | 6 | Start a run as the species | None | Family Portrait decoration + Pearls R3 (175) | `deco_cdx_family_portrait` |
+| `cdx_tiers` | Tiers | [MVP] | 21 | 42 | Reach the tier in a run as that species (no banking needed) | Tiers 2 to 7: 25 / 50 / 100 / 200 / 400 / 800 | Per species page (7 tiers): 500 Pearls + that species' Codex pattern (section 1.3). All pages: title "Leviathan Maker" + Pearls R5 (5,000) | None |
+| `cdx_traits` | Traits | [MVP] | 9 | 13 | Gain the trait in a run | Common 100, Uncommon 200, Rare 400, Epic 800, Mythic 1,500 | Trait Totem decoration + Pearls R4 (2,500) | `deco_cdx_trait_totem` |
+| `cdx_prey` | Prey | [MVP] | 17 | 21 | Eat one | Ordinary prey 20, trait prey 30 | Prey Mobile decoration + Pearls R3 (175) | `deco_cdx_prey_mobile` |
+| `cdx_dangers` | Dangers | [L] | None | 9 | Come within 30 studs of it, or get caught by it | None | Danger Board decoration + Pearls R3 (175) | `deco_cdx_danger_board` |
+| `cdx_places` | Places | [L] | None | 30 | Swim within 40 studs of the landmark (entry key: its `lm_*` ID) | None | Sea Globe decoration + Pearls R3 (175) | `deco_cdx_sea_globe` |
+| `cdx_tides` | Tides | [L] | None | 3 | Eat 10 prey during the event | None | Tide Chart decoration + Pearls R2 (125) | `deco_cdx_tide_chart` |
+| `cdx_all` | Whole Codex | [L] | 50 | 124 | Complete every category above | None | Badge "Know-It-All" + title "Reef Scholar" + Pearls R5 (5,000) | None |
 
 <!-- /data -->
 
