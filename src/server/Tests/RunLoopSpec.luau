@@ -5,10 +5,15 @@
 -- coming back, a gulp with its `Phase` transitions, no respawn before "Swim again" (`RunAction`
 -- op 1), the tap refused before the gulp card is up, the respawn within 0.8 s of the tap, and
 -- the tier change events on growth and on loss. It ends with the creature at its cove, released to its owner.
+-- Banking (task S5-C3; 09 §13.4, 12.5): a tier 2 bank pays mass × 3 Pearls and keeps one
+-- specimen, a tier 1 bank pays Pearls only, a full cove keeps the new one as `pendingSpecimen`,
+-- and an expired saved run is settled at join (scraps or the full bank, no specimen). The store is
+-- ProfileStore.Mock in Studio, so the profile changes here are never saved.
 -- With no player (CI) it registers one note. The pure rules are tests/unit/Logic/RunRules.spec.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BankMath = require(ReplicatedStorage.Shared.Logic.BankMath)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local RunRules = require(ReplicatedStorage.Shared.Logic.RunRules)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
@@ -16,6 +21,7 @@ local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
 local CreatureService = require("../Services/CreatureService")
 local DataService = require("../Services/DataService")
+local EconomyService = require("../Services/EconomyService")
 local PlayerLifecycle = require("../Services/PlayerLifecycle")
 local RunLoopService = require("../Services/RunLoopService")
 
@@ -235,6 +241,187 @@ return function()
 			end)
 			watch:Disconnect()
 			assert(ok, problem)
+		end)
+
+		-- Banks a run at `mass` from open water into the own cove mouth; returns the Pearls paid,
+		-- the specimen and pending counts before and after, or nil on a map with no own cove.
+		local function bankAt(mass: number): RunLoopService.Banked?
+			local slot, state = slotAndState()
+			local run = assert(RunLoopService._test.run(slot))
+			if run.phase == "dead" then
+				expect(waitFor(function()
+					return run.phase ~= "dead"
+				end)).toBe(true)
+			end
+			local cove = RunLoopService._test.coveVolumes(slot)
+			if #cove == 0 then
+				return nil
+			end
+			local mouthAt: Vector3? = nil
+			for _, v in cove do
+				if v.kind == "CoveMouth" then
+					mouthAt = Vector3.new(VolumeMath.centre(v))
+				end
+			end
+			local inMouth = mouthAt or Vector3.new(VolumeMath.centre(cove[1]))
+			goTo(slot, outside(slot, inMouth))
+			if run.phase == "cove" then
+				goTo(slot, outside(slot, inMouth)) -- left its Nursery or cove: a run
+			end
+			expect(run.phase).toBe("run")
+			CreatureService.addMass(slot, mass - state.mass)
+			goTo(slot, inMouth)
+			expect(run.phase).toBe("cove")
+			expect(player:GetAttribute("Phase")).toBe("cove")
+			expect(run.home).toBe("cove") -- every later run starts at the cove
+			return RunLoopService._test.lastBanked()
+		end
+
+		it("banks a tier 2 Minnow: mass × 3 Pearls and one specimen (Sprint 5)", function()
+			local profile = assert(DataService.get(player))
+			if #profile.cove.specimens >= profile.cove.slots or profile.cove.pendingSpecimen then
+				return -- a full cove: the pending case below covers it
+			end
+			local pearls, specimens, banks =
+				profile.pearls, #profile.cove.specimens, profile.stats.banks
+			local deep = profile.passes.pass_deep_pockets == true
+			local banked = bankAt(12)
+			if banked == nil then
+				return
+			end
+			expect(banked.tier).toBe(2)
+			expect(banked.pearls).toBe(BankMath.bank(12, false, deep))
+			if not deep then
+				expect(banked.pearls).toBe(12 * 3)
+			end
+			profile = assert(DataService.get(player))
+			expect(EconomyService.balance(player) - pearls).toBe(banked.pearls)
+			expect(#profile.cove.specimens).toBe(specimens + 1)
+			expect(banked.specimen).toBe("added")
+			local rec = profile.cove.specimens[#profile.cove.specimens]
+			expect(rec.sp).toBe(assert(CreatureService.get(banked.slot)).species)
+			expect(rec.tier).toBe(2)
+			expect(rec.mass).toBe(12)
+			expect(profile.stats.banks).toBe(banks + 1)
+			expect(profile.run).toBe(nil)
+			-- The new Fry: back to the species' start mass at the cove spawn.
+			local state = assert(CreatureService.get(banked.slot))
+			local start = Index.Tiers.byTier[Index.Species.byId[state.species].startTier].massNeeded
+			expect(state.mass).toBe(start)
+			local sent = assert(RunLoopService._test.lastSent())
+			-- The tier fall to the Fry follows the "banked" event.
+			expect(sent[1] == "tier" or sent[1] == "banked").toBe(true)
+		end)
+
+		it("banks a tier 1 run for Pearls only", function()
+			local profile = assert(DataService.get(player))
+			local pearls, specimens = profile.pearls, #profile.cove.specimens
+			local banked = bankAt(5)
+			if banked == nil then
+				return
+			end
+			expect(banked.tier).toBe(1)
+			expect(banked.pearls).toBe(BankMath.bank(5, false, banked.deepPockets))
+			expect(banked.specimen).toBe("none")
+			profile = assert(DataService.get(player))
+			expect(EconomyService.balance(player) - pearls).toBe(banked.pearls)
+			expect(#profile.cove.specimens).toBe(specimens)
+		end)
+
+		it("keeps the new specimen as pendingSpecimen when the cove is full (02 §11.5)", function()
+			local profile = assert(DataService.get(player))
+			local saved = table.clone(profile.cove)
+			saved.specimens = table.clone(profile.cove.specimens)
+			local full = table.clone(profile.cove.specimens)
+			while #full < profile.cove.slots do
+				table.insert(full, {
+					id = `spec{#full}`,
+					sp = "minnow",
+					tier = 2,
+					mass = 10,
+					traits = {},
+					at = os.time(),
+				})
+			end
+			DataService.patch(player, "cove.specimens", full)
+			local ok: boolean, problem: any = pcall(function(): ()
+				local banked = bankAt(15)
+				if banked == nil then
+					return
+				end
+				expect(banked.specimen).toBe("full")
+				local now = assert(DataService.get(player))
+				expect(#now.cove.specimens).toBe(#full)
+				local pending = assert(now.cove.pendingSpecimen, "no pendingSpecimen")
+				expect(pending.tier).toBe(2)
+				expect(pending.mass).toBe(15)
+			end)
+			DataService.patch(player, "cove", saved) -- the cove as it was
+			assert(ok, problem)
+		end)
+
+		it("settles an expired saved run at join: scraps or the full bank, no specimen", function()
+			local profile = assert(DataService.get(player))
+			local specimens = #profile.cove.specimens
+			local function saveRun(fields: { [string]: any })
+				local run: { [string]: any } = {
+					sp = "minnow",
+					mass = 40,
+					tier = 3,
+					traits = {},
+					progress = {},
+					startedAt = os.time() - 600,
+					runSeconds = 300,
+					platedUsed = false,
+					reviveUsed = false,
+					untrusted = false,
+					x = 0,
+					y = -30,
+					z = 0,
+					feedGuard = {},
+				}
+				for k, v in fields do
+					run[k] = v
+				end
+				expect(DataService.patch(player, "run", run)).toBe(true)
+			end
+			local deep = profile.passes.pass_deep_pockets == true
+			-- A disconnect that expired: scraps.
+			local pearls, done = profile.pearls, profile.newcomer.runsCompleted
+			local deaths = profile.stats.deaths
+			saveRun({
+				suspendedAt = os.time() - 400,
+				expiresAt = os.time() - 100,
+				onExpiry = "scraps",
+			})
+			expect(RunLoopService.settleExpired(player)).toBe(true)
+			profile = assert(DataService.get(player))
+			expect(profile.pearls - pearls).toBe(BankMath.scraps(40, false, deep, deaths))
+			expect(profile.run).toBe(nil)
+			expect(profile.newcomer.runsCompleted).toBe(done + 1)
+			-- A shutdown that expired: the full bank in Pearls.
+			pearls = profile.pearls
+			saveRun({
+				suspendedAt = os.time() - 1000,
+				expiresAt = os.time() - 100,
+				onExpiry = "bank_pearls",
+			})
+			expect(RunLoopService.settleExpired(player)).toBe(true)
+			profile = assert(DataService.get(player))
+			expect(profile.pearls - pearls).toBe(BankMath.bank(40, false, deep))
+			-- Still inside its window: left for resume (S12-C4); nothing paid.
+			pearls = profile.pearls
+			saveRun({
+				suspendedAt = os.time() - 10,
+				expiresAt = os.time() + 290,
+				onExpiry = "scraps",
+			})
+			expect(RunLoopService.settleExpired(player)).toBe(false)
+			profile = assert(DataService.get(player))
+			expect(profile.pearls).toBe(pearls)
+			expect(profile.run ~= nil).toBe(true)
+			DataService.patch(player, "run", nil)
+			expect(#assert(DataService.get(player)).cove.specimens).toBe(specimens) -- no specimen
 		end)
 	end)
 end

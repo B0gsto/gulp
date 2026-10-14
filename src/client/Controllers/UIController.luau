@@ -7,8 +7,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 
+local BankMath = require(ReplicatedStorage.Shared.Logic.BankMath)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 local WorldInfo = require(ReplicatedStorage.Shared.Net.Codec.WorldInfo)
@@ -63,6 +65,43 @@ end
 local function attrNumber(name: string): number?
 	local value = player:GetAttribute(name)
 	return if type(value) == "number" then value else nil
+end
+
+-- `CreatureEvent` "banked" (RunLoopService, task S5-C3): slot, mass, pearls, crystal,
+-- deepPockets, best, specimen. The owner's bank opens S12 with what the server paid; the bank
+-- sequence around it is S7-C3's.
+local function onCreatureEvent(
+	kind: unknown,
+	slot: unknown,
+	mass: unknown,
+	pearls: unknown,
+	crystal: unknown,
+	deep: unknown,
+	best: unknown
+)
+	if kind ~= "banked" or slot ~= player:GetAttribute("Slot") then
+		return
+	end
+	if type(mass) ~= "number" or type(pearls) ~= "number" then
+		return
+	end
+	local rows: { BankSummary.Row } = {}
+	if crystal == true then
+		table.insert(
+			rows,
+			{ nameKey = "trait.crystal", value = TraitRules.CRYSTAL_BANK, icon = "trait" }
+		)
+	end
+	if deep == true then
+		table.insert(
+			rows,
+			{ nameKey = "pass.deep_pockets", value = BankMath.DEEP_POCKETS, icon = "pass" }
+		)
+	end
+	UIController.open(
+		"S12",
+		{ mass = mass, multipliers = rows, total = pearls, best = best == true }
+	)
 end
 
 --- Opens a screen. S11 takes no data at stage 1; S12 takes `BankSummary.Data`.
@@ -129,6 +168,7 @@ function UIController.start()
 	end)
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
+	Client.on("CreatureEvent", onCreatureEvent)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)
 		local info, reason = WorldInfo.decode(netVersion, epoch, list)
 		if info == nil then
