@@ -168,6 +168,11 @@ local STREAK = { 100, 100, 150, 150, 200, 300, 500 } -- 05 §3.6 [L], × rank mu
 local TIDE_BONUS = 40 -- 05 §3.9 [L], × rank multiplier
 local SLOT_SHARE, DECO_SHARE, DECO_FROM = 0.20, 0.05, 5 -- 05 §5.2 assumption 7
 local SLOT_SHARE_AFTER, DECO_SHARE_AFTER = 0.70, 0.30 -- after the Shark Pup
+local DECO_TOTAL = 1228000 -- 05 §4.3: every Pearl decoration at launch
+
+-- The income passes of 05 §8.2, for the report runs (CI runs with none).
+export type Passes = { deepPockets: boolean?, biggerCove: boolean?, tideWatcher: boolean? }
+local BIGGER_COVE_SLOTS = 10 -- 05 §8.2: +10 slots on top of the Pearl slots
 
 ---------------------------------------------------------------------------------------------
 -- Growth inside a run.
@@ -271,6 +276,14 @@ table.sort(SPECIES_ORDER, function(a, b)
 	return a.price < b.price
 end)
 local FREE_SLOTS = Index.SlotPrices.list[1].slot - 1
+-- Everything a Pearl can buy at launch (05 §4.4): species, Pearl slots, Pearl decorations.
+local CATALOGUE = DECO_TOTAL
+for _, def in SPECIES_ORDER do
+	CATALOGUE += def.price
+end
+for _, def in Index.SlotPrices.list do
+	CATALOGUE += def.price
+end
 local FULL_DAY = 0
 for _, band in { "R1", "R2", "R3", GoalRules.ALL_DONE_BAND } do
 	FULL_DAY += Index.RewardBands.byId[band].pearls
@@ -283,9 +296,11 @@ type DayRow = {
 	rank: number,
 	balance: number,
 	sources: { [string]: number }, -- cumulative by source
+	owned: number, -- species owned, the Minnow included
 }
 
 type Player = {
+	passes: Passes,
 	rng: Rng.Rng,
 	jitter: number, -- s added to every session start: the player's phase against the tides
 	pearls: number,
@@ -315,8 +330,9 @@ type Player = {
 	sources: { [string]: number },
 }
 
-local function newPlayer(rng: Rng.Rng): Player
+local function newPlayer(rng: Rng.Rng, passes: Passes): Player
 	return {
+		passes = passes,
 		rng = rng,
 		jitter = Rng.int(rng, 0, 59) * 60,
 		pearls = 0,
@@ -347,6 +363,10 @@ local function newPlayer(rng: Rng.Rng): Player
 	}
 end
 
+local function capacity(p: Player): number
+	return p.slots + (if p.passes.biggerCove then BIGGER_COVE_SLOTS else 0)
+end
+
 local function spend(p: Player, day: number)
 	while p.nextSpecies <= #SPECIES_ORDER and p.pearls >= SPECIES_ORDER[p.nextSpecies].price do
 		local s = SPECIES_ORDER[p.nextSpecies]
@@ -359,7 +379,7 @@ local function spend(p: Player, day: number)
 	end
 	local afterShark = p.unlockDay.shark ~= nil
 	local slotShare = if afterShark then SLOT_SHARE_AFTER else SLOT_SHARE
-	if p.unlockDay.puffer ~= nil and #p.specimens >= p.slots then
+	if p.unlockDay.puffer ~= nil and #p.specimens >= capacity(p) then
 		local next = Index.SlotPrices.bySlot[p.slots + 1]
 		while
 			next ~= nil
@@ -377,7 +397,7 @@ local function spend(p: Player, day: number)
 		then DECO_SHARE_AFTER
 		elseif day >= DECO_FROM then DECO_SHARE
 		else 0
-	local deco = math.min(p.pearls, decoShare * p.earned - p.decoSpent)
+	local deco = math.min(p.pearls, decoShare * p.earned - p.decoSpent, DECO_TOTAL - p.decoSpent)
 	if deco > 0 and p.nextSpecies > 1 then
 		p.pearls -= deco
 		p.decoSpent += deco
@@ -411,7 +431,7 @@ local function accrue(p: Player, now: number)
 		now,
 		p.rate,
 		p.lastClaimAt,
-		CoveIncome.capHours(false)
+		CoveIncome.capHours(p.passes.tideWatcher == true)
 	)
 end
 
@@ -419,7 +439,7 @@ local function placeSpecimen(p: Player, now: number, tier: number, bonus: number
 	accrue(p, now) -- the old rate up to now (09 §13.2)
 	local rate = CoveIncome.specimenRate(tier, {}) * (1 + bonus)
 	table.insert(p.specimens, rate)
-	if #p.specimens > p.slots then
+	if #p.specimens > capacity(p) then
 		-- 05 §5.2 assumption 5: keep the best, release the worst for the refund.
 		table.sort(p.specimens, function(a, b)
 			return a > b
@@ -509,7 +529,7 @@ local function playDay(p: Player, day: number, profile: Profile)
 				seconds, mass = length, rt.mass
 				now += seconds
 				addBanked(p, BankMath.bankRankPoints(mass, false), day)
-				pay(p, BankMath.bank(mass, false, false), "banking", day)
+				pay(p, BankMath.bank(mass, false, p.passes.deepPockets == true), "banking", day)
 				local tier = TierMath.tier(mass)
 				if BankMath.keepsSpecimen(tier) then
 					placeSpecimen(p, now, tier, rt.bonus, day)
@@ -518,7 +538,7 @@ local function playDay(p: Player, day: number, profile: Profile)
 				seconds = length * GULPED_AT
 				mass = massAt(now, seconds)
 				now += seconds
-				local scraps = BankMath.scraps(mass, false, false, p.deaths)
+				local scraps = BankMath.scraps(mass, false, p.passes.deepPockets == true, p.deaths)
 				addBanked(p, BankMath.scrapsRankPoints(mass, false, p.deaths), day)
 				p.deaths += 1
 				pay(p, scraps, "banking", day)
@@ -542,6 +562,7 @@ local function playDay(p: Player, day: number, profile: Profile)
 		rank = p.rank,
 		balance = p.pearls,
 		sources = table.clone(p.sources),
+		owned = p.nextSpecies,
 	}
 end
 
@@ -572,6 +593,7 @@ type CohortDay = {
 	slotsMedian: number,
 	rankMedian: number,
 	bySource: { [string]: number },
+	ownedMedian: number,
 }
 
 type Cohort = {
@@ -580,17 +602,20 @@ type Cohort = {
 	pufferMinute: number?,
 	day: { [number]: CohortDay },
 	slotMedian: { [number]: number? },
+	catalogueDay: number?,
+	rank50Day: number?,
 	sources: { [string]: number },
 	maxRate: number,
 }
 
-local function runCohort(profile: Profile, index: number): Cohort
+local function runCohort(profile: Profile, index: number, days: number?, passes: Passes?): Cohort
+	local lastDay = days or DAYS
 	local players: { Player } = {}
 	for i = 1, PLAYERS do
-		players[i] = newPlayer(Rng.new(SEED + index * 100003 + i))
+		players[i] = newPlayer(Rng.new(SEED + index * 100003 + i), passes or {})
 	end
 	for _, p in players do
-		for day = 1, DAYS do
+		for day = 1, lastDay do
 			playDay(p, day, profile)
 		end
 	end
@@ -620,13 +645,14 @@ local function runCohort(profile: Profile, index: number): Cohort
 	end
 	local day = {}
 	local maxRate = 0
-	for d = 1, DAYS do
-		local earned, rate, slots, rank, pearls, balance = {}, {}, {}, {}, {}, {}
+	for d = 1, lastDay do
+		local earned, rate, slots, rank, pearls, balance, owned = {}, {}, {}, {}, {}, {}, {}
 		local bySource = { banking = 0, cove = 0, daily = 0, oneTime = 0 }
 		for _, p in players do
 			local row = p.byDay[d]
 			local before = if d > 1 then p.byDay[d - 1].earned else 0
 			table.insert(balance, row.balance)
+			table.insert(owned, row.owned)
 			for k in bySource do
 				local prev = if d > 1 then p.byDay[d - 1].sources[k] else 0
 				bySource[k] += (row.sources[k] - prev) / PLAYERS
@@ -648,6 +674,7 @@ local function runCohort(profile: Profile, index: number): Cohort
 			slotsMedian = percentile(slots, 0.5),
 			rankMedian = percentile(rank, 0.5),
 			bySource = bySource,
+			ownedMedian = percentile(owned, 0.5),
 		}
 	end
 	local sources = { banking = 0, cove = 0, daily = 0, oneTime = 0 }
@@ -665,8 +692,29 @@ local function runCohort(profile: Profile, index: number): Cohort
 		local v = percentile(days, 0.5)
 		slotMedian[slot] = if v == math.huge then nil else v
 	end
+	local function medianDay(test: (Player, number) -> boolean): number?
+		local found: { number } = {}
+		for _, p in players do
+			local at = math.huge
+			for d = 1, lastDay do
+				if test(p, d) then
+					at = d
+					break
+				end
+			end
+			table.insert(found, at)
+		end
+		local v = percentile(found, 0.5)
+		return if v == math.huge then nil else v
+	end
 	return {
 		profile = profile,
+		catalogueDay = medianDay(function(p, d)
+			return p.byDay[d].earned >= CATALOGUE
+		end),
+		rank50Day = medianDay(function(p, d)
+			return p.byDay[d].rank >= #Index.ReefRanks.list
+		end),
 		slotMedian = slotMedian,
 		unlock = unlock,
 		pufferMinute = if #minutes > 0 then percentile(minutes, 0.5) else nil,
@@ -884,6 +932,90 @@ if process.env.ECONOMY_SIM_TABLES == "1" then
 			table.insert(parts, `slot {slot} {fmt(c.slotMedian[slot])}`)
 		end
 		print(`  {profile.name}: {table.concat(parts, ", ")}`)
+	end
+end
+
+-- Report runs for chapter 05 (never in CI; each takes a minute or so):
+--   ECONOMY_SIM_REPORT=long    05 §6.2 and §6.4: day 30, 45, 60 and 90, and the late milestones
+--   ECONOMY_SIM_REPORT=passes  05 §8.2: each income pass owned from day 1
+local REPORT = process.env.ECONOMY_SIM_REPORT
+local function dayText(d: number?, last: number): string
+	return if d == nil then `After day {last}` else `Day {d}`
+end
+if REPORT == "long" then
+	local LAST = 240
+	local catalogue = CATALOGUE
+	print(`\n05 §6.4 (catalogue {fmt(catalogue)}):`)
+	local summary: { string } = {}
+	for i, profile in PROFILES do
+		local c = runCohort(profile, i, LAST)
+		for _, d in { 30, 45, 60, 90 } do
+			local row = c.day[d]
+			print(
+				`| {profile.name} | {d} | {fmt(row.pearls)} | {fmt(row.rate)} | {row.slotsMedian} | {row.ownedMedian} | {fmt(
+					row.earned
+				)} | {fmt(math.max(0, row.earned - catalogue))} |`
+			)
+		end
+		table.insert(
+			summary,
+			`| {profile.name} | {dayText(c.slotMedian[30], LAST)} | {dayText(c.catalogueDay, LAST)} | {dayText(
+				c.rank50Day,
+				LAST
+			)} |`
+		)
+		local d90 = c.day[90]
+		print(
+			`  6.2 day 90: {d90.slotsMedian} slots, {fmt(d90.rate)} Pearls/h, {fmt(
+				d90.rate / d90.slots,
+				1
+			)} per slot; rank day 60 {c.day[60].rankMedian}, day 90 {d90.rankMedian}; Shark {dayText(
+				c.unlock.shark.median,
+				LAST
+			)}`
+		)
+		for _, rank in { 26, 31, 36 } do
+			local at: number? = nil
+			for d = LAST, 1, -1 do
+				if c.day[d].rankMedian >= rank then
+					at = d
+				end
+			end
+			print(`    rank {rank}: {dayText(at, LAST)}`)
+		end
+	end
+	print(table.concat(summary, "\n"))
+elseif REPORT == "passes" then
+	local LAST = 90
+	local variants: { { string | Passes } } = {
+		{ "None", {} },
+		{ "Deep Pockets", { deepPockets = true } },
+		{ "Bigger Cove", { biggerCove = true } },
+		{ "Tide Watcher", { tideWatcher = true } },
+		{ "All three", { deepPockets = true, biggerCove = true, tideWatcher = true } },
+	}
+	print("\n05 §8.2:")
+	for i, profile in PROFILES do
+		local base10, base30 = 0, 0
+		for _, v in variants do
+			local name = v[1] :: string
+			local c = runCohort(profile, i, LAST, v[2] :: Passes)
+			local e10, e30 = c.day[10].earned, c.day[30].earned
+			if name == "None" then
+				base10, base30 = e10, e30
+			end
+			local function change(x: number, base: number): string
+				return if name == "None"
+					then "—"
+					else string.format("%+.0f%%", (x / base - 1) * 100)
+			end
+			print(
+				`| {profile.name} | {name} | {fmt(e10)} | {change(e10, base10)} | {fmt(e30)} | {change(
+					e30,
+					base30
+				)} | {c.unlock.squid.median or `after {LAST}`} | {c.unlock.shark.median or `after {LAST}`} |`
+			)
+		end
 	end
 end
 

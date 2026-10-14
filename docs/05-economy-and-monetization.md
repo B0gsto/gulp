@@ -839,8 +839,8 @@ Crystal is capped by supply, not by skill: at most 12 drifts an hour per server.
 |---|---|---|---|---|
 | 30 slots of the best possible specimen | 30 × 288 | 8,640 | 69,120 | 207,360 |
 | 40 slots (Bigger Cove) of the best possible specimen | 40 × 288 | 11,520 | 92,160 | 276,480 |
-| Heavy player at day 90 in the model | 30 slots, average 152 | 4,560 | 36,480 | 82,080 at 18 h |
-| Regular player at day 90 in the model | 30 slots, average 80 | 2,413 | 19,304 | 38,608 at 16 h |
+| Heavy player at day 90 in the model (`economy.sim`) | 30 slots, average 152 | 4,560 | 36,480 | 82,080 at 18 h |
+| Regular player at day 90 in the model (`economy.sim`) | 30 slots, average 81.9 | 2,458 | 19,664 | 39,328 at 16 h |
 
 The best possible specimen needs Moonlit (Moon Tide, :15), Bonefed (Whale Fall, :45) and Crystal (a drift of five jellies, about one drift per server every five minutes) on one tier 7 creature, banked alive. That is a run of 35 minutes or more through the two most dangerous events. Thirty of them is a theoretical limit, not a forecast.
 
@@ -873,34 +873,36 @@ The point of the table: **cove income has a hard ceiling.** Slots stop at 30 (40
 
 ### 6.4 Day 60 and day 90
 
+Both tables are produced by `tests/sim/economy.sim.luau` (`ECONOMY_SIM_REPORT=long`, 240 days) with the profiles and assumptions of section 5 (income counted from the moment of the bank, Eel 3,500, Pearl decorations capped at the 1,228,000 of section 4.3). Pearls are means; slots, species owned and days are medians. "Paid for" counts Pearls earned.
+
 | Player | Day | Pearls earned that day | Cove Pearls/h | Slots | Species owned (of 6) | Cumulative Pearls earned | Pearls earned beyond the launch catalogue |
 |---|---|---|---|---|---|---|---|
-| Casual | 30 | 5,445 | 470 | 13 | 5 | 116,115 | 0 |
-| Casual | 45 | 6,369 | 600 | 16 | 5 | 211,136 | 0 |
-| Casual | 60 | 7,097 | 638 | 17 | 5 | 317,529 | 0 |
-| Casual | 90 | 8,004 | 675 | 18 | 6 | 548,434 | 0 |
-| Regular | 30 | 21,690 | 1,095 | 18 | 6 | 407,249 | 0 |
-| Regular | 45 | 31,680 | 1,657 | 24 | 6 | 814,620 | 0 |
-| Regular | 60 | 38,126 | 2,076 | 28 | 6 | 1,355,172 | 0 |
-| Regular | 90 | 45,306 | 2,413 | 30 | 6 | 2,628,967 | 71,217 |
-| Heavy | 30 | 67,323 | 3,132 | 27 | 6 | 1,170,021 | 0 |
-| Heavy | 45 | 87,234 | 4,262 | 30 | 6 | 2,344,539 | 0 |
-| Heavy | 60 | 93,479 | 4,560 | 30 | 6 | 3,733,684 | 1,175,934 |
-| Heavy | 90 | 94,819 | 4,560 | 30 | 6 | 6,564,249 | 4,006,499 |
+| Casual | 30 | 5,437 | 483 | 13 | 5 | 119,786 | 0 |
+| Casual | 45 | 6,648 | 591 | 16 | 5 | 214,758 | 0 |
+| Casual | 60 | 7,109 | 648 | 17 | 5 | 320,904 | 0 |
+| Casual | 90 | 7,948 | 683 | 18 | 6 | 550,809 | 0 |
+| Regular | 30 | 23,356 | 1,199 | 18 | 6 | 445,835 | 0 |
+| Regular | 45 | 32,891 | 1,780 | 24 | 6 | 871,167 | 0 |
+| Regular | 60 | 39,560 | 2,169 | 28 | 6 | 1,426,020 | 0 |
+| Regular | 90 | 45,305 | 2,458 | 30 | 6 | 2,723,156 | 164,906 |
+| Heavy | 30 | 72,856 | 3,326 | 27 | 6 | 1,302,330 | 0 |
+| Heavy | 45 | 92,664 | 4,303 | 30 | 6 | 2,576,241 | 17,991 |
+| Heavy | 60 | 98,323 | 4,551 | 30 | 6 | 4,030,714 | 1,472,464 |
+| Heavy | 90 | 99,496 | 4,560 | 30 | 6 | 7,003,454 | 4,445,204 |
 
 | Player | Day all launch slots are owned | Day the whole launch catalogue (2,558,250 Pearls) is paid for | Reef Rank 50 |
 |---|---|---|---|
-| Casual | After day 120 | After day 120 | After day 120 |
-| Regular | Day 73 | Day 89 | About day 225 |
-| Heavy | Day 40 | Day 48 | Day 78 |
+| Casual | Day 222 | After day 240 | After day 240 |
+| Regular | Day 72 | Day 87 | Day 219 |
+| Heavy | Day 38 | Day 45 | Day 76 |
 
 Reading it:
 
-- **Day 60.** A regular player owns every species and 28 slots, earns about 38,000 Pearls a day and still has slots and D4 decorations to buy. A heavy player paid for the whole launch catalogue 12 days ago and is holding more than a million spare Pearls. A casual player is 11 days from the Shark Pup.
-- **Day 90.** A regular player has earned enough for everything on sale. A heavy player has about 4 million spare Pearls. A casual player owns every species and 18 slots.
-- **Shelves open by rank, not by Pearls.** The "paid for" days above count Pearls earned. The three D4 decorations sit on shelves 6, 7 and 8 (ranks 26, 31 and 36), which a regular player reaches at about day 53, day 79 and day 109, and a heavy player before day 40. So a regular player's last purchase, the Golden Minnow, waits for rank 36 until about day 109.
+- **Day 60.** A regular player owns every species and 28 slots, earns about 39,600 Pearls a day and still has slots and D4 decorations to buy. A heavy player paid for the whole launch catalogue 15 days ago and is holding more than a million spare Pearls. A casual player is 10 days from the Shark Pup.
+- **Day 90.** A regular player has earned enough for everything on sale. A heavy player has about 4.4 million spare Pearls. A casual player owns every species and 18 slots.
+- **Shelves open by rank, not by Pearls.** The "paid for" days above count Pearls earned. The three D4 decorations sit on shelves 6, 7 and 8 (ranks 26, 31 and 36), which a regular player reaches at about day 51, day 76 and day 105, and a heavy player before day 40. So a regular player's last purchase, the Golden Minnow, waits for rank 36 until about day 105.
 
-Income by then is flat (6.2), so the problem is a missing sink, not runaway growth. Fixed-size Pearl packs lose value as income grows: the 999 R$ pack is 9.5 days of a regular player's income on day 5 and 1.7 days on day 60. That is accepted. Packs are a first-month product; later revenue comes from patterns and passes.
+Income by then is flat (6.2), so the problem is a missing sink, not runaway growth. Fixed-size Pearl packs lose value as income grows: the 999 R$ pack is 8.2 days of a regular player's income on day 5 and 1.6 days on day 60. That is accepted. Packs are a first-month product; later revenue comes from patterns and passes.
 
 **New sinks needed, and when:**
 
@@ -915,7 +917,7 @@ Income by then is flat (6.2), so the problem is a missing sink, not runaway grow
 | Day 90 to 120 | Migration: a reset of Pearls, purchased slots and specimens in exchange for +10% cove income for good (up to five times) and a new cove biome. Requires all six launch species and Reef Rank 30. | Removes every Pearl the player holds | [P2] |
 | With trading | A Pearl fee on every trade (section 13) | 10% of a specimen's 24-hour income, per side | [P2] |
 
-The six post-launch species add 6,300,000 Pearls of sink. At the heavy player's 95,000 a day that is 66 days of saving; at the regular player's 45,000 it is 140 days. The top few percent of players will always outrun the sinks. The target is that the regular player always has something worth buying that is no more than 14 days away.
+The six post-launch species add 6,300,000 Pearls of sink. At the heavy player's 99,500 a day that is 63 days of saving; at the regular player's 45,300 it is 139 days. The top few percent of players will always outrun the sinks. The target is that the regular player always has something worth buying that is no more than 14 days away.
 
 ## 7. Reef Rank **[L]**
 
@@ -1031,9 +1033,9 @@ Soft-launch slice (chapter 13, section 3.2): `pass_deep_pockets`, `pass_bigger_c
 
 | ID | Tag | Exact effect | Price (R$) | Earned per sale | Why this price | Where and when it is offered | Rule that keeps it fair | Grant |
 |---|---|---|---|---|---|---|---|---|
-| `pass_deep_pockets` | [MVP] | Every bank and every scraps payout pays ×2, applied after Crystal. No effect on cove income, Reef Rank, mass or leaderboards. | 299 | 209 R$, $0.80 | The first draft of the canon said 399. The model gives +31% Pearls over a regular player's first 10 days and +20% over 30, the smallest long-run gain of the three income passes. It is the easiest pass to understand and the first one shown, so it should not carry the highest price. | One line on the bank summary from the third bank onward: "With Deep Pockets: 1,200". Once per session at most. One small non-blocking card, once, after the tenth bank on the account: it sits at the edge of the cove screen, never covers a menu, and the pass panel opens only if the player taps it (chapter 08, rule O-R8). Always in the shop. | Reef Rank ignores it. It changes nothing in a run. | `flag` |
-| `pass_bigger_cove` | [MVP] | +10 cove slots at once, on top of Pearl slots. Maximum 40. Pearl slot prices do not change. | 349 | 244 R$, $0.93 | The first draft of the canon said 249. The model gives +39% Pearls over a regular player's 30 days, and unlike Deep Pockets the gain does not fade: at the 30-slot ceiling it is still +33%. It is the strongest permanent pass, so it sits above Deep Pockets. | A button in the "cove is full" dialog, and beside the next-slot button. One small non-blocking card, once, the third time the cove is full: the pass panel opens only if the player taps the card (chapter 08, rule O-R8). Always in the shop. | The extra slots only hold specimens the player banked. No effect in a run. | `flag` |
-| `pass_tide_watcher` | [L] | Uncollected income cap 24 hours instead of 8. An in-game tide board that shows the next three tides, and a marker that points to the event while a tide runs (canon section 12). Everything is inside the game: the pass sends no push notifications. | 249 | 174 R$, $0.66 | The first draft of the canon said 299. It is worth +123% to a one-session player and nothing to a three-session player, and it does not raise the 24-hour ceiling any free player can reach. A convenience pass belongs below the two passes that add something new. | One line on the welcome-back panel when the cap was hit: "Your cove was full for 6 hours." Once a day at most. Always in the shop. | It only removes the need to log in three times a day. | `flag` |
+| `pass_deep_pockets` | [MVP] | Every bank and every scraps payout pays ×2, applied after Crystal. No effect on cove income, Reef Rank, mass or leaderboards. | 299 | 209 R$, $0.80 | The first draft of the canon said 399. The model gives +30% Pearls over a regular player's first 10 days and +18% over 30, the smallest long-run gain of the three income passes. It is the easiest pass to understand and the first one shown, so it should not carry the highest price. | One line on the bank summary from the third bank onward: "With Deep Pockets: 1,200". Once per session at most. One small non-blocking card, once, after the tenth bank on the account: it sits at the edge of the cove screen, never covers a menu, and the pass panel opens only if the player taps it (chapter 08, rule O-R8). Always in the shop. | Reef Rank ignores it. It changes nothing in a run. | `flag` |
+| `pass_bigger_cove` | [MVP] | +10 cove slots at once, on top of Pearl slots. Maximum 40. Pearl slot prices do not change. | 349 | 244 R$, $0.93 | The first draft of the canon said 249. The model gives +35% Pearls over a regular player's 30 days, and unlike Deep Pockets the gain does not fade: at the 30-slot ceiling it is still +33%. It is the strongest permanent pass, so it sits above Deep Pockets. | A button in the "cove is full" dialog, and beside the next-slot button. One small non-blocking card, once, the third time the cove is full: the pass panel opens only if the player taps the card (chapter 08, rule O-R8). Always in the shop. | The extra slots only hold specimens the player banked. No effect in a run. | `flag` |
+| `pass_tide_watcher` | [L] | Uncollected income cap 24 hours instead of 8. An in-game tide board that shows the next three tides, and a marker that points to the event while a tide runs (canon section 12). Everything is inside the game: the pass sends no push notifications. | 249 | 174 R$, $0.66 | The first draft of the canon said 299. It is worth +131% to a one-session player and nothing to a three-session player, and it does not raise the 24-hour ceiling any free player can reach. A convenience pass belongs below the two passes that add something new. | One line on the welcome-back panel when the cap was hit: "Your cove was full for 6 hours." Once a day at most. Always in the shop. | It only removes the need to log in three times a day. | `flag` |
 | `pass_keen_nose` | [L] | A trait is gained after 4 of its trait prey instead of 5. | 199 | 139 R$, $0.53 | The first draft of the canon said 349. The effect is a 20% shorter hunt and no Pearls. It is the smallest effect of the five, so it is the entry price. | A small button on the trait bar tooltip in the cove, and in the shop. Never shown during a run. | Every trait stays reachable without it. It grants no trait by itself. | `flag` |
 | `pass_shark_pup` | [L] | Unlocks the `shark` species at once. | 499 | 349 R$, $1.33 | Canon anchor kept. The Pearl route is 250,000 Pearls, which would cost about 3,840 R$ in Pearl packs, so the pass is the clear way to pay. It is the top of the pass ladder. | On the Shark Pup card in the species screen, beside the Pearl price. Hidden once the species is owned either way. | The species is free at about day 30. Its tier 2 start means it never has the tier 1 protection from other players (canon section 7). | `flag` |
 
@@ -1041,25 +1043,25 @@ Soft-launch slice (chapter 13, section 3.2): `pass_deep_pockets`, `pass_bigger_c
 
 All five passes together cost 1,595 R$ and earn the developer 4.24 US dollars.
 
-What the three income passes do in the model (pass owned from day 1, nothing else bought):
+What the three income passes do in the model (pass owned from day 1, nothing else bought). Produced by `tests/sim/economy.sim.luau` (`ECONOMY_SIM_REPORT=passes`) with the profiles and assumptions of section 5 (income counted from the moment of the bank, Eel 3,500); Squid and Shark Pup days are medians, Pearls are means:
 
 | Player | Pass owned from day 1 | Pearls earned by day 10 | Change | Pearls earned by day 30 | Change | Squid day | Shark Pup day |
 |---|---|---|---|---|---|---|---|
-| Casual | None | 24,326 | — | 116,115 | — | 23 | 71 |
-| Casual | Deep Pockets | 31,440 | +29% | 140,293 | +21% | 20 | 63 |
-| Casual | Bigger Cove | 28,287 | +16% | 153,935 | +33% | 19 | 57 |
-| Casual | Tide Watcher | 40,394 | +66% | 259,463 | +123% | 15 | 39 |
-| Casual | All three | 58,913 | +142% | 402,064 | +246% | 12 | 30 |
-| Regular | None | 73,847 | — | 407,249 | — | 10 | 30 |
-| Regular | Deep Pockets | 96,447 | +31% | 489,013 | +20% | 9 | 27 |
-| Regular | Bigger Cove | 97,581 | +32% | 564,283 | +39% | 9 | 24 |
-| Regular | Tide Watcher | 93,266 | +26% | 575,831 | +41% | 9 | 24 |
-| Regular | All three | 147,350 | +100% | 886,954 | +118% | 7 | 19 |
-| Heavy | None | 173,834 | — | 1,170,021 | — | 6 | 17 |
-| Heavy | Deep Pockets | 232,737 | +34% | 1,404,246 | +20% | 5 | 14 |
-| Heavy | Bigger Cove | 219,707 | +26% | 1,508,083 | +29% | 5 | 14 |
-| Heavy | Tide Watcher | 205,470 | +18% | 1,518,610 | +30% | 6 | 15 |
-| Heavy | All three | 320,832 | +85% | 2,148,234 | +84% | 4 | 11 |
+| Casual | None | 25,794 | — | 119,786 | — | 23 | 70 |
+| Casual | Deep Pockets | 33,733 | +31% | 146,004 | +22% | 20 | 63 |
+| Casual | Bigger Cove | 31,107 | +21% | 160,005 | +34% | 19 | 56 |
+| Casual | Tide Watcher | 45,357 | +76% | 276,201 | +131% | 14 | 38 |
+| Casual | All three | 68,046 | +164% | 425,334 | +255% | 11 | 29 |
+| Regular | None | 81,667 | — | 445,835 | — | 10 | 28 |
+| Regular | Deep Pockets | 105,911 | +30% | 526,092 | +18% | 9 | 25 |
+| Regular | Bigger Cove | 108,797 | +33% | 600,360 | +35% | 9 | 23 |
+| Regular | Tide Watcher | 105,017 | +29% | 623,286 | +40% | 9 | 23 |
+| Regular | All three | 169,296 | +107% | 949,610 | +113% | 6 | 18 |
+| Heavy | None | 208,876 | — | 1,302,330 | — | 6 | 15 |
+| Heavy | Deep Pockets | 275,088 | +32% | 1,553,173 | +19% | 5 | 13 |
+| Heavy | Bigger Cove | 265,993 | +27% | 1,683,221 | +29% | 5 | 13 |
+| Heavy | Tide Watcher | 241,118 | +15% | 1,621,105 | +24% | 6 | 14 |
+| Heavy | All three | 377,139 | +81% | 2,321,304 | +78% | 4 | 11 |
 
 ### 8.3 Developer products
 
@@ -1085,9 +1087,9 @@ Soft-launch slice (chapter 13, section 3.2): every row.
 | ID | Price (R$) | Pearls | Pearls per R$ | Bonus over the small pack | Earned per sale | Days of a regular player's income: day 5 / day 10 / day 30 | Tag | Grant |
 |---|---|---|---|---|---|---|---|---|
 | `prod_pearls_s` | 49 | 2,000 | 40.8 | — | 34 R$, $0.13 | 0.3 / 0.2 / 0.1 | [MVP] | `pearls` |
-| `prod_pearls_m` | 149 | 7,000 | 47.0 | +15% | 104 R$, $0.40 | 1.0 / 0.6 / 0.3 | [MVP] | `pearls` |
-| `prod_pearls_l` | 399 | 22,000 | 55.1 | +35% | 279 R$, $1.06 | 3.2 / 2.0 / 1.0 | [MVP] | `pearls` |
-| `prod_pearls_xl` | 999 | 65,000 | 65.1 | +60% | 699 R$, $2.66 | 9.5 / 6.0 / 3.0 | [MVP] | `pearls` |
+| `prod_pearls_m` | 149 | 7,000 | 47.0 | +15% | 104 R$, $0.40 | 0.9 / 0.6 / 0.3 | [MVP] | `pearls` |
+| `prod_pearls_l` | 399 | 22,000 | 55.1 | +35% | 279 R$, $1.06 | 2.8 / 1.9 / 0.9 | [MVP] | `pearls` |
+| `prod_pearls_xl` | 999 | 65,000 | 65.1 | +60% | 699 R$, $2.66 | 8.2 / 5.5 / 2.8 | [MVP] | `pearls` |
 
 <!-- /data -->
 
