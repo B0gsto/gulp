@@ -1248,7 +1248,7 @@ end
 - After launch the :30 slot is the flexible one (canon 10). A limited-time tide replaces its Feeding Frenzy when live config names one and the slot falls inside its window (`live.limitedTideId`, `live.limitedTideStart`, `live.limitedTideEnd`, section 17.4). Server and clients read the same forwarded keys, so they still agree without a message.
 - Skew between Roblox servers' clocks is not documented (**U23**). It does not matter in play because no player is on two servers at once.
 
-`TideService` polls `TideClock.at` once a second and fires `onPhase` on change. `PreyService` listens: `frenzy` sets the respawn multiplier to 3; `moon_tide` spawns `lunar_fry` groups in `PreySpawn` volumes flagged for it and removes them when it ends.
+`TideService` polls `TideClock.at` once a second and fires `onPhase` on change. `PreyService` listens and calls `setTide(tideId)` at a phase start and `setTide(nil)` at its end: during `frenzy` respawn delays are divided by the tide's `spawnRateMult` (3), the spawner makes three spawns per row per pass and normal-prey targets and caps double (section 8.1); `moon_tide` spawns `lunar_fry` (12 at once, in groups of 4) in `PreySpawn` volumes flagged for it and removes them when it ends.
 
 ### 11.2 Call the Tide
 
