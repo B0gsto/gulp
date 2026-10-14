@@ -612,7 +612,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 |---|---|---|---|---|---|---|
 | S5-C1 | `EconomyService` and the `Analytics` wrapper (typed, no-op in Studio, event enum) | B21 | 09 §5.1, 10 §2.4 | M | S4-C6 | Agent |
 | S5-C2 | `CoveService`: cove assignment, slots, specimens, income from timestamps, claim, `CoveView` | B22 | 09 §13, 02 §13 | L | S2-C2, S5-C1 | Agent |
-| S5-C3 | `RunLoopService` bank and settle; `BankMath` wired; cove mouth volumes for 24 coves | B19 | 01 §5.4, 02 §11 | M | S4-C4, S5-C2 | Agent |
+| S5-C3 | `RunLoopService` bank and settle; `BankMath` wired; cove mouth volumes for 24 coves. Build note: until this task lands, an armed run that re-enters the own cove stays a live run (mass and traits kept, safe as in any own cove, continues when it swims out, nothing paid or counted); this task replaces that with the bank of 02 §0.7 and §11.2 | B19 | 01 §5.4, 02 §11 | M | S4-C4, S5-C2 | Agent |
 | S5-C4 | Screen S12 bank summary and screen S14 cove HUD, first version (Pearls, slots, Claim all) | `client/UI/Screens` | 08 §4.5, §5.1 | M | S4-C5 | Agent + owner |
 | S5-C5 | `LiveConfig`, flags, `Loc`, `tools/gen/strings.luau`, `assets/loc/strings.csv` | B33 | 09 §17.4, §18.1 | M | S1-C6 | Agent |
 | S5-C6 | `tests/sim/economy.sim.luau`, first version on the slice tables | `tests/sim` | 09 §16.2, 05 §5 | M | S4-C3 | Agent |

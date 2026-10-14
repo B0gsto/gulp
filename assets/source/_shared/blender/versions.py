@@ -247,17 +247,48 @@ def transfer_weights(obj, source):
             obj.vertex_groups[bone].add([v.index], w, 'REPLACE')
 
 
+MOUTH_RECT = (0.25, 0.0, 0.5, 0.25)     # 06 5.4: the layout's "Mouth interior and tongue" region
+
+
+def outer_bmesh(mesh):
+    """The mesh as a bmesh without its mouth interior (mouth.py, S4-A3): the faces laid out in the
+    mouth region fold inside the closed head at rest, so the outline and its checks must not see
+    them (a shell snapped to them dips into the mouth). The lip twins are merged back."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    uv = bm.loops.layers.uv.active
+    if uv is not None:
+        u0, v0, u1, v1 = MOUTH_RECT
+        cavity = [f for f in bm.faces if all(u0 <= l[uv].uv.x <= u1 and v0 <= l[uv].uv.y <= v1 for l in f.loops)]
+        if cavity:
+            bmesh.ops.delete(bm, geom=cavity, context='FACES_ONLY')
+            loose = [v for v in bm.verts if not v.link_faces]
+            if loose:
+                bmesh.ops.delete(bm, geom=loose, context='VERTS')
+            bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    return bm
+
+
+def outer_copy(src, name, collection="SHELL"):
+    """A copy of `src` without its mouth interior (outer_bmesh), for the hull and the LODs (a
+    distance version has no use for it, and decimating it folds the lips)."""
+    obj = copy_object(src, name, collection)
+    bm = outer_bmesh(obj.data)
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
+
+
 def shell_metrics(shell, body, level_body):
     """For validate: distance from every shell vertex to the full body (the outline width),
-    and shell points (vertices and face centres) that lie inside any part of the level's body."""
-    bm = bmesh.new()
-    bm.from_mesh(body.data)
+    and shell points (vertices and face centres) that lie inside any part of the level's body.
+    The mouth interior is left out of both (outer_bmesh)."""
+    bm = outer_bmesh(body.data)
     tree = BVHTree.FromBMesh(bm)
     bm.free()
     # The visible band lies between the corners and the flat faces between them: sample both.
     dist = [tree.find_nearest(v.co)[3] for v in shell.data.vertices] + [tree.find_nearest(p.center)[3] for p in shell.data.polygons]
-    lb = bmesh.new()
-    lb.from_mesh(level_body.data)
+    lb = outer_bmesh(level_body.data)
     lb.normal_update()
     part_trees = []
     for comp in parts_of(lb):
@@ -481,7 +512,7 @@ def run_lod(spec):
         budget = entry.get("budget", spec["budget"])
         for lod in p["lods"]:
             name = "%s_%s" % (src.name, lod)
-            obj = copy_object(src, name, "LOD")
+            obj = outer_copy(src, name, "LOD")
             target = min(budgets.tri_budget(budget, "body", lod=lod),
                          int(triangles(src.data) * budgets.LOD_SHARE[lod]))
             decimate(obj, target)
@@ -512,10 +543,11 @@ def run_shell(spec):
         budget = entry.get("budget", spec["budget"])
         for kind in p["shells"]:
             d = thickness(spec, height, thick=(kind == "ShellThick"))
-            outer = hull(body, "%s_%s_hull" % (body.name, kind), d)
+            solid = outer_copy(body, "%s_%s_solid" % (body.name, kind))
+            outer = hull(solid, "%s_%s_hull" % (body.name, kind), d)
+            bpy.data.objects.remove(solid, do_unlink=True)
             prev, spare = outer, [outer]
-            bmb = bmesh.new()
-            bmb.from_mesh(body.data)
+            bmb = outer_bmesh(body.data)
             body_tree = BVHTree.FromBMesh(bmb)
             bmb.free()
             for src, lod in levels:
