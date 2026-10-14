@@ -4,6 +4,7 @@
 -- them. `init` sets up private state and must not yield or call another service; `start`
 -- connects events and begins loops. PlayerLifecycle is always last.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
@@ -17,6 +18,7 @@ require(script.Parent.Net.Server)
 
 -- Section 4.5's order, listing only the services written so far; each task adds its own.
 local loaded: { Service } = {
+	require(script.Parent.Services.DataService),
 	require(script.Parent.Services.WorldIndex),
 	require(script.Parent.Services.CreatureService),
 	require(script.Parent.Services.PreyService),
@@ -61,4 +63,22 @@ if environment.devCheats or environment.name == "ci" then
 		return text
 	end
 	stats.Parent = script.Parent
+	-- The running DataService for Studio checks (the smoke's profile step; a server patch read
+	-- back through the client's StateStoreGet hook): `DataGet:Invoke(userId)` is the player's
+	-- profile as JSON ("null" when none is loaded); `DataPatch:Invoke(userId, path, value)`.
+	local DataService = require(script.Parent.Services.DataService)
+	local get = Instance.new("BindableFunction")
+	get.Name = "DataGet"
+	get.OnInvoke = function(userId: number): string
+		local player = Players:GetPlayerByUserId(userId)
+		return HttpService:JSONEncode(if player then DataService.get(player) else nil)
+	end
+	get.Parent = script.Parent
+	local patch = Instance.new("BindableFunction")
+	patch.Name = "DataPatch"
+	patch.OnInvoke = function(userId: number, path: string, value: any): boolean
+		local player = Players:GetPlayerByUserId(userId)
+		return player ~= nil and DataService.patch(player, path, value)
+	end
+	patch.Parent = script.Parent
 end

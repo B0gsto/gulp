@@ -360,7 +360,7 @@ export type RunSnapshot = {
 
 -- Device-shaped settings are saved once per input mode, so a phone setting never lands on a PC.
 export type InputSettings = {
-	scheme: string, -- "drag" or "two_thumb" [L] on touch; one scheme on keys and pad
+	scheme: string, -- 15 §2.2: "drag" or "two_thumb" [L] on touch, "keys" on keys, "pad" [L] on pad
 	lookSpeed: number, -- sensitivity; on touch the drag sensitivity of "drag" (0.5 to 1.5)
 	twoThumbLookSpeed: number, -- [L] touch only (0.5 to 2.0, default 1.0); unused on keys and pad
 	flipY: boolean,
