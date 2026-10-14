@@ -28,6 +28,7 @@ local CreatureController = require(script.Parent.Controllers.CreatureController)
 local InputController = require(script.Parent.Controllers.InputController)
 local MovementController = require(script.Parent.Controllers.MovementController)
 local PreyRenderer = require(script.Parent.Render.PreyRenderer)
+local StateStore = require(script.Parent.Controllers.StateStore)
 local TideController = require(script.Parent.Controllers.TideController)
 
 -- Controllers have the shape of services (section 4.2), so the two loaders treat them alike.
@@ -39,6 +40,7 @@ type Controller = Types.Service
 local loaded: { Controller } = {
 	-- Section 4.5 order: StateStore, QualityController, InputController, CameraController,
 	-- CreatureController, MovementController, ... Each is added here by the task that writes it.
+	StateStore,
 	InputController,
 	CameraController,
 	CreatureController,

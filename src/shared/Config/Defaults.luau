@@ -248,4 +248,20 @@ Defaults.goals = table.freeze({
 	rerolls = table.freeze({ free = 1, video = 1, product = 3 }), -- 02 §15.3, 05 §3.5: per day
 })
 
+-- Logic/SaveSchema and DataService: the starting values of a new save (09 §12.2) and the save
+-- limits of 09 §12.2 and §12.4. Values the bible does not state are marked "ours".
+Defaults.save = table.freeze({
+	maxBytes = 200000, -- 09 §12.2: DataService refuses to save, and logs an error, above 200 kB
+	forcedSaveGap = 30, -- 09 §12.4: at most one forced save per player per 30 s
+	joinTimeout = 20, -- 09 §12.4: kick after 20 s without a profile
+	starterSpecies = "minnow", -- canon §7: the free starter species
+	coveSlots = 6, -- 05 §4.2: slots 1 to 6 are free
+	sfx = 8, -- 08 §6.7 settings table: Sounds 8
+	music = 6, -- 08 §6.7: Music 6
+	interfaceSize = 1.0, -- 08 §6.7 [L]
+	lookSpeed = 1.0, -- 15 §3.1, §3.3: drag sensitivity, mouse and pad look speed all start at 1.0
+	twoThumbLookSpeed = 1.0, -- 09 §12.2, 15 §3.1 [L]
+	ftueVersion = 1, -- 09 §12.2: the tutorial version, currently 1
+})
+
 return Defaults

@@ -19,6 +19,7 @@ local SPECS: { () -> () } = {
 	require("./CreatureSpec"),
 	require("./PreySpec"),
 	require("./BiteSpec"),
+	require("./DataSpec"),
 }
 
 local function runAll(): string
