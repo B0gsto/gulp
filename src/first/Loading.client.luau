@@ -1,10 +1,683 @@
 --!strict
--- ReplicatedFirst.Boot.Loading: the custom loading screen (docs/09, section 3).
--- The screen itself arrives with the interface tasks. Until then this only hands over from the
--- default screen once the place has loaded, so nothing shows a half-loaded world.
+-- ReplicatedFirst.Boot.Loading: the loading screen S01 (docs/04, section 2; docs/08, section 8.1;
+-- docs/09, sections 3 and 6.6).
+--
+-- It shows on the first frame and only then removes the default screen. ReplicatedFirst runs
+-- before the rest of the place has arrived, so this file requires nothing: its numbers, colours
+-- and shapes are local, and it touches ReplicatedStorage only after `game.Loaded`, to find the
+-- minimum set's assets.
+--
+-- The screen (04 §2.2): flat lagoon teal with slow light rays, the GULP logo, the loading toy (a
+-- flat Fry that follows the thumb and grows 3% for each white dot it eats, up to +60%) and a row
+-- of five bubbles, one per 20% of phase D. No other text. Every shape is a stand-in drawn here
+-- until the `UI_Load_*` art of 08 §13.11 exists.
+--
+-- Minimum set (04 §2.3): the collision shell (09 §6.6: `PersistentLoaded`), then the Minnow mesh
+-- and krill, then the rest of the list below, preloaded with `ContentProvider:PreloadAsync`.
+-- Slow load (04 §2.4), J = seconds since this script started (PlayerAdded is a moment earlier):
+--   J 8   the set is not in, but the shell, the Minnow mesh and krill are: start (`partial`).
+--   J 15  still not startable: the rest is never started; start on the essentials (`minimal`).
+--   J 20  no profile yet (no `Slot` attribute): the bubble row dims to pale grey.
+--   J 30  still here: a spinner and a weak-signal icon.
+--   J 45  the profile failed: the server's rule (09 §12.4), nothing here.
+--
+-- Hand-over, through attributes on this script:
+--   `LoadMode`  "full" | "partial" | "minimal", set once when the minimum set is ready (or the
+--               slow-load rule starts anyway). Client.Main sends `ClientReady` on it; the server
+--               spawns the creature and the tutorial leaves S0_LOADING (04 §3.1).
+--   `LoadDone`  true when the screen starts its exit: the minimum set is ready and the creature
+--               (so the profile) is here. The bubbles split for 0.4 s to show the egg; the
+--               tutorial plays the hatch from here (S1_HATCH), and skips the hatch animation
+--               when `LoadMode` is "minimal" (04 §2.4). The Fry's size is discarded.
+--   `LoadMissing` the minimum-set names not found under ReplicatedStorage.Assets (art not in).
+-- `MUS_Nursery`, when it exists, keeps playing after the exit as SoundService.LoadingMusic for
+-- the audio code to take over (B1 of 04 §3.6: the base layer continues).
+local ContentProvider = game:GetService("ContentProvider")
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-if not game:IsLoaded() then
-	game.Loaded:Wait()
+local startedAt = os.clock()
+
+-- First: `PersistentLoaded` has no "already fired" property, and this is the earliest script.
+local shellLoaded = false
+local shellConnection = workspace.PersistentLoaded:Once(function()
+	shellLoaded = true
+end)
+
+-- Tunables. These belong in Shared.Config.FtueConfig (task S6-C7); they stay here because this
+-- screen draws before ReplicatedStorage has arrived. 04 §2.2 and §2.4 own them; the toy's feel
+-- values are 04 §2.2's (tune). Lengths are rpx: 1/720 of the shorter screen side.
+local CONFIG = table.freeze({
+	partialAt = 8, -- J s: start without the full set (04 §2.4)
+	minimalAt = 15, -- J s: essentials only, no hatch animation (04 §2.4)
+	dimAt = 20, -- J s: no profile yet, the bubble row dims (04 §2.4)
+	slowAt = 30, -- J s: spinner and weak-signal icon (04 §2.4)
+	shellTimeout = 10, -- s: a place with no collision shell still starts (09 §6.6)
+	exitTime = 0.4, -- s: the screen splits into bubbles (04 §2.2)
+	bubbles = 5, -- one per 20% of phase D (04 §2.2)
+	growPerDot = 0.03, -- the Fry grows 3% a dot (04 §2.2)
+	growMax = 0.6, -- up to +60% (04 §2.2)
+	musicFadeIn = 1, -- s, `MUS_Nursery` base layer (04 §2.2)
+	fryLength = 76, -- rpx (tune)
+	fryFollow = 6, -- 1/s: the share of the gap to the thumb closed each second (tune)
+	fryMaxSpeed = 900, -- rpx/s (tune)
+	dotSize = 14, -- rpx (tune)
+	dotSpeed = 150, -- rpx/s, right to left (tune)
+	dotEvery = 0.5, -- s between dots (tune)
+	dotWave = 16, -- rpx of up-and-down drift (tune)
+	dotsMax = 12, -- the dot pool (tune)
+	splitBubbles = 26, -- bubbles in the exit (tune)
+})
+
+-- 04 §2.3's minimum set under chapter 07 names, found under ReplicatedStorage.Assets (09 §3.1).
+-- ESSENTIAL is what 04 §2.4 may start on: the Minnow mesh and krill (the hatch point's floor is
+-- the collision shell). Task S13-C2 owns the final list and its 25-asset, 4 MB budget.
+local ESSENTIAL = { "M_Species_Minnow_Juv", "M_Prey_Krill" }
+local REST = {
+	"M_Prop_HatchEgg",
+	"T_Minnow_Juv_Alb",
+	"M_Species_Minnow_Juv_Shell", -- the green outline (09 §8.8)
+	"M_Prey_Krill_Shell",
+	"M_Prey_Plankton",
+	"UI_Atlas_Glyphs1", -- the run HUD atlas (08 §13)
+	"UI_Atlas_Content1",
+	"SFX_Hatch",
+	"SFX_Bite_Small",
+	"SFX_TierUp_T2",
+	"SFX_UI_TraitPip",
+	"SFX_Dash_Small",
+	"MUS_Nursery",
+}
+
+local hex = Color3.fromHex
+local COLOUR = table.freeze({
+	water = hex("#4CCFD2"), -- 06 §4.2, Nursery Lagoon mid water: lagoon teal
+	ink = hex("#14213D"), -- 06 §4.6 navy (Kit/Theme.INK)
+	white = Color3.new(1, 1, 1),
+	dim = hex("#B8C4CC"), -- 06 §4.6 disabled grey: pale, never amber (04 §2.4)
+	fryBody = hex("#FF9A3D"), -- 06 §5 `minnow` mid
+	fryBelly = hex("#FFE2A8"), -- `minnow` light
+	fryTail = hex("#FFD23D"), -- `minnow` accent, the yellow tail mark
+})
+
+local player = Players.LocalPlayer
+
+-- Studio only, for screenshots (set in Edit before Play): `DevHold` keeps the screen up after the
+-- creature arrives; `DevSkip` (seconds) moves J forward to show the slow-load states.
+local studio = RunService:IsStudio()
+local skip = script:GetAttribute("DevSkip")
+local devSkip = if studio and type(skip) == "number" then skip else 0
+
+local function j(): number
+	return os.clock() - startedAt + devSkip
 end
+
+-- Drawing ---------------------------------------------------------------------------------------
+
+local function frame(name: string, parent: Instance, colour: Color3, transparency: number): Frame
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BorderSizePixel = 0
+	f.BackgroundColor3 = colour
+	f.BackgroundTransparency = transparency
+	f.Parent = parent
+	return f
+end
+
+local function round(object: GuiObject, radius: UDim?): UICorner
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius or UDim.new(0.5, 0)
+	c.Parent = object
+	return c
+end
+
+local function stroke(object: GuiObject, colour: Color3): UIStroke
+	local s = Instance.new("UIStroke")
+	s.Color = colour
+	s.LineJoinMode = Enum.LineJoinMode.Round
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = object
+	return s
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "GulpLoading" -- the GulpSystem layer of 08 §1.6, its own ScreenGui: UIController is not up yet
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 100
+gui.IgnoreGuiInset = true -- before ScreenInsets, which it can rewrite
+gui.ScreenInsets = Enum.ScreenInsets.None
+
+local background = frame("Background", gui, COLOUR.water, 0)
+background.Size = UDim2.fromScale(1, 1)
+
+-- Light rays: tall, soft, slowly swaying (stand-in for `UI_Load_Background`).
+local rays: { Frame } = {}
+for i, x in { 0.18, 0.42, 0.63, 0.86 } do
+	local ray = frame("Ray", background, COLOUR.white, 0.86)
+	ray.AnchorPoint = Vector2.new(0.5, 0)
+	ray.Position = UDim2.fromScale(x, -0.25)
+	ray.Size = UDim2.fromScale(0.05 + 0.03 * (i % 2), 1.5)
+	ray.Rotation = 16
+	local fade = Instance.new("UIGradient")
+	fade.Rotation = 90
+	fade.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.7, 0.8),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	fade.Parent = ray
+	rays[i] = ray
+end
+
+-- Dots under the Fry.
+local dotLayer = frame("Dots", background, COLOUR.white, 1)
+dotLayer.Size = UDim2.fromScale(1, 1)
+
+-- The logo: top third, 30% of the screen width (stand-in for `UI_Load_Logo`, 560 x 240).
+local logo = Instance.new("TextLabel")
+logo.Name = "Logo"
+logo.BackgroundTransparency = 1
+logo.AnchorPoint = Vector2.new(0.5, 0.5)
+logo.Position = UDim2.fromScale(0.5, 0.19)
+logo.Size = UDim2.fromScale(0.3, 0.3)
+logo.FontFace = Font.fromEnum(Enum.Font.FredokaOne) -- 06 §12.3 display face
+logo.Text = "GULP" -- the wordmark, never translated (08 §13.11)
+logo.TextColor3 = COLOUR.white
+logo.TextScaled = true
+logo.ZIndex = 3
+logo.Parent = background
+local logoAspect = Instance.new("UIAspectRatioConstraint")
+logoAspect.AspectRatio = 560 / 240
+logoAspect.DominantAxis = Enum.DominantAxis.Width
+logoAspect.Parent = logo
+local logoStroke = Instance.new("UIStroke")
+logoStroke.Color = COLOUR.ink
+logoStroke.LineJoinMode = Enum.LineJoinMode.Round
+logoStroke.Parent = logo
+
+-- The Fry (stand-in for `UI_Load_Mascot`): body, belly, tail and eye, facing right. Positions are
+-- shares of its box; `face(-1)` mirrors them.
+local fry = frame("Fry", background, COLOUR.white, 1)
+fry.AnchorPoint = Vector2.new(0.5, 0.5)
+fry.ZIndex = 4
+local fryScale = Instance.new("UIScale")
+fryScale.Parent = fry
+local tail = frame("Tail", fry, COLOUR.fryTail, 0)
+tail.AnchorPoint = Vector2.new(0.5, 0.5)
+tail.Size = UDim2.fromScale(0.55, 0.55)
+tail.Rotation = 45
+tail.SizeConstraint = Enum.SizeConstraint.RelativeYY
+round(tail, UDim.new(0.18, 0))
+local tailStroke = stroke(tail, COLOUR.ink)
+local body = frame("Body", fry, COLOUR.fryBody, 0)
+body.AnchorPoint = Vector2.new(0.5, 0.5)
+body.Size = UDim2.fromScale(0.78, 1)
+body.ZIndex = 2
+round(body)
+local bodyStroke = stroke(body, COLOUR.ink)
+local belly = frame("Belly", body, COLOUR.fryBelly, 0)
+belly.AnchorPoint = Vector2.new(0.5, 0.5)
+belly.Position = UDim2.fromScale(0.52, 0.68)
+belly.Size = UDim2.fromScale(0.6, 0.34)
+belly.ZIndex = 2
+round(belly)
+local eye = frame("Eye", body, COLOUR.white, 0)
+eye.AnchorPoint = Vector2.new(0.5, 0.5)
+eye.Size = UDim2.fromScale(0.34, 0.34)
+eye.SizeConstraint = Enum.SizeConstraint.RelativeYY
+eye.ZIndex = 3
+round(eye)
+local eyeStroke = stroke(eye, COLOUR.ink)
+local pupil = frame("Pupil", eye, COLOUR.ink, 0)
+pupil.AnchorPoint = Vector2.new(0.5, 0.5)
+pupil.Size = UDim2.fromScale(0.55, 0.55)
+pupil.ZIndex = 3
+round(pupil)
+
+local facing = 0
+local function face(direction: number)
+	if direction == facing then
+		return
+	end
+	facing = direction
+	local function x(share: number): number
+		return if direction > 0 then share else 1 - share
+	end
+	tail.Position = UDim2.fromScale(x(0.2), 0.5)
+	body.Position = UDim2.fromScale(x(0.6), 0.5)
+	eye.Position = UDim2.fromScale(if direction > 0 then 0.74 else 0.26, 0.4)
+	pupil.Position = UDim2.fromScale(if direction > 0 then 0.62 else 0.38, 0.5)
+end
+face(1)
+
+-- The progress row: five bubbles along the bottom (04 §2.2).
+local row = frame("Progress", background, COLOUR.white, 1)
+row.AnchorPoint = Vector2.new(0.5, 0.5)
+row.Position = UDim2.fromScale(0.5, 0.9)
+row.ZIndex = 3
+local rowLayout = Instance.new("UIListLayout")
+rowLayout.FillDirection = Enum.FillDirection.Horizontal
+rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+rowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+rowLayout.Parent = row
+
+type Bubble = { disc: Frame, rim: UIStroke, shine: Frame, pop: UIScale, full: boolean }
+local bubbles: { Bubble } = {}
+for i = 1, CONFIG.bubbles do
+	local disc = frame("Bubble", row, COLOUR.white, 1)
+	disc.LayoutOrder = i
+	disc.ZIndex = 3
+	round(disc)
+	local shine = frame("Shine", disc, COLOUR.white, 0.25)
+	shine.AnchorPoint = Vector2.new(0.5, 0.5)
+	shine.Position = UDim2.fromScale(0.32, 0.32)
+	shine.Size = UDim2.fromScale(0.26, 0.26)
+	shine.ZIndex = 3
+	round(shine)
+	local pop = Instance.new("UIScale")
+	pop.Parent = disc
+	bubbles[i] =
+		{ disc = disc, rim = stroke(disc, COLOUR.white), shine = shine, pop = pop, full = false }
+end
+
+-- The slow sign (04 §2.4 at J 30; stand-in for `UI_Loading_SlowIcon`): a spinner and a signal icon
+-- with one bar lit. No text.
+local slow = frame("Slow", background, COLOUR.white, 1)
+slow.AnchorPoint = Vector2.new(0.5, 0.5)
+slow.Position = UDim2.fromScale(0.5, 0.79)
+slow.Visible = false
+slow.ZIndex = 3
+local spinner = frame("Spinner", slow, COLOUR.white, 1)
+spinner.AnchorPoint = Vector2.new(0.5, 0.5)
+spinner.ZIndex = 3
+round(spinner)
+local spinnerStroke = stroke(spinner, COLOUR.white)
+local arc = Instance.new("UIGradient")
+arc.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(0.5, 0.15),
+	NumberSequenceKeypoint.new(0.52, 1),
+	NumberSequenceKeypoint.new(1, 1),
+})
+arc.Parent = spinnerStroke
+local signalBars: { Frame } = {}
+for i = 1, 3 do
+	local bar = frame("Bar", slow, COLOUR.white, if i == 1 then 0 else 0.7)
+	bar.AnchorPoint = Vector2.new(0.5, 1)
+	bar.ZIndex = 3
+	round(bar, UDim.new(0.5, 0))
+	signalBars[i] = bar
+end
+
+-- Dot pool.
+type Dot = { disc: Frame, x: number, y: number, phase: number, alive: boolean }
+local dots: { Dot } = {}
+for i = 1, CONFIG.dotsMax do
+	local disc = frame("Dot", dotLayer, COLOUR.white, 0.05)
+	disc.AnchorPoint = Vector2.new(0.5, 0.5)
+	disc.Visible = false
+	disc.ZIndex = 2
+	round(disc)
+	dots[i] = { disc = disc, x = 0, y = 0, phase = 0, alive = false }
+end
+
+-- Layout in rpx, again whenever the screen changes size.
+local width, height, rpx = 1, 1, 1
+local function layout()
+	local size = gui.AbsoluteSize
+	width, height = math.max(size.X, 1), math.max(size.Y, 1)
+	rpx = math.min(width, height) / 720
+	logoStroke.Thickness = math.max(2, 3.3 * rpx)
+	local length = CONFIG.fryLength * rpx
+	fry.Size = UDim2.fromOffset(length, length * 0.56)
+	bodyStroke.Thickness = math.max(1, 2.7 * rpx)
+	tailStroke.Thickness = bodyStroke.Thickness
+	eyeStroke.Thickness = math.max(1, 1.4 * rpx)
+	local disc = 30 * rpx
+	rowLayout.Padding = UDim.new(0, 16 * rpx)
+	row.Size = UDim2.fromOffset(CONFIG.bubbles * disc + (CONFIG.bubbles - 1) * 16 * rpx, disc)
+	for _, b in bubbles do
+		b.disc.Size = UDim2.fromOffset(disc, disc)
+		b.rim.Thickness = math.max(1.5, 2.7 * rpx)
+	end
+	local spin = 34 * rpx
+	slow.Size = UDim2.fromOffset(spin * 2.4, spin)
+	spinner.Size = UDim2.fromOffset(spin, spin)
+	spinner.Position = UDim2.fromOffset(spin * 0.5, spin * 0.5)
+	spinnerStroke.Thickness = math.max(2, 4 * rpx)
+	for i, bar in signalBars do
+		bar.Size = UDim2.fromOffset(6 * rpx, (8 + 7 * i) * rpx)
+		bar.Position = UDim2.fromOffset(spin * 1.45 + (i - 1) * 10 * rpx, spin * 0.92)
+	end
+	for _, dot in dots do
+		dot.disc.Size = UDim2.fromOffset(CONFIG.dotSize * rpx, CONFIG.dotSize * rpx)
+	end
+end
+gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+
+-- First frame: ours up, then the default screen away (09 §6.10, V32).
+gui.Parent = player:WaitForChild("PlayerGui")
+layout()
 ReplicatedFirst:RemoveDefaultLoadingScreen()
+
+-- `SFX_Bite_Small` on each dot (04 §2.2), once the place has loaded.
+local biteSound: Sound? = nil
+
+-- The toy -----------------------------------------------------------------------------------------
+
+local fryX, fryY = width * 0.3, height * 0.55
+local targetX, targetY = fryX, fryY
+local velX, velY = 0, 0
+local growth = 0
+local nextDotAt = 0
+local chompAt = -math.huge
+local CHOMP_TIME = 0.18 -- s, the body's squash on a bite (tune)
+
+local function pointerTo(position: Vector3)
+	local inset = GuiService:GetGuiInset() -- InputObject positions start below it; this ScreenGui ignores it
+	targetX, targetY = position.X + inset.X, position.Y + inset.Y
+end
+
+local touching = false
+local inputConnections = {
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
+			touching = true
+			pointerTo(input.Position)
+		end
+	end),
+	UserInputService.InputChanged:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if
+			kind == Enum.UserInputType.MouseMovement
+			or (kind == Enum.UserInputType.Touch and touching)
+		then
+			pointerTo(input.Position)
+		end
+	end),
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
+			touching = false
+		end
+	end),
+}
+
+local function spawnDot(now: number)
+	for _, dot in dots do
+		if not dot.alive then
+			dot.alive = true
+			dot.x = width + CONFIG.dotSize * rpx
+			dot.y = height * (0.32 + 0.48 * math.random())
+			dot.phase = now * 1.7 + math.random() * 6.28
+			dot.disc.Visible = true
+			return
+		end
+	end
+end
+
+local function eat(dot: Dot, now: number)
+	dot.alive = false
+	dot.disc.Visible = false
+	growth = math.min(growth + CONFIG.growPerDot, CONFIG.growMax)
+	chompAt = now
+	if biteSound then
+		SoundService:PlayLocalSound(biteSound)
+	end
+end
+
+local function stepToy(dt: number, now: number)
+	-- The Fry closes a share of the gap to the thumb each second, capped in speed.
+	local follow = 1 - math.exp(-CONFIG.fryFollow * dt)
+	local dx, dy = (targetX - fryX) * follow, (targetY - fryY) * follow
+	local cap = CONFIG.fryMaxSpeed * rpx * dt
+	local step = math.sqrt(dx * dx + dy * dy)
+	if step > cap then
+		dx, dy = dx * cap / step, dy * cap / step
+	end
+	fryX = math.clamp(fryX + dx, 0, width)
+	fryY = math.clamp(fryY + dy, 0, height)
+	velX, velY = dx / math.max(dt, 1e-3), dy / math.max(dt, 1e-3)
+	if math.abs(velX) > 20 * rpx then
+		face(if velX > 0 then 1 else -1)
+	end
+	local tilt = math.deg(math.atan2(velY, math.max(math.abs(velX), 60 * rpx)))
+	local bob = math.sin(now * 3) * 3 * rpx
+	fry.Position = UDim2.fromOffset(fryX, fryY + bob)
+	fry.Rotation = math.clamp(tilt, -30, 30) * facing
+	fryScale.Scale = 1 + growth
+	local chomp = math.clamp((now - chompAt) / CHOMP_TIME, 0, 1)
+	local squash = math.sin(chomp * math.pi) * 0.1
+	body.Size = UDim2.fromScale(0.78 + squash, 1 - squash)
+
+	-- Dots drift in from the right with a gentle wave; the Fry eats any it touches.
+	if now >= nextDotAt then
+		nextDotAt = now + CONFIG.dotEvery * (0.7 + 0.6 * math.random())
+		spawnDot(now)
+	end
+	local reach = (CONFIG.fryLength * 0.32 * (1 + growth) + CONFIG.dotSize * 0.5) * rpx
+	for _, dot in dots do
+		if dot.alive then
+			dot.x -= CONFIG.dotSpeed * rpx * dt
+			local y = dot.y + math.sin(now * 1.7 + dot.phase) * CONFIG.dotWave * rpx
+			if dot.x < -CONFIG.dotSize * rpx then
+				dot.alive = false
+				dot.disc.Visible = false
+			elseif (dot.x - fryX) ^ 2 + (y - fryY) ^ 2 <= reach * reach then
+				eat(dot, now)
+			else
+				dot.disc.Position = UDim2.fromOffset(dot.x, y)
+			end
+		end
+	end
+
+	for i, ray in rays do
+		ray.Rotation = 16 + 3 * math.sin(now * 0.25 + i * 1.3)
+		ray.BackgroundTransparency = 0.86 + 0.05 * math.sin(now * 0.4 + i * 2.1)
+	end
+end
+
+-- Minimum set -----------------------------------------------------------------------------------
+
+local mode: string? = nil -- "full" | "partial" | "minimal" (see the header)
+local worldLoaded = false
+local essentialsDone, restDone, restAbandoned = false, false, false
+local stepsDone = 0 -- the world, then each asset; the shell is counted when it is in
+local stepsTotal = 2 + #ESSENTIAL + #REST
+
+local function shellReady(): boolean
+	return shellLoaded or workspace:FindFirstChild("Collision") ~= nil or j() >= CONFIG.shellTimeout
+end
+
+-- Preloads `items` side by side; each counts one step as it finishes, missing ones at once.
+local function preload(items: { Instance }, missing: number)
+	stepsDone += missing
+	local left = #items
+	for _, item in items do
+		task.spawn(function()
+			pcall(function()
+				ContentProvider:PreloadAsync({ item })
+			end)
+			stepsDone += 1
+			left -= 1
+		end)
+	end
+	while left > 0 do
+		task.wait()
+	end
+end
+
+task.spawn(function()
+	if not game:IsLoaded() then
+		game.Loaded:Wait()
+	end
+	worldLoaded = true
+	stepsDone += 1
+	local assets = ReplicatedStorage:FindFirstChild("Assets")
+	local absent: { string } = {}
+	local function find(names: { string }): ({ Instance }, number)
+		local found: { Instance } = {}
+		for _, name in names do
+			local item = if assets then assets:FindFirstChild(name, true) else nil
+			if item then
+				found[#found + 1] = item
+			else
+				absent[#absent + 1] = name
+			end
+		end
+		return found, #names - #found
+	end
+	local essential, essentialMissing = find(ESSENTIAL)
+	local rest, restMissing = find(REST)
+	script:SetAttribute("LoadMissing", table.concat(absent, ","))
+
+	local musicSource = if assets then assets:FindFirstChild("MUS_Nursery", true) else nil
+	if musicSource and musicSource:IsA("Sound") then
+		local track = musicSource:Clone()
+		track.Name = "LoadingMusic"
+		track.Looped = true
+		local volume = track.Volume
+		track.Volume = 0
+		track.Parent = SoundService
+		track:Play()
+		TweenService:Create(track, TweenInfo.new(CONFIG.musicFadeIn), { Volume = volume }):Play()
+	end
+	local bite = if assets then assets:FindFirstChild("SFX_Bite_Small", true) else nil
+	if bite and bite:IsA("Sound") then
+		biteSound = bite
+	end
+
+	preload(essential, essentialMissing)
+	essentialsDone = true
+	if restAbandoned then
+		return -- J 15 passed: everything but the essentials is left to stream later (04 §2.4)
+	end
+	preload(rest, restMissing)
+	restDone = true
+end)
+
+-- 04 §2.4: decides `mode` once; called every frame until it is set.
+local function decide()
+	local t = j()
+	local startable = worldLoaded and shellReady() and essentialsDone
+	if t >= CONFIG.minimalAt and not startable then
+		restAbandoned = true
+	end
+	if not startable then
+		return
+	end
+	if restDone then
+		mode = "full"
+	elseif restAbandoned then
+		mode = "minimal"
+	elseif t >= CONFIG.partialAt then
+		mode = "partial"
+	end
+	if mode then
+		shellConnection:Disconnect()
+		script:SetAttribute("LoadMode", mode)
+	end
+end
+
+local fillInfo = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local dimmed = false
+local function showProgress()
+	local share = if mode then 1 else (stepsDone + (if shellReady() then 1 else 0)) / stepsTotal
+	local lit = math.floor(share * CONFIG.bubbles + 1e-6)
+	for i, b in bubbles do
+		if i <= lit and not b.full then
+			b.full = true
+			b.disc.BackgroundTransparency = 0.2
+			b.pop.Scale = 1.3
+			TweenService:Create(b.pop, fillInfo, { Scale = 1 }):Play()
+		end
+	end
+	-- 04 §2.4 at J 20: the profile is late (the server sets `Slot` once it has loaded).
+	local late = j() >= CONFIG.dimAt and player:GetAttribute("Slot") == nil
+	if late ~= dimmed then
+		dimmed = late
+		local colour = if late then COLOUR.dim else COLOUR.white
+		for _, b in bubbles do
+			b.disc.BackgroundColor3 = colour
+			b.rim.Color = colour
+		end
+	end
+	if j() >= CONFIG.slowAt and not slow.Visible then
+		slow.Visible = true
+	end
+end
+
+local function creatureHere(): boolean
+	local character = player.Character
+	return character ~= nil and character.PrimaryPart ~= nil
+end
+
+-- Exit ------------------------------------------------------------------------------------------
+
+local function exit()
+	for _, connection in inputConnections do
+		connection:Disconnect()
+	end
+	-- Everything fades while bubbles rise out of the screen (04 §2.2); input is never sunk, so
+	-- steering works at once (08 §8.1).
+	local info = TweenInfo.new(CONFIG.exitTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	for _, item in background:GetDescendants() do
+		if item:IsA("TextLabel") then
+			TweenService:Create(item, info, { TextTransparency = 1 }):Play()
+		elseif item:IsA("Frame") then
+			TweenService:Create(item, info, { BackgroundTransparency = 1 }):Play()
+		elseif item:IsA("UIStroke") then
+			TweenService:Create(item, info, { Transparency = 1 }):Play()
+		end
+	end
+	TweenService:Create(background, info, { BackgroundTransparency = 1 }):Play()
+	local rise = TweenInfo.new(CONFIG.exitTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	for _ = 1, CONFIG.splitBubbles do
+		local size = (24 + 56 * math.random()) * rpx
+		local x, y = width * math.random(), height * (0.15 + 0.85 * math.random())
+		local split = frame("Split", gui, COLOUR.white, 0.55)
+		split.AnchorPoint = Vector2.new(0.5, 0.5)
+		split.Position = UDim2.fromOffset(x, y)
+		split.Size = UDim2.fromOffset(size * 0.6, size * 0.6)
+		split.ZIndex = 5
+		round(split)
+		local rim = stroke(split, COLOUR.white)
+		rim.Thickness = math.max(1.5, 2.7 * rpx)
+		TweenService:Create(split, rise, {
+			Position = UDim2.fromOffset(x + (math.random() - 0.5) * 40 * rpx, y - height * 0.22),
+			Size = UDim2.fromOffset(size, size),
+			BackgroundTransparency = 1,
+		}):Play()
+		TweenService:Create(rim, rise, { Transparency = 1 }):Play()
+	end
+	task.delay(CONFIG.exitTime, function()
+		gui:Destroy()
+	end)
+end
+
+local frameConnection: RBXScriptConnection
+frameConnection = RunService.PreRender:Connect(function(dt: number)
+	local now = os.clock()
+	if not mode then
+		decide()
+	end
+	showProgress()
+	stepToy(dt, now)
+	if slow.Visible then
+		spinner.Rotation = (now * 300) % 360
+	end
+	if mode and creatureHere() and not (studio and script:GetAttribute("DevHold") == true) then
+		frameConnection:Disconnect()
+		script:SetAttribute("LoadDone", true)
+		exit()
+	end
+end)
