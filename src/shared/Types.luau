@@ -505,6 +505,7 @@ export type ProfileData = {
 		completed: boolean,
 		version: number, -- tutorial version the account saw, currently 1
 		attempts: number, -- +1 each time the tutorial restarts before the first bank
+		logged: number, -- once-per-account first-time events sent (AnalyticsRules.ONCE bits)
 	},
 	ab: { [string]: string }, -- experiment key → arm, copied at first exposure
 	settings: {

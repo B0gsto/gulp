@@ -224,7 +224,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 |---|---|
 | On screen | Close on a pale egg on sea grass. It wobbles twice, cracks, and the Fry pops out with a stretch. Swarm A is already visible ahead. |
 | Player does | Nothing needed. Any touch after 0.4 s ends the hatch and gives control at once. |
-| Game does | Plays `A_Minnow_Hatch`. Gives control at 1.5 s. |
+| Game does | Plays `A_Fish_Hatch`. Gives control at 1.5 s. |
 | Prompt | None |
 | Sound | `SFX_Hatch` (a soft pop and a squeak). `MUS_Nursery` base layer continues from the loading screen. |
 | Camera | Starts 8 studs from the egg, low. Pulls back to the tier 1 follow distance (14 studs **(tune)**; chapter 02, section 3.1 owns the camera table) over 1.5 s and settles behind the Fry facing Swarm A. |

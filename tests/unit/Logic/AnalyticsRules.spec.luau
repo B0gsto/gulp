@@ -190,3 +190,77 @@ describe("AnalyticsRules: budget, repeats and cohorts (10 §2.3, §2.4)", functi
 		expect(AnalyticsRules.cohort(5, created, 107 * day)).toBe("d7p")
 	end)
 end)
+
+describe("AnalyticsRules: first-time values (10 §3.3, §4.2)", function()
+	it("buckets each ftue_milestone at its bounds, edges in the lower bucket", function()
+		local cases: { { any } } = {
+			{ "bite", 0, "bite_le5" },
+			{ "bite", 5, "bite_le5" },
+			{ "bite", 5.1, "bite_le10" },
+			{ "bite", 20, "bite_le20" },
+			{ "bite", 20.1, "bite_gt20" },
+			{ "tier2", 30, "tier2_le30" },
+			{ "tier2", 44, "tier2_le45" },
+			{ "tier2", 61, "tier2_gt60" },
+			{ "trait", 45, "trait_le45" },
+			{ "trait", 90, "trait_le90" },
+			{ "trait", 91, "trait_gt90" },
+			{ "bank", 89, "bank_le90" },
+			{ "bank", 150, "bank_le180" },
+			{ "bank", 400, "bank_gt180" },
+		}
+		for _, case in cases do
+			local ctx = AnalyticsRules.milestoneCtx(case[1], case[2])
+			expect(ctx).toBe(case[3])
+			expect((AnalyticsRules.checkEvent("ftue_milestone", case[2], ctx))).toBe(true)
+		end
+		expect(AnalyticsRules.milestoneCtx("dash", 3)).toBe(nil)
+	end)
+
+	it("lists the six fs_time_mark marks in order, each a dictionary value", function()
+		local want = { s60 = 60, s180 = 180, m5 = 300, m10 = 600, m15 = 900, m25 = 1500 }
+		expect(#AnalyticsRules.TIME_MARKS).toBe(6)
+		local last = 0
+		for _, mark in AnalyticsRules.TIME_MARKS do
+			expect(mark.at).toBe(want[mark.ctx])
+			expect(mark.at > last).toBe(true)
+			last = mark.at
+			expect((AnalyticsRules.checkEvent("fs_time_mark", 1, mark.ctx))).toBe(true)
+		end
+	end)
+
+	it("keeps once-per-account events as bits, one per ftue_failsafe ctx and milestone", function()
+		local logged = 0
+		expect(AnalyticsRules.isLogged(logged, "failsafe_afk_hold")).toBe(false)
+		logged = AnalyticsRules.withLogged(logged, "failsafe_afk_hold")
+		expect(AnalyticsRules.isLogged(logged, "failsafe_afk_hold")).toBe(true)
+		expect(AnalyticsRules.isLogged(logged, "failsafe_grow_burst")).toBe(false)
+		expect(AnalyticsRules.withLogged(logged, "failsafe_afk_hold")).toBe(logged)
+		expect(AnalyticsRules.withLogged(logged, "nonsense")).toBe(logged)
+		-- Every ftue_failsafe ctx has a bit, and all bits fit a saved number.
+		local seen: { [string]: boolean } = {}
+		for _, key in AnalyticsRules.ONCE do
+			expect(seen[key]).toBe(nil)
+			seen[key] = true
+		end
+		for _, ctx in AnalyticsRules.EVENTS.ftue_failsafe.ctx :: { string } do
+			expect(seen["failsafe_" .. ctx]).toBe(true)
+		end
+		for _, id in { "bite", "tier2", "trait", "bank" } do
+			expect(seen["milestone_" .. id]).toBe(true)
+		end
+		expect(#AnalyticsRules.ONCE <= 32).toBe(true)
+		-- The order is the saved bit order (append only): the fixture's 1569 reads back.
+		expect(AnalyticsRules.ONCE[1]).toBe("failsafe_load_partial")
+		expect(AnalyticsRules.isLogged(1569, "failsafe_load_partial")).toBe(true)
+		expect(AnalyticsRules.isLogged(1569, "failsafe_afk_hold")).toBe(true)
+		expect(AnalyticsRules.isLogged(1569, "milestone_bite")).toBe(true)
+		expect(AnalyticsRules.isLogged(1569, "milestone_tier2")).toBe(true)
+		expect(AnalyticsRules.isLogged(1569, "milestone_trait")).toBe(false)
+	end)
+
+	it("rounds a time value to tenths and never below zero", function()
+		expect(AnalyticsRules.seconds(12.34)).toBe(12.3)
+		expect(AnalyticsRules.seconds(-2)).toBe(0)
+	end)
+end)

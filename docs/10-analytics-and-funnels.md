@@ -449,7 +449,7 @@ Overall target, step 5 ÷ step 1: 3%. There is no separate dismissal event: a ca
 | `ftue_milestone` | T in seconds | `bite_le5`, `bite_le10`, `bite_le20`, `bite_gt20`; `tier2_le30`, `tier2_le45`, `tier2_le60`, `tier2_gt60`; `trait_le45`, `trait_le60`, `trait_le90`, `trait_gt90`; `bank_le90`, `bank_le120`, `bank_le180`, `bank_gt180` | Once each for first bite, tier 2, first trait and first bank in run 1 | [MVP] |
 | `ftue_bite_assist` | T | — | The first bite happened with no player input before it | [MVP] |
 | `ftue_first_dash` | T | `manual` or `auto` | First dash on the account | [MVP] |
-| `ftue_failsafe` | T | `load_partial`, `load_minimal`, `grow_homing`, `grow_burst`, `trait_homing`, `afk_hold`, `run2_homing`, `home_lure`, `home_push` | A fail-safe from chapter 04 starts (once each per account) | [MVP] |
+| `ftue_failsafe` | T; J at `ClientReady` for `load_partial` and `load_minimal`, which start before control | `load_partial`, `load_minimal`, `grow_homing`, `grow_burst`, `trait_homing`, `afk_hold`, `run2_homing`, `home_lure`, `home_push` | A fail-safe from chapter 04 starts (once each per account, kept across sessions in the profile's `ftue.logged`, 09 §12.2, as are `ftue_milestone` and `ftue_bite_assist`); the load ones only for an account in the first-time experience | [MVP] |
 | `ftue_chase_result` | Manual dashes during the chase | `clean`, `assisted`, `retreated`, `skipped` | The chase ends | [MVP] |
 | `ftue_shield_end` | T | `banked` or `timeout` | The first-run shield ends | [MVP] |
 | `ftue_end` | T | `completed`, or `left_s0` to `left_s10` (the stage at disconnect) | The first bank completes the FTUE, or the player leaves before it | [MVP] |

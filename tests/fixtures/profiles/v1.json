@@ -169,7 +169,8 @@
 		"stage": 9,
 		"completed": true,
 		"version": 1,
-		"attempts": 1
+		"attempts": 1,
+		"logged": 1569
 	},
 	"ab": {
 		"exp_first_goal": "b"

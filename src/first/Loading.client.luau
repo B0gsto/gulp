@@ -22,6 +22,8 @@
 --   J 45  the profile failed: the server's rule (09 §12.4), nothing here.
 --
 -- Hand-over, through attributes on this script:
+--   `LoadShown` true from the screen's first frame: Client.Main sends `TutorialStep` 2, onboarding
+--               step 02 (10 §3.1), since the remotes are not here yet.
 --   `LoadMode`  "full" | "partial" | "minimal", set once when the minimum set is ready (or the
 --               slow-load rule starts anyway). Client.Main sends `ClientReady` on it; the server
 --               spawns the creature and the tutorial leaves S0_LOADING (04 §3.1).
@@ -1019,9 +1021,14 @@ local function exit()
 	end)
 end
 
+local shownMarked = false
 local frameConnection: RBXScriptConnection
 frameConnection = RunService.PreRender:Connect(function(dt: number)
 	local now = os.clock()
+	if not shownMarked then
+		shownMarked = true
+		script:SetAttribute("LoadShown", true) -- the first frame (see the header)
+	end
 	if not mode then
 		decide()
 	end
