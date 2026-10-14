@@ -36,6 +36,7 @@ local rayParams: RaycastParams
 local fallbackZone: ZoneId = Index.Zones.list[1].id
 
 function WorldIndex.init()
+	byKind, safeVolumes, zones, points = {}, {}, {}, {} -- a second init starts clean
 	CollisionGroups.register()
 	local shell = workspace:FindFirstChild("Collision")
 	if shell then

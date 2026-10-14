@@ -2,8 +2,13 @@
 -- Engine-side spec of WorldIndex on the CI place's test arena (docs/09, sections 5.1, 6.5 and
 -- 9.1; the arena is in ci.project.json). The arithmetic is covered in Lune by tests/unit/Logic;
 -- this checks what needs the engine: the collision groups, reading and destroying the tagged
--- parts, the rays of the height field and the segment test. Main.server has already run
--- WorldIndex.init and start, so the queries see the arena's volumes.
+-- parts, the rays of the height field and the segment test.
+--
+-- RunAll runs through MCP or Open Cloud in its own Luau VM, so its `require` of WorldIndex is not
+-- the instance Main.server started, and Main has already destroyed the arena's tagged parts. The
+-- spec therefore re-authors the arena's volumes from VOLUMES (a copy of the Volumes folder in
+-- ci.project.json; keep the two equal) and runs WorldIndex.init in this VM. The collision shell is
+-- never destroyed, so the floor and segment checks use the arena itself.
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,8 +26,117 @@ local describe, it, expect = TestKit.describe, TestKit.it, TestKit.expect
 local FLOOR_TOP = -100 -- the arena floor's top face
 local ROCK_TOP = -40 -- the rock spans X 40 to 80, Z -80 to -40, from the floor to here
 
+local IDENTITY = CFrame.identity
+local UPRIGHT = CFrame.fromMatrix(Vector3.zero, Vector3.yAxis, -Vector3.xAxis, Vector3.zAxis)
+
+-- ci.project.json's Workspace.Volumes, one part per row.
+type Attrs = { [string]: string | number }
+type Row = { name: string, shape: Enum.PartType, cf: CFrame, size: Vector3, attrs: Attrs }
+
+local function row(
+	name: string,
+	shape: Enum.PartType,
+	at: Vector3,
+	size: Vector3,
+	rotation: CFrame,
+	attrs: Attrs
+): Row
+	return { name = name, shape = shape, cf = CFrame.new(at) * rotation, size = size, attrs = attrs }
+end
+
+local VOLUMES: { Row } = {
+	row(
+		"ZoneReef",
+		Enum.PartType.Block,
+		Vector3.new(0, -50, 0),
+		Vector3.new(512, 100, 512),
+		IDENTITY,
+		{ Kind = "Zone", ZoneId = "reef" }
+	),
+	row(
+		"ZoneNursery",
+		Enum.PartType.Ball,
+		Vector3.new(-150, -50, -150),
+		Vector3.new(80, 80, 80),
+		IDENTITY,
+		{ Kind = "Zone", ZoneId = "nursery" }
+	),
+	row(
+		"SafeNursery",
+		Enum.PartType.Ball,
+		Vector3.new(-150, -50, -150),
+		Vector3.new(80, 80, 80),
+		IDENTITY,
+		{ Kind = "SafeNursery" }
+	),
+	row(
+		"ZoneKelp",
+		Enum.PartType.Block,
+		Vector3.new(420, -50, 0),
+		Vector3.new(200, 100, 200),
+		IDENTITY,
+		{ Kind = "Zone", ZoneId = "kelp" }
+	),
+	row(
+		"CoveMouth3",
+		Enum.PartType.Cylinder,
+		Vector3.new(150, -50, 150),
+		Vector3.new(20, 30, 30),
+		UPRIGHT,
+		{ Kind = "CoveMouth", CoveIndex = 3 }
+	),
+	row(
+		"CoveInterior3",
+		Enum.PartType.Block,
+		Vector3.new(150, -50, 180),
+		Vector3.new(20, 20, 20),
+		IDENTITY,
+		{ Kind = "CoveInterior", CoveIndex = 3 }
+	),
+	row(
+		"HazardJelly",
+		Enum.PartType.Ball,
+		Vector3.new(-150, -50, 150),
+		Vector3.new(30, 30, 30),
+		IDENTITY,
+		{ Kind = "Hazard", HazardId = "jelly_bloom" }
+	),
+}
+
+-- Authors the arena's volumes and revive points again when Main has already read them, then
+-- initialises this VM's WorldIndex from them.
+local function initArena()
+	if #CollectionService:GetTagged("Volume") == 0 then
+		local folder = Instance.new("Folder")
+		folder.Name = "SpecVolumes"
+		local rows = table.clone(VOLUMES)
+		for _, def in Index.RevivePoints.list do
+			local at = Vector3.new(def.x, -def.depth, def.z)
+			local attrs: Attrs = { Kind = "RevivePoint", PointId = def.id }
+			table.insert(
+				rows,
+				row(def.id, Enum.PartType.Ball, at, Vector3.new(4, 4, 4), IDENTITY, attrs)
+			)
+		end
+		for _, r in rows do
+			local part = Instance.new("Part")
+			part.Name, part.Shape, part.Size, part.CFrame = r.name, r.shape, r.size, r.cf
+			part.Anchored, part.CanCollide, part.CanQuery, part.Transparency = true, false, false, 1
+			for key, value in r.attrs do
+				part:SetAttribute(key, value)
+			end
+			part:AddTag("Volume")
+			part.Parent = folder
+		end
+		folder.Parent = workspace
+	end
+	WorldIndex.init()
+end
+
 return function()
 	describe("WorldIndex (engine, test arena)", function()
+		initArena()
+
 		it("registered the five groups of 6.5 with its collision matrix", function()
 			for _, name in CollisionGroups.NAMES do
 				expect(PhysicsService:IsCollisionGroupRegistered(name)).toBe(true)
