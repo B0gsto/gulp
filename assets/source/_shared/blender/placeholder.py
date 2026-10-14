@@ -178,7 +178,11 @@ def texture(name, row):
             hexcode = name_colour(name)                      # 07 16: a different flat tint per pattern
         if parts[1] == "Trait" and len(parts) > 3 and parts[2] != "Pieces":
             hexcode, label = name_colour(parts[2], ("rarity", "creatures")), parts[2].upper()   # trait name in big letters
-        users = texture_users(name) if "atlas" in row.get("Description", "").lower() else []
+        desc = row.get("Description", "").lower()
+        users = texture_users(name) if ("atlas" in desc or " cells" in desc) else []
+        stale = path.replace(".png", ".atlas.json")
+        if len(users) <= 1 and os.path.exists(stale):
+            os.remove(stale)             # a texture that is not an atlas has no cells (a stale file would misplace UVs)
         if len(users) > 1:                   # a shared atlas: one stamped cell per mesh that uses it
             n = math.ceil(math.sqrt(len(users)))
             cell = size // n
@@ -187,7 +191,6 @@ def texture(name, row):
             for u in users:
                 r = rects[u]
                 img.paste(texgen.flat(cell, mesh_colour(u), u.split("_", 2)[-1]), (int(r[0] * size), int((1.0 - r[3]) * size)))
-            texgen.stamp(img, None)
             write_json(path.replace(".png", ".atlas.json"), {"texture": name, "cells": rects})
             note = "atlas of %d stamped %d px cells (texgen.atlas_rects)" % (len(users), cell)
         else:
@@ -514,6 +517,7 @@ def mesh_spec(name, row):
     rect = tuple(tex.get("rect") or ((0.0, 0.5, 1.0, 1.0) if cat == "Species" else (0.0, 0.0, 1.0, 1.0)))
     uvlayout.project(obj, rect, tex.get("size", 256), "box" if cat in ("Env", "Cove", "Prop", "Trait") else "side")
     if tex.get("path"):
+        spec["ph_texture"] = tex["path"]
         obj.data.materials.clear()
         obj.data.materials.append(textured_material("MAT_" + name, tex["path"]))
     spec["texture_note"] = "%s, cell %s" % (tex.get("name"), ", ".join("%.3f" % x for x in rect)) if tex else "none in 07"

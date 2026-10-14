@@ -100,7 +100,7 @@ def run(build_file, steps, builder=None):
             print("[run] validation failed: nothing exported")
     if "preview" in steps:
         result["preview"] = preview.run(spec, report, ok)
-        if spec.get("versions_made") or spec.get("uv"):
+        if True:   # every asset: its versions, or the 07 1.2 reason it has none
             result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
     if "build" in steps and asset_dir:
         blend = os.path.join(asset_dir, asset_id + ".blend")

@@ -596,10 +596,13 @@ def review_sheet(spec, report, ok):
         obj = e["object"]
         shells = [by_name[n] for n in spec.get("versions_made", []) if by_name[n]["role"] == "shell"
                   and by_name[n].get("of") == obj.name]
-        variants = [("", [obj])] + [(s["object"].name.replace(obj.name, ""), [obj, s["object"]]) for s in shells]
+        variants = [("", [obj])]
+        for sh in shells:
+            suffix = sh["object"].name.replace(obj.name, "")
+            variants += [(suffix, [obj, sh["object"]]), (suffix + " alone", [sh["object"]])]
         for suffix, objs in variants:
             label = (obj.name.replace(name, "") or "LOD0") + suffix
-            path = os.path.join(tmp, "%s.png" % label.strip("_"))
+            path = os.path.join(tmp, "%s.png" % label.strip("_").replace(" ", "_"))
             preview.shot("Side", objs, path, frame=objs)
             tris = "; ".join("%d tris" % triangles(o.data) for o in objs[-1:])
             extra = by_name[objs[-1].name]
@@ -611,6 +614,12 @@ def review_sheet(spec, report, ok):
         cells.append({"title": "UV layout", "uv": uvlayout.review_image(spec, None),
                       "caption": ["density %s px/stud" % ", ".join("%s %s" % (e["object"].name.replace(name, "") or "LOD0", e["texel_density"])
                                                                   for e in spec["meshes"] if e.get("texel_density"))]})
+    if not spec.get("versions_made"):
+        p = plan(spec)
+        cells[0]["caption"] = cells[0].get("caption", []) + [
+            "no LODs or shells for %s: 07 1.2 / 06 6.4 (%s)" % (spec.get("category"),
+            "scenery uses the engine's automatic versions" if spec.get("category") in ("Env", "Cove", "Prop", "Trait", "Hazard")
+            else "lods %s, shells %s" % (p["lods"] or "none", p["shells"] or "none"))]
     out = os.path.join(common.review_dir(name), "%s_versions.png" % common.today())
     failures = report.failures()
     job = {"grid": True, "out": out, "cols": 4, "cells": cells,
