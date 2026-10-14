@@ -4,7 +4,8 @@
 --
 --   phase   cove ──leave home──▶ run ──gulped──▶ dead ──respawned──▶ cove
 --                ◀─enter home, mass < 1 (cancel)
---           In a run, entering the own cove armed (mass ≥ 1) banks (02 §0.7, §11; S5-C3).
+--           In a run, entering the own cove armed (mass ≥ 1) banks and ends it: back to cove
+--           (02 §0.7, §11; S5-C3).
 --   home    where the run starts: the Nursery for an account that has never banked (its first
 --           run, canon 5.5), the own cove for every later run, a respawn included.
 --   respawn gulped at g, the creature waits (no timeout) for the "Swim again" tap (`RunAction`
@@ -31,6 +32,8 @@ RunRules.TIER_GRACE_SECONDS = D.tierGraceSeconds
 RunRules.TIER_UP_PROTECT_SECONDS = D.tierUpProtectSeconds
 RunRules.RETURN_PROTECT_SECONDS = D.returnProtectSeconds
 RunRules.RETURN_CLEAR_RADIUS = D.returnClearRadius
+RunRules.SUSPEND_SECONDS = D.suspendSeconds
+RunRules.SHUTDOWN_SUSPEND_SECONDS = D.shutdownSuspendSeconds
 
 --- The `Phase` attribute (09 §5.3). 02 §0.6's base states map onto it: `InCove` is cove, every
 --- in-run state is run, `Gulped` is dead.
@@ -74,8 +77,12 @@ function RunRules.transition(phase: Phase, event: Event, mass: number): (Phase, 
 			return "dead", "gulp"
 		elseif event == "enteredCove" or event == "enteredNursery" then
 			if BankMath.armed(mass) then
-				-- Banking happens only at the own cove (02 §11); the Nursery keeps the run going.
-				return "run", if event == "enteredCove" then "bank" else nil
+				-- Banking happens only at the own cove (02 §11) and ends the run there (02 §0.7
+				-- item 4); the Nursery keeps the run going.
+				if event == "enteredCove" then
+					return "cove", "bank"
+				end
+				return "run", nil
 			end
 			return "cove", "cancel" -- 02 §0.7 item 3: silently, counted nowhere
 		end
@@ -149,6 +156,36 @@ function RunRules.returnPoint(
 	end
 	local nearest = order[1]
 	return points[nearest], nearest -- none clear: the nearest anyway; protection covers it
+end
+
+--- The saved-run fields `atJoin` reads (Types.RunSnapshot).
+export type SavedRun = {
+	suspendedAt: number?,
+	expiresAt: number?,
+	onExpiry: ("scraps" | "bank_pearls")?,
+}
+export type JoinVerdict = "resume" | "settle"
+
+--- What a joining player's saved `run` becomes (09 §12.5), tested once when the profile loads:
+--- "settle" when `now ≥ expiresAt` (pay `onExpiry`, no specimen), else "resume". A run with no
+--- `suspendedAt` was left by a crash: it is read as a shutdown at `lastSeenAt` (expiry
+--- `lastSeenAt + 900`, paying "bank_pearls"). Returns the verdict and what an expiry pays.
+function RunRules.atJoin(
+	run: SavedRun,
+	now: number,
+	lastSeenAt: number
+): (JoinVerdict, "scraps" | "bank_pearls")
+	local expiresAt = run.expiresAt
+	local pays: "scraps" | "bank_pearls" = if run.onExpiry == "bank_pearls"
+		then "bank_pearls"
+		else "scraps"
+	if run.suspendedAt == nil then
+		expiresAt, pays = lastSeenAt + RunRules.SHUTDOWN_SUSPEND_SECONDS, "bank_pearls"
+	end
+	if expiresAt == nil or now >= expiresAt then
+		return "settle", pays
+	end
+	return "resume", pays
 end
 
 return RunRules

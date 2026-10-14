@@ -187,4 +187,35 @@ describe("CoveRules view and assignment", function()
 			expect(order[21]).toBe(near[21])
 		end
 	)
+	it(
+		"lays out each cove's mouth and chamber volumes from its mouth (03 §6.7, §6.10)",
+		function()
+			local CoveMouths = require("../../../src/shared/Data/Generated/CoveMouths")
+			expect(#CoveMouths).toBe(24)
+			local centres = {}
+			for _, def in CoveMouths do
+				local mouth, room = CoveRules.volumes(def.x, def.z)
+				expect(mouth.y).toBe(-30)
+				expect(room.y).toBe(-30) -- floor at depth 52, ceiling at depth 8
+				-- The mouth plane is the throat's front face, at the data's mouth centre.
+				local fx, fz = mouth.x + mouth.lookX * 12.5, mouth.z + mouth.lookZ * 12.5
+				expect(math.abs(fx - def.x) < 1e-6 and math.abs(fz - def.z) < 1e-6).toBe(true)
+				-- The chamber starts where the throat ends, 25 + 55 studs out.
+				local dx, dz = room.x - def.x, room.z - def.z
+				expect(math.abs(math.sqrt(dx * dx + dz * dz) - 80) < 1e-6).toBe(true)
+				expect(math.abs(mouth.lookX ^ 2 + mouth.lookZ ^ 2 - 1) < 1e-9).toBe(true)
+				expect(mouth.size[1] >= 30).toBe(true) -- 02 §11.1: a tier 7 creature fits
+				table.insert(centres, room)
+			end
+			-- Neighbouring chambers (11° apart, 77 to 84 studs at the mouths) never overlap: the
+			-- nearest chamber centres are farther apart than the 76-stud width.
+			for i, a in centres do
+				for j, b in centres do
+					if i < j then
+						expect(math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2) > 76).toBe(true)
+					end
+				end
+			end
+		end
+	)
 end)

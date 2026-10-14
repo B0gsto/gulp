@@ -43,7 +43,7 @@ describe("RunRules (canon 5.5; 02 §0.7, §12; 09 §6.3)", function()
 
 	it("banks an armed run at the own cove, and only there", function()
 		local phase, outcome = RunRules.transition("run", "enteredCove", 1)
-		expect(phase).toBe("run")
+		expect(phase).toBe("cove") -- the bank ends the run (02 §0.7 item 4)
 		expect(outcome).toBe("bank")
 		phase, outcome = RunRules.transition("run", "enteredNursery", 25)
 		expect(phase).toBe("run")
@@ -130,5 +130,28 @@ describe("RunRules (canon 5.5; 02 §0.7, §12; 09 §6.3)", function()
 			local _, index2 = RunRules.returnPoint(p(0, 0, 0), points, { p(0, 30, 30) }, 50)
 			expect(index2).toBe(2)
 		end)
+	end)
+	it("settles or resumes a saved run at join (09 §12.5)", function()
+		local suspended = { suspendedAt = 1000, expiresAt = 1300, onExpiry = "scraps" :: "scraps" }
+		local verdict, pays = RunRules.atJoin(suspended, 1299, 900)
+		expect(verdict).toBe("resume")
+		expect(pays).toBe("scraps")
+		verdict = RunRules.atJoin(suspended, 1300, 900)
+		expect(verdict).toBe("settle") -- now ≥ expiresAt
+		local shutdown = {
+			suspendedAt = 1000,
+			expiresAt = 1900,
+			onExpiry = "bank_pearls" :: "bank_pearls",
+		}
+		verdict, pays = RunRules.atJoin(shutdown, 2000, 900)
+		expect(verdict).toBe("settle")
+		expect(pays).toBe("bank_pearls")
+		-- A crash: no suspendedAt, read as a shutdown at lastSeenAt (+ 900, bank_pearls).
+		verdict, pays = RunRules.atJoin({}, 1000 + RunRules.SHUTDOWN_SUSPEND_SECONDS - 1, 1000)
+		expect(verdict).toBe("resume")
+		expect(pays).toBe("bank_pearls")
+		verdict = RunRules.atJoin({}, 1000 + RunRules.SHUTDOWN_SUSPEND_SECONDS, 1000)
+		expect(verdict).toBe("settle")
+		expect(RunRules.SUSPEND_SECONDS).toBe(300)
 	end)
 end)

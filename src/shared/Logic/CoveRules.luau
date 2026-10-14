@@ -334,4 +334,50 @@ function CoveRules.preference(banks: number): { number }
 	return out
 end
 
+-- The two volumes of every cove (09 §9.1 `CoveMouth` and `CoveInterior`, `CoveIndex` = the cove
+-- number; 02 §11.1: together they are `CoveSafe`, from the mouth plane in). Sizes are 03's: the
+-- mouth opening 36 wide × 28 high centred at depth 30 on the Rim's inner face, then a 25-stud throat
+-- (§6.7); the chamber 76 wide × 44 high × 110 long behind it, floor at depth 52 and ceiling at depth
+-- 8 (§6.10). Each cove runs straight out from the Reef's centre through its mouth.
+CoveRules.MOUTH_SIZE = table.freeze({ 36, 28, 25 }) -- width, height, throat length
+CoveRules.CHAMBER_SIZE = table.freeze({ 76, 44, 110 }) -- width, height, length
+CoveRules.MOUTH_DEPTH = 30
+
+--- One box volume: its centre, the horizontal look vector of the part (toward the Reef, as the
+--- cove art's mouth faces, 03 §6.7) and its size (X width, Y height, Z length along the look).
+export type BoxVolume = {
+	x: number,
+	y: number,
+	z: number,
+	lookX: number,
+	lookZ: number,
+	size: { number },
+}
+
+--- The `CoveMouth` (the throat, from the mouth plane in) and `CoveInterior` (the chamber) boxes
+--- of the cove whose mouth centre is (`mx`, `mz`) (data:CoveMouths). Y is up and the surface is
+--- Y 0, so depth d is Y −d.
+function CoveRules.volumes(mx: number, mz: number): (BoxVolume, BoxVolume)
+	local r = math.sqrt(mx * mx + mz * mz)
+	local ox, oz = mx / r, mz / r -- out from the centre, into the cove
+	local m, c = CoveRules.MOUTH_SIZE, CoveRules.CHAMBER_SIZE
+	local y = -CoveRules.MOUTH_DEPTH
+	local mouthMid, chamberMid = m[3] / 2, m[3] + c[3] / 2
+	return {
+		x = mx + ox * mouthMid,
+		y = y,
+		z = mz + oz * mouthMid,
+		lookX = -ox,
+		lookZ = -oz,
+		size = { m[1], m[2], m[3] },
+	}, {
+		x = mx + ox * chamberMid,
+		y = y,
+		z = mz + oz * chamberMid,
+		lookX = -ox,
+		lookZ = -oz,
+		size = { c[1], c[2], c[3] },
+	}
+end
+
 return table.freeze(CoveRules)
