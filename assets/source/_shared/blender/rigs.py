@@ -1,16 +1,55 @@
-"""Family skeletons. First version: RIG_Fish (docs/06-art-bible.md sections 6.3, 7 and 8.4).
+"""Family skeletons: RIG_Fish, final (task S1-A3; docs/06-art-bible.md sections 6.1, 6.3, 6.5, 7
+and 8.4; 07 row RIG_Fish).
 
-Bone names and counts are the bible's. The bible does not give a hierarchy or joint
-positions; the ones here are this tool's first fit and are open to the rig review:
-Root sits at the body centre, Spine2 -> Spine1 run forward to the head and
-Spine3 -> Spine4 -> TailFin run back, so sliding Spine1 and Spine4 apart stretches the
-body (06 section 7.5) and the swim wave grows from the middle to the tail.
+Bone names and counts are the bible's: 18 deform bones and 10 weightless sockets. The hierarchy,
+joint placement and weights are FishFit's (below), fitted to a family body (fishbody.py), and are
+the reference every Fish species uses: the base (families/fish) and the Minnow call the same fit.
+Root sits at the body centre, Spine2 -> Spine1 run forward to the head and Spine3 -> Spine4 ->
+TailFin run back, so sliding the Spine bones apart stretches the body (06 section 7.5) and the swim
+wave grows from the middle to the tail. weightcheck.py measures the skin at the squash, stretch and
+bite poses of the clips below.
 """
 import math
 
 import meshgen
+from fishbody import SPINE_NODES
 
 SPINE_ORDER = ("Spine1", "Spine2", "Spine3", "Spine4", "TailFin")
+CANON_NOSE, CANON_ROOT = -1.5, 0.95       # the family base body at scale 1 (fishshape.py): k = 1
+CANON_LENGTH = CANON_ROOT - CANON_NOSE
+SPINE_EASE = 0.35       # 0: linear hand-over (even stretch); 1: smoothstep (zero slope at the nodes)
+PIVOTS = {"Spine1": 0.37, "Spine2": 0.59, "Spine3": 0.63, "Spine4": 0.80, "TailFin": 0.95}   # bone heads, body fractions
+GIRTH_T, GIRTH_REACH, GIRTH_PEAK = SPINE_NODES[1], 0.30, 0.4   # centred on Spine2's node, soft over the middle 60% (06 7.5)
+JAW_T, LIP_Z = 0.22, -0.03    # the mouth corner (body fraction) and the lip line's height at k = 1
+GIRTH = ("Girth_Top", "Girth_Bot", "Girth_L", "Girth_R")
+
+
+def _girth_ref():
+    """Back height, belly depth and half width of the family base at the girth centre, k = 1."""
+    from fishshape import BODY
+    y = BODY.y(GIRTH_T)
+    return BODY.top(y), BODY.bot(y), BODY.half_w(y)
+
+
+GIRTH_REF = _girth_ref()
+
+
+def ramp(u, ease_in, ease_out):
+    """Share of the next spine bone at fraction u between two weight nodes. Between two bending
+    nodes the ramp is linear eased by SPINE_EASE, which keeps its slope equal on both sides of
+    every inner node (an even stretch has no corner there). Out of the rigid head (`ease_in`) and
+    into the rigid tail root (`ease_out`) it starts or ends with zero slope, so the stretch fades
+    in instead of starting at a ring: a cubic meeting the inner ramps' slope at the far end."""
+    u = max(0.0, min(1.0, u))
+    c = 1.0 - SPINE_EASE                  # the inner ramps' slope at a node, as a share of their mean
+    if ease_in and ease_out:
+        return smooth(u)
+    if ease_in:
+        return (3.0 - c) * u * u + (c - 2.0) * u ** 3
+    if ease_out:
+        v = 1.0 - u
+        return 1.0 - ((3.0 - c) * v * v + (c - 2.0) * v ** 3)
+    return u + SPINE_EASE * (smooth(u) - u)
 
 
 def smooth(t):
@@ -19,97 +58,146 @@ def smooth(t):
 
 
 class FishFit:
-    """RIG_Fish fitted to a body: `half_h(y)` and `half_w(y)` give the body's half height and
-    half width at station y; `eye` and `pec` are the left-side (+X) eye centre and fin root."""
+    """RIG_Fish fitted to a family body (fishbody.FishBody): the one source of the family's bone
+    placement and skin weights, used by the base and by every Fish species, so they cannot drift.
+    `eye` and `pec` are the left-side (+X) eye centre and pectoral root, `dorsal_tip` the back
+    fin's top (Sock_FinDorsal). Everything else is placed by body fractions (fishbody.SPINE_NODES,
+    the JAW_T, PIVOTS and GIRTH numbers below).
 
-    def __init__(self, length, half_h, half_w, eye, pec, dorsal_tip):
-        self.k = length / 3.0
-        self.half_h, self.half_w = half_h, half_w
+    Hierarchy: Root at the body centre; Spine2 -> Spine1 -> (Jaw, Eye_L/R, Lid_L/R) run forward,
+    Spine3 -> Spine4 -> TailFin run back; Dorsal and Pec_L/R hang on Spine2; the four Girth bones
+    hang on Root, the neutral middle between the front half and the back half, which bend opposite
+    ways in the dash's C (on Spine2 the girth dragged the back half's flank the wrong way). Every bone, sockets
+    included, rests with rotation 0 and roll 0 (06 section 6.1), so a pose's loc and rot are in the
+    creature's axes: -Y forward, +Z up, +X its left.
+
+    Weights (06 sections 6.5 and 7.5): along the body each vertex takes the two spine bones whose
+    weight nodes it lies between, blended by an eased linear ramp (no plateaus between nodes, so
+    sliding the Spine bones apart stretches the body evenly instead of creasing a narrow band; the
+    ease softens the slope change at a node, and the ramp out of the rigid head starts flat). The four Girth bones take up to GIRTH_PEAK over the middle of the
+    body with a falloff of zero slope at both ends, shared by the vertex's place in its section, so
+    that moving them in and out scales the section evenly. The lower jaw
+    takes the head below the lip line, with a sharp split across the lip (the mouth must open) and
+    a soft one along the body behind the mouth corner. Never Root, never a socket, at most four.
+    """
+
+    def __init__(self, body, eye, pec, dorsal_tip):
+        self.body = body
+        self.k = body.length / CANON_LENGTH
+        self.half_h, self.half_w = body.half_h, body.half_w
         self.eye, self.pec, self.dorsal_tip = eye, pec, dorsal_tip
-        k = self.k
-        self.bounds = (-0.85 * k, 0.0, 0.6 * k, 1.0 * k)   # where one spine bone hands over to the next
-        self.blend = 0.12 * k
-        self.blends = (0.28 * k, 0.32 * k, 0.12 * k, 0.12 * k)   # the mid-body hand-over is wide: no crease when the halves bend apart
-        self.girth_y, self.girth_reach = -0.3 * k, 0.55 * k
-        self.jaw_y = -0.95 * k
+        self.nodes = [body.y(t) for t in SPINE_NODES]
+        self.girth_y = body.y(GIRTH_T)
+        self.girth_reach = GIRTH_REACH * body.length
+        self.jaw_y = body.y(JAW_T)
+        self.lip_z = LIP_Z * self.k
 
     def bones(self):
-        k, hh, hw = self.k, self.half_h, self.half_w
+        b, k = self.body, self.k
         ex, ey, ez = self.eye
         px, py, pz = self.pec
         gy = self.girth_y
         up, out_l, out_r = (0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (-1.0, 0.0, 0.0)
 
-        def top(y):
-            return (0.0, y * k, hh(y * k))
+        def top(t):
+            return (0.0, b.y(t), b.top(b.y(t)))
+
+        def spine(name):
+            return (0.0, b.y(PIVOTS[name]), 0.0)
 
         deform = [
             ("Root", (0.0, 0.0, 0.0), None),
-            ("Spine2", (0.0, -0.05 * k, 0.0), "Root"),
-            ("Spine1", (0.0, -0.85 * k, 0.0), "Spine2"),
-            ("Spine3", (0.0, 0.05 * k, 0.0), "Root"),
-            ("Spine4", (0.0, 0.6 * k, 0.0), "Spine3"),
-            ("TailFin", (0.0, 1.0 * k, 0.0), "Spine4"),
-            ("Jaw", (0.0, self.jaw_y, -0.25 * hh(self.jaw_y)), "Spine1"),
-            ("Dorsal", top(-0.1), "Spine2"),
+            ("Spine2", spine("Spine2"), "Root"),
+            ("Spine1", spine("Spine1"), "Spine2"),
+            ("Spine3", spine("Spine3"), "Root"),
+            ("Spine4", spine("Spine4"), "Spine3"),
+            ("TailFin", spine("TailFin"), "Spine4"),
+            ("Jaw", (0.0, self.jaw_y, self.lip_z), "Spine1"),
+            ("Dorsal", (0.0, self.dorsal_tip[1], b.top(self.dorsal_tip[1])), "Spine2"),
             ("Pec_L", (px, py, pz), "Spine2"),
             ("Pec_R", (-px, py, pz), "Spine2"),
             ("Eye_L", (ex, ey, ez), "Spine1"),
             ("Eye_R", (-ex, ey, ez), "Spine1"),
             ("Lid_L", (ex, ey, ez), "Spine1"),
             ("Lid_R", (-ex, ey, ez), "Spine1"),
-            ("Girth_Top", (0.0, gy, hh(gy)), "Root"),
-            ("Girth_Bot", (0.0, gy, -hh(gy)), "Root"),
-            ("Girth_L", (hw(gy), gy, 0.0), "Root"),
-            ("Girth_R", (-hw(gy), gy, 0.0), "Root"),
+            ("Girth_Top", (0.0, gy, b.top(gy)), "Root"),
+            ("Girth_Bot", (0.0, gy, -b.bot(gy)), "Root"),
+            ("Girth_L", (b.half_w(gy), gy, 0.0), "Root"),
+            ("Girth_R", (-b.half_w(gy), gy, 0.0), "Root"),
         ]
+        flank = b.y(0.53)
         sockets = [
-            ("Sock_Back_01", top(-0.35), "Spine2", up),
-            ("Sock_Back_02", top(0.2), "Spine3", up),
-            ("Sock_Back_03", top(0.5), "Spine3", up),
-            ("Sock_Flank_L", (hw(-0.2 * k), -0.2 * k, 0.0), "Spine2", out_l),
-            ("Sock_Flank_R", (-hw(-0.2 * k), -0.2 * k, 0.0), "Spine2", out_r),
-            ("Sock_Head", top(-1.2), "Spine1", (0.0, -0.5, 1.0)),
-            ("Sock_Tail", top(0.85), "Spine4", (0.0, 0.5, 1.0)),
-            ("Sock_Crest", top(-0.7), "Spine2", up),
+            ("Sock_Back_01", top(0.47), "Spine2", up),
+            ("Sock_Back_02", top(0.69), "Spine3", up),
+            ("Sock_Back_03", top(0.81), "Spine4", up),
+            ("Sock_Flank_L", (b.half_w(flank), flank, 0.0), "Spine2", out_l),
+            ("Sock_Flank_R", (-b.half_w(flank), flank, 0.0), "Spine2", out_r),
+            ("Sock_Head", top(0.12), "Spine1", (0.0, -0.5, 1.0)),
+            ("Sock_Tail", top(0.94), "Spine4", (0.0, 0.5, 1.0)),
+            ("Sock_Crest", top(0.33), "Spine2", up),
             ("Sock_FinDorsal", self.dorsal_tip, "Dorsal", up),
-            ("Sock_FinTail", (0.0, 1.3 * k, 0.0), "TailFin", (0.0, 1.0, 0.0)),
+            ("Sock_FinTail", (0.0, b.root + 0.35 * k, 0.0), "TailFin", (0.0, 1.0, 0.0)),
         ]
         out = [{"name": n, "head": h, "parent": p, "deform": True} for n, h, p in deform]
         out += [{"name": n, "head": h, "parent": p, "deform": False, "direction": d} for n, h, p, d in sockets]
         return out
 
     def spine_weights(self, y):
-        for i, b in enumerate(self.bounds):
-            h = self.blends[i]
-            if y < b - h:
-                return {SPINE_ORDER[i]: 1.0}
-            if y <= b + h:
-                t = smooth((y - (b - h)) / (2.0 * h))
-                return {SPINE_ORDER[i]: 1.0 - t, SPINE_ORDER[i + 1]: t}
+        nodes = self.nodes
+        if y <= nodes[0]:
+            return {SPINE_ORDER[0]: 1.0}
+        for i in range(len(nodes) - 1):
+            if y <= nodes[i + 1]:
+                u = ramp((y - nodes[i]) / (nodes[i + 1] - nodes[i]), i == 0, False)   # the body ends at the last node
+                return {SPINE_ORDER[i]: 1.0 - u, SPINE_ORDER[i + 1]: u}
         return {SPINE_ORDER[-1]: 1.0}
 
+    def girth(self, y):
+        x = (y - self.girth_y) / self.girth_reach
+        return GIRTH_PEAK * (1.0 - x * x) ** 2 if abs(x) < 1.0 else 0.0
+
+    def jaw(self, y, z):
+        return smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((self.lip_z - z) / (0.04 * self.k))
+
     def body_weights(self, p):
-        """Up to two spine bones, plus the lower jaw in the head or up to two girth bones
-        at mid-body. Never more than four, never Root (06 section 6.5)."""
         x, y, z = p
+        b = self.body
         w = self.spine_weights(y)
-        hh, hw = max(self.half_h(y), 1e-6), max(self.half_w(y), 1e-6)
-        girth = 0.5 * max(0.0, 1.0 - ((y - self.girth_y) / self.girth_reach) ** 2) ** 2   # zero slope at its ends: no crease ring
-        jaw = smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((-0.03 - z) / 0.04)   # a sharp lip line, so the mouth opens
+        jaw, g = self.jaw(y, z), self.girth(y)
+        girth = {}
+        if g > 0.0:
+            # The vertex's offset from the centre line as a share of the family's reference half width
+            # and back or belly height (GIRTH_REF): the clips move the Girth bones by the same share
+            # of those, so the section scales evenly, in both directions, on any species.
+            rt, rb, rw = (self.k * r for r in GIRTH_REF)
+            nx = min(1.0, abs(x) / rw)
+            nz = min(1.0, abs(z) / (rt if z >= 0.0 else rb))
+            g *= 1.0 - jaw
+            for name, part in (("Girth_L" if x > 0.0 else "Girth_R", nx), ("Girth_Top" if z > 0.0 else "Girth_Bot", nz)):
+                if part > 0.0:
+                    girth[name] = g * part
+        keep = (1.0 - jaw) * (1.0 - sum(girth.values()))
+        w = {n: v * keep for n, v in w.items()}
+        w.update(girth)
         if jaw > 0.0:
-            w = {n: v * (1.0 - jaw) for n, v in w.items()}
             w["Jaw"] = jaw
-        elif girth > 0.0:
-            nx, nz = x / hw, z / hh
-            norm = math.hypot(nx, nz) or 1.0
-            nx, nz = nx / norm, nz / norm
-            w = {n: v * (1.0 - girth) for n, v in w.items()}
-            w["Girth_Top"] = girth * max(0.0, nz) ** 2
-            w["Girth_Bot"] = girth * max(0.0, -nz) ** 2
-            w["Girth_L"] = girth * max(0.0, nx) ** 2
-            w["Girth_R"] = girth * max(0.0, -nx) ** 2
         return w
+
+    def fin_weights(self, bone, p, height):
+        """A fin rooted in the body: the root row follows the skin under it, the fin above it the
+        fin bone, eased over the lower half of the fin (`height` 0 at the root, 1 at the edge)."""
+        b = self.body
+        on = smooth(height / 0.5)
+        under = self.body_weights((0.0, p[1], b.top(p[1])))
+        w = {n: v * (1.0 - on) for n, v in under.items()}
+        w[bone] = w.get(bone, 0.0) + on
+        return w
+
+    PART_BONES = {"tail": "TailFin", "dorsal": "Dorsal", "pec": "Pec_%s", "eye": "Eye_%s", "lid": "Lid_%s"}
+
+    def part_weights(self, kind, side=""):
+        """Weights of a rigid part: {bone: 1}."""
+        return {self.PART_BONES[kind].replace("%s", side): 1.0}
 
 
 # ---------------------------------------------------------------- poses and clips
@@ -175,35 +263,19 @@ def bake_clip(armature, name, frames, pose_at):
 
 
 def fish_poses(k=1.0):
-    """Key poses for the contact sheet, cells 10 to 12 (06 section 15.5), as
-    (title, view, pose). Bite: jaw wide open (52 degrees) and the head lunging 12% of body length, reaching
-    the 115% stretch of 06 section 7.2. Dash: stretched to 125% (07, A_Fish_Dash)."""
+    """Key poses for the contact sheet, cells 10 to 12 (06 section 15.5), as (title, view, pose),
+    taken from the clips so the sheet shows what ships: the bite's wide jaw (frame 1), the dash's
+    125% stretch with fins pinned back, and a scared squash with the lids up."""
+    scared = fish_stretch_pose(0.9, k)
+    _put(scared, "TailFin", rot=(0.0, 0.0, 14.0))
+    _put(scared, "Lid_L", rot=(0.0, -28.0, 0.0))
+    _put(scared, "Lid_R", rot=(0.0, 28.0, 0.0))
+    _put(scared, "Pec_L", rot=(0.0, 30.0, 0.0))
+    _put(scared, "Pec_R", rot=(0.0, -30.0, 0.0))
     return [
-        ("Bite", "Side", {
-            "Jaw": {"rot": (52.0, 0.0, 0.0)},
-            "Spine1": {"loc": (0.0, -0.36 * k, 0.0)},
-            "TailFin": {"loc": (0.0, 0.09 * k, 0.0)},
-            "Girth_L": {"loc": (0.04, 0.0, 0.0)}, "Girth_R": {"loc": (-0.04, 0.0, 0.0)},
-        }),
-        ("Dash stretch", "Side", {
-            "Spine1": {"loc": (0.0, -0.35 * k, 0.0)},
-            "Spine3": {"loc": (0.0, 0.12 * k, 0.0)},
-            "Spine4": {"loc": (0.0, 0.18 * k, 0.0)},
-            "TailFin": {"loc": (0.0, 0.1 * k, 0.0)},
-            "Girth_Top": {"loc": (0.0, 0.0, -0.07)}, "Girth_Bot": {"loc": (0.0, 0.0, 0.07)},
-            "Girth_L": {"loc": (-0.04, 0.0, 0.0)}, "Girth_R": {"loc": (0.04, 0.0, 0.0)},
-            "Pec_L": {"rot": (0.0, 0.0, 22.0)}, "Pec_R": {"rot": (0.0, 0.0, -22.0)},
-            "Dorsal": {"rot": (-14.0, 0.0, 0.0)},
-        }),
-        ("Scared", "ThreeQuarter", {
-            "Spine1": {"loc": (0.0, 0.12 * k, 0.0)},
-            "TailFin": {"loc": (0.0, -0.1 * k, 0.0), "rot": (0.0, 0.0, 14.0)},
-            "Girth_Top": {"loc": (0.0, 0.0, 0.06)}, "Girth_Bot": {"loc": (0.0, 0.0, -0.06)},
-            "Girth_L": {"loc": (0.04, 0.0, 0.0)}, "Girth_R": {"loc": (-0.04, 0.0, 0.0)},
-            "Lid_L": {"rot": (0.0, -28.0, 0.0)}, "Lid_R": {"rot": (0.0, 28.0, 0.0)},
-            "Eye_L": {"loc": (0.03, 0.0, 0.0)}, "Eye_R": {"loc": (-0.03, 0.0, 0.0)},
-            "Pec_L": {"rot": (0.0, 30.0, 0.0)}, "Pec_R": {"rot": (0.0, -30.0, 0.0)},
-        }),
+        ("Bite (frame 1, jaw wide)", "Side", fish_bite_pose(1, k)),
+        ("Dash stretch 125%", "Side", fish_stretch_pose(1.25, k, fins_back=1.0)),
+        ("Scared", "ThreeQuarter", scared),
     ]
 
 
@@ -213,7 +285,6 @@ def fish_poses(k=1.0):
 # by keys (06 section 7.2) and end on the rest pose, so code sway takes over without a pop.
 # Every value is (tune).
 
-FISH_HALF_H, FISH_HALF_W = 0.55, 0.35     # body half height and width at the Girth bones (fishshape.py)
 
 _EASE = {
     "out": lambda u: 1.0 - (1.0 - u) ** 2,          # fast out, slow in (06 7.1): the default
@@ -236,23 +307,53 @@ def ease_keys(frame, keys):
     return keys[-1][1]
 
 
+def canon_nodes(k=1.0):
+    """y of each spine bone's weight node on the family base body at scale k (FishFit.nodes)."""
+    return [k * (CANON_NOSE + t * CANON_LENGTH) for t in SPINE_NODES]
+
+
+def spine_slide(pose, disp, k=1.0):
+    """Adds world slides along the body to the spine chain: `disp` gives each spine bone's world
+    y displacement at its weight node; the chain's local offsets are worked out (Spine1 rides on
+    Spine2, Spine4 on Spine3, TailFin on Spine4; Spine2 and Spine3 on Root)."""
+    d = dict(zip(SPINE_ORDER, (disp(y) for y in canon_nodes(k))))
+    parent = {"Spine1": "Spine2", "Spine2": None, "Spine3": None, "Spine4": "Spine3", "TailFin": "Spine4"}
+    for bone in SPINE_ORDER:
+        _put(pose, bone, loc=(0.0, d[bone] - (d[parent[bone]] if parent[bone] else 0.0), 0.0))
+    gy = disp(k * (CANON_NOSE + GIRTH_T * CANON_LENGTH))      # the Girth bones (on Root) slide with their station
+    for bone in GIRTH:
+        _put(pose, bone, loc=(0.0, gy, 0.0))
+    return pose
+
+
 def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
-    """Body length `stretch` (1.25 = 125%) by moving the Spine bones apart, girth kept by the
-    Girth bones: offset = radius x (1 / sqrt(stretch) - 1) (06 section 7.5)."""
-    d = (stretch - 1.0) / 0.25            # 1 at 125%, the dash pose of fish_poses()
-    g = 1.0 / math.sqrt(stretch) - 1.0
-    gz, gx = FISH_HALF_H * k * g, FISH_HALF_W * k * g
-    return {
-        "Spine2": {"loc": (0.0, -0.12 * k * d, 0.0)},    # the front's share spread over two bones
-        "Spine1": {"loc": (0.0, -0.23 * k * d, 0.0)},
-        "Spine3": {"loc": (0.0, 0.14 * k * d, 0.0)},     # the stretch spread evenly down the back half,
-        "Spine4": {"loc": (0.0, 0.14 * k * d, 0.0)},     # so the tail root does not thin to a step
-        "TailFin": {"loc": (0.0, 0.06 * k * d, 0.0)},
-        "Girth_Top": {"loc": (0.0, 0.0, gz)}, "Girth_Bot": {"loc": (0.0, 0.0, -gz)},
-        "Girth_L": {"loc": (gx, 0.0, 0.0)}, "Girth_R": {"loc": (-gx, 0.0, 0.0)},
-        "Pec_L": {"rot": (0.0, 0.0, 22.0 * fins_back)}, "Pec_R": {"rot": (0.0, 0.0, -22.0 * fins_back)},
-        "Dorsal": {"rot": (-14.0 * fins_back, 0.0, 0.0)},
-    }
+    """Creature length `stretch` (1.25 = 125%, nose to tail tip) by sliding the Spine bones apart
+    (06 section 7.5). The head in front of Spine1's node and the tail fin are rigid, so the body
+    between them takes the whole change, evenly: every node moves in proportion to its distance from
+    the span's centre. Girth is kept by the Girth bones: offset = radius x (1 / sqrt(local stretch)
+    - 1), divided by GIRTH_PEAK so the section at the girth centre keeps its area."""
+    nodes = canon_nodes(k)
+    span = nodes[-1] - nodes[0]
+    local = 1.0 + (stretch - 1.0) * 3.0 * k / span          # the body span's own stretch
+    centre = 0.5 * (nodes[0] + nodes[-1])
+    pose = spine_slide({}, lambda y: (local - 1.0) * (y - centre), k)
+    g = (1.0 / math.sqrt(local) - 1.0) / GIRTH_PEAK
+    gz_top, gz_bot, gx = (r * k * g for r in GIRTH_REF)
+    _put(pose, "Girth_Top", loc=(0.0, 0.0, gz_top))
+    _put(pose, "Girth_Bot", loc=(0.0, 0.0, -gz_bot))
+    _put(pose, "Girth_L", loc=(gx, 0.0, 0.0))
+    _put(pose, "Girth_R", loc=(-gx, 0.0, 0.0))
+    _put(pose, "Pec_L", rot=(0.0, 0.0, 22.0 * fins_back))
+    _put(pose, "Pec_R", rot=(0.0, 0.0, -22.0 * fins_back))
+    _put(pose, "Dorsal", rot=(-14.0 * fins_back, 0.0, 0.0))
+    return pose
+
+
+def lunge_slide(pose, lunge, k=1.0):
+    """The head lunges forward by `lunge` studs and the body follows it, tail root anchored: the
+    slide falls off evenly from Spine1's node to the tail (no stretch piled into the neck)."""
+    nodes = canon_nodes(k)
+    return spine_slide(pose, lambda y: -lunge * (nodes[-1] - y) / (nodes[-1] - nodes[0]), k)
 
 
 def _put(pose, bone, loc=None, rot=None):
@@ -284,9 +385,7 @@ def fish_idle_pose(phase, k=1.0):
     flap, feather = 34.0 * _flutter(s), 18.0 * math.cos(s)
     breathe = 0.5 - 0.5 * math.cos(2.0 * a)
     pose = {}
-    for bone in ("Spine2", "Spine3"):
-        _put(pose, bone, loc=(0.0, 0.0, bob))
-    for bone in ("Girth_Top", "Girth_Bot", "Girth_L", "Girth_R"):
+    for bone in ("Spine2", "Spine3") + GIRTH:
         _put(pose, bone, loc=(0.0, 0.0, bob))
     _put(pose, "Girth_L", loc=(0.012 * k * breathe, 0.0, 0.0))
     _put(pose, "Girth_R", loc=(-0.012 * k * breathe, 0.0, 0.0))
@@ -349,7 +448,8 @@ def fish_bite_pose(frame, k=1.0):
     brake = ease_keys(frame - 1.0, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.35, "io"), (7, 0.0, "io")])
     flick = lambda lag: ease_keys(frame - lag, BITE_FLICK)
     pose = fish_stretch_pose(stretch, k)
-    _put(pose, "Spine1", loc=(0.0, -lunge, 0.0), rot=(nod, 0.0, 0.0))
+    lunge_slide(pose, lunge, k)
+    _put(pose, "Spine1", rot=(nod, 0.0, 0.0))
     _put(pose, "Jaw", rot=(jaw, 0.0, 0.0))
     _put(pose, "Girth_L", loc=(bulge, 0.0, 0.0))
     _put(pose, "Girth_R", loc=(-bulge, 0.0, 0.0))

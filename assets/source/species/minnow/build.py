@@ -6,16 +6,16 @@ _Idle, _Dash and _Bite).
 
     Blender --background --python assets/source/species/minnow/build.py
 
-The Minnow juvenile at body scale 1.0 (3.0 long, 0.7 wide; 06 section 6.2; about 1.37 tall, see below): a slightly
+The Minnow juvenile at body scale 1.0 (3.0 long, 1.365 tall, 0.7 wide: the family size in fishbody.py, 06 section 6.2): a slightly
 fat teardrop with a big round head, very large eyes, one small back fin and a short tail with a
-shallow fork (the fork grows into the adult's signature; 06 3.2, 03 "Minnow"). It sits on the
-family skeleton (rigs.FishFit, 18 deform bones and 10 weightless sockets; the export writes the
-socket table beside the FBX) and carries the five family clips of rigs.FISH_CLIPS, exported as
-A_Fish_*.fbx and, by the clips-rbxm step, as click-free Roblox .rbxm files. LODs and outline
-shells come from the run.py steps lod and shell (versions.py). Body depth: the deepest section
-(back to belly, fins left out) over the body length (nose to tail root) is printed by the build;
-the S2-A1 review sets it to 45-50%, so the height grows past the 1.1 of the 06/07 size row
-(flagged for the owner: the row needs the new height).
+shallow fork (the fork grows into the adult's signature; 06 3.2, 03 "Minnow"). It is the family
+body (fishbody.FishBody, the M_Species_Base_Fish topology) with the Minnow's numbers, on the
+family skeleton fitted by rigs.FishFit (18 deform bones and 10 weightless sockets; every weight
+is the family's, task S1-A3; the export writes the socket table beside the FBX), and carries the
+five family clips of rigs.FISH_CLIPS, exported as A_Fish_*.fbx and, by the clips-rbxm step, as
+click-free Roblox .rbxm files. LODs and outline shells come from the run.py steps lod and shell
+(versions.py). Body depth: the deepest section (back to belly, fins left out) over the body
+length (nose to tail root) is printed by the build: 47% (06 6.2, the 45 to 55% range).
 
 The dark block is the bible's Minnow dark #922700 (L* about 33, inside 06 4.1's 35). The yellow
 tail is the Minnow's ID mark (03), so it may cover up to 10% of the surface (06 4.1).
@@ -43,6 +43,8 @@ import common  # noqa: E402
 import meshgen  # noqa: E402
 import rigs  # noqa: E402
 import texgen  # noqa: E402
+import weightcheck  # noqa: E402
+from fishbody import FIN_THICK, HEIGHT, LENGTH, SPINE_NODES, WIDTH, Y_NOSE, Y_TAIL_TIP, FishBody  # noqa: E402
 from fishshape import spread  # noqa: E402
 
 NAME = "M_Species_Minnow_Juv"
@@ -51,12 +53,9 @@ TEXTURE = "species_juv"                       # 06 section 5.6: 256 x 256, 60 px
 TEX = texgen.TEXTURE_CLASSES[TEXTURE][0]
 PAINT = 2 * TEX                               # painted at twice the size, then filtered down
 
-LENGTH, WIDTH = 3.0, 0.7                      # 06 section 6.2 (height: below, from the body depth)
-DEPTH = 1.26                                  # body depth / 0.92 of the trial: 47% of the body length (S2-A1 review)
-Y_NOSE, Y_BODY_END = -1.5, 0.95
-Y_TAIL_ROOT, Y_TAIL_TIP = 0.86, 1.5
+DEPTH = 1.26                                  # profile scale: body depth 47% of the body length (S2-A1 review; fishbody.DEPTH_SHARE)
+Y_BODY_END, Y_TAIL_ROOT = 0.95, 0.86
 HEAD_END = 0.40                               # body fraction where the head (and the cheek) ends: 42% of body length
-FIN_THICK = 0.04                              # 06 section 6.5 floor is 0.03
 
 LIGHT, MID, DARK, ACCENT = (common.colour("creatures.minnow." + k) for k in ("light", "mid", "dark", "accent"))
 EYE_WHITE, PUPIL = "#FFFFFF", common.colour("ui.ink")
@@ -64,72 +63,27 @@ BLOCKS = ("mid", "light", "dark", "accent")
 BLOCK_HEX = {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT}
 
 # Rings and segments per part (1,500 triangle budget, 06 section 6.3).
-RES = dict(segs=18, rings=19, tail=(5, 5), dorsal=(7, 3), pec=(6, 5), eye=(16, 5), lid=(3, 3))
+RES = dict(segs=20, rings=18, tail=(5, 5), dorsal=(7, 3), pec=(6, 5), eye=(14, 5), lid=(3, 3))
 
 
 # ---------------------------------------------------------------- the body profile (side, top and section)
 
-def _t(y):
-    return min(1.0, max(0.0, (y - Y_NOSE) / (Y_BODY_END - Y_NOSE)))
-
-
-def _front(t):
-    """A round, blunt head that blends into the body with no change of curvature (no crease)."""
-    u = min(1.0, t / 0.40)
-    return math.sqrt(max(0.0, 1.0 - (1.0 - u) ** 3))
-
-
-def _rear(t, waist, start=0.38, power=1.35):
-    """The taper from the deepest point to the thin tail root."""
-    u = min(1.0, max(0.0, (t - start) / (1.0 - start)))
-    return waist + (1.0 - waist) * math.cos(0.5 * math.pi * u) ** power
-
-
-def top(y):
-    t = _t(y)
-    return DEPTH * (0.40 * _front(t) * _rear(t, 0.27, 0.40, 1.3) - 0.03 * (1.0 - _front(t)))   # the back falls away behind mid-body, under the fin
-
-
-def bot(y):
-    t = _t(y)
-    return DEPTH * (0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t)))
-
-
-def half_w(y):
-    t = _t(y)
-    cheeks = 1.0 + 0.06 * math.exp(-((t - 0.24) / 0.12) ** 2)
-    return 0.29 * _front(t) ** 0.95 * _rear(t, 0.2) * cheeks
-
-
-def half_h(y):
-    return 0.5 * (top(y) + bot(y))
-
-
-def section(y, a):
-    """Point on the body at station y and angle a around it (0 on the back, pi on the belly)."""
-    s, c = math.sin(a), math.cos(a)
-    x = half_w(y) * math.copysign(abs(s) ** 0.85, s)
-    z = (top(y) if c >= 0.0 else bot(y)) * math.copysign(abs(c) ** 0.9, c)
-    return Vector((x, y, z))
+# The family body (fishbody.FishBody) with the Minnow's numbers: a round blunt head, a back that falls
+# away behind mid-body under the fin, a deep belly and full cheeks. Lofted on the family topology,
+# so the rig fit and weights (rigs.FishFit) are the family's.
+BODY = FishBody(nose=Y_NOSE, root=Y_BODY_END, depth=DEPTH, head=HEAD_END,
+                back=(0.40, 0.27, 0.40, 1.3), belly=(0.52, 0.85, 0.24, 0.5, 0.95), nose_drop=0.03,
+                width=(0.29, 0.95, 0.2, 0.38, 1.35), cheeks=(0.06, 0.24, 0.12), square=(0.85, 0.9),
+                poles=(-0.03, 0.04))
+top, bot, half_w, half_h, section, on_flank = BODY.top, BODY.bot, BODY.half_w, BODY.half_h, BODY.section, BODY.on_flank
 
 
 def body_part(segs, rings):
-    out = []
-    for k in range(1, rings + 1):
-        t = 0.5 - 0.5 * math.cos(math.pi * k / (rings + 1))      # rings close together at nose and tail root
-        t = 0.55 * t + 0.45 * (k / (rings + 1))
-        y = Y_NOSE + t * (Y_BODY_END - Y_NOSE)
-        out.append([tuple(section(y, 2.0 * math.pi * j / segs)) for j in range(segs)])
-    return meshgen.loft(out, (0.0, Y_NOSE, -0.03), (0.0, Y_BODY_END + 0.04, 0.0))
+    return BODY.part(segs, rings, SPINE_NODES)
 
 
-Z_HI = max(top(Y_NOSE + i * 0.01) for i in range(246)) + 0.17     # the back fin's top, 0.17 over the back
-Z_LO = -max(bot(Y_NOSE + i * 0.01) for i in range(246)) - 0.035    # the pectorals' lowest tip, just under the belly
-HEIGHT = Z_HI - Z_LO            # about 1.37: the 07/06 size row's 1.1 grows with the 45-50% body depth (flagged)
-
-
-def on_flank(y, z, inset):
-    return half_w(y) * math.sqrt(max(0.0, 1.0 - (z / (top(y) if z >= 0 else bot(y))) ** 2)) - inset
+Z_LO = -BODY.lowest() - 0.035          # the pectorals' lowest tip, just under the belly
+Z_HI = Z_LO + HEIGHT                   # the back fin's top makes up the family height (fishbody: 1.365)
 
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
@@ -180,7 +134,7 @@ def _dorsal_grid(rows, cols, lift):
 
 
 def dorsal_part(n):
-    """One small, round, swept-back fin; its top sets the creature's height of 1.1."""
+    """One small, round, swept-back fin; its top sets the creature's height (fishbody.HEIGHT)."""
     rows, cols = n
     lo, hi = 0.0, 0.4
     for _ in range(40):          # the lift that puts the fin's highest point at the bounding height
@@ -281,14 +235,15 @@ def minnow_meshdata(res, fit):
         part_of.extend([PARTS.index(kind)] * (len(md.verts) - len(part_of)))
 
     add(body_part(res["segs"], res["rings"]), "body", uv=body_uv, weights=lambda p, q: fit.body_weights(p))
-    add(tail_part(res["tail"]), "tail", uv=tail_uv, weights={"TailFin": 1.0})
-    add(dorsal_part(res["dorsal"]), "dorsal", uv=lambda p, q: UV["dorsal"](*q), weights={"Dorsal": 1.0})
+    add(tail_part(res["tail"]), "tail", uv=tail_uv, weights=fit.part_weights("tail"))
+    add(dorsal_part(res["dorsal"]), "dorsal", uv=lambda p, q: UV["dorsal"](*q),
+        weights=lambda p, q: fit.fin_weights("Dorsal", p, q[1]))
     for side, tag in ((1.0, "L"), (-1.0, "R")):
-        add(pec_part(side, res["pec"]), "pec", uv=lambda p, q: UV["pec"](*q), weights={"Pec_" + tag: 1.0})
+        add(pec_part(side, res["pec"]), "pec", uv=lambda p, q: UV["pec"](*q), weights=fit.part_weights("pec", tag))
         axis = Vector((side * EYE_AXIS.x, EYE_AXIS.y, EYE_AXIS.z))
         add(meshgen.sphere(eye_centre(side), EYE_R, axis, (0.0, 0.0, 1.0), *res["eye"]), "eye",
-            uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights={"Eye_" + tag: 1.0})
-        add(lid_part(side, res["lid"]), "lid", uv=lambda p, q: UV["lid"](*q), weights={"Lid_" + tag: 1.0})
+            uv=lambda p, q: UV["eye"](q[0] ** 0.5, q[1]), weights=fit.part_weights("eye", tag))
+        add(lid_part(side, res["lid"]), "lid", uv=lambda p, q: UV["lid"](*q), weights=fit.part_weights("lid", tag))
     return md, np.array(part_of)
 
 
@@ -725,7 +680,7 @@ def eye_x_card():
 # ---------------------------------------------------------------- the asset
 
 def build():
-    fit = rigs.FishFit(LENGTH, half_h, half_w, EYE, PEC, (0.0, 0.18, Z_HI))   # Sock_FinDorsal at the back fin's top
+    fit = rigs.FishFit(BODY, EYE, PEC, (0.0, 0.18, Z_HI))   # Sock_FinDorsal at the back fin's top
     arm = meshgen.build_armature("RIG_Fish", fit.bones())
     md, part_of_vertex = minnow_meshdata(RES, fit)
     body = meshgen.skin(md.to_object(NAME, "GEO"), arm)
@@ -774,6 +729,8 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
+        "weight_check": {"body": body, "rings": RES["rings"], "segs": RES["segs"], "waivers": weightcheck.DASH_WAIVERS},
+        "rig_k": fit.k,
         "texture_sampler": sampler,
         "texture_name": "%s, %d px, occlusion %s" % (ALBEDO, TEX, "baked" if baked else "NOT baked"),
         "id_mark": {"block": "accent", "what": "the yellow tail, 03 Minnow"},
@@ -799,7 +756,7 @@ def build():
             "blocks": {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT},
             "lineup": [
                 {"label": "Minnow juvenile", "objects": [body]},
-                {"label": "family capsule stand-in, 3 studs", "objects": [bpy.data.objects["REF_Minnow_T1"]]},
+                {"label": "family base silhouette (M_Species_Base_Fish), 3 studs", "objects": [bpy.data.objects["REF_Minnow_T1"]]},
             ],
             "lineup_caption": ["sardine, its look-alike (06 3.2), is not built yet"],
             "view_captions": {"Game": ["game camera: behind and 25 degrees above"]},

@@ -106,6 +106,9 @@ def run(build_file, steps, builder=None):
         result["preview"] = preview.run(spec, report, ok)
         if True:   # every asset: its versions, or the 07 1.2 reason it has none
             result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
+        if spec.get("weight_check"):   # RIG_Fish weights at the squash, stretch and bite poses
+            import weightcheck
+            result["preview"]["weights_sheet"] = weightcheck.sheet(spec, report, ok)
     if "clips" in steps and spec.get("actions"):
         result["clips"] = clips.preview(spec, report, ok)
     if "clips-rbxm" in steps and spec.get("actions"):

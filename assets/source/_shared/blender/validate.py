@@ -475,6 +475,9 @@ def run(spec):
         check_ph_stamp(spec, report)
     if spec.get("armature"):
         check_rig(spec, report)
+    if spec.get("weight_check"):
+        import weightcheck
+        weightcheck.check(spec, report)
     for clip in spec.get("actions", []):
         check_action(spec, clip, report)
         clips.check(spec, clip, report)
