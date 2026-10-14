@@ -43,6 +43,7 @@ local CreatureRig = require(script.Parent.Parent.Render.CreatureRig)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Manifest = require(ReplicatedStorage.Shared.Data.Manifest)
+local OutlineBudget = require(script.Parent.Parent.Render.OutlineBudget)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
 local Outlines = require(script.Parent.Parent.Render.Outlines)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
@@ -313,13 +314,14 @@ local function selectOutlines()
 		local p = e.rig.pos
 		local dx, dy, dz = p.X - ox, p.Y - oy, p.Z - oz
 		pickKinds[i] = e.kind
-		pickDistances[i] = dx * dx + dy * dy + dz * dz
+		pickDistances[i] = math.sqrt(dx * dx + dy * dy + dz * dz)
 	end
 	for i = #pickKinds, count + 1, -1 do
 		pickKinds[i] = nil
 		pickDistances[i] = nil
 	end
-	local capEdible, capDangerous = Outlines.caps(false)
+	-- 09 §8.8: one budget per colour, shared with the prey groups.
+	local capEdible, capDangerous = OutlineBudget.caps("creatures", pickKinds, pickDistances, count)
 	OutlineRules.select(
 		pickKinds,
 		pickDistances,
@@ -343,8 +345,6 @@ local function update(dt: number)
 	end
 	debug.profilebegin(TAG)
 	local now = os.clock()
-	local camera = workspace.CurrentCamera
-	local eye = if camera then camera.CFrame.Position else nil
 	table.clear(moveParts)
 	table.clear(moveCFrames)
 	local n = 0
@@ -389,13 +389,8 @@ local function update(dt: number)
 			if rig.loop == "SwimFast" and before ~= "SwimFast" then
 				CreatureRig.playAction(rig, "Dash")
 			end
-			if e.shown then
-				if e.kind == "dangerous" then
-					CreatureRig.setOutline(rig, "dangerous", Outlines.colourAt("dangerous", now))
-				end
-				if eye then
-					CreatureRig.faceCamera(rig, eye)
-				end
+			if e.shown and e.kind == "dangerous" then
+				CreatureRig.setOutline(rig, "dangerous", Outlines.colourAt("dangerous", now))
 			end
 
 			n += 1

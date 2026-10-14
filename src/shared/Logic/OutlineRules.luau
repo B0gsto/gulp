@@ -92,8 +92,8 @@ end
 
 --- Picks which outlines draw: nearest first, up to `capEdible` edible and `capDangerous`
 --- dangerous. `kinds[i]` and `distances[i]` describe candidate i of `count`; `order` is a scratch
---- array the caller keeps; `shown[i]` is written for every i. Allocates nothing once `order` has
---- grown to `count`.
+--- array the caller keeps; `shown[i]` is written for every i, and entries past `count` are
+--- dropped. Allocates nothing once `order` has grown to `count`.
 function OutlineRules.select(
 	kinds: { Kind },
 	distances: { number },
@@ -109,6 +109,9 @@ function OutlineRules.select(
 	end
 	for i = #order, count + 1, -1 do
 		order[i] = nil
+	end
+	for i = #shown, count + 1, -1 do
+		shown[i] = nil
 	end
 	-- Insertion sort: a server holds a few dozen creatures, and the order barely changes between
 	-- calls.
@@ -134,6 +137,57 @@ function OutlineRules.select(
 			shown[i] = true
 		end
 	end
+end
+
+--- Writes the distances of the candidates of `kind` into `out`, nearest first, and returns how
+--- many there are (entries past that are dropped). Allocates nothing once `out` has grown.
+function OutlineRules.sortedDistances(
+	kinds: { Kind },
+	distances: { number },
+	count: number,
+	kind: Kind,
+	out: { number }
+): number
+	local n = 0
+	for i = 1, count do
+		if kinds[i] == kind then
+			n += 1
+			out[n] = distances[i]
+		end
+	end
+	for i = #out, n + 1, -1 do
+		out[i] = nil
+	end
+	table.sort(out)
+	return n
+end
+
+--- 09 §8.8: one budget of `cap` per colour, nearest first, across creatures and prey groups.
+--- `mine` and `other` are the two sides' distances of that colour, nearest first (`nMine` and
+--- `nOther` long). Returns how many of `mine` are among the nearest `cap` of both together: the
+--- cap this side passes to `select`. On equal distances the side with `winsTies` goes first, so
+--- the two sides' shares, asked with opposite `winsTies`, add up to at most `cap`.
+function OutlineRules.share(
+	cap: number,
+	mine: { number },
+	nMine: number,
+	other: { number },
+	nOther: number,
+	winsTies: boolean
+): number
+	local nearer = 0 -- of `other`, nearer than mine[i]
+	for i = 1, nMine do
+		local d = mine[i]
+		while
+			nearer < nOther and (other[nearer + 1] < d or (not winsTies and other[nearer + 1] == d))
+		do
+			nearer += 1
+		end
+		if (i - 1) + nearer >= cap then
+			return i - 1
+		end
+	end
+	return nMine
 end
 
 return table.freeze(OutlineRules)
