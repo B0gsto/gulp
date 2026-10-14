@@ -372,6 +372,30 @@ function UIController.start()
 		end
 	end)
 
+	-- HUD.Traits (08 §3.6): TraitService's `run.traits` and `run.progress` (09 §5.3), and the
+	-- Just gained flash on the own "traitGained" event (S08 itself is S6-C5's).
+	local function refreshTraits()
+		local run = StateStore.get("run")
+		local traits = if type(run) == "table" then run.traits else nil
+		local progress = if type(run) == "table" then run.progress else nil
+		Hud.setTraits(
+			if type(traits) == "table" then traits else {},
+			if type(progress) == "table" then progress else {},
+			ownsPass("pass_keen_nose")
+		)
+	end
+	StateStore.observe("run", refreshTraits)
+	StateStore.observe("passes", refreshTraits)
+	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, _id: unknown, index: unknown)
+		if
+			kind == "traitGained"
+			and slot == player:GetAttribute("Slot")
+			and type(index) == "number"
+		then
+			Hud.traitGained(index)
+		end
+	end)
+
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
 	Client.on("CreatureEvent", onCreatureEvent)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)

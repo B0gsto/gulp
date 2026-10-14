@@ -49,6 +49,7 @@ local Outlines = require(script.Parent.Parent.Render.Outlines)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
 local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
 local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local CreatureController = {}
 CreatureController.name = "CreatureController"
@@ -79,6 +80,7 @@ type Entry = {
 	shown: boolean,
 	scaling: boolean,
 	dead: boolean, -- Phase = dead: the rig is hidden
+	glow: boolean, -- `Traits` holds Glow: the body lights up (02 §8.4)
 	popAt: number?, -- os.clock() when the code tier-up pop started
 	connections: { RBXScriptConnection },
 }
@@ -133,6 +135,7 @@ local function readFacts(e: Entry): boolean
 	local phase = attr(from, "Phase")
 	e.shielded = attr(from, "Protected") == true or phase ~= "run"
 	e.dead = phase == "dead"
+	e.glow = TraitRules.has(TraitRules.splitIds(attr(from, "Traits")), "glow")
 	if def then
 		e.radiusMult = def.radiusMult
 		e.topSpeed = SwimModel.topSpeed(tier, def, 1)
@@ -155,6 +158,7 @@ local function buildRig(e: Entry)
 	rig.model.Parent = rigFolder
 	e.rig = rig
 	e.kind, e.shown = "none", false
+	CreatureRig.setGlow(rig, e.glow)
 end
 
 local function recomputeKind(e: Entry)
@@ -190,6 +194,7 @@ local function onFacts(e: Entry)
 		buildRig(e)
 	end
 	showAlive(e)
+	CreatureRig.setGlow(e.rig, e.glow)
 	RigMath.retargetScale(e.rig.scaleEase, TierMath.bodyScale(e.mass))
 	if e.own then
 		recomputeAll()
@@ -219,7 +224,7 @@ local function remove(model: Model)
 end
 
 local function watch(e: Entry, from: Instance)
-	for _, name in { "Species", "Tier", "Mass", "Phase", "Protected" } do
+	for _, name in { "Species", "Tier", "Mass", "Phase", "Protected", "Traits" } do
 		table.insert(
 			e.connections,
 			from:GetAttributeChangedSignal(name):Connect(function()
@@ -263,6 +268,7 @@ local function add(model: Instance)
 		shown = false,
 		scaling = false,
 		dead = false,
+		glow = false,
 		popAt = nil,
 		connections = {},
 	}
