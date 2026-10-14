@@ -52,7 +52,7 @@ BLOCKS = ("mid", "light", "dark", "accent")
 BLOCK_HEX = {"mid": MID, "light": LIGHT, "dark": DARK, "accent": ACCENT}
 
 # Rings and segments per part (1,500 triangle budget, 06 section 6.3).
-RES = dict(segs=20, rings=20, tail=(5, 6), dorsal=(6, 3), pec=(6, 5), eye=(10, 5), lid=(3, 3))
+RES = dict(segs=18, rings=19, tail=(5, 5), dorsal=(7, 3), pec=(6, 5), eye=(16, 5), lid=(3, 3))
 
 
 # ---------------------------------------------------------------- the body profile (side, top and section)
@@ -75,12 +75,12 @@ def _rear(t, waist, start=0.38, power=1.35):
 
 def top(y):
     t = _t(y)
-    return 0.46 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
+    return 0.45 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
 
 
 def bot(y):
     t = _t(y)
-    return 0.55 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t))
+    return 0.52 * _front(t) ** 0.85 * _rear(t, 0.24, 0.5, 0.95) + 0.03 * (1.0 - _front(t))
 
 
 def half_w(y):
@@ -111,7 +111,7 @@ def body_part(segs, rings):
     return meshgen.loft(out, (0.0, Y_NOSE, -0.03), (0.0, Y_BODY_END + 0.04, 0.0))
 
 
-MAX_BOT = max(bot(y) for y in spread(Y_NOSE, Y_BODY_END, 400))   # the belly's lowest point
+Z_LO, Z_HI = -0.555, 0.545      # the bounding height of 1.1: the pectorals' lowest tip, the back fin's top
 
 
 def on_flank(y, z, inset):
@@ -119,14 +119,13 @@ def on_flank(y, z, inset):
 
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
-EYE_Y, EYE_Z = -1.09, 0.12
-EYE_R = 1.2 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0     # 20% over the 34% row, toward "a third of the head" (03)
+EYE_Y, EYE_Z = -1.05, 0.15
+EYE_R = 1.46 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0    # well over the 34% row: big cartoon eyes (art-director loops)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
 PUPIL_COS = math.cos(math.asin(0.60))                       # pupil 60% of the eye diameter
-PEC = (on_flank(-0.52, -0.2, 0.03), -0.52, -0.2)
-PEC_LEN = 0.46                                              # about 140% of a real minnow's pectoral (for the paint)
-DORSAL = (-0.3, 0.42)                                      # fore and aft ends of the back fin's root
+PEC = (on_flank(-0.52, -0.25, 0.03), -0.52, -0.25)
+DORSAL = (-0.42, 0.55)                                      # fore and aft ends of the back fin's root
 MOUTH_END = -1.27                                           # the closed smile runs back to here
 
 
@@ -173,13 +172,13 @@ def dorsal_part(n):
     for _ in range(40):          # the lift that puts the fin's highest point at the bounding height
         mid = 0.5 * (lo + hi)
         peak = max(p[2] for row in _dorsal_grid(rows, cols, mid) for p in row)
-        lo, hi = (mid, hi) if peak < HEIGHT - MAX_BOT else (lo, mid)
+        lo, hi = (mid, hi) if peak < Z_HI else (lo, mid)
     return meshgen.slab(_dorsal_grid(rows, cols, lo), (1.0, 0.0, 0.0), FIN_THICK)
 
 
-def _pec_grid(side, rows, cols, length):
+def _pec_grid(side, rows, cols, length, bx=None):
     root = Vector((side * PEC[0], PEC[1], PEC[2]))
-    back = Vector((side * 0.2, 0.86, -0.45)).normalized()
+    back = Vector((side * (PEC_BX[0] if bx is None else bx), 0.8, -0.56)).normalized()
     across = Vector((0.0, 0.3, 1.0))
     across = (across - across.dot(back) * back).normalized()
     grid = []
@@ -194,12 +193,30 @@ def _pec_grid(side, rows, cols, length):
     return grid, back.cross(across)
 
 
+PEC_BX = [None]
+
+
+def pec_length():
+    """As long as the 0.7 width and the bounding height allow: the tip just hangs below the belly."""
+    def limits(bx):
+        grid, _ = _pec_grid(1.0, 6, 5, 1.0, bx)
+        kx = max(p.x for row in grid for p in row) - PEC[0]
+        kz = PEC[2] - min(p.z for row in grid for p in row)
+        return (WIDTH / 2.0 - 0.018 - PEC[0]) / kx, (PEC[2] - Z_LO) / kz
+    if PEC_BX[0] is None:      # turn the fin out until its tip meets the width and the depth together
+        lo, hi = 0.05, 0.8
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            lx, lz = limits(mid)
+            lo, hi = (mid, hi) if lx > lz else (lo, mid)
+        PEC_BX[0] = lo
+    return min(limits(PEC_BX[0]))
+
+
 def pec_part(side, n):
     """A rounded fan (140% of a real minnow's pectoral), sized so its tip touches the 0.7 width."""
     rows, cols = n
-    grid, _ = _pec_grid(side, rows, cols, 1.0)
-    k = max(abs(p.x) for row in grid for p in row) - PEC[0]
-    grid, normal = _pec_grid(side, rows, cols, (WIDTH / 2.0 - 0.018 - PEC[0]) / k)
+    grid, normal = _pec_grid(side, rows, cols, pec_length())
     return meshgen.slab(grid, normal, 0.035)
 
 
@@ -370,14 +387,16 @@ def paint(P, N, part):
     s = np.where(b, s + 0.4 * brow, s)                                                   # wet highlight on the brow
     # The smile: short, thick and upturned on the side of the head, below and in front of the eye and
     # clear of the snout tip, sitting on a cream lip patch so it still reads at 48 px.
-    my, mz = -1.31, -0.19
-    lip_patch = b & (((y - my) / 0.16) ** 2 + ((z - (mz + 0.01)) / 0.11) ** 2 < 1.0)
+    my, mz, half, k = -1.24, -0.245, 0.135, 5.0
+    lip_patch = b & (((y - my) / 0.21) ** 2 + ((z - (mz + 0.02)) / 0.13) ** 2 < 1.0)
     put(lip_patch, "light")
-    curve = mz + 7.0 * (y - my) ** 2                       # corners turn up
-    mouth = b & (np.abs(y - my) < 0.095) & (np.abs(z - curve) < 0.048 - 2.0 * (y - my) ** 2)
-    ends = np.minimum(np.hypot(y - (my - 0.095), z - (mz + 7.0 * 0.095 ** 2)),
-                      np.hypot(y - (my + 0.095), z - (mz + 7.0 * 0.095 ** 2)))
-    mouth = mouth | (b & (ends < 0.03))                  # round corners
+    curve = mz + k * (y - my) ** 2                         # corners turn up
+    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.05 - 1.2 * (y - my) ** 2)
+    corner_z = mz + k * half ** 2
+    ends = np.minimum(np.hypot(y - (my - half), z - corner_z), np.hypot(y - (my + half), z - corner_z))
+    mouth = mouth | (b & (ends < 0.034))                  # round corners
+    # a lighter lip line under the smile so it holds at 48 px
+    s = np.where(lip_patch & (z < curve) & (z > curve - 0.09), s + 0.9, s)
     # the snout tip, where the nose's UV fan meets, stays one plain colour (no streaks)
     tip = b & (t < 0.05)
     put(tip & ~lip_patch, "mid")
@@ -389,15 +408,15 @@ def paint(P, N, part):
     if d.any():
         y0, y1 = DORSAL
         u = np.clip((y - y0) / (y1 - y0), 0.0, 1.0)
-        v = np.clip((z - _top_v(y) + 0.035) / 0.2, 0.0, 1.0)
+        v = np.clip((z - _top_v(y) + 0.035) / np.maximum(Z_HI - _top_v(y) + 0.035, 0.05), 0.0, 1.0)
         put(d, "mid")
-        put(d & (v > 0.6), "dark")
+        put(d & (v > 0.86), "dark")
         rays = 0.5 + 0.5 * np.cos(2.0 * math.pi * (5.0 * u - 1.2 * v))
         s = np.where(d, 0.1 + 0.5 * v - 0.4 * rays * (1.0 - v) + 0.2 * nz, s)
     # Pectorals: rounded tangerine paddles with a rust rim and rays, lighter toward the tip.
     p = part == PARTS.index("pec")
     if p.any():
-        r = np.hypot(x - PEC[0], np.hypot(y - PEC[1], z - PEC[2])) / PEC_LEN
+        r = np.hypot(x - PEC[0], np.hypot(y - PEC[1], z - PEC[2])) / pec_length()
         put(p, "mid")
         put(p & (r > 0.76), "dark")
         ray = 0.5 + 0.5 * np.cos(30.0 * np.arctan2(z - PEC[2], y - PEC[1]))
