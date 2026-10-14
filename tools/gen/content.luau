@@ -317,6 +317,35 @@ local function buildSlotPrices(economy: Tables, slice: boolean): Module
 	}
 end
 
+-- 05 §7 data:ReefRanks: the lifetime banked Pearls each Reef Rank needs and the Pearls it pays
+-- ("—" for rank 1: nothing). Ranks must be consecutive from 1 with rising thresholds.
+local function buildReefRanks(economy: Tables, slice: boolean): Module
+	local t = get(economy, ECONOMY, "ReefRanks")
+	local rows = {}
+	local last = -1
+	for _, row in t.rows do
+		local rank = num(t, row, "Rank")
+		local threshold = num(t, row, "Lifetime banked Pearls")
+		if rank ~= row.position or threshold <= last then
+			fail(`data:ReefRanks, row {row.key}: ranks must count up from 1 with rising thresholds`)
+		end
+		last = threshold
+		if row.inSlice or not slice then
+			table.insert(rows, {
+				field("rank", rank),
+				field("threshold", threshold),
+				field("reward", maybeNumber(t, row, "Reward (Pearls)") or 0),
+			})
+		end
+	end
+	return {
+		name = "ReefRanks",
+		typeName = "ReefRankDef",
+		sources = { `{ECONOMY} data:ReefRanks` },
+		rows = rows,
+	}
+end
+
 local function buildTraits(catalog: Tables, economy: Tables, slice: boolean): Module
 	local t = get(catalog, CATALOG, "Traits")
 	local income = get(economy, ECONOMY, "TraitIncome")
@@ -1129,6 +1158,7 @@ local modules = {
 	buildBankRates(canon, slice),
 	buildScraps(canon, slice),
 	buildSlotPrices(economy, slice),
+	buildReefRanks(economy, slice),
 	buildSpecies(catalog, economy, slice),
 	buildPrey(canon, catalog, "Prey", slice),
 	buildPrey(canon, catalog, "TraitPrey", slice),

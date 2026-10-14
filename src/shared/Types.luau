@@ -73,6 +73,13 @@ export type ScrapsDef = {
 	share: number,
 }
 
+-- A Reef Rank (05 §7): reached at `threshold` lifetime banked Pearls; pays `reward` Pearls [L].
+export type ReefRankDef = {
+	rank: number,
+	threshold: number,
+	reward: number,
+}
+
 -- The Pearl price of a cove slot (05 §4.2); slots below the first row are free.
 export type SlotPriceDef = {
 	slot: number,

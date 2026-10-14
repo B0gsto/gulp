@@ -12,6 +12,7 @@ local Prey = require("./Generated/Prey")
 local PreyMotion = require("./Generated/PreyMotion")
 local PreySpawns = require("./Generated/PreySpawns")
 local Products = require("./Generated/Products")
+local ReefRanks = require("./Generated/ReefRanks")
 local RevivePoints = require("./Generated/RevivePoints")
 local RewardBands = require("./Generated/RewardBands")
 local Scraps = require("./Generated/Scraps")
@@ -100,6 +101,7 @@ local Index = {
 	BankRates = table.freeze({ list = BankRates }), -- 01 §5.4, in mass order
 	Scraps = table.freeze({ list = Scraps }), -- 01 §5.5, in death order
 	SlotPrices = table.freeze({ list = SlotPrices, bySlot = table.freeze(slotPriceBySlot) }),
+	ReefRanks = table.freeze({ list = ReefRanks }), -- 05 §7, rank 1 to 50 in order
 	Codex = lookup("Codex", Codex, function(def: Types.CodexCategoryDef): (string, number)
 		return def.id, def.wire
 	end),
