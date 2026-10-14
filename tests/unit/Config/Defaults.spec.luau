@@ -51,6 +51,37 @@ describe("Defaults.forGame", function()
 		end
 	end)
 
+	it("uses Mock data in development and CI only", function()
+		expect(Defaults.environments.development.mockData).toBe(true)
+		expect(Defaults.environments.ci.mockData).toBe(true)
+		expect(Defaults.environments.staging.mockData).toBe(false)
+		expect(Defaults.environments.production.mockData).toBe(false)
+		expect(Defaults.unknown.mockData).toBe(true)
+	end)
+
+	it("gives an unknown GameId Mock data and the dev cheats", function()
+		expect(Defaults.forGame(0).mockData).toBe(true)
+		expect(Defaults.forGame(0).devCheats).toBe(true)
+	end)
+
+	it("knows GULP CI: Mock data, analytics off, no purchases, no dev cheats", function()
+		local environment = Defaults.forGame(10770882319)
+		expect(environment).toBe(Defaults.environments.ci)
+		expect(environment.name).toBe("ci")
+		expect(environment.mockData).toBe(true)
+		expect(environment.analytics).toBe(false)
+		expect(environment.purchases).toBe(false)
+		expect(environment.devCheats).toBe(false)
+	end)
+
+	it("knows GULP Dev: Mock data, analytics off, dev cheats on", function()
+		local environment = Defaults.forGame(10770882807)
+		expect(environment).toBe(Defaults.environments.development)
+		expect(environment.mockData).toBe(true)
+		expect(environment.analytics).toBe(false)
+		expect(environment.devCheats).toBe(true)
+	end)
+
 	it("gives every listed GameId its own environment", function()
 		for gameId, name in Defaults.GAME_IDS do
 			expect(Defaults.forGame(gameId)).toBe(Defaults.environments[name])

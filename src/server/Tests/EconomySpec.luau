@@ -1,7 +1,7 @@
 --!strict
 -- Engine-side spec of EconomyService and the Analytics wrapper (docs/09, section 5.1; docs/10,
--- sections 2.3, 2.4 and 5; task S5-C1). In Studio nothing reaches AnalyticsService: every call
--- lands in the wrapper's memory buffer, which these cases read. Stand-in players (plain tables
+-- sections 2.3, 2.4 and 5; task S5-C1). In Studio, development and CI nothing reaches
+-- AnalyticsService: every call lands in the wrapper's memory buffer, which these cases read. Stand-in players (plain tables
 -- with a UserId) run anywhere, CI included, through a fake profile store; the player case needs a
 -- play test, goes through DataService on ProfileStore.Mock, and leaves the balance as it found it.
 local Players = game:GetService("Players")
@@ -63,8 +63,11 @@ local function quietly(body: () -> ())
 end
 
 return function()
-	describe("Analytics (engine, Studio buffer)", function()
-		it("buffers instead of sending in Studio", function()
+	-- Luau execution (CI) does not run Main, so nothing has started these services there.
+	Analytics._test.ensureInit()
+	DataService._test.ensureInit()
+	describe("Analytics (engine, memory buffer)", function()
+		it("buffers instead of sending in Studio, development and CI", function()
 			expect(Analytics.isSending()).toBe(false)
 		end)
 
