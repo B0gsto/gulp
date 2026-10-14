@@ -63,6 +63,9 @@ local function outlineDemo(on: boolean)
 	if not on or camera == nil then
 		return
 	end
+	-- The shots show the standard palette (06 §13.2: lime edible, red danger), whatever the
+	-- colour-blind setting of the Studio profile says.
+	Outlines.setColourBlind(false)
 	for i = 1, 2 do
 		local kind: CreatureRig.Kind = if i == 1 then "edible" else "dangerous"
 		local rig = CreatureRig.new("minnow", 1)
