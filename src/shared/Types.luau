@@ -176,6 +176,28 @@ export type RevivePointDef = {
 	depth: number,
 }
 
+-- Section 9.1: gameplay volumes, read from tagged Studio parts by WorldIndex at server start and
+-- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
+-- rows), so a world point turns into the part's local space with plain arithmetic.
+export type ZoneId = string
+-- One of the 12 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
+-- 1.70.1 widens these singleton unions to `string` through loops and refinements.
+export type VolumeKind = string
+export type VolumeShape = string -- "Block", "Ball" or "Cylinder"; a Cylinder's axis is its local X
+export type VolumeAttribute = string | number | boolean
+export type Volume = {
+	kind: VolumeKind,
+	shape: VolumeShape,
+	inv: { number },
+	hx: number, -- half size along local X, Y, Z
+	hy: number,
+	hz: number,
+	attrs: { [string]: VolumeAttribute }, -- the part's attributes, `Kind` included
+}
+
+-- Section 9.1: only the centre of a RevivePoint ball is kept; it is never sent to clients.
+export type RevivePoint = { id: string, wire: number, x: number, y: number, z: number }
+
 export type PatternDef = {
 	id: string, -- pat_<species>_<name>, 18 at launch
 	wire: number,

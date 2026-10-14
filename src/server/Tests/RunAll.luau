@@ -14,6 +14,7 @@ local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 local SPECS: { () -> () } = {
 	-- Each task that writes an engine spec adds it here, one require per line.
 	require("./NetSpec"),
+	require("./WorldIndexSpec"),
 }
 
 local function runAll(): string
