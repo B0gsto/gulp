@@ -227,6 +227,20 @@ Defaults.traits = table.freeze({
 	glowRadius = 60, -- canon 9, 02 §8.4: studs from the centre within which trait prey get a marker
 	glowMarkers = 6, -- 02 §8.4: at most this many markers, nearest first
 	glowLight = 20, -- 02 §8.4: the body light's radius, studs
+	-- 04 §3.6 B5 "the body lights up": Render/CreatureRig's placeholder Glow until
+	-- `T_Trait_Glow_Fish_Emi` is in (task S6-C2; 14 §5.1). A warm Neon tint over each body piece,
+	-- see-through enough to keep the eyes, and a body light that lights the floor below. All (tune).
+	glowLightColour = "FFD98A", -- the Glow signature `#FFE98A` (06 §8.2), a touch warmer
+	glowLightBrightness = 3.5,
+	glowTintColour = "FFC24A", -- Neon renders it lighter: a warm gold glow
+	glowTintTransparency = 0.4,
+	glowTintGrow = 1.04, -- the tint piece's size over its body piece
+	-- 04 §3.6 B5, 07 placeholder prey ("trait prey carry a ring"): Render/PreyRenderer's mark on
+	-- every trait prey (task S6-C2; 14 §5.1). All (tune).
+	preyRing = 2.2, -- the ring's width in prey lengths, facing the camera
+	preyRingStroke = 3, -- px: its line, in the trait's rarity colour
+	preyLightRange = 8, -- studs: the soft light each trait prey carries
+	preyLightBrightness = 1.2,
 })
 
 -- Logic/BankMath: 02 §0.7, §11.4; 05 §3.1. The mass bands and rates (canon 5.4 data:BankRates)

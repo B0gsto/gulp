@@ -352,7 +352,7 @@ Chapter 15 owns the layout of each platform (sections 3.1 to 3.7). This table li
 
 ### 3.6 Trait slots (`HUD.Traits`) and the shed action [MVP]
 
-Three slots in a row. Each slot is an 80 rpx circle with an 88 rpx hit area, 24 rpx apart. The pips are 14 rpx dots on an arc above the slot, their centres 50 rpx from the slot's centre and 24° apart, centred on 12 o'clock.
+Three slots in a row. Each slot is an 80 rpx circle with an 88 rpx hit area, 24 rpx apart. The pips are 16 rpx dots on an arc above the slot (a filled pip solid sun yellow with a navy outline, an empty one a cream outline only), their centres 50 rpx from the slot's centre and 24° apart, centred on 12 o'clock.
 
 ```
    o o o . .          <- 5 progress pips on an arc above the slot (4 with Keen Nose)

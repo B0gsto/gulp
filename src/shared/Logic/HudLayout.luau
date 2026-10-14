@@ -1432,14 +1432,15 @@ end
 
 -- 08 §3.3 and §3.6, `HUD.Traits`: three 80 rpx slots bottom centre, 28 rpx above the content
 -- box's bottom, each with an 88 rpx hit area and a 56 rpx icon. The gap is 24 so the hit areas
--- keep 08 §1.5's 16 rpx apart (14 §4 entry 32). The pips sit on an arc above each slot: 14 rpx
--- dots whose centres are 50 rpx from the slot's centre, 24° apart, centred on 12 o'clock.
+-- keep 08 §1.5's 16 rpx apart (14 §4 entry 32). The pips sit on an arc above each slot: 16 rpx
+-- dots whose centres are 50 rpx from the slot's centre, 24° apart, centred on 12 o'clock; that
+-- leaves about 5 rpx between neighbours.
 HudLayout.TRAITS = table.freeze({
 	bottom = 28,
 	slot = 80,
 	gap = 24,
 	icon = 56,
-	pip = 14,
+	pip = 16,
 	pipRadius = 50,
 	pipStep = math.rad(24),
 })

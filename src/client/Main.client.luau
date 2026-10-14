@@ -31,6 +31,7 @@ local MovementController = require(script.Parent.Controllers.MovementController)
 local PreyRenderer = require(script.Parent.Render.PreyRenderer)
 local StateStore = require(script.Parent.Controllers.StateStore)
 local TideController = require(script.Parent.Controllers.TideController)
+local TutorialDirector = require(script.Parent.Controllers.TutorialDirector)
 local UIController = require(script.Parent.Controllers.UIController)
 
 -- Controllers have the shape of services (section 4.2), so the two loaders treat them alike.
@@ -50,6 +51,7 @@ local loaded: { Controller } = {
 	PreyRenderer,
 	TideController,
 	UIController,
+	TutorialDirector,
 }
 
 for _, controller in loaded do

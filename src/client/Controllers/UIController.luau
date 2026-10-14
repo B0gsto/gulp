@@ -49,6 +49,15 @@ UIController.onCoveMenu = Signal.new() :: Types.Signal<string>
 --- `HUD.setVisible(id, bool)` for chapter 04 (08 §3.3).
 UIController.setVisible = Hud.setVisible
 
+-- Chapter 04's first-run banners (04 §3.3: NIBBLER and GLOW for 1.5 s; docs/14 section 4 row 35):
+-- the hold S07 and S08 use instead of 08 §4.1's while set.
+local bannerHold: number? = nil
+
+--- TutorialDirector sets 04 §3.3's banner time in run 1 and run 2, and nil after.
+function UIController.setBannerHold(seconds: number?)
+	bannerHold = seconds
+end
+
 -- Studio only (`Dev/HudHarness`): fixed values for the HUD screenshots.
 export type Preview = {
 	drag: { active: boolean, ox: number, oy: number, tx: number, ty: number }?,
@@ -398,9 +407,9 @@ function UIController.start()
 		if slot ~= player:GetAttribute("Slot") then
 			return
 		elseif kind == "tier" and type(a) == "number" and type(b) == "number" then
-			Hud.tierUp(a, b)
+			Hud.tierUp(a, b, bannerHold)
 		elseif kind == "traitGained" and type(a) == "string" and type(b) == "number" then
-			Hud.traitGained(a, b)
+			Hud.traitGained(a, b, bannerHold)
 		end
 	end)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)

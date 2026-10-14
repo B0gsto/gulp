@@ -1,6 +1,7 @@
 --!strict
 -- HUD.MassPops (docs/08 section 3.16): "+4" (`hud.plus_mass`, Number 28) rises 48 rpx from the
 -- creature's mouth and fades over 500 ms; at most 4 at once; fast bites merge into one number.
+-- Live pops stack: an older one stays `HudMath.POP_GAP` above the next newer (HudMath.popStack).
 -- On the full-screen `GulpWorld` layer; the bookkeeping is `Shared.Logic.HudMath.pushPop`.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -74,14 +75,25 @@ function MassPops.new(parent: Instance): MassPops
 				if not alive then
 					e.label:Destroy()
 					table.remove(live, i)
-				else
-					local rise, fade = HudMath.popPose(age)
-					e.label.Position = UDim2.fromOffset(e.x, e.y - 8 - rise)
-					e.label.TextTransparency = fade
-					local stroke = e.label:FindFirstChildOfClass("UIStroke")
-					if stroke then
-						stroke.Transparency = fade
-					end
+				end
+			end
+			-- Oldest first (a merged pop restarts its life, so it counts as the newest).
+			table.sort(live, function(a: Live, b: Live): boolean
+				return a.pop.born < b.pop.born
+			end)
+			local ys = table.create(#live)
+			for k, e in live do
+				local rise = HudMath.popPose(now - e.pop.born)
+				ys[k] = e.y - 8 - rise
+			end
+			ys = HudMath.popStack(ys)
+			for k, e in live do
+				local _, fade = HudMath.popPose(now - e.pop.born)
+				e.label.Position = UDim2.fromOffset(e.x, ys[k])
+				e.label.TextTransparency = fade
+				local stroke = e.label:FindFirstChildOfClass("UIStroke")
+				if stroke then
+					stroke.Transparency = fade
 				end
 			end
 		end,

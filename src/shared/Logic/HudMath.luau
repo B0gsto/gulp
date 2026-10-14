@@ -20,6 +20,10 @@ HudMath.POPS_MAX = 4
 HudMath.POP_MERGE = 1 / 6
 HudMath.POP_LIFE = 0.5
 HudMath.POP_RISE = 48
+-- 08 §3.16 does not say how live pops share the mouth: each older pop keeps at least this many
+-- rpx above the next newer one (the Number 28 line and 2 to spare), so they stack and never
+-- overlap (task S6-C2; 14 §5.1) (tune).
+HudMath.POP_GAP = 30
 
 export type ShortKind = "plain" | "thousand" | "million"
 
@@ -142,6 +146,16 @@ function HudMath.popPose(age: number): (number, number)
 	local rise = HudMath.POP_RISE * (1 - (1 - t) * (1 - t)) -- quad out
 	local fade = if t < 0.4 then 0 else (t - 0.4) / 0.6
 	return rise, fade
+end
+
+--- Stacks live pops (08 §3.16): `ys` are their screen Ys (rpx, down is +), oldest first. Each is
+--- raised to at least `POP_GAP` above the next newer one; the newest stays where it is.
+function HudMath.popStack(ys: { number }): { number }
+	local out = table.clone(ys)
+	for i = #out - 1, 1, -1 do
+		out[i] = math.min(out[i], out[i + 1] - HudMath.POP_GAP)
+	end
+	return out
 end
 
 return table.freeze(HudMath)

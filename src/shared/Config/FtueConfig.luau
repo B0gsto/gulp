@@ -81,6 +81,54 @@ local FtueConfig = freeze({
 		fastSeconds = 0.6, -- 04 §9: the fast form's 0.6 s hatch
 		cameraStart = 8, -- 04 §3.6 B1: camera starts 8 studs from the egg
 		cameraFollow = 14, -- 04 §3.6 B1: the tier 1 follow distance (chapter 02 §3.1 owns it) (tune)
+		-- The director's opening camera (14 §5.1, task S6-C2): behind the egg and to its side, low.
+		cameraYaw = 35, -- degrees off the egg's back, toward the Fry's right (tune)
+		cameraHeight = 0.5, -- studs above the egg's centre (tune)
+		-- 04 §3.6 B1 "settles behind the Fry facing Swarm A", B2 "Swarm A 14 studs ahead": the
+		-- follow camera the hatch settles on looks past the Fry toward the swarm, which sits 6 studs
+		-- above the Hatch Bed (03 data:NurseryPath), and comes in a little, until the first bite;
+		-- then it eases back to the plain follow camera (14 §5.1, task S6-C2). (tune)
+		frameAhead = 4, -- studs farther ahead than the follow camera's look point
+		frameUp = 2.5, -- studs above it
+		framePush = 2, -- studs closer
+		frameRelease = 1.2, -- s to ease back after the first bite
+		-- The staging of `M_Prop_HatchEgg` and `A_Fish_Hatch` (14 §5.1, tasks S6-A2 and S6-C2), on
+		-- the clip's frames at 30 fps. The egg's base is `fryAhead` behind the Fry's model and
+		-- `fryUp` below it; the clip carries the body out, the code never moves the model.
+		egg = {
+			width = 2.6, -- 07 §2.0: 2.6 across ...
+			height = 3.3, -- ... and 3.3 tall (tune)
+			lean = 4, -- degrees, leaning to its left
+			split = 2.1, -- studs up from the base where the two halves part (tune)
+			fryAhead = 3.0, -- 07 §2.1: the Fry's model 3.0 ahead of the egg's base ...
+			fryUp = 2.6, -- ... and 2.6 up (tune)
+			-- studs: a Fry that moved this far during the hatch was teleported (the Hatch Bed's
+			-- teleport can land after the hatch cue): the director stages the egg again (14 §5.1)
+			restage = 1.0,
+			fps = 30, -- 07 §2.1: the clip's 45 frames at 30 fps
+			frames = 45,
+			rollRadius = 1.42, -- the round base it rocks on
+			squashTall = 0.86, -- each rock after a squash to 86% tall ...
+			squashWide = 1.07, -- ... and 107% wide
+			squashLead = 2.5, -- frames from the deepest squash to the rock's peak (tune)
+			rocks = { { 5, 15 }, { 12, -18 } }, -- frame of the peak, degrees (+ to its right)
+			rockRise = 2, -- frames from upright to the peak (tune)
+			rockFall = 3, -- frames from the peak back to upright (tune)
+			crackFrame = 8, -- the whole egg swaps for its two closed halves
+			lift = 0.15, -- studs the top lifts between the crack and the flip (tune)
+			flipFrame = 15, -- the top flips open backwards about its back edge ...
+			openFrame = 18, -- ... to `openAngle` by here
+			openAngle = -118, -- degrees
+			landFrame = 26, -- one gravity arc, landing open side up ...
+			landLeft = 0.9, -- ... this far to the Fry's left ...
+			landBehind = 2.9, -- ... and this far behind the egg's base
+			arc = 1.2, -- studs the arc rises above the straight line at its middle (tune)
+			turn = 50, -- degrees it turns on its axis in flight
+			restFrame = 40, -- it rolls on its round tip to rest by here
+			landRock = 20, -- degrees of the first roll after landing (tune)
+			bottomRock = 5, -- degrees: the bottom springs and rocks once, at `openFrame`
+			placeholderColour = "F2ECDC", -- 07 §16: the stand-in's flat pale shell until the mesh is in
+		},
 	},
 	-- 04 §3.5: the Nursery distances along the path, from the hatch point (tune).
 	layout = {
@@ -154,6 +202,10 @@ local FtueConfig = freeze({
 		moveOnNeedInputWithin = 10, -- 04 §3.1: ... with input in the last 10 s
 		dimPercent = 0.20, -- 04 §3.6 B5: the Nursery's ambient light drops 20% ...
 		dimSeconds = 2, -- 04 §3.6 B5: ... for 2 s
+		-- The dip's shape (14 §5.1, task S6-C2): down over `dimIn`, held, back over `dimOut`, on
+		-- every light of the scene (ambients, sun, fog colour) but the creatures' own. (tune)
+		dimIn = 0.25,
+		dimOut = 0.6,
 		pushIn = 3, -- 04 §3.6 B5: a 0.5 s push-in of 3 studs on the fifth pip
 		pushInSeconds = 0.5, -- 04 §3.6 B5
 	},
@@ -273,6 +325,8 @@ local FtueConfig = freeze({
 		ghostAfter = 4, -- 04 §3.7: no input for 4 s (S2 to S5), the ghost thumb returns
 		pulseAfter = 8, -- 04 §3.7: 8 s, the beat's target pulses and its fail-safe starts early
 		holdAfter = 20, -- 04 §3.7, §12 S14: 20 s, hold: beat timers freeze (`afk_hold`)
+		holdHighGain = -30, -- dB: the hold's low-pass on the music, the treble band (14 §5.1) (tune)
+		holdMidGain = -10, -- dB: and the middle band (tune)
 		fastScale = 0.5, -- 04 §9: the fast form halves every idle timer
 	},
 	-- 04 §3.2, §1.4, §3.3: prompts.
@@ -332,6 +386,8 @@ local FtueConfig = freeze({
 	director = {
 		tick = 0.1, -- s: the stage machine's tick (its timers are 0.4 s and longer)
 		every = 1.0, -- s: the `keepKrill` top-up and the `moved` report toward the Gap (B3, B6)
+		steerEvery = 1.0, -- s: the client's steering report while it lasts (FtuePlan.Code.STEER)
+		stickDeadZone = 0.15, -- 02 §2.4: the left stick's radial dead zone; past it, steering
 	},
 	-- 04 §11: the control arm of each A/B test. The director passes a copy with the player's arm.
 	arms = {

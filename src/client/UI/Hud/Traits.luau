@@ -8,7 +8,8 @@
 -- its rarity frame, pips hidden) and Just gained (a 600 ms flash; the S08 card is S6-C5's).
 -- TODO(S04): the trait popover and the hold-to-shed button. TODO(S6-C5 or later): the Traits full
 -- shake and `hud.traits_full` chip, and `SFX_UI_TraitPip`. TODO(B19): Used up (Plated cracked).
--- Image slots stay empty until the art lands: the stand-ins are drawn with Kit/Draw.
+-- Image slots stay empty until the art lands: the stand-ins are drawn with Kit/Draw, and the
+-- icon is MomentArt's trait glyph, the one the S08 card shows.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
@@ -16,6 +17,7 @@ local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local Draw = require("../Kit/Draw")
 local Icons = require("../Kit/Icons")
+local MomentArt = require("./MomentArt")
 local Theme = require("../Kit/Theme")
 
 local Traits = {}
@@ -24,17 +26,20 @@ export type Traits = {
 	root: Frame,
 	layout: (rects: HudLayout.TraitRects) -> (),
 	set: (views: { TraitRules.SlotView }) -> (),
+	setCount: (count: number) -> (),
 	gained: (index: number) -> (),
 }
 
 local PROGRESS_TRANSPARENCY = 0.55 -- 08 §3.6: the in-progress icon at 45% opacity
 local PIP_POP = 1.4
+local PIP_STROKE = Theme.STROKE_ICON -- both pip states' outline
 local PIP_POP_IN = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local PIP_POP_OUT = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 local FLASH = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local GAINED_POP = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
-type Pip = { disc: Frame, scale: UIScale }
+-- 08 §3.6: a filled pip is solid sun yellow with a navy outline; an empty one a cream outline only.
+type Pip = { disc: Frame, scale: UIScale, stroke: UIStroke }
 
 type Slot = {
 	frame: Frame,
@@ -43,7 +48,7 @@ type Slot = {
 	rarity: Frame,
 	rarityStroke: UIStroke,
 	iconGroup: CanvasGroup,
-	icon: Frame?,
+	icon: GuiObject?,
 	flash: Frame,
 	pips: { Pip },
 	view: TraitRules.SlotView?,
@@ -68,10 +73,11 @@ local function newSlot(parent: Instance, index: number): Slot
 	Draw.stroke(Theme.STROKE_ICON, Theme.PANEL).Parent = empty
 	Draw.slot("UI_HUD_TraitSlotEmpty", empty, 2)
 
-	-- Owned: the rarity frame (stand-in for `UI_Common_Rarity<Rarity>`).
-	local rarity = Draw.disc(t.slot, Theme.INK, nil, {
+	-- Owned: the rarity frame (stand-in for `UI_Common_Rarity<Rarity>`): a ring in the rarity
+	-- colour round a cream inset, the S08 card's, so the glyph sits on what it was drawn for.
+	local rarity = Draw.disc(t.slot, Theme.PANEL, nil, {
 		Name = "Rarity",
-		BackgroundTransparency = 0.35,
+		BackgroundTransparency = 0,
 		ZIndex = 1,
 		Visible = false,
 		Parent = frame,
@@ -99,16 +105,17 @@ local function newSlot(parent: Instance, index: number): Slot
 	local pips: { Pip } = {}
 	local origin = { x = 0, y = 0, width = t.slot, height = t.slot }
 	for i, p in HudLayout.traitPips(origin, 5) do
-		local disc = Draw.disc(t.pip, Theme.DIM, UDim2.fromOffset(p.x, p.y), {
+		local disc = Draw.disc(t.pip, Theme.PRIMARY, UDim2.fromOffset(p.x, p.y), {
 			Name = `Pip{i}`,
-			BackgroundTransparency = 0.35,
+			BackgroundTransparency = 1,
 			ZIndex = 6,
 			Visible = false,
 			Parent = frame,
 		})
-		Draw.stroke(Theme.STROKE_CHIP, Theme.PANEL).Parent = disc
+		local stroke = Draw.stroke(PIP_STROKE, Theme.PANEL)
+		stroke.Parent = disc
 		local pipScale = Draw.new("UIScale", { Parent = disc }) :: UIScale
-		table.insert(pips, { disc = disc, scale = pipScale })
+		table.insert(pips, { disc = disc, scale = pipScale, stroke = stroke })
 	end
 	Draw.slot("UI_Hud_TraitPips", frame, 5)
 
@@ -137,8 +144,8 @@ local function drawPips(slot: Slot, needed: number, lit: number, shown: boolean)
 		if p then
 			pip.disc.Position = UDim2.fromOffset(p.x, p.y)
 			local on = i <= lit
-			pip.disc.BackgroundColor3 = if on then Theme.PRIMARY else Theme.DIM
-			pip.disc.BackgroundTransparency = if on then 0 else 0.35
+			pip.disc.BackgroundTransparency = if on then 0 else 1
+			pip.stroke.Color = if on then Theme.INK else Theme.PANEL
 		end
 	end
 end
@@ -162,7 +169,7 @@ local function apply(slot: Slot, view: TraitRules.SlotView)
 			slot.icon = nil
 		end
 		if id then
-			slot.icon = Icons.trait(id, HudLayout.TRAITS.icon, slot.iconGroup, nil, 4)
+			slot.icon = MomentArt.trait(id, HudLayout.TRAITS.icon, slot.iconGroup, 4)
 		end
 	end
 	slot.empty.Visible = view.state ~= "owned"
@@ -202,6 +209,12 @@ function Traits.new(parent: Instance): Traits
 			for i, slot in slots do
 				local r = rects.slots[i]
 				slot.frame.Position = UDim2.fromOffset(r.x, r.y)
+			end
+		end,
+		-- 04 §3.8 (TutorialDirector): slots after the first `count` stay hidden.
+		setCount = function(count: number)
+			for i, slot in slots do
+				slot.frame.Visible = i <= count
 			end
 		end,
 		set = function(views: { TraitRules.SlotView })
