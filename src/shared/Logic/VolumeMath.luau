@@ -28,6 +28,7 @@ local KINDS: { VolumeKind } = {
 	"MorayHole",
 	"PredatorNode",
 	"RevivePoint",
+	"HatchBed", -- a Ball: only its centre and look vector are kept (RunLoopService.join)
 }
 VolumeMath.KINDS = table.freeze(KINDS)
 

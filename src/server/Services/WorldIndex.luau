@@ -72,6 +72,9 @@ function WorldIndex.init()
 		byKind[kind] = table.freeze(list)
 	end
 	points = table.freeze(result.revivePoints)
+	if #byKind.HatchBed > 1 then
+		Log.warn(TAG, `{#byKind.HatchBed} HatchBed volumes; the first is used (9.1: exactly one)`)
+	end
 	infoVolumes = nil
 	if #zones == 0 then
 		Log.warn(TAG, `no Zone volumes: every point reads as {fallbackZone}`)
@@ -141,6 +144,19 @@ function WorldIndex.segmentBlocked(a: Vector3, b: Vector3): boolean
 	end
 	local result = workspace:Raycast(a, delta, rayParams)
 	return result ~= nil and HeightFieldMath.segmentHitBlocks(result.Distance, length)
+end
+
+--- Where an account that has never banked hatches for its first run (9.1 `HatchBed`; 04 §3.5):
+--- the centre of the first HatchBed volume and its look vector, or nil on a place without one
+--- (the CI arena, a place with no Nursery). RunLoopService.join reads it.
+function WorldIndex.hatchBed(): (Vector3?, Vector3?)
+	local v = (byKind.HatchBed or {})[1]
+	if v == nil then
+		return nil, nil
+	end
+	local x, y, z = VolumeMath.centre(v)
+	local lx, ly, lz = VolumeMath.lookVector(v)
+	return Vector3.new(x, y, z), Vector3.new(lx, ly, lz)
 end
 
 --- The revive points found in the place, in wire order (rp_01 first). Twelve in a complete map.

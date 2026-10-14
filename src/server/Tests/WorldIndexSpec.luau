@@ -101,6 +101,14 @@ local VOLUMES: { Row } = {
 		IDENTITY,
 		{ Kind = "Hazard", HazardId = "jelly_bloom" }
 	),
+	row(
+		"HatchBed",
+		Enum.PartType.Ball,
+		Vector3.new(-160, -60, -150),
+		Vector3.new(4, 4, 4),
+		CFrame.lookAt(Vector3.zero, Vector3.xAxis), -- facing east (03 §6.2)
+		{ Kind = "HatchBed" }
+	),
 }
 
 -- Authors the arena's volumes and revive points again when Main has already read them, then
@@ -175,6 +183,14 @@ return function()
 			expect(WorldIndex.volumesOf("Hazard")[1].attrs.HazardId).toBe("jelly_bloom")
 			expect(#WorldIndex.volumesOf("Current")).toBe(0)
 			expect(#WorldIndex.volumesOf("RevivePoint")).toBe(0) -- kept apart, never sent
+			expect(#WorldIndex.volumesOf("HatchBed")).toBe(1)
+		end)
+
+		it("answers hatchBed with the centre and the look vector (9.1)", function()
+			local at, look = WorldIndex.hatchBed()
+			expect(at ~= nil and look ~= nil).toBe(true)
+			expect(((at :: Vector3) - Vector3.new(-160, -60, -150)).Magnitude < 1e-3).toBe(true)
+			expect(((look :: Vector3) - Vector3.xAxis).Magnitude < 1e-3).toBe(true)
 		end)
 
 		it("answers zoneAt: nested zone first, else the nearest zone", function()

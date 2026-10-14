@@ -1,21 +1,28 @@
 --!strict
--- BiteMath: the arithmetic of a prey bite claim (docs/09, section 8.9; docs/02, section 4.4).
--- Numbers only, so it runs in Lune; BiteService feeds it server-held poses and prey positions.
+-- BiteMath: the mouth of 02 §4.1 and the arithmetic of a prey bite claim (docs/09, section 8.9;
+-- docs/02, sections 4.1, 4.4 and 4.7). Numbers only, so it runs in Lune. The one source of the
+-- mouth: the client's bite test (BiteDetect, via RigMath.mouth) and BiteService both read it.
 --
---   tc     = clamp(claimTime, now − 0.4 s, now)                    the lag-compensation clamp
---   mouth  = eaterPos + look × (1.5 × bodyScale)                    front of a 3.0 × bodyScale body
---   reach  = 0.9 × bodyScale × assist + PreyDef.radius + PreyDef.wobble + 3.0
---          + 0.15 × (eaterSpeed + preySpeed)
+--   r      = 1.2 × bodyScale × mouthMult × (1.25 while Dashing) × firstRun     02 §4.1, 04 §4
+--   nose   = centre + facing × (1.5 × bodyScale × lengthMult)                 02 §0.2: half the body
+--   mouth  = nose + facing × (0.5 × r)                                       02 §4.1 mouthCentre
+-- The server (09 §8.9) takes r with the dash factor always on and the widest assist:
+--   tc     = clamp(claimTime, now − 0.4 s, now)                              the lag-compensation clamp
+--   reach  = 2.5 × r + PreyDef.radius + PreyDef.wobble + 3.0 + 0.15 × (eaterSpeed + preySpeed)
 --   accept when |mouth − prey| ≤ reach; a miss beyond 3 × reach is "far" (8.9: +2 suspicion)
---   gain   = PreyDef.mass × massMult × nurseryMult                  (02 §4.4)
+--   gain   = PreyDef.mass × massMult × nurseryMult                            (02 §4.4)
+-- A client claims at most max(r_c + preyRadius, 2.5 × r_c) from its own centre (02 §4.1,
+-- `claimLimit`); with r_c ≤ r that is always inside the reach (09 §8.9, "Every honest claim").
 -- Who may eat what (canon 5.2) is BiteRules' job, not this module's.
 
 local BiteMath = {}
 
 BiteMath.WINDOW = 0.4 -- s: the oldest claim time honoured (8.9, step 5)
-BiteMath.MOUTH_FORWARD = 1.5 -- × bodyScale: half a body 3.0 × bodyScale long (tune)
-BiteMath.MOUTH_RADIUS = 0.9 -- × bodyScale (tune)
-BiteMath.ASSIST = 2.5 -- the widest gulp assist, the touch column of 15 §4.3 (8.9)
+BiteMath.BODY_LENGTH = 3.0 -- × bodyScale × lengthMult (02 §0.2)
+BiteMath.MOUTH_RADIUS = 1.2 -- × bodyScale × mouthMult (02 §4.1)
+BiteMath.DASH_MOUTH = 1.25 -- the mouth while Dashing (02 §4.1)
+BiteMath.CENTRE_AHEAD = 0.5 -- × r: the mouth centre ahead of the nose (02 §4.1)
+BiteMath.ASSIST = 2.5 -- the widest gulp assist range, × r: the touch column of 15 §4.3 (8.9)
 BiteMath.BASE_TOLERANCE = 3.0 -- studs (tune)
 BiteMath.MOTION_WINDOW = 0.15 -- s of relative motion (tune)
 BiteMath.FAR_FACTOR = 3 -- a miss beyond this many reaches adds suspicion (8.9)
@@ -30,8 +37,36 @@ function BiteMath.claimTime(claim: number, now: number): (number, boolean)
 	return tc, tc ~= claim
 end
 
---- The mouth point of an eater at (ex, ey, ez) facing (lx, ly, lz), with body scale `bodyScale`.
---- The look vector need not be a unit vector; a zero one puts the mouth at the body's centre.
+--- 02 §4.1 `mouthRadius`: 1.2 × bodyScale × species.mouthMult, × 1.25 while Dashing, × the
+--- newcomer's first-run factor (04 §4, `firstRunMouth`).
+function BiteMath.mouthRadius(
+	bodyScale: number,
+	mouthMult: number,
+	dashing: boolean,
+	firstRun: number
+): number
+	return BiteMath.MOUTH_RADIUS
+		* bodyScale
+		* mouthMult
+		* (if dashing then BiteMath.DASH_MOUTH else 1)
+		* firstRun
+end
+
+--- The server's mouth radius (09 §8.9): 02 §4.1's with the dash factor always on, since a claim
+--- can arrive after a dash ended and the client's rig lags the root.
+function BiteMath.serverRadius(bodyScale: number, mouthMult: number, firstRun: number): number
+	return BiteMath.mouthRadius(bodyScale, mouthMult, true, firstRun)
+end
+
+--- How far ahead of the body centre the mouth centre of radius `radius` sits, in studs: half the
+--- body length to the nose (02 §0.2), then half a mouth radius (02 §4.1).
+function BiteMath.mouthAhead(bodyScale: number, lengthMult: number, radius: number): number
+	return 0.5 * BiteMath.BODY_LENGTH * bodyScale * lengthMult + BiteMath.CENTRE_AHEAD * radius
+end
+
+--- The mouth centre (02 §4.1) of an eater at (ex, ey, ez) facing (lx, ly, lz), with body scale
+--- `bodyScale`, species `lengthMult` and mouth radius `radius`. The look vector need not be a
+--- unit vector; a zero one puts the mouth at the body's centre.
 function BiteMath.mouth(
 	ex: number,
 	ey: number,
@@ -39,31 +74,38 @@ function BiteMath.mouth(
 	lx: number,
 	ly: number,
 	lz: number,
-	bodyScale: number
+	bodyScale: number,
+	lengthMult: number,
+	radius: number
 ): (number, number, number)
 	local len = math.sqrt(lx * lx + ly * ly + lz * lz)
 	if len < 1e-6 then
 		return ex, ey, ez
 	end
-	local k = BiteMath.MOUTH_FORWARD * bodyScale / len
+	local k = BiteMath.mouthAhead(bodyScale, lengthMult, radius) / len
 	return ex + lx * k, ey + ly * k, ez + lz * k
 end
 
---- The largest mouth-to-prey distance that is accepted. `assistMult` multiplies the widest gulp
---- assist (1 normally; the newcomer's first-run mouth factor, see `firstRunMouth`).
+--- The largest mouth-centre-to-prey distance the server accepts (09 §8.9), for the server's
+--- mouth radius `radius` (`serverRadius`).
 function BiteMath.reach(
-	bodyScale: number,
-	assistMult: number,
+	radius: number,
 	preyRadius: number,
 	preyWobble: number,
 	eaterSpeed: number,
 	preySpeed: number
 ): number
-	return BiteMath.MOUTH_RADIUS * bodyScale * BiteMath.ASSIST * assistMult
+	return BiteMath.ASSIST * radius
 		+ preyRadius
 		+ preyWobble
 		+ BiteMath.BASE_TOLERANCE
 		+ BiteMath.MOTION_WINDOW * (math.abs(eaterSpeed) + math.abs(preySpeed))
+end
+
+--- The furthest from its own mouth centre a client may claim a prey (02 §4.1, "What a client may
+--- claim"): `range × r` with the assist (`range` 0 without), else `r + preyRadius`.
+function BiteMath.claimLimit(radius: number, preyRadius: number, range: number): number
+	return math.max(radius + preyRadius, range * radius)
 end
 
 --- The distance from the mouth to the prey, and whether it is within `reach`.

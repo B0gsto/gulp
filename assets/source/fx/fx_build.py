@@ -133,10 +133,9 @@ def _star_r(ang, n_pts, r_in, r_out, k):
 
 
 def star_cell(kind):
-    """07 9.1: glint, star, sparkle and plus. The order is also the pop star's OneShot flipbook (06 11.2:
-    the BiteChomp star is an animated flipbook): 0 slim glint (the flash; also the pinned glint of the
-    bubble pops), 1 fat four-point star (the pop, 06 11.1), 2 sparkle (the star bursting into rays),
-    3 thin plus (it settles). White with a soft grey rim and a faint halo; the emitter colours it."""
+    """07 9.1: glint, star, sparkle and plus. 0 slim glint (also the pinned glint of the bubble pops),
+    1 fat four-point star (06 11.1), 2 sparkle, 3 thin plus. The BiteChomp pop star is one still frame
+    of the sheet, a random cell per burst (06 11.2: not a flipbook). White with a soft grey rim and a faint halo; the emitter colours it."""
     v, a, n = _cell_canvas()
     x, y = _grid(n)
     r_max = 1.0 - 2.0 * (GUTTER + 2) / CELL

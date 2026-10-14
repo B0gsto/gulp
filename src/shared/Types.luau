@@ -245,7 +245,7 @@ export type RevivePointDef = {
 -- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
 -- rows), so a world point turns into the part's local space with plain arithmetic.
 export type ZoneId = string
--- One of the 12 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
+-- One of the 13 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
 -- 1.70.1 widens these singleton unions to `string` through loops and refinements.
 export type VolumeKind = string
 export type VolumeShape = string -- "Block", "Ball" or "Cylinder"; a Cylinder's axis is its local X
