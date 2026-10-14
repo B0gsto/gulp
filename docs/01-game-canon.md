@@ -265,12 +265,12 @@ Soft-launch slice (chapter 13, section 3.2): `frenzy`.
 | ID | Event | What happens | Reward | Tag | Prey spawn rate | Fallback | Event prey |
 |---|---|---|---|---|---|---|---|
 | `frenzy` | Feeding Frenzy | Prey spawns at three times the normal rate everywhere | Fast growth | [MVP] | ×3 | None | None |
-| `moon_tide` | Moon Tide | The sea goes dark and glows; Lunar Fry appear | Moonlit trait | [MVP] | ×1 **(tune)** | None | `lunar_fry` |
+| `moon_tide` | Moon Tide | The sea goes dark and glows; Lunar Fry appear | Moonlit trait | [MVP] | ×1 **(tune)** | `frenzy` | `lunar_fry` |
 | `whale_fall` | Whale Fall | A clean whale skeleton sinks into the Drop-off; Marrow chunks; Old Scar and Groupers gather | Bonefed trait, huge mass | [L] | ×1 **(tune)** | `moon_tide` | `marrow` |
 
 <!-- /data -->
 
-Until Whale Fall ships at launch, the :45 slot in the MVP runs a second Moon Tide. After launch, the :30 slot is the flexible one: limited-time and new tides replace its Feeding Frenzy.
+Until Whale Fall ships at launch, the :45 slot in the MVP runs a second Moon Tide. The soft-launch slice has no Moon Tide (chapter 13, section 3.2), so there `moon_tide` falls back to `frenzy` and all four slots run a Feeding Frenzy; the fallback is never used in the MVP build, where Moon Tide is in. After launch, the :30 slot is the flexible one: limited-time and new tides replace its Feeding Frenzy.
 
 A purchased Call the Tide never interrupts a scheduled tide: it can always be bought, is held as a token (up to three per player), and starts after a 10-second warning when no tide is running. If several players hold tokens, they start one at a time in the order they were bought.
 
