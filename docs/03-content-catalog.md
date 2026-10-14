@@ -776,7 +776,7 @@ Coves are spaced 11° apart (12° in the north-west arc), which is 77 to 84 stud
 | **Bubble Count** [L] | A small cluster of bubbles under the sign with the number of Bubbles the cove has received. |
 | **Empty cove** | A kelp curtain hangs across the mouth. No sign, no lantern. |
 
-**Cove assignment** (chapter 04, section 5.5 owns the rule): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, Little Arch, in the order C16, C17, C15, C18, then the next nearest. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible (tune). A player who joined a friend gets the nearest free cove to that friend's instead [L].
+**Cove assignment** (chapter 04, section 5.5 owns the rule): a new player (an account that has never banked) gets the free cove nearest the Nursery gap, Little Arch, in the order C16, C17, C15, C18, then the next nearest. A returning player (an account that has banked before) gets the free cove farthest from Little Arch among the 20 coves nearest to it, so the four closest stay free for newcomers where possible (tune); if all 20 are taken, the free one of the other four nearest Little Arch. A player who joined a friend gets the nearest free cove to that friend's instead [L].
 
 **First-run route: the trip home.** Chapter 04's Home Current starts at the far end of the Elbow, (−110, 201), 335 studs along the first-run route (section 6.2), and ends 30 studs short of the newcomer's cove mouth. It is drawn only for that player and is gone after the first bank. Straight-line lengths (tune):
 
