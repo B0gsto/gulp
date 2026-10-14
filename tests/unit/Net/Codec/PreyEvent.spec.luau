@@ -16,7 +16,7 @@ describe("Codec/PreyEvent (09 §8.7)", function()
 			for k = 0, n - 1 do
 				local r = {
 					Rng.int(rng, 1, 3),
-					Rng.int(rng, 0, 511),
+					Rng.int(rng, 0, 639),
 					Rng.int(rng, 0, 255),
 					Rng.int(rng, 0, 23),
 					Rng.int(rng, 0, 24),
@@ -36,10 +36,10 @@ describe("Codec/PreyEvent (09 §8.7)", function()
 	it("round-trips the edge values and spans 7 to 1531 bytes", function()
 		local b = PreyEvent.create(2)
 		PreyEvent.write(b, 0, PreyEvent.OP_EATEN, 0, 0, 0, 0)
-		PreyEvent.write(b, 1, PreyEvent.OP_RESTORED, 511, 255, 23, 24)
+		PreyEvent.write(b, 1, PreyEvent.OP_RESTORED, 639, 255, 23, 24)
 		expect(PreyEvent.valid(b)).toBe(true)
 		expect({ PreyEvent.read(b, 0) }).toEqual({ 1, 0, 0, 0, 0 })
-		expect({ PreyEvent.read(b, 1) }).toEqual({ 3, 511, 255, 23, 24 })
+		expect({ PreyEvent.read(b, 1) }).toEqual({ 3, 639, 255, 23, 24 })
 		expect(Remotes.byName.PreyEvent.minBytes).toBe(7)
 		expect(PreyEvent.accepts(7)).toBe(true)
 		expect(buffer.len(PreyEvent.create(1))).toBe(7)
@@ -74,7 +74,7 @@ describe("Codec/PreyEvent (09 §8.7)", function()
 		local cases = {
 			{ 0, 0, 0, 0, 0 },
 			{ 4, 0, 0, 0, 0 },
-			{ 1, 512, 0, 0, 0 },
+			{ 1, 640, 0, 0, 0 },
 			{ 1, 0, 0, 24, 0 },
 			{ 1, 0, 0, 0, 25 },
 		}

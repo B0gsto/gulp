@@ -423,6 +423,9 @@ local function buildPrey(canon: Tables, catalog: Tables, name: string, slice: bo
 					if drifts then fleeSpeed else round(fleeSpeed * CRUISE_SHARE, 1)
 				),
 				field("fleeSpeed", fleeSpeed),
+				-- 0 when the cell names no number: turns in any direction, or never flees.
+				field("turnRate", maybeNumber(t, row, "Turn rate (°/s)") or 0),
+				field("fleeBurst", maybeNumber(t, row, "Flee burst (s)") or 0),
 				field("fleeRadius", maybeNumber(t, row, "Flee distance (studs)") or 0),
 				field("scatterGain", firstNumber(t, row, "Scatter gain")),
 				field("radius", firstNumber(t, row, "Radius (studs)")),

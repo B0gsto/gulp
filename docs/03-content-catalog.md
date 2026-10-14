@@ -257,23 +257,25 @@ Mass for trait prey is not in canon; chapter 05, section 2.1 sets it (the same a
 <!-- data:TraitPrey -->
 Soft-launch slice (chapter 13, section 3.2): `glowfry`, `zebra_darter`, `dotted_goby`, `armor_shrimp`, `urchin_puff`.
 
-| ID | Tag | Tier | Mass | Gives | Rarity | Alive per server | Respawn (s) | Flee speed | Flee distance (studs) | Zones (section 3.2) | Behaviour (chapter 02, section 9.3) | Group size | Radius (studs) | Wobble (studs) | Scatter gain |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `glowfry` | [MVP] | 1 | 1 | Glow | Common | 10 (6 Reef, 4 Kelp) | 30 | 60% | 10 | `reef`, `kelp` | `solo` | 1 **(tune)** | 0.45 **(tune)** | 0.23 **(tune)** | 0 **(tune)** |
-| `zebra_darter` | [MVP] | 2 | 4 | Stripes | Common | 8 | 30 | 85% | 18 | `reef` | `solo` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
-| `dotted_goby` | [MVP] | 1 | 1 | Spots | Common | 10 | 25 | 45% | 8 | `reef` | `hop` | 1 **(tune)** | 0.55 **(tune)** | 0.28 **(tune)** | 0 **(tune)** |
-| `armor_shrimp` | [MVP] | 2 | 4 | Plated | Uncommon | 6 | 60 | 40% | 8 | `kelp` | `hop` | 1 **(tune)** | 0.8 **(tune)** | 0.4 **(tune)** | 0 **(tune)** |
-| `urchin_puff` | [MVP] | 2 | 4 | Spiny | Uncommon | 6 | 60 | 20% | 5 | `reef` | `drift` | 1 **(tune)** | 0.7 **(tune)** | 0.35 **(tune)** | 0 **(tune)** |
-| `ribbonfish` | [MVP] | 3 | 10 | Longfin | Uncommon | 6 | 60 | 80% | 22 | `kelp` | `run` | 1 **(tune)** | 1.6 **(tune)** | 0.8 **(tune)** | 0 **(tune)** |
-| `inklet` | [MVP] | 3 | 10 | Ink | Rare | 5 | 120 | 90% | 20 | `dropoff` | `solo` | 1 **(tune)** | 1.1 **(tune)** | 0.55 **(tune)** | 0 **(tune)** |
-| `spark_eel` | [L] | 4 | 25 | Spark | Rare | 5 | 120 | 95% | 24 | `dropoff` | `solo` | 1 **(tune)** | 2 **(tune)** | 1 **(tune)** | 0 **(tune)** |
-| `leaf_drifter` | [L] | 3 | 10 | Camo | Rare | 5 | 120 | 50% | 6 | `kelp` | `drift` | 1 **(tune)** | 1.3 **(tune)** | 0.65 **(tune)** | 0 **(tune)** |
-| `crystal_jelly` | [MVP] | 3 | 10 | Crystal | Epic | 5 (one drift of five) | A new drift every 300, counted from when the last one appeared; jellies not eaten leave 240 after their drift appeared | 6 studs/s drift | Does not flee | `reef`, `kelp`, `dropoff` | `drift` | 5 | 1.4 **(tune)** | 0.7 **(tune)** | 0 **(tune)** |
-| `vent_snail` | [L] | 4 | 25 | Ember | Epic | 4 | 180 | 10% (crawls) | Does not flee | `dropoff` | `hop` | 1 **(tune)** | 1.2 **(tune)** | 0.6 **(tune)** | 0 **(tune)** |
-| `lunar_fry` | [MVP] | 2 | 4 | Moonlit | Mythic | 12 (4 per moonbeam); 40 in total per event | Event only | 70% | 16 | `reef`, `kelp`, `dropoff` | `school` | 4 | 0.75 **(tune)** | 0.38 **(tune)** | 1 **(tune)** |
-| `marrow` | [L] | 3 | 40 | Bonefed | Mythic | 60 in total per event | Event only | 3 studs/s drift | Does not flee | `dropoff` | `drift` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
+| ID | Tag | Tier | Mass | Gives | Rarity | Alive per server | Respawn (s) | Flee speed | Flee distance (studs) | Turn rate (°/s) | Flee burst (s) | Zones (section 3.2) | Behaviour (chapter 02, section 9.3) | Group size | Radius (studs) | Wobble (studs) | Scatter gain |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `glowfry` | [MVP] | 1 | 1 | Glow | Common | 10 (6 Reef, 4 Kelp) | 30 | 60% | 10 | 480 | 3 | `reef`, `kelp` | `solo` | 1 **(tune)** | 0.45 **(tune)** | 0.23 **(tune)** | 0 **(tune)** |
+| `zebra_darter` | [MVP] | 2 | 4 | Stripes | Common | 8 | 30 | 85% | 18 | 480 | 3 | `reef` | `solo` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
+| `dotted_goby` | [MVP] | 1 | 1 | Spots | Common | 10 | 25 | 45% | 8 | Hops in any direction | 1.5 | `reef` | `hop` | 1 **(tune)** | 0.55 **(tune)** | 0.28 **(tune)** | 0 **(tune)** |
+| `armor_shrimp` | [MVP] | 2 | 4 | Plated | Uncommon | 6 | 60 | 40% | 8 | Hops in any direction | 1.5 (never tires) | `kelp` | `hop` | 1 **(tune)** | 0.8 **(tune)** | 0.4 **(tune)** | 0 **(tune)** |
+| `urchin_puff` | [MVP] | 2 | 4 | Spiny | Uncommon | 6 | 60 | 20% | 5 | None | None | `reef` | `drift` | 1 **(tune)** | 0.7 **(tune)** | 0.35 **(tune)** | 0 **(tune)** |
+| `ribbonfish` | [MVP] | 3 | 10 | Longfin | Uncommon | 6 | 60 | 80% | 22 | 120 | 4 | `kelp` | `run` | 1 **(tune)** | 1.6 **(tune)** | 0.8 **(tune)** | 0 **(tune)** |
+| `inklet` | [MVP] | 3 | 10 | Ink | Rare | 5 | 120 | 90% | 20 | 480 | 3 | `dropoff` | `solo` | 1 **(tune)** | 1.1 **(tune)** | 0.55 **(tune)** | 0 **(tune)** |
+| `spark_eel` | [L] | 4 | 25 | Spark | Rare | 5 | 120 | 95% | 24 | 480 | 3 | `dropoff` | `solo` | 1 **(tune)** | 2 **(tune)** | 1 **(tune)** | 0 **(tune)** |
+| `leaf_drifter` | [L] | 3 | 10 | Camo | Rare | 5 | 120 | 50% | 6 | None | None | `kelp` | `drift` | 1 **(tune)** | 1.3 **(tune)** | 0.65 **(tune)** | 0 **(tune)** |
+| `crystal_jelly` | [MVP] | 3 | 10 | Crystal | Epic | 5 (one drift of five) | A new drift every 300, counted from when the last one appeared; jellies not eaten leave 240 after their drift appeared | 6 studs/s drift | Does not flee | None | None | `reef`, `kelp`, `dropoff` | `drift` | 5 | 1.4 **(tune)** | 0.7 **(tune)** | 0 **(tune)** |
+| `vent_snail` | [L] | 4 | 25 | Ember | Epic | 4 | 180 | 10% (crawls) | Does not flee | Crawls in any direction | None | `dropoff` | `hop` | 1 **(tune)** | 1.2 **(tune)** | 0.6 **(tune)** | 0 **(tune)** |
+| `lunar_fry` | [MVP] | 2 | 4 | Moonlit | Mythic | 12 (4 per moonbeam); 40 in total per event | Event only | 70% | 16 | 300 | 3 | `reef`, `kelp`, `dropoff` | `school` | 4 | 0.75 **(tune)** | 0.38 **(tune)** | 1 **(tune)** |
+| `marrow` | [L] | 3 | 40 | Bonefed | Mythic | 60 in total per event | Event only | 3 studs/s drift | Does not flee | None | None | `dropoff` | `drift` | 1 **(tune)** | 1 **(tune)** | 0.5 **(tune)** | 0 **(tune)** |
 
 <!-- /data -->
+
+**Turn rate** and **flee burst** are copied from the prey whose behaviour the trait prey uses (chapter 02, section 9.3): `darter` for Glowfry, Zebra Darter, Inklet and Spark Eel; `shrimp` for Dotted Goby and Armor Shrimp; `mackerel` for Ribbonfish; `sardine` for Lunar Fry. Trait prey that do not flee have none.
 
 Intended effort for one player with no competition (tune): Common about 1 minute, Uncommon about 3 minutes, Rare about 6 minutes, Epic one long careful run, Mythic only during its event.
 
