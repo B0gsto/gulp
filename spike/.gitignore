@@ -1,0 +1,4 @@
+build/
+out/
+sourcemap.json
+# the worktree lock dir (.locks/studio) lives one level up and is removed after every hold
