@@ -1,0 +1,204 @@
+{
+  "_about": [
+    "Effect definitions: docs/07-asset-list.md section 9 (an effect is a named set of emitter settings, FX_*.json, plus its textures) and docs/06-art-bible.md section 11.",
+    "fx_build.py checks this file and writes one assets/export/fx/FX_<name>.json per effect; those land in ReplicatedStorage.Assets.Fx (docs/09 section 3).",
+    "Every emitter is burst-only: Render/Fx clones it onto a pooled Attachment, keeps it disabled (Rate 0) and calls Emit(burst) on the action frame.",
+    "Property names are Roblox ParticleEmitter names. Encoding: NumberSequence = [[time, value, envelope], ...]; ColorSequence = [[time, \"#RRGGBB\"], ...]; NumberRange = [min, max]; Vector2/Vector3 = arrays; enums = the item name (\"Grid2x2\").",
+    "Sizes and speeds are for scale 1.0. Render/Fx multiplies Size, Speed and Acceleration by the scale named in 'scaleWith' (06 section 11.1 rule 8); counts never scale.",
+    "'tint' marks a Color that code recolours at spawn: it keeps the keypoint times and white keypoints and replaces every other keypoint with the tint colour ('prey' = the eaten prey's mid colour, 06 section 4.3). The Color here is the fallback, shown with Krill.",
+    "Texture cells (2x2, row-major from top left): T_FX_Bubble_Mask 0-3 = four bubble shapes; T_FX_Star_Mask 0 = fat four-point star, 1 = sparkle, 2 = slim glint, 3 = plus. With FlipbookMode Loop and FlipbookFramerate 1 a particle that lives under 1 s never changes cell, so FlipbookStartRandom false pins cell 0 and true picks one of the four.",
+    "All values (tune)."
+  ],
+  "effects": {
+    "FX_BiteChomp": {
+      "tag": "MVP",
+      "what": "A bite landed: five bubbles and one lime-white pop star at the mouth (07 section 9.2, 06 section 11.2)",
+      "budget": 6,
+      "lifetime": 0.3,
+      "scaleWith": "eater",
+      "neverCut": true,
+      "emitters": [
+        {
+          "name": "Bubbles",
+          "burst": 5,
+          "texture": "T_FX_Bubble_Mask",
+          "props": {
+            "EmissionDirection": "Front",
+            "SpreadAngle": [38, 38],
+            "Speed": [4.5, 8.0],
+            "Drag": 9,
+            "Acceleration": [0, 3.5, 0],
+            "Lifetime": [0.22, 0.3],
+            "Size": [[0, 0.06, 0], [0.22, 0.42, 0.08], [0.7, 0.36, 0.06], [1, 0.22, 0]],
+            "Transparency": [[0, 0, 0], [0.55, 0, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [1, "#EAFBFF"]],
+            "Rotation": [0, 360],
+            "RotSpeed": [-60, 60],
+            "LightEmission": 0,
+            "LightInfluence": 0,
+            "Brightness": 1,
+            "ZOffset": 0.2,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": true
+          }
+        },
+        {
+          "name": "PopStar",
+          "burst": 1,
+          "texture": "T_FX_Star_Mask",
+          "props": {
+            "EmissionDirection": "Front",
+            "SpreadAngle": [0, 0],
+            "Speed": [0.6, 0.6],
+            "Drag": 10,
+            "Acceleration": [0, 0, 0],
+            "Lifetime": [0.3, 0.3],
+            "Size": [[0, 0.1, 0], [0.25, 1.25, 0], [0.55, 1.0, 0], [1, 0.55, 0]],
+            "Transparency": [[0, 0, 0], [0.5, 0, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [0.3, "#F4FFE6"], [1, "#D2FF9E"]],
+            "Rotation": [-15, 15],
+            "RotSpeed": [160, 220],
+            "LightEmission": 0,
+            "LightInfluence": 0,
+            "Brightness": 1,
+            "ZOffset": 0.6,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": false
+          }
+        }
+      ],
+      "stillFallback": "With flipbooks off the 2x2 sheets show whole: each bubble becomes a cluster of four bubbles and the star a cluster of four star shapes; both still read as a bubbly pop (06 section 11.1 rule 7)."
+    },
+    "FX_BubblePop_T0": {
+      "tag": "MVP",
+      "what": "Plankton eaten: one tiny glint. Nearly free; fires several times a second (07 section 9.2)",
+      "budget": 1,
+      "lifetime": 0.25,
+      "scaleWith": "none",
+      "neverCut": true,
+      "emitters": [
+        {
+          "name": "Glint",
+          "burst": 1,
+          "texture": "T_FX_Star_Mask",
+          "props": {
+            "EmissionDirection": "Top",
+            "SpreadAngle": [0, 0],
+            "Speed": [0.8, 0.8],
+            "Drag": 6,
+            "Acceleration": [0, 0, 0],
+            "Lifetime": [0.25, 0.25],
+            "Size": [[0, 0.05, 0], [0.25, 0.55, 0], [1, 0.0, 0]],
+            "Transparency": [[0, 0, 0], [0.6, 0.1, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [1, "#D9FFE8"]],
+            "Rotation": [0, 45],
+            "RotSpeed": [120, 120],
+            "LightEmission": 1,
+            "LightInfluence": 0,
+            "Brightness": 1.5,
+            "ZOffset": 0.4,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": false
+          }
+        }
+      ],
+      "stillFallback": "With flipbooks off the glint shows as a tiny cluster of four star shapes; at 0.55 studs it still reads as one sparkle."
+    },
+    "FX_BubblePop_T1T2": {
+      "tag": "MVP",
+      "what": "Tier 1 and 2 prey eaten: bubble pop and two glints in the prey colour (07 section 9.2)",
+      "budget": 8,
+      "lifetime": 0.5,
+      "scaleWith": "prey",
+      "neverCut": true,
+      "emitters": [
+        {
+          "name": "PopShell",
+          "burst": 1,
+          "texture": "T_FX_Bubble_Mask",
+          "props": {
+            "EmissionDirection": "Top",
+            "SpreadAngle": [0, 0],
+            "Speed": [0, 0],
+            "Drag": 0,
+            "Acceleration": [0, 0, 0],
+            "Lifetime": [0.16, 0.16],
+            "Size": [[0, 0.5, 0], [0.45, 1.25, 0], [0.75, 1.4, 0], [1, 1.5, 0]],
+            "Transparency": [[0, 0.1, 0], [0.55, 0.1, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [1, "#FFFFFF"]],
+            "Rotation": [0, 0],
+            "RotSpeed": [0, 0],
+            "LightEmission": 0,
+            "LightInfluence": 0,
+            "Brightness": 1,
+            "ZOffset": 0.1,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": false
+          }
+        },
+        {
+          "name": "Bubbles",
+          "burst": 5,
+          "texture": "T_FX_Bubble_Mask",
+          "props": {
+            "EmissionDirection": "Top",
+            "SpreadAngle": [180, 180],
+            "Speed": [3.5, 6.0],
+            "Drag": 7,
+            "Acceleration": [0, 4.0, 0],
+            "Lifetime": [0.38, 0.5],
+            "Size": [[0, 0.05, 0], [0.18, 0.34, 0.08], [0.7, 0.28, 0.05], [1, 0.16, 0]],
+            "Transparency": [[0, 0, 0], [0.6, 0, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [1, "#EAFBFF"]],
+            "Rotation": [0, 360],
+            "RotSpeed": [-60, 60],
+            "LightEmission": 0,
+            "LightInfluence": 0,
+            "Brightness": 1,
+            "ZOffset": 0.2,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": true
+          }
+        },
+        {
+          "name": "Glints",
+          "burst": 2,
+          "texture": "T_FX_Star_Mask",
+          "tint": "prey",
+          "props": {
+            "EmissionDirection": "Top",
+            "SpreadAngle": [70, 70],
+            "Speed": [2.0, 3.2],
+            "Drag": 6,
+            "Acceleration": [0, 1.0, 0],
+            "Lifetime": [0.4, 0.5],
+            "Size": [[0, 0.05, 0], [0.2, 0.62, 0.06], [0.6, 0.5, 0], [1, 0.0, 0]],
+            "Transparency": [[0, 0, 0], [0.6, 0.05, 0], [1, 1, 0]],
+            "Color": [[0, "#FFFFFF"], [0.25, "#FF8C7A"], [1, "#FF8C7A"]],
+            "Rotation": [0, 45],
+            "RotSpeed": [-180, 180],
+            "LightEmission": 1,
+            "LightInfluence": 0,
+            "Brightness": 1.5,
+            "ZOffset": 0.5,
+            "FlipbookLayout": "Grid2x2",
+            "FlipbookMode": "Loop",
+            "FlipbookFramerate": [1, 1],
+            "FlipbookStartRandom": false
+          }
+        }
+      ],
+      "stillFallback": "With flipbooks off the shell and bubbles show as four-bubble clusters and the glints as small star clusters; the pop still reads."
+    }
+  }
+}
