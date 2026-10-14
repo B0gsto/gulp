@@ -174,9 +174,24 @@ describe("FtuePresent", function()
 		local tr = cfg.trait
 		expect(FtuePresent.dimAt(cfg, -0.1)).toBe(0)
 		expect(near(FtuePresent.dimAt(cfg, tr.dimSeconds / 2), tr.dimPercent)).toBe(true)
+		-- held at the full dip between the fall and the rise, so the glow reads
+		expect(near(FtuePresent.dimAt(cfg, tr.dimIn), tr.dimPercent)).toBe(true)
+		expect(near(FtuePresent.dimAt(cfg, tr.dimSeconds - tr.dimOut), tr.dimPercent)).toBe(true)
+		expect(FtuePresent.dimAt(cfg, tr.dimIn / 2) < tr.dimPercent).toBe(true)
+		expect(FtuePresent.dimAt(cfg, tr.dimIn / 2) > 0).toBe(true)
 		expect(FtuePresent.dimAt(cfg, tr.dimSeconds + 0.1)).toBe(0)
 		expect(near(FtuePresent.pushAt(cfg, tr.pushInSeconds / 2), tr.pushIn)).toBe(true)
 		expect(near(FtuePresent.pushAt(cfg, tr.pushInSeconds), 0)).toBe(true)
+	end)
+
+	it("keeps the hatch's framing on Swarm A until the first bite, then eases it out", function()
+		local r = cfg.hatch.frameRelease
+		expect(FtuePresent.frameAt(cfg, nil)).toBe(1)
+		expect(FtuePresent.frameAt(cfg, 0)).toBe(1)
+		local mid = FtuePresent.frameAt(cfg, r / 2)
+		expect(mid > 0 and mid < 1).toBe(true)
+		expect(FtuePresent.frameAt(cfg, r)).toBe(0)
+		expect(FtuePresent.frameAt(cfg, r + 5)).toBe(0)
 	end)
 
 	it("dips from the tide's current ambient, not a stale snapshot", function()

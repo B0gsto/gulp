@@ -725,10 +725,12 @@ describe(
 			local four = HudLayout.traitPips(slot, 4)
 			expect(#four).toBe(4)
 			expect((four[2].x + four[3].x) / 2).toBeCloseTo(40, 1e-9)
-			-- No two pips touch.
+			-- 08 §3.6: 16 rpx pips, and no two touch: at least 4 rpx between neighbours, so a
+			-- filled pip and an empty one read apart.
+			expect(HudLayout.TRAITS.pip).toBe(16)
 			for i = 1, 4 do
 				local dx, dy = five[i + 1].x - five[i].x, five[i + 1].y - five[i].y
-				expect(math.sqrt(dx * dx + dy * dy) > HudLayout.TRAITS.pip).toBe(true)
+				expect(math.sqrt(dx * dx + dy * dy) - HudLayout.TRAITS.pip >= 4).toBe(true)
 			end
 		end)
 	end

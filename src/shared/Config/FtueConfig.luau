@@ -84,6 +84,14 @@ local FtueConfig = freeze({
 		-- The director's opening camera (14 §5.1, task S6-C2): behind the egg and to its side, low.
 		cameraYaw = 35, -- degrees off the egg's back, toward the Fry's right (tune)
 		cameraHeight = 0.5, -- studs above the egg's centre (tune)
+		-- 04 §3.6 B1 "settles behind the Fry facing Swarm A", B2 "Swarm A 14 studs ahead": the
+		-- follow camera the hatch settles on looks past the Fry toward the swarm, which sits 6 studs
+		-- above the Hatch Bed (03 data:NurseryPath), and comes in a little, until the first bite;
+		-- then it eases back to the plain follow camera (14 §5.1, task S6-C2). (tune)
+		frameAhead = 4, -- studs farther ahead than the follow camera's look point
+		frameUp = 2.5, -- studs above it
+		framePush = 2, -- studs closer
+		frameRelease = 1.2, -- s to ease back after the first bite
 		-- The staging of `M_Prop_HatchEgg` and `A_Fish_Hatch` (14 §5.1, tasks S6-A2 and S6-C2), on
 		-- the clip's frames at 30 fps. The egg's base is `fryAhead` behind the Fry's model and
 		-- `fryUp` below it; the clip carries the body out, the code never moves the model.
@@ -194,6 +202,10 @@ local FtueConfig = freeze({
 		moveOnNeedInputWithin = 10, -- 04 §3.1: ... with input in the last 10 s
 		dimPercent = 0.20, -- 04 §3.6 B5: the Nursery's ambient light drops 20% ...
 		dimSeconds = 2, -- 04 §3.6 B5: ... for 2 s
+		-- The dip's shape (14 §5.1, task S6-C2): down over `dimIn`, held, back over `dimOut`, on
+		-- every light of the scene (ambients, sun, fog colour) but the creatures' own. (tune)
+		dimIn = 0.25,
+		dimOut = 0.6,
 		pushIn = 3, -- 04 §3.6 B5: a 0.5 s push-in of 3 studs on the fifth pip
 		pushInSeconds = 0.5, -- 04 §3.6 B5
 	},

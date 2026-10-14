@@ -239,7 +239,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 | Game does | Bite on contact: the krill is sucked in, the Fry does a 0.15 s gulp pulse (scale 1.12× and back), three bubbles rise. The mass bar appears on the first bite, already 10% full. |
 | Prompt | Ghost thumb from T = 0 if there has been no input; it hides on the first drag of 0.2 s or more. |
 | Sound | `SFX_Bite_Small`. Each bite within 1.5 s of the last plays one semitone higher, up to +7. |
-| Camera | Follow camera. No moves. |
+| Camera | Follow camera, still framed on Swarm A as B1 left it (14 §5.1). No moves; the framing eases out after the first bite. |
 | Fail-safe | T = 2.5 with no bite: Swarm A drifts toward the Fry at 6 studs/s, so a krill reaches the mouth by T = 5 with no input at all (`ftue_bite_assist`). Three taps without a drag: the ghost thumb replays with a longer drag. Swimming away: the swarm follows at 6 studs/s up to 60 studs from the hatch point. |
 
 #### B3 · Feed (T 5 to 20)

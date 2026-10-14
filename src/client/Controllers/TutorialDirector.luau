@@ -110,8 +110,9 @@ local holdEffects: { EqualizerSoundEffect } = {}
 
 -- B5.
 local traitAt: number? = nil
-local dipBase: { Color3 }? = nil -- the Lighting ambients the dip darkens (TideController's)
-local dipWritten: { Color3 }? = nil -- what the dip last wrote, read back
+local frameEnd: number? = nil -- when the first bite ended the hatch's framing on Swarm A (B1, B2)
+local dipBase: { number }? = nil -- the scene light the dip darkens (TideController's; `lights`)
+local dipWritten: { number }? = nil -- what the dip last wrote, read back
 
 -- Kinds for the beat's target.
 local foodKinds: { [number]: boolean } = {}
@@ -370,12 +371,14 @@ local function showFry(h: Hatch)
 end
 
 -- Where the follow camera will be once primed (CameraController's prime and update at rest).
+-- The follow camera the hatch settles on, framed on Swarm A (`hatch.frame*`, see `cameraPush`).
 local function followPose(rig: Rig): (Vector3, Vector3)
 	local look = flat(rig.cframe.LookVector, Vector3.new(0, 0, -1))
 	local scale = CreatureRig.scale(rig)
-	local d = CameraMath.distance(scale)
+	local d = math.max(0, CameraMath.distance(scale) - cfg.hatch.framePush)
 	local pos = rig.pos - look * d + Vector3.yAxis * CameraMath.height(d, false)
-	return pos, rig.pos + look * CameraMath.lookAhead(scale)
+	local ahead = CameraMath.lookAhead(scale) + cfg.hatch.frameAhead
+	return pos, rig.pos + look * ahead + Vector3.yAxis * cfg.hatch.frameUp
 end
 
 local function finishCamera(h: Hatch)
@@ -507,44 +510,79 @@ end
 ---------------------------------------------------------------------------------------------------
 -- B5: the ambient dip and the camera push-in on the first trait
 
-local function ambients(): { Color3 }
-	return { Lighting.Ambient, Lighting.OutdoorAmbient }
+-- The scene light the dip darkens, as numbers: the two ambients, the fog colour (the water's own
+-- light underwater) and the sun's brightness. The creatures' own lights stay as they are.
+local function lights(): { number }
+	local a, o, f = Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.FogColor
+	return { a.R, a.G, a.B, o.R, o.G, o.B, f.R, f.G, f.B, Lighting.Brightness }
 end
 
-local function sameColours(a: { Color3 }, b: { Color3 }): boolean
+local function writeLights(v: { number })
+	Lighting.Ambient = Color3.new(v[1], v[2], v[3])
+	Lighting.OutdoorAmbient = Color3.new(v[4], v[5], v[6])
+	Lighting.FogColor = Color3.new(v[7], v[8], v[9])
+	Lighting.Brightness = v[10]
+end
+
+local function sameLights(a: { number }, b: { number }): boolean
 	if #a ~= #b then
 		return false
 	end
-	for i, c in a do
-		local d = b[i]
-		if math.abs(c.R - d.R) + math.abs(c.G - d.G) + math.abs(c.B - d.B) > 1e-4 then
+	for i, x in a do
+		if math.abs(x - b[i]) > 1e-3 then
 			return false
 		end
 	end
 	return true
 end
 
--- Darkens the ambients by `dim` (0 to 1) from TideController's values: when the light no longer
--- holds what the dip wrote, the tide changed it, and the dip goes on from the new value.
+-- Darkens the scene light by `dim` (0 to 1) from TideController's values: when the light no
+-- longer holds what the dip wrote, the tide changed it, and the dip goes on from the new value.
 local function stepDip(dim: number)
-	local base = FtuePresent.dipBase(dipBase, dipWritten, ambients(), sameColours)
+	local base = FtuePresent.dipBase(dipBase, dipWritten, lights(), sameLights)
 	dipBase = base
-	Lighting.Ambient = base[1]:Lerp(Color3.new(), dim)
-	Lighting.OutdoorAmbient = base[2]:Lerp(Color3.new(), dim)
-	dipWritten = ambients()
+	local out = table.create(#base)
+	for i, x in base do
+		out[i] = x * (1 - dim)
+	end
+	writeLights(out)
+	dipWritten = lights()
 end
 
--- Ends the dip and the push-in: the ambients go back to the base unless the tide has set them.
+-- Ends the dip and the push-in: the light goes back to the base unless the tide has set it.
 local function endTrait()
 	local base, written = dipBase, dipWritten
-	if base and written and sameColours(ambients(), written) then
-		Lighting.Ambient, Lighting.OutdoorAmbient = base[1], base[2]
+	if base and written and sameLights(lights(), written) then
+		writeLights(base)
 	end
 	dipBase, dipWritten = nil, nil
-	if traitAt then
-		traitAt = nil
-		CameraController.setPush(nil)
+	traitAt = nil
+end
+
+-- 04 §3.6 B1, B2: how much of the hatch's framing on Swarm A the follow camera keeps (FtuePresent).
+local function frameWeight(): number
+	if not present then
+		return 0
+	elseif stage <= S.S2_FIRST_BITE then
+		return 1
 	end
+	local at = frameEnd
+	return if at then FtuePresent.frameAt(cfg, now() - at) else 0
+end
+
+-- CameraController's push-in every frame: the framing's, then B5's on the fifth pip.
+local function cameraPush(): number
+	local p = cfg.hatch.framePush * frameWeight()
+	local at = traitAt
+	if at then
+		p += FtuePresent.pushAt(cfg, now() - at)
+	end
+	return p
+end
+
+local function cameraAim(): (number, number)
+	local w = frameWeight()
+	return cfg.hatch.frameAhead * w, cfg.hatch.frameUp * w
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -558,6 +596,7 @@ local function resetAll()
 	end
 	clearEgg()
 	endTrait()
+	frameEnd = nil
 	MovementController.setStatus("Transit", 0)
 	Guide.reset()
 	ghostOn, ghostShown, ringKind, dashRingUntil = false, false, nil, nil
@@ -653,6 +692,9 @@ local function onFtue(value: unknown)
 	end
 	local newStage = if type(v.stage) == "number" then v.stage else stage
 	if newStage ~= stage then
+		if newStage > S.S2_FIRST_BITE and stage <= S.S2_FIRST_BITE and controlAt then
+			frameEnd = now() -- the first bite: the framing eases out (B3); a rejoin has none
+		end
 		stage = newStage
 		mark(`stage {stage}`)
 	end
@@ -879,11 +921,7 @@ local function onTraitGained(traitId: string)
 	if FtuePresent.revealNow(reveals, "traitSlot", now()) then
 		showElement("traitSlot") -- the slot fills now: it cannot wait its turn (04 §3.6 B5)
 	end
-	local at = now()
-	traitAt = at
-	CameraController.setPush(function(): number
-		return FtuePresent.pushAt(cfg, os.clock() - at)
-	end)
+	traitAt = now()
 	mark("trait " .. traitId)
 end
 
@@ -998,6 +1036,8 @@ function TutorialDirector.start()
 		focused = true
 	end)
 	RunService:BindToRenderStep(RENDER_NAME, Enum.RenderPriority.Camera.Value + 1, frame)
+	CameraController.setPush(cameraPush)
+	CameraController.setAim(cameraAim)
 	local shown = Hud.moments()
 	if shown then
 		shown:connect(function(kind: string)

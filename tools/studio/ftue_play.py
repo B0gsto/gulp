@@ -13,8 +13,8 @@ the ghost thumb of B2 shows). The director's beat log (J since it started, T sin
 filled) and GLOW after the trait's 0.5 s activation (02 §8.2); `--grid PATH` writes the 2 x 2 contact sheet of the
 hatch, the first bite, mid-B5 and GLOW, 1536 px wide. Before each capture the client's state is logged to
 build/ftue/state.json: the `Traits` attribute, the trait slots and pips, the Glow light and tint, the Glowfry and krill
-on screen with their outline scale, ring and light, the banner's size and opacity, the ghost thumb, the egg's framing,
-and what the HUD shows at the bottom right. Prints the beat timings and the Sprint 6 demo verdict: the first bite by
+on screen with their outline scale, ring, light and screen Y range, the banner's size and opacity, the ghost thumb,
+the egg's framing, the camera's pitch, the scene light (B5's dip) and what the HUD shows at the bottom right. Prints the beat timings and the Sprint 6 demo verdict: the first bite by
 T = 5, tier 2 by about T = 25 (30 allowed), five Glowfry and GLOW.
 The place is closed without saving; Studio is left stopped in Edit mode.
 """
@@ -110,7 +110,9 @@ if rig then
 	out.rigScreen = { x, y, front }
 end
 out.playerTraits = lp:GetAttribute("Traits")
-out.ambient = { Lighting.Ambient:ToHex(), Lighting.OutdoorAmbient:ToHex() }
+out.ambient = { Lighting.Ambient:ToHex(), Lighting.OutdoorAmbient:ToHex(), Lighting.FogColor:ToHex(),
+	r2(Lighting.Brightness) }
+out.camPitch = r2(math.deg(math.asin(cam.CFrame.LookVector.Y)))
 local gui = lp:WaitForChild("PlayerGui")
 local traits = gui:FindFirstChild("HUD.Traits", true)
 if traits then
@@ -167,11 +169,14 @@ if prey then
 	local rp = rig and rig:GetPivot().Position
 	for _, d in prey:GetChildren() do
 		if d:IsA("BasePart") and d.Transparency < 1 and not string.find(d.Name, "_Shell$") and d.Name ~= "GlintHost" then
-			local k = kinds[d.Name] or { n = 0, onScreen = 0, pos = {}, extras = {} }
+			local k = kinds[d.Name] or { n = 0, onScreen = 0, pos = {}, extras = {}, screenY = { 1e9, -1e9 } }
 			kinds[d.Name] = k
 			k.n += 1
 			local x, y, front = proj(d.Position)
-			if front and x > 0 and x < 1 and y > 0 and y < 1 then k.onScreen += 1 end
+			if front and x > 0 and x < 1 and y > 0 and y < 1 then
+				k.onScreen += 1
+				k.screenY = { math.min(k.screenY[1], y), math.max(k.screenY[2], y) }
+			end
 			if rp then table.insert(k.pos, d.Position - rp) end
 			for _, c in d:GetDescendants() do
 				if not c:IsA("SpecialMesh") and not table.find(k.extras, c.ClassName .. ":" .. c.Name) then

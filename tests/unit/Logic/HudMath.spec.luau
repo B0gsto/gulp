@@ -71,6 +71,22 @@ describe("HudMath.pushPop (docs/08 section 3.16)", function()
 		HudMath.pushPop(pops, 10, 2)
 		expect(#pops).toBe(1)
 	end)
+	it("stacks live pops so none overlaps the next", function()
+		local gap = HudMath.POP_GAP
+		-- a bite just after another: the older pop is pushed up, the newest stays at the mouth
+		local ys = HudMath.popStack({ 100, 110 })
+		expect(ys[2]).toBe(110)
+		expect(ys[1]).toBe(110 - gap)
+		-- already far enough apart: unchanged
+		local apart = HudMath.popStack({ 40, 100 })
+		expect(apart[1]).toBe(40)
+		-- a chain of four keeps every neighbour `gap` apart
+		local four = HudMath.popStack({ 100, 100, 100, 100 })
+		for i = 1, 3 do
+			expect(four[i + 1] - four[i] >= gap).toBe(true)
+		end
+		expect(#HudMath.popStack({})).toBe(0)
+	end)
 	it("rises 48 rpx and fades out over its life", function()
 		local rise, fade = HudMath.popPose(0.5)
 		expect(rise).toBeCloseTo(48, 1e-9)

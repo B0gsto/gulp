@@ -20,6 +20,7 @@
 --   eggPose                the egg at a frame of the hatch clip (14 §5.1), in the egg's frame:
 --                          r to the Fry's right, u up, f toward the Fry, from the egg's base
 --   ease, dimAt, pushAt    the hatch camera's blend; B5's ambient dip and camera push-in
+--   frameAt                how much of the hatch's framing on Swarm A the camera keeps (B1, B2)
 --   dipBase                the light the dip darkens: its own base, or the tide's new value
 -- Numbers and tables only, so it runs in Lune.
 
@@ -313,7 +314,9 @@ function FtuePresent.dimAt(cfg: Config, t: number): number
 	if t < 0 or t > tr.dimSeconds then
 		return 0
 	end
-	return tr.dimPercent * math.sin(math.pi * t / tr.dimSeconds)
+	local down = if tr.dimIn > 0 then math.min(1, t / tr.dimIn) else 1
+	local up = if tr.dimOut > 0 then math.min(1, (tr.dimSeconds - t) / tr.dimOut) else 1
+	return tr.dimPercent * FtuePresent.ease(math.min(down, up))
 end
 
 --- The value B5's dip darkens this frame: `base` while the light still holds what the dip last
@@ -324,6 +327,20 @@ function FtuePresent.dipBase<T>(base: T?, written: T?, current: T, same: (T, T) 
 		return base
 	end
 	return current
+end
+
+--- 04 §3.6 B1, B2: how much of the hatch's framing on Swarm A the follow camera keeps, 0 to 1:
+--- all of it until the first bite, then eased out over `frameRelease` (`since` is the seconds
+--- since the first bite, nil before it).
+function FtuePresent.frameAt(cfg: Config, since: number?): number
+	if since == nil then
+		return 1
+	end
+	local r = cfg.hatch.frameRelease
+	if r <= 0 or since >= r then
+		return 0
+	end
+	return 1 - FtuePresent.ease(math.max(0, since) / r)
 end
 
 --- 04 §3.6 B5: studs the camera has pushed in, `t` seconds after the fifth pip, in and back.

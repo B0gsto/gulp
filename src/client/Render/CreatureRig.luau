@@ -34,6 +34,7 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local HullMesh = require(script.Parent.HullMesh)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
@@ -46,10 +47,10 @@ local CreatureRig = {}
 local TAG = "CreatureRig"
 local VISUAL_GROUP = "Visual" -- 09 §6.5
 -- Glow (06 §8.2 trait table: colour #FFE98A, light brightness 0.5; the radius is 02 §8.4's).
-local GLOW_COLOUR = Color3.fromHex("#FFE98A")
-local GLOW_BRIGHTNESS = 0.5
-local GLOW_OVERLAY_GROW = 1.04 -- the placeholder tint overlay's size over its body piece
-local GLOW_OVERLAY_TRANSPARENCY = 0.55
+local GLOW = Defaults.traits -- the placeholder Glow look (04 §3.6 B5)
+local GLOW_LIGHT_COLOUR = Color3.fromHex(GLOW.glowLightColour)
+local GLOW_TINT_COLOUR = Color3.fromHex(GLOW.glowTintColour)
+local GLOW_OVERLAY_TRANSPARENCY = GLOW.glowTintTransparency
 
 export type Form = "Juvenile" | "Adult"
 export type Kind = OutlineRules.Kind
@@ -68,8 +69,8 @@ type FormParts = {
 }
 
 -- Glow's body light (02 §8.4, 04 B5; task S6-C3): a point light on the rig root and, until
--- S6-A1's overlay shell and `T_Trait_Glow_Fish_Emi` land, a flat tint overlay: a copy of each
--- body piece 4% larger in the Glow colour, welded to it.
+-- S6-A1's overlay shell and `T_Trait_Glow_Fish_Emi` land, a see-through Neon tint: a copy of each
+-- body piece 4% larger in a warm gold, welded to it (Config/Defaults.traits `glow*`).
 type Glow = { light: PointLight, overlays: { Juvenile: { BasePart }, Adult: { BasePart } } }
 
 export type Rig = {
@@ -714,17 +715,20 @@ function CreatureRig.setForm(rig: Rig, form: Form)
 	end
 end
 
--- The flat tint overlay of one form's body pieces (see `Glow`).
+-- The Neon tint overlay of one form's body pieces (see `Glow`).
 local function glowOverlays(parts: FormParts, shown: boolean): { BasePart }
 	local list: { BasePart } = {}
 	for _, body in parts.body do
 		local o = body:Clone()
 		o:ClearAllChildren()
 		o.Name = body.Name .. "_GlowTint"
-		o.Size = body.Size * GLOW_OVERLAY_GROW
+		o.Size = body.Size * GLOW.glowTintGrow
 		o.CFrame = body.CFrame
-		o.Material = Enum.Material.SmoothPlastic
-		o.Color = GLOW_COLOUR
+		o.Material = Enum.Material.Neon
+		o.Color = GLOW_TINT_COLOUR
+		if o:IsA("MeshPart") then
+			o.TextureID = "" -- one flat Neon colour over the whole piece
+		end
 		o.Transparency = if shown then GLOW_OVERLAY_TRANSPARENCY else 1
 		setVisualPart(o)
 		local weld = Instance.new("WeldConstraint")
@@ -757,8 +761,8 @@ function CreatureRig.setGlow(rig: Rig, on: boolean)
 	end
 	local light = Instance.new("PointLight")
 	light.Name = "GlowLight"
-	light.Color = GLOW_COLOUR
-	light.Brightness = GLOW_BRIGHTNESS
+	light.Color = GLOW_LIGHT_COLOUR
+	light.Brightness = GLOW.glowLightBrightness
 	light.Range = TraitRules.GLOW_LIGHT
 	light.Shadows = false
 	light.Parent = rig.root

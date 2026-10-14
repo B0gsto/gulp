@@ -72,6 +72,7 @@ local tierDownAt: number? = nil
 local tierDownFrom = 0
 
 local push: (() -> number)? = nil -- setPush
+local aim: (() -> (number, number))? = nil -- setAim
 
 -- Shake (02 §3.4).
 local shakeEnabled = true
@@ -334,6 +335,12 @@ local function update(dt: number)
 		camPos = Vector3.new(camPos.X, surfaceCap, camPos.Z)
 	end
 
+	-- The aim offset (setAim) turns the view only: the place and the occlusion cast stay put.
+	if aim then
+		local ahead, up = aim()
+		lookAt += facing * ahead + Vector3.yAxis * up
+	end
+
 	-- Shake (02 §3.4).
 	local amp = if shakeEnabled
 		then CameraMath.shakeAmplitude(shakeAmount, shakeSeconds, now - shakeAt)
@@ -382,6 +389,13 @@ end
 --- on the fifth pip); nil ends it.
 function CameraController.setPush(offset: (() -> number)?)
 	push = offset
+end
+
+--- An aim offset: the look point `ahead` studs farther along the view and `up` studs higher every
+--- frame while set (04 §3.6 B1, B2: TutorialDirector frames Swarm A until the first bite); nil
+--- ends it. Only the view turns: the camera's place is the follow camera's.
+function CameraController.setAim(offset: (() -> (number, number))?)
+	aim = offset
 end
 
 --- Replaces the follow target; CreatureController passes its own rig's `rig.pos` here. nil goes
