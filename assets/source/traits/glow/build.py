@@ -14,9 +14,11 @@ fallback zone, 256 x 256 glow masks:
                                      halo; on the head it runs into the eye at the eye's height
                                      (clear of the mouth below), then sweeps down the flank to the
                                      middle of the tail root and fades out along the tail fin
-    T_Trait_Glow_Fish_Fallback_Emi   fallback: the outer half of the tail fin and the outer part of
-                                     the back fin and both pectorals, lit as strongly as the home
-                                     band, so the same light reads on a second Light trait's body
+    T_Trait_Glow_Fish_Fallback_Emi   fallback: the whole free edge of the tail fin, the back fin
+                                     and both pectorals and the tail's outer part, lit at the home
+                                     band's full strength in the same colour, so the same light
+                                     reads on a second Light trait's body; it covers the fin trim
+                                     a species paints there, so no dark rim shows outside it
 
 `master()` below is the one scripted master the other families bake from (07 3: the Eel, Turtle
 and Squid rows are bakes from it with touch-ups). It is written in body coordinates (t along the
@@ -65,6 +67,11 @@ CORE = 0.055                # half-width of the full-strength core
 HALO = 0.13                 # the soft glow outside the band, to 0 (under 0.5, so outside the 15% cap's count)
 BODY_LEVEL = 0.80           # the band's level between core and edge; the core is 1
 TAIL_FADE = (0.0, 0.75)    # the band fades out along the tail fin
+FALL_EDGE = (0.40, 0.56)    # fallback: full light from the outline to this edge distance inside it, soft to the second (tune)
+FALL_ROOT = (0.10, 0.28)    # fallback: unlit at a fin's root, full from this rim distance (tune)
+FALL_TAIL_TIP = (0.55, 0.72)   # fallback: the tail's outer part, lit across (tune)
+FALL_FIN_TIP = (0.80, 0.92)    # fallback: a fin's far tip, lit across (tune)
+TRIM_LIT = 0.90             # fallback: share of the Minnow's dark fin and tail trim it must light (mask 0.5 or more)
 
 
 def centre_line(t, frame):
@@ -103,11 +110,16 @@ def master(zone, S, frame):
         fade = 1.0 - texbake.smoothstep(TAIL_FADE[0], TAIL_FADE[1], t[tl])
         m[tl] = 0.85 * traitbake.smooth_band(h[tl], 0.07, 0.10) * fade      # carries on from the body's band, then fades
     else:
-        # Fallback: as strong as the home band, a full rim, a lit outer part and a soft inner edge.
-        tl = role == "tail"
-        m[tl] = np.maximum(BODY_LEVEL * texbake.smoothstep(0.38, 0.55, rim[tl]), texbake.smoothstep(0.80, 0.92, rim[tl]))
-        f = role == "fin"
-        m[f] = np.maximum(BODY_LEVEL * texbake.smoothstep(0.32, 0.50, rim[f]), texbake.smoothstep(0.76, 0.90, rim[f]))
+        # Fallback: the same light as the home band, at full strength, along the whole free edge
+        # of the tail fin and of every fin (the outline seen flat, where a species paints its fin
+        # trim, so no dark trim shows outside the light), and across the tail's outer part (its
+        # tip). The root, where a fin meets the body, stays unlit.
+        edge = S["edge"]
+        for r, tip in (("tail", FALL_TAIL_TIP), ("fin", FALL_FIN_TIP)):
+            sel = role == r
+            lit = 1.0 - texbake.smoothstep(FALL_EDGE[0], FALL_EDGE[1], edge[sel])
+            lit = np.maximum(lit, texbake.smoothstep(tip[0], tip[1], rim[sel]))
+            m[sel] = lit * texbake.smoothstep(FALL_ROOT[0], FALL_ROOT[1], rim[sel])
     return m
 
 
@@ -178,6 +190,7 @@ def build():
             state["cov_minnow_" + zone] = traitbake.coverage(body, mask, mframe)
             state["outside_" + zone] = traitbake.outside_layout(mask, LAYOUT)
         state["mid_left"] = mid_left(body, block_map, home, mframe)
+        state["trim_lit"] = trim_lit(body, block_map, fall, mframe, mb.BLOCKS.index("dark"))
         state["shell_home"] = traitbake.overlay_shell(body, "PV_Minnow_GlowHome", home, GLOW)
         state["shell_fall"] = traitbake.overlay_shell(alt, "PV_Minnow_GlowFallback", fall, GLOW)
         texbake.save_png(picture, traitbake.layout_picture([home, fall], LAYOUT, colour_hex=GLOW))
@@ -199,6 +212,7 @@ def build():
                       "fit_iou": round(state["fit_" + z]["iou"], 3),
                       "fit_mean_abs": round(state["fit_" + z]["mean_abs"], 4)}
         out["mid_left"] = state["mid_left"]
+        out["fallback_trim_lit"] = state["trim_lit"]
         print("[glow] home: base %.1f%%, Minnow %.1f%% lit; fit %.3f. fallback: base %.1f%%, Minnow %.1f%%; fit %.3f"
               % (100 * state["cov_base_home"]["lit_share"], 100 * state["cov_minnow_home"]["lit_share"], state["fit_home"]["match"],
                  100 * state["cov_base_fallback"]["lit_share"], 100 * state["cov_minnow_fallback"]["lit_share"], state["fit_fallback"]["match"]))
@@ -233,6 +247,9 @@ def build():
                 ok = roles.get("body", 0) == 0 and roles.get("fin", 0) > 0 and roles.get("tail", 0) > 0 and roles.get("eye", 0) == 0
                 detail = "lit on the body %.1f%%, tail fin %.1f%%, fins %.1f%%, eyes %.1f%% of the surface (06 8.2: tail tip and fin edges)"
             report.add(file, "zone", ok, detail % tuple(100 * roles.get(r, 0) for r in ("body", "tail", "fin", "eye")))
+        report.add(FALLBACK, "covers the fin trim", state["trim_lit"] >= TRIM_LIT,
+                   "lights %.0f%% of the Minnow juvenile's dark fin and tail trim (at least %.0f%%), so the fallback reads as a lit "
+                   "tail tip and fin edge, not as dark trim beside the light (06 8.2, 8.3)" % (100 * state["trim_lit"], 100 * TRIM_LIT))
         span = state["home_span"] = home_span()
         report.add(NAME, "nose to tail", span[0] <= 0.05 and span[1] >= 0.95 and state["cov_base_home"]["lit_area_by_role"].get("tail", 0) > 0,
                    "the band (mask %.1f or more) runs from t %.2f to %.2f of the body (0 nose, 1 tail root) and onto the tail fin" % ((SEEN,) + span))
@@ -312,6 +329,31 @@ def build():
                        % (NAME, FALLBACK),
         },
     }
+
+
+def trim_lit(body, block_map, mask, frame, dark):
+    """Share of the dark block on the Minnow's tail fin and fins (its painted fin trim) that the
+    mask lights (0.5 or more), by surface area."""
+    mesh = body.data
+    mesh.calc_loop_triangles()
+    uvl = mesh.uv_layers[common.UV_NAME].data
+    big = block_map.shape[0]
+    total = lit = 0.0
+    for tri in mesh.loop_triangles:
+        uv = np.array([uvl[li].uv[:] for li in tri.loops])
+        cu, cv = uv.mean(0)
+        if frame.texel_roles([frame.comp[tri.vertices[0]]], np.array([cu]), np.array([cv]))[0] not in ("tail", "fin"):
+            continue
+        pts = np.array(traitbake._SAMPLES) @ uv
+        rows = np.clip((pts[:, 1] * big).astype(int), 0, big - 1)
+        cols = np.clip((pts[:, 0] * big).astype(int), 0, big - 1)
+        trim = block_map[rows, cols] == dark
+        if not trim.any():
+            continue
+        on = traitbake.sample_mask(mask, pts[:, 0], pts[:, 1]) >= 0.5
+        total += tri.area * float(trim.mean())
+        lit += tri.area * float((trim & on).mean())
+    return round(lit / max(total, 1e-9), 4)
 
 
 def mid_left(body, block_map, mask, frame):

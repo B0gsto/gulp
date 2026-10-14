@@ -13,6 +13,8 @@ family has, never from pixels of one layout:
            fin, 0 at its root and 1 at its far tip
     h      up the side: -1 at the belly, +1 at the back, 0 halfway, at that station of the part
     rim    on fins and the tail fin: 0 where the part meets the body, 1 at its farthest point
+    edge   on fins and the tail fin: 0 on the part's outline seen flat (its free edge, and its
+           root), 1 at the point deepest inside it; 1 on every other part
     side   +1 or -1 (left and right halves share texels, 06 5.4)
 
 and a zone, "home" or "fallback" (06 8.3 rule 1). `master(zone, S, frame)` returns the mask,
@@ -97,6 +99,52 @@ def _stations(co, nbins=STATIONS):
     return {"y": mids, "top": fill(top), "bot": fill(bot), "hw": fill(hw), "y0": float(y0), "y1": float(y1)}
 
 
+EDGE_GRID = 96
+
+
+def _outline_grid(co, polys, n=EDGE_GRID):
+    """A part flattened onto its own plane (its two longest principal axes): which cells of an
+    n x n grid it covers, and each covered cell's chamfer distance to the outline, in cells."""
+    idx = sorted({i for p in polys for i in p})
+    pts = co[idx]
+    centre = pts.mean(0)
+    _, _, vt = np.linalg.svd(pts - centre, full_matrices=False)
+    axes = vt[:2]
+    q = (co - centre) @ axes.T
+    lo, hi = q[idx].min(0), q[idx].max(0)
+    cell = float((hi - lo).max()) / (n - 6)
+    lo = lo - 3.0 * cell
+    filled = np.zeros((n, n), dtype=bool)
+    gx, gy = np.meshgrid(np.arange(n) + 0.5, np.arange(n) + 0.5, indexing="ij")
+    for p in polys:
+        for k in range(1, len(p) - 1):
+            a, b, c = ((q[v] - lo) / cell for v in (p[0], p[k], p[k + 1]))
+            den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+            if abs(den) < 1e-12:
+                continue
+            w0 = ((b[1] - c[1]) * (gx - c[0]) + (c[0] - b[0]) * (gy - c[1])) / den
+            w1 = ((c[1] - a[1]) * (gx - c[0]) + (a[0] - c[0]) * (gy - c[1])) / den
+            filled |= (w0 >= -1e-3) & (w1 >= -1e-3) & (1.0 - w0 - w1 >= -1e-3)
+    big = 1e9
+    d = np.where(filled, big, 0.0)
+    for i in range(n):              # chamfer 3-4, forward then back (distances in thirds of a cell)
+        for j in range(n):
+            if d[i, j]:
+                m = d[i, j]
+                if i: m = min(m, d[i - 1, j] + 3, d[i - 1, j - 1] + 4 if j else big, d[i - 1, j + 1] + 4 if j < n - 1 else big)
+                if j: m = min(m, d[i, j - 1] + 3)
+                d[i, j] = m
+    for i in range(n - 1, -1, -1):
+        for j in range(n - 1, -1, -1):
+            if d[i, j]:
+                m = d[i, j]
+                if i < n - 1: m = min(m, d[i + 1, j] + 3, d[i + 1, j + 1] + 4 if j < n - 1 else big, d[i + 1, j - 1] + 4 if j else big)
+                if j < n - 1: m = min(m, d[i, j + 1] + 3)
+                d[i, j] = m
+    d = np.where(filled, np.maximum(d / 3.0 - 0.5, 0.0), 0.0)
+    return {"centre": centre, "axes": axes, "lo": lo, "cell": cell, "dist": d, "dmax": float(d.max())}
+
+
 def _at(st, key, y):
     return np.interp(y, st["y"], st[key])
 
@@ -135,7 +183,6 @@ class Frame:
         # Rim: distance of every appendage vertex from the main body's surface, 0..1 per part.
         tris = [tuple(p.vertices) for p in mesh.polygons if self.comp[p.vertices[0]] == self.main]
         tree = BVHTree.FromPolygons([Vector(v) for v in co], tris)
-        # Rim: distance of every appendage vertex from the main body's surface, 0..1 per part.
         self.rim = np.zeros(len(co))
         for c, role in self.role.items():
             if role not in ("tail", "fin"):
@@ -143,6 +190,14 @@ class Frame:
             sel = np.nonzero(self.comp == c)[0]
             d = np.array([tree.find_nearest(Vector(co[i]))[3] or 0.0 for i in sel])
             self.rim[sel] = d / max(d.max(), 1e-9)
+        # Edge: for the same parts, how far a point lies inside the part's own outline, seen
+        # flat (0 on the outline, 1 at the point deepest inside), so a master can light a fin's
+        # whole free edge and not only its far tip (rim).
+        self.edge = {}
+        for c, role in self.role.items():
+            if role in ("tail", "fin"):
+                tris = [tuple(p.vertices) for p in mesh.polygons if self.comp[p.vertices[0]] == c]
+                self.edge[c] = _outline_grid(co, tris)
         self.eyes = []
         for c, role in self.role.items():
             if role == "eye" and self.area[c] > 0.0:
@@ -151,6 +206,20 @@ class Frame:
                 self.eyes.append({"t": float(tt.mean()), "h": float((hh.max() + hh.min()) / 2.0),
                                   "r_h": float((hh.max() - hh.min()) / 2.0), "r_t": float((tt.max() - tt.min()) / 2.0),
                                   "area": float(self.area[c])})
+
+    def edge_at(self, c, P):
+        """Edge distance (0 on the part's outline, 1 deepest inside) of points P on part c."""
+        g = self.edge[c]
+        q = (np.asarray(P) - g["centre"]) @ g["axes"].T
+        f = (q - g["lo"]) / g["cell"] - 0.5
+        n = g["dist"].shape[0]
+        i0 = np.clip(np.floor(f).astype(int), 0, n - 2)
+        w = np.clip(f - i0, 0.0, 1.0)
+        d = g["dist"]
+        a, b = i0[:, 0], i0[:, 1]
+        val = (d[a, b] * (1 - w[:, 0]) * (1 - w[:, 1]) + d[a + 1, b] * w[:, 0] * (1 - w[:, 1])
+               + d[a, b + 1] * (1 - w[:, 0]) * w[:, 1] + d[a + 1, b + 1] * w[:, 0] * w[:, 1])
+        return np.clip(val / max(g["dmax"], 1e-9), 0.0, 1.0)
 
     def texel_roles(self, part, u, v):
         """Role of each texel: its part's role, except where the texel lies in the mouth or teeth
@@ -204,7 +273,11 @@ def samples(frame, P, part, rim, side, u=None, v=None):
     n = len(P)
     roles = frame.texel_roles(part, u, v) if u is not None else np.array([frame.role.get(int(c), "free") for c in part], dtype=object)
     S = {"role": roles,
-         "t": np.zeros(n), "h": np.zeros(n), "rim": rim, "side": side, "P": P, "part": part}
+         "t": np.zeros(n), "h": np.zeros(n), "rim": rim, "edge": np.ones(n), "side": side, "P": P, "part": part}
+    for c in frame.edge:
+        sel = part == c
+        if sel.any():
+            S["edge"][sel] = frame.edge_at(c, P[sel])
     body = S["role"] == "body"
     if body.any():
         S["t"][body], S["h"][body] = frame.body_coords(P[body])

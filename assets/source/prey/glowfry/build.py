@@ -10,24 +10,30 @@ warm yellow, with a glowing belly like a lantern, "the only light inside a dark 
 the creature that teaches the first trait (04 B5), so it must read as special at a glance and
 never as an ordinary prey: a round body with a big round head, very large eyes with a golden
 ring, a flared fan tail with a shallow fork and stubby fins (06 3.4: food is circles, huge eyes, short round fins),
-and the lantern, a saturated lemon block with a paler core that wraps the belly and climbs both
+and the lantern, a lemon block with a near-white core that wraps the belly and climbs both
 flanks to above their middle (so it reads from the side and the game camera), set off by a
-slightly deeper yellow around it, and glows (T_TraitPrey_Emi). No plain prey has that
+slightly deeper gold around it, and glows (T_TraitPrey_Emi). No plain prey has that
 silhouette or that light. Rigid, no bones
 (06 7.6 data:PreyMotion: drawn `rigid`, the client wobbles it and pulses the glow at 0.8 Hz).
 
 Colour (06 4.3 glowfry row, built from the darter's palette as 06 4.3 asks of trait prey): mid
-#D6B222 back and flank (the darter's yellow, two degrees further from lantern amber and deepened
-to L* 74, so the lantern stands well above it), light #FFE98A the lantern and the eye rings (the
-Glow signature colour, 06 8.2), dark #6B3A0E, a warm umber, for the band inside the tail's edge,
-the band under the back fin's crest, the pectoral tips and a saddle at the tail root; pupils and
-smile in ui.ink, as the Minnow's (dark block). The fins' free edges keep a pale fringe: a slab's
-rim faces carry its edge colour and are what the top view and the game camera see of a fin, which
-read as dark bars when the edge itself was dark (review loop 1). No accent. Painted by script (06 5.2): every texel
+#C29424 back and flank, a deep warm gold (L* 64, a* above 0), and light #FFE98A the lantern and
+the eye rings (the Glow signature colour, 06 8.2), painted as a hot lemon-white lamp: near white
+at the core, a saturated cool lemon (a* below 0) out to its edge. Body and lantern part by hue and
+saturation as well as by about 26 L*, so at 20 px they read as a gold fish carrying a lemon light,
+not one yellow blob (review loop 2). The gold's hue lies inside lantern amber's band, which art may
+use only under 70% saturation or 85% value (06 4.5), so the body's lights pale instead of brightening
+(hold_amber). Dark #6B3A0E, a warm umber, is the tail's tip and a saddle at the tail root; pupils
+and the smile are ui.ink, as the Minnow's (dark block). Fins carry soft value steps, no bars: the
+back fin and pectorals are mid only, and the tail's mid ramps down into its dark tip (review loop
+2: the bands read as hard brown bars, the back fin's band as dark ticks from above). No accent.
+The smile is one arc across the front of the snout, drawn from the surface point, so the snout tip,
+where the unwrap's fan meets, carries no strip that reads as a stub in the mouth. Painted by script (06 5.2): every texel
 of its cell traced back to the mesh, large soft gradients, head lightest and most saturated,
 shadows toward violet, lights toward yellow, wet highlight and eye glints, then Cycles occlusion
 (06 5.5, baked from a subdivided copy so the low-poly body shows no facets) multiplied in at 30%
-tinted #5A4FA0.
+tinted #5A4FA0. The glow mask (T_TraitPrey_Emi) is full over most of the lantern and fades out at
+its edge, just under 06 5.1's 15% cap.
 
 408 triangles (06 6.3 trait prey 300 to 700; 07 4.2's 300 was raised to 410 in task S6-A1, a
 round body needs 16 sides). Body depth 58% of the body length (06 3.3's note on round trait prey). The shell (run.py step shell,
@@ -350,6 +356,7 @@ def shade(base_hex, sv, fade=0.0):
     return texbake.lab_to_srgb(lab)
 
 
+TAIL_TIP = 0.60                    # the tail's dark tip starts this far out along the fin (tune: sets the dark share)
 LANTERN_T = (0.49, 0.235)          # centre and half-length along the body
 LANTERN_S = (0.40, 0.70)           # its top edge on the flank, and where it reaches full length below
 LANTERN_P = 2.6                    # superellipse power: a round-cornered block, not an ellipse
@@ -380,11 +387,30 @@ def body_ts(P, t_attr, s_attr):
     sx = np.clip(np.abs(Q[:, 0]) / hw, 0.0, 1.0) ** (1.0 / SQUARE)
     cz = np.sign(dz) * np.clip(np.abs(dz) / np.maximum(H, 1e-6), 0.0, 1.0) ** (1.0 / SQUARE)
     s = np.arctan2(sx, cz) / np.pi
-    near_pole = (t < 0.02) | (t > 0.985)
+    near_pole = (t < 0.004) | (t > 0.985)
     return t, np.where(near_pole, s_attr, s)
 
 
-GLOW_CORE = 0.55                   # the glow mask is full inside this share of the lantern, then falls to its edge
+MOUTH = {"z": -0.032, "lift": 0.012, "half": 0.054, "line": 0.0056, "t": 0.12}   # build units: centre height, corner lift, half width, half line width, back limit
+
+
+def mouth(P, t):
+    """Texels of the smile: an arc across the front of the snout, z = centre + lift (x / half)^2,
+    seen as a small upturned curve from the front and the 3/4 view and as a short line at the nose
+    from the side; its ends are round."""
+    k, c = FIT["k"], np.array(FIT["c"])
+    Q = P / k + c
+    x, z = Q[:, 0], Q[:, 2]
+    u = np.abs(x) / MOUTH["half"]
+    arc = MOUTH["z"] + MOUTH["lift"] * u ** 2
+    d = np.abs(z - arc)
+    end = np.hypot(np.clip(u - 1.0, 0.0, None) * MOUTH["half"], d)
+    return (np.where(u <= 1.0, d, end) < MOUTH["line"]) & (t < MOUTH["t"])
+
+
+GLOW_CORE = 0.58                   # the glow mask is full inside this share of the lantern (tune)
+GLOW_EDGE = 0.90                   # and falls to nothing at the lantern's edge (06 5.1: 15% cap)
+LANTERN_CHROMA = (1.55, 0.45)      # lantern chroma against the Glow colour's: saturated lemon at the rim, lemon-white at the core
 
 
 def paint(kind, a, b, P, N):
@@ -407,15 +433,15 @@ def paint(kind, a, b, P, N):
     # The lantern: light block, one saturated lemon shape (not a pale disc): rich Glow yellow to its
     # edge, a little paler and brighter at the core (the lamp), so it reads as a lit block at 20 px.
     lit = r <= 1.0
-    lv = 0.55 + 0.4 * (1.0 - texbake.smoothstep(0.2, 0.75, r)) - 0.25 * texbake.smoothstep(0.85, 1.0, r)
+    lv = 0.0 + 1.0 * (1.0 - texbake.smoothstep(0.1, 0.7, r)) - 0.15 * texbake.smoothstep(0.85, 1.0, r)
     c = np.where(lit[:, None], shade(LIGHT, lv), c)
-    core_w = 1.0 - texbake.smoothstep(0.15, 0.6, r)
+    core_w = 1.0 - texbake.smoothstep(0.1, 0.65, r)
     lab = texbake.srgb_to_lab(c)
-    lab[:, 1:] *= (1.45 - 0.55 * core_w)[:, None]      # chroma: 1.45 x the Glow colour's at the rim, 0.9 x at the core
-    lab[:, 1] -= 2.0 * (1.0 - core_w)                  # and a touch toward lemon, away from lantern amber (06 4.5)
+    lab[:, 1:] *= (LANTERN_CHROMA[0] - (LANTERN_CHROMA[0] - LANTERN_CHROMA[1]) * core_w)[:, None]
+    lab[:, 1] -= 3.0 * (1.0 - core_w)                  # and toward cool lemon (a* below 0), away from the gold body and lantern amber
     c = np.where(lit[:, None], texbake.lab_to_srgb(lab), c)
     k = np.where(lit, 1, k)
-    g = np.where(r < GLOW_CORE, 1.0 - 0.1 * (r / GLOW_CORE) ** 2, 0.9 * (1.0 - texbake.smoothstep(GLOW_CORE, 0.82, r)))
+    g = np.where(r < GLOW_CORE, 1.0, 1.0 - texbake.smoothstep(GLOW_CORE, GLOW_EDGE, r))
     g = np.where(lit, g, 0.0)
     # Around it, the body's yellow deepens a little (inside the mid block's 12 L*), so the lit
     # shape stands out by value at 20 px without a drawn line.
@@ -427,40 +453,40 @@ def paint(kind, a, b, P, N):
     line = (t > 0.865 + 0.05 * (s / 0.52) ** 2) & (s < 0.52)
     c = np.where(line[:, None], shade(DARK, -0.6 - 0.6 * texbake.smoothstep(0.875, 1.0, t) + 0.4 * up[m]), c)
     k = np.where(line, 2, k)
-    # The mouth: a small ink smile at the nose (06 3.4: a dot or a small smile).
-    smile = (t < 0.055) & (np.abs(s - (0.62 - 1.2 * t)) < 0.032) & (t > 0.004)
+    # The mouth: a small ink smile across the front of the snout (06 3.4: a dot or a small
+    # smile), drawn from the surface point itself, so the snout tip, where the unwrap's fan
+    # meets, carries it as one curve and no strip of the cap reads as a stub in the mouth.
+    smile = mouth(P[m], t)
     c = np.where(smile[:, None], shade(PUPIL, -0.2), c)
     k = np.where(smile, 3, k)
     blk[m], col[m], glow[m] = k, c, g
 
-    # Fins, the family's way (the Minnow's): mid with soft rays, lighter out toward the edge, and a
-    # thin dark rim only on the free edge, so no fin reads as a dark block from above.
-    # Tail: a dark band just inside the trailing edge and along the lower lobe, with a pale fringe
-    # on the edge itself. The slab's rim faces carry the edge's colour and are what the game camera
-    # (from behind) and the top view see of the tail, so the fringe and the top edge stay mid.
+    # Fins: soft value steps, no bars. Each fin is one mid shape that darkens smoothly toward its
+    # outer part (inside the mid block's 12 L*); only the tail ends in one dark tip, which the
+    # mid ramps down into, its boundary a soft curve along the fork with no stripe or pale fringe
+    # beyond it. The slabs' rim faces take their outline's colour, which now changes only once
+    # along the tail and never along the back fin, so the top view and the game camera see no
+    # dark ticks.
     m = kind == KIND["tail"]
     fu, fv = a[m], b[m]
     zc = (fv - 0.48) * 2.0
-    trail = 0.70 - 0.10 * np.clip(np.abs(zc), 0.0, 1.0) ** 2            # the band follows the shallow fork
-    fringe = fu > 0.88
-    edge = ((fu > trail) | ((zc < -0.80) & (fu > 0.40))) & ~fringe
-    ray = sum(np.exp(-((zc - z0) / 0.07) ** 2) for z0 in (-0.42, 0.0, 0.42)) * texbake.smoothstep(0.2, 0.6, fu)
-    c = shade(MID, 0.15 + 0.45 * texbake.smoothstep(0.1, 0.8, fu) - 0.35 * np.clip(ray, 0, 1), 0.6)
-    c = np.where(edge[:, None], shade(DARK, -0.3 - 0.6 * texbake.smoothstep(0.7, 1.0, fu)), c)
-    blk[m], col[m] = np.where(edge, 2, 0), c
+    tip = TAIL_TIP - 0.10 * np.clip(np.abs(zc), 0.0, 1.0) ** 2            # follows the shallow fork
+    dark = fu > tip
+    ray = sum(np.exp(-((zc - z0) / 0.09) ** 2) for z0 in (-0.42, 0.0, 0.42)) * texbake.smoothstep(0.15, 0.5, fu) * (1.0 - texbake.smoothstep(0.4, 0.6, fu / tip))
+    lead = texbake.smoothstep(0.35, 1.0, fu / tip)                     # the mid's ramp down into the tip
+    c = shade(MID, 0.35 - 1.85 * lead - 0.25 * np.clip(ray, 0, 1), 0.6)
+    c = np.where(dark[:, None], shade(DARK, 0.9 - 2.2 * texbake.smoothstep(0.0, 1.0, (fu - tip) / np.maximum(1.0 - tip, 1e-3))), c)
+    blk[m], col[m] = np.where(dark, 2, 0), c
 
-    # Back fin: mid, lighter up the fin, a thin dark band under the crest; the crest itself (its
-    # rim faces are what the top view sees) stays mid.
+    # Back fin: mid only, lighter up the fin to its crest (no band, nothing dark).
     m = kind == KIND["dorsal"]
-    crest = (b[m] > 0.70) & (b[m] < 0.90)
-    blk[m] = np.where(crest, 2, 0)
-    col[m] = np.where(crest[:, None], shade(DARK, -0.4), shade(MID, 0.2 + 0.5 * texbake.smoothstep(0.0, 0.8, b[m]), 0.4))
+    blk[m] = 0
+    col[m] = shade(MID, -0.6 + 1.2 * texbake.smoothstep(0.0, 0.9, b[m]), 0.4)
 
-    # Pectorals: mid, lighter toward the tip, a thin dark rim at the tip.
+    # Pectorals: mid only, deepening toward the tip.
     m = kind == KIND["pec"]
-    tip = a[m] > 0.88
-    blk[m] = np.where(tip, 2, 0)
-    col[m] = np.where(tip[:, None], shade(DARK, -0.4), shade(MID, 0.1 + 0.6 * texbake.smoothstep(0.2, 0.9, a[m]), 0.3))
+    blk[m] = 0
+    col[m] = shade(MID, 0.4 - 1.5 * texbake.smoothstep(0.2, 1.0, a[m]), 0.3)
 
     # Eyes, by their place on the eye's disc (the same on both eyes): a big dark pupil (06 3.3 prey:
     # 65% of the eye), a golden ring of the Glow colour around it, two glints.
@@ -524,15 +550,28 @@ def paint_cell(body, attrs):
         lab[sel, 0] = np.clip(lab[sel, 0], lo, hi)
     glint_white = whole & (keys == 1) & (small.min(-1) > 0.97)
     small = np.where((whole & ~glint_white)[..., None], texbake.lab_to_srgb(lab), small)
-    # 06 4.5: the yellow sits two degrees outside lantern amber; shading must not drift it inward.
-    small, moved = texbake.hold_out_of_band(small, 26.0, 46.0, margin=1.5)
-    print("[glowfry] %d texels held outside the lantern amber band (06 4.5)" % moved)
+    # 06 4.5: the gold body's hue lies inside lantern amber's 26 to 46 degrees, which art may use
+    # only below 70% saturation or 85% value; its lights, where shading lifts the value past 85%,
+    # lose saturation to 70% (a light leaning pale, as 06 4.1 has it), never hue.
+    small, moved = hold_amber(small)
+    print("[glowfry] %d texels held under the lantern amber limits (06 4.5)" % moved)
     on = cover > 0
     r0, r1, c0, c1 = tpa.cell_bounds(PREY)
     small = texbake.dilate(small, on, tpa.MARGIN + 4, (r0, r1, c0, c1))
     gsmall = texbake.dilate(gsmall, on, tpa.MARGIN + 4, (r0, r1, c0, c1))
     return {"albedo": np.clip(small, 0.0, 1.0)[r0:r1, c0:c1], "glow": np.clip(gsmall, 0.0, 1.0)[r0:r1, c0:c1],
             "block": block, "on": on, "ao": ao is not None, "atlas_rgb": np.clip(small, 0.0, 1.0)}
+
+
+def hold_amber(rgb, lo=26.0, hi=46.0, sat=0.70, val=0.85, margin=1.0):
+    """Texels whose hue is within lantern amber's band (plus `margin`) and are brighter than `val`
+    keep their hue and value and drop to `sat` saturation less 1%. Returns the colours and the count."""
+    h, sv, v = texbake.hsv(rgb)
+    hot = (sv > sat - 0.01) & (v > val) & (h >= lo - margin) & (h <= hi + margin)
+    if not hot.any():
+        return rgb, 0
+    fixed = texbake.hsv_to_rgb(h, np.minimum(sv, sat - 0.01), v)
+    return np.where(hot[..., None], fixed, rgb), int(hot.sum())
 
 
 # ---------------------------------------------------------------- preview helpers
