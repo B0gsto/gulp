@@ -7,20 +7,26 @@
 -- Every `PreRender` (code-owned writes go on PreRender: spike F15, 09 §6.7): read the root's
 -- position (the engine's, after collisions with the shell), step the model with
 -- `InputController.read()`, then write `Move.VectorVelocity` and `Turn.CFrame`. Under water
--- (Y ≤ 0) the mover holds the velocity; after a breach `Move.Enabled = false` and the root flies
--- a ballistic arc under `Workspace.Gravity` (09 §6.5), whose velocity the model reads back until
--- it re-enters. A jump of the root the model did not make is a server correction (6.3, 7.3,
+-- (Y ≤ 0) the mover holds the velocity. On a breach it hands the arc to the engine (09 §6.5):
+-- `AssemblyLinearVelocity` = the model's velocity, `Move.Enabled = false`, `Turn` kept; the root
+-- flies under `Workspace.Gravity` (80, set in the project files, the same value as SwimModel's
+-- `swim.gravity`; no force of ours is added), and each frame its position and velocity are read
+-- back into the model. Re-entry (×0.8) is the model's, and `Move` takes over again. A dash start
+-- is reported with `Ability` op 1 (09 §5.3). A jump of the root the model did not make is a server correction (6.3, 7.3,
 -- spike S4): the model is placed there at rest.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Ability = require(ReplicatedStorage.Shared.Net.Codec.Ability)
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
 local SwimStatus = require(ReplicatedStorage.Shared.Logic.SwimStatus)
 local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
 
+local Client = require("../Net/Client")
 local InputController = require("./InputController")
 
 type Status = SwimStatus.Status
@@ -42,6 +48,7 @@ local root: BasePart? = nil
 local move: LinearVelocity? = nil
 local turn: AlignOrientation? = nil
 local bindCount = 0
+local abilitySeq = 0 -- `Ability` seq, u8 (09 §5.3)
 
 -- setStatus: what is on, and until when (os.clock()).
 local active: { [string]: boolean } = {}
@@ -146,9 +153,16 @@ function MovementController.update(dt: number)
 	end
 
 	SwimModel.step(s, InputController.read(), dt)
-	-- TODO(B14, S8-C2): on `s.dashStarted`, send `Ability` (09 §5.2, §7.1). 09 §5.3 gives its
-	-- layout ("6 bytes: op, seq, time") but no op codes or codec exist yet, and no handler.
+	if s.dashStarted then
+		-- 09 §5.3, §7.1: the dash is already running; this opens the server's dash window.
+		abilitySeq = (abilitySeq + 1) % 256
+		Client.send("Ability", Ability.encode(Ability.OP_DASH, abilitySeq, Client.timeMs()))
+	end
 
+	if s.breached then
+		-- 09 §6.5: hand the arc to the engine at the model's velocity.
+		part.AssemblyLinearVelocity = Vector3.new(s.vx, s.vy, s.vz)
+	end
 	m.Enabled = not s.airborne
 	if not s.airborne then
 		local vx, vy, vz = SwimModel.velocity(s)
@@ -195,6 +209,13 @@ end
 function MovementController.init() end
 
 function MovementController.start()
+	if workspace.Gravity ~= Defaults.swim.gravity then
+		-- 09 §6.5: the project files set it; a place that lost the setting arcs wrongly.
+		Log.warn(
+			TAG,
+			`Workspace.Gravity is {workspace.Gravity}, SwimModel uses {Defaults.swim.gravity} (09 §6.5)`
+		)
+	end
 	player:GetAttributeChangedSignal("Tier"):Connect(function()
 		local tier = attributeNumber("Tier")
 		if state and tier and Index.Tiers.byTier[tier] then

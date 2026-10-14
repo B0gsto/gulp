@@ -14,7 +14,11 @@ local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
+local Ability = require(ReplicatedStorage.Shared.Net.Codec.Ability)
+local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
+
 local CollisionGroups = require("../World/CollisionGroups")
+local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
 type Slot = Types.Slot
@@ -33,6 +37,11 @@ export type CreatureState = {
 	model: Model,
 	root: Part,
 	writtenDiameter: number, -- the last Root.Size written (6.8: 3% rule)
+	-- TODO(B14, S8-C2): the dash window belongs to MovementValidator's per-slot state (09 §7,
+	-- 7.1); it lives here until B14 exists. Server time (s, GetServerTimeNow clock) of the last
+	-- accepted `Ability` dash, −math.huge for none, and the seq it came with.
+	dashStart: number,
+	dashSeq: number,
 }
 
 local TAG = "Creature"
@@ -181,7 +190,40 @@ function CreatureService.init()
 	end
 end
 
-function CreatureService.start() end
+-- `Ability` (09 §5.3, 14.2). Op 1 opens the dash window of 7.1 when the server accepts it:
+-- alive (a creature in its slot), cooldown elapsed with 0.15 s slack (SwimModel.acceptDash).
+-- A refused dash just opens no window. Ops 2 and 3 (abilities) have no handler yet.
+local function onAbility(player: Player, payload: buffer)
+	local slot = player:GetAttribute("Slot")
+	local state = if type(slot) == "number" then states[slot] else nil
+	if state == nil or state.player ~= player then
+		return
+	end
+	local op, seq, timeMs = Ability.decode(payload)
+	if op ~= Ability.OP_DASH then
+		-- TODO(B32): ability press and release (ops 2 and 3; Shell is held).
+		return
+	end
+	-- TODO(B24): not while stunned, once the server keeps statuses.
+	local start = SwimModel.acceptDash(
+		Index.Species.byId[state.species],
+		state.dashStart,
+		Server.fromTimeMs(timeMs),
+		workspace:GetServerTimeNow(),
+		player:GetNetworkPing()
+	)
+	if start == nil then
+		Log.once("info", TAG, "first dash refused (cooldown)")
+		return
+	end
+	state.dashStart, state.dashSeq = start, seq
+end
+
+function CreatureService.start()
+	Server.on("Ability", {
+		Server.Validate.buffer(Ability.SIZE, Ability.SIZE, Ability.accepts, Ability.valid),
+	}, onAbility)
+end
 
 --- Builds the player's creature, places it in their cove, makes it their Character, gives its
 --- root to them and sets the public attributes (sections 6.2 and 6.3, Join row). The slot is
@@ -215,6 +257,8 @@ function CreatureService.spawn(player: Player): CreatureState
 		model = model,
 		root = root,
 		writtenDiameter = root.Size.X,
+		dashStart = -math.huge,
+		dashSeq = -1,
 	}
 	states[slot] = state
 

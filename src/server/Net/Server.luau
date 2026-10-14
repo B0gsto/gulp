@@ -40,6 +40,16 @@ Server.rejected = guard.rejected :: Signal.Signal<Player, string, Reason>
 local reliable: { [string]: RemoteEvent } = {}
 local unreliable: { [string]: UnreliableRemoteEvent } = {}
 
+--- ServerEpoch of 8.7: the server start time on the `GetServerTimeNow` clock. Every `timeMs` in
+--- a packet counts milliseconds from it.
+Server.EPOCH = workspace:GetServerTimeNow()
+local EPOCH_ATTRIBUTE = "ServerEpoch"
+
+--- Server time, s on the `GetServerTimeNow` clock, of a packet's `timeMs` (8.7).
+function Server.fromTimeMs(timeMs: number): number
+	return Server.EPOCH + timeMs / 1000
+end
+
 -- Create every remote. A folder already in the place (saved from an old session) is replaced,
 -- because nothing but this module may own remotes.
 do
@@ -63,6 +73,9 @@ do
 			unreliable[def.name] = remote
 		end
 	end
+	-- TODO(WorldInfo, 5.3): 8.7 sends ServerEpoch once in WorldInfo, which no task has built
+	-- yet; until it does, the folder carries it so the client can stamp `Ability` (timeMs).
+	folder:SetAttribute(EPOCH_ATTRIBUTE, Server.EPOCH)
 	-- Parented last, so a client that finds the folder finds every remote in it.
 	folder.Parent = ReplicatedStorage
 end

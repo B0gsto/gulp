@@ -14,7 +14,17 @@ local function keys(overrides: { [string]: boolean }?): InputMath.Keys
 end
 
 describe("InputMath drag to swim (02 §2.1)", function()
-	it("gives nothing inside the 14 px dead zone", function()
+	it("converts device px to rpx with the interface scale (08 §1.2)", function()
+		-- A phone at scale 0.52: a 14 rpx dead zone is 7.28 device px.
+		expect(InputMath.toRpx(7.28, 0.52)).toBeCloseTo(14, 1e-9)
+		expect(InputMath.toRpx(160, 2)).toBe(80)
+		expect(InputMath.toRpx(30, 0)).toBe(30)
+		expect(InputMath.toRpx(30, 0 / 0)).toBe(30)
+		local m = InputMath.dragAxes(InputMath.toRpx(41.6, 0.52), 0, 1)
+		expect(m).toBeCloseTo(1, 1e-9) -- 41.6 px at 0.52 is the 80 rpx full deflection
+	end)
+
+	it("gives nothing inside the 14 rpx dead zone", function()
 		local m, x, y = InputMath.dragAxes(10, -9, 1)
 		expect(m).toBe(0)
 		expect(x).toBe(0)
@@ -22,7 +32,7 @@ describe("InputMath drag to swim (02 §2.1)", function()
 		expect((InputMath.dragAxes(0, 0, 1))).toBe(0)
 	end)
 
-	it("reaches full deflection at 80 px and stays there", function()
+	it("reaches full deflection at 80 rpx and stays there", function()
 		expect((InputMath.dragAxes(80, 0, 1))).toBeCloseTo(1, 1e-9)
 		expect((InputMath.dragAxes(0, 95, 1))).toBe(1)
 		-- halfway between the dead zone and full: m = (47 − 14) / 66
@@ -72,14 +82,14 @@ describe("InputMath drag to swim (02 §2.1)", function()
 		expect(input.pitchTarget > 0).toBe(true)
 	end)
 
-	it("trails the origin behind a finger past the 100 px clamp", function()
+	it("trails the origin behind a finger past the 100 rpx clamp", function()
 		local ox, oy = InputMath.trailOrigin(0, 0, 60, 0, 1)
 		expect(ox).toBe(0)
 		expect(oy).toBe(0)
 		ox, oy = InputMath.trailOrigin(0, 0, 130, 0, 1)
 		expect(ox).toBeCloseTo(30, 1e-9)
 		expect(oy).toBeCloseTo(0, 1e-9)
-		-- reversing from the clamp is instant: 2 × 100 px back passes through the origin
+		-- reversing from the clamp is instant: 2 × 100 rpx back passes through the origin
 		ox, oy = InputMath.trailOrigin(ox, oy, 0, 300, 1)
 		local dx, dy = 0 - ox, 300 - oy
 		expect(math.sqrt(dx * dx + dy * dy)).toBeCloseTo(100, 1e-9)
