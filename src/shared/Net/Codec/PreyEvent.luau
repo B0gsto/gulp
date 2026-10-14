@@ -73,7 +73,7 @@ function PreyEvent.accepts(length: number): boolean
 end
 
 --- True when the length matches its count and every record has a known op, a group ID below
---- 512, a member below 24 and an eater slot 0 to 24. Never throws.
+--- MAX_GROUPS (640), a member below 24 and an eater slot 0 to 24. Never throws.
 function PreyEvent.valid(b: buffer): boolean
 	local length = buffer.len(b)
 	if not PreyEvent.accepts(length) or length ~= 1 + 6 * buffer.readu8(b, 0) then

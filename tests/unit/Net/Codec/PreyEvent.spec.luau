@@ -16,7 +16,7 @@ describe("Codec/PreyEvent (09 §8.7)", function()
 			for k = 0, n - 1 do
 				local r = {
 					Rng.int(rng, 1, 3),
-					Rng.int(rng, 0, 511),
+					Rng.int(rng, 0, 639),
 					Rng.int(rng, 0, 255),
 					Rng.int(rng, 0, 23),
 					Rng.int(rng, 0, 24),
@@ -74,7 +74,7 @@ describe("Codec/PreyEvent (09 §8.7)", function()
 		local cases = {
 			{ 0, 0, 0, 0, 0 },
 			{ 4, 0, 0, 0, 0 },
-			{ 1, 512, 0, 0, 0 },
+			{ 1, 640, 0, 0, 0 },
 			{ 1, 0, 0, 24, 0 },
 			{ 1, 0, 0, 0, 25 },
 		}

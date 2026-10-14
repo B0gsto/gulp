@@ -30,7 +30,7 @@ PreyState.MAX_FULL = (900 - 8) // 22 -- 40
 PreyState.MAX_DELTA = (900 - 8) // 13 -- 68
 
 --- Group IDs run 0 to MAX_GROUPS − 1; a group has at most MAX_MEMBERS members (8.1).
-PreyState.MAX_GROUPS = 512
+PreyState.MAX_GROUPS = 640 -- 09 §8.1 (was 512 before S3-D1)
 PreyState.MAX_MEMBERS = 24
 --- `flags` bits 0 to 4: fleeing, stunned, lured, dormant, event prey (8.2).
 PreyState.FLAGS_MASK = 0x1F
@@ -204,7 +204,7 @@ end
 
 -- The fields a full and a delta record share, at `o` (groupId) and `p` (qx).
 local function commonValid(b: buffer, o: number, p: number): boolean
-	return buffer.readu16(b, o) < 512
+	return buffer.readu16(b, o) < PreyState.MAX_GROUPS
 		and buffer.readu16(b, p) <= QX_MAX
 		and buffer.readu16(b, p + 2) <= QY_MAX
 		and buffer.readu16(b, p + 4) <= QZ_MAX
@@ -214,7 +214,7 @@ local function commonValid(b: buffer, o: number, p: number): boolean
 end
 
 --- True when the payload is a well-formed packet: its length is 8 + 22F + 13D and at most 900,
---- and every record is in range (group ID below 512, positions inside Quantize's ranges, no −128
+--- and every record is in range (group ID below MAX_GROUPS, positions inside Quantize's ranges, no −128
 --- velocity, known flag bits; a full record also has a kind, 1 to 24 members, and no alive bit at
 --- or above its count). Never throws.
 function PreyState.valid(b: buffer): boolean

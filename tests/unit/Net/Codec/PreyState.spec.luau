@@ -13,7 +13,7 @@ type Delta = PreyState.Delta
 local function randomFull(rng: Rng.Rng): Full
 	local r = PreyState.newFull()
 	local count = Rng.int(rng, 1, 24)
-	r.groupId = Rng.int(rng, 0, 511)
+	r.groupId = Rng.int(rng, 0, 639)
 	r.gen = Rng.int(rng, 0, 255)
 	r.kind = Rng.int(rng, 1, 255)
 	r.qx = Quantize.x(Rng.range(rng, -1100, 1100))
@@ -32,7 +32,7 @@ end
 
 local function randomDelta(rng: Rng.Rng): Delta
 	local r = PreyState.newDelta()
-	r.groupId = Rng.int(rng, 0, 511)
+	r.groupId = Rng.int(rng, 0, 639)
 	r.qx = Rng.int(rng, 0, Quantize.QX_MAX)
 	r.qy = Rng.int(rng, 0, Quantize.QY_MAX)
 	r.qz = Rng.int(rng, 0, Quantize.QZ_MAX)
@@ -175,7 +175,7 @@ describe("Codec/PreyState (09 §8.7)", function()
 		expect(PreyState.valid(withFull(function() end))).toBe(true)
 		local bad = {
 			withFull(function(r)
-				r.groupId = 512
+				r.groupId = 640
 			end),
 			withFull(function(r)
 				r.kind = 0
