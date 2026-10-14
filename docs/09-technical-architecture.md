@@ -255,7 +255,7 @@ Studio-owned containers, never touched by Rojo:
 
 All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance), plus the prey density targets of `02-mechanics.md` (section 9.6, data:PreyTargets), and writes one module per table (`PreySpawns` joins 02's targets with 03's spawn weights, caps and zone plan areas). The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
 
-Each row gets a stable **wire index** (its 1-based position in the canon table) used in packets; rows are only ever appended.
+Each row gets a stable **wire index** (its 1-based position in the canon table) used in packets; rows are only ever appended. Each table numbers its own rows from 1, so where two tables share one byte the packet adds an offset: the prey `kind` byte (8.2, 8.7) is the `data:Prey` wire index (1 to 127) for ordinary prey and 128 + the `data:TraitPrey` wire index for trait prey (`Formation.TRAIT_BASE`, `Formation.kindOf` and `Formation.defOf` in `shared/Sim/Formation.luau` are the only places that mapping lives).
 
 ```lua
 --!strict
@@ -273,8 +273,12 @@ export type PreyDef = { id: string, wire: number, scope: Scope, tier: number, ma
 	givesTrait: string?,            -- trait prey only
 	zones: { string }, groupMin: number, groupMax: number,
 	behaviour: "drift" | "swarm" | "hop" | "school" | "solo" | "run" | "pack",
-	cruiseSpeed: number, fleeSpeed: number, fleeRadius: number, scatterGain: number,
+	cruiseSpeed: number, fleeSpeed: number,
+	turnRate: number,               -- °/s; 0 = turns in any direction (hops, drifts) (03 §2.1, §3.1)
+	fleeBurst: number,              -- s; 0 = does not flee (03 §2.1, §3.1)
+	fleeRadius: number, scatterGain: number,
 	radius: number, wobble: number, eventOnly: string? }
+	-- Acceleration is not a column: PreySim derives it (8.4, step 3)
 
 export type TraitDef = { id: string, wire: number, scope: Scope, rarity: Rarity,
 	incomeBonus: number }           -- 0.10, 0.20, 0.35, 0.60, 1.00 (Common to Mythic, canon 9)
@@ -489,12 +493,12 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 
 | Service | Scope | Responsibility | Owns | Public API |
 |---|---|---|---|---|
-| **PlayerLifecycle** | MVP | Join and leave sequence: slot, profile, policy, cove, creature, first state push; leave and shutdown settlement | `slotOf[Player]`, `playerAt[Slot]` | `getSlot(player): Slot?`, `getPlayer(slot): Player?`, `onReady: Signal<Player, Slot>`, `onLeaving: Signal<Player, Slot>` |
+| **PlayerLifecycle** | MVP | Join and leave sequence: slot, profile, policy, cove, creature, first state push; leave and shutdown settlement | `slotOf[Player]`, `playerAt[Slot]` | `getSlot(player): Slot?`, `getPlayer(slot): Player?`, `onReady: Signal<Player, Slot>`, `onLeaving: Signal<Player, Slot>`, `policy(player): Policy` (the PolicyService answer stored at join, section 18.2; the most restrictive values until it arrives or when the call failed) |
 | **DataService** | MVP | Load, migrate, session-lock, autosave and release profiles; push state patches to the owner | The ProfileStore session, `Profile.Data` | `get(player): ProfileData?`, `patch(player, path: string, value: any)`, `saveNow(player): boolean`, `onLoaded: Signal<Player>` |
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
-| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1) |
-| **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall) |
+| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
+| **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
 | **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
 | **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setSpawnRate(mult)`, `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)` |
@@ -544,7 +548,7 @@ Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedS
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
 | `State` | Reliable | S→C | path string, value | n/a |
-| `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady` | n/a |
+| `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady`; the decoder rejects more than 1,024 volumes, more than 16 attributes on a volume or a string over 256 characters **(tune)** | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
 | `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
 | `CreatureEvent` | Reliable | S→C | gulped, revived, status, tier change, bite absorbed, emote [L] | n/a |
@@ -661,7 +665,7 @@ rig.heading = spring toward look direction                       (τ = 0.10 s) (
 rig:PivotTo(CFrame.lookAlong(rig.pos, rig.heading) * bankAndPitchFromTurnRate)
 ```
 
-**Why the lead.** A critically damped spring toward a target moving at speed v settles 2τv behind it. In the spike (S3, F1) that was 6.1 to 6.4 studs behind the replicated root at 38 studs/s and 12.5 to 13 studs in a dash, at τ = 0.08 s: no pops, but a rig visibly behind the ball the server judges bites from. Springing toward `root + velocity × 2τ` cancels the trail, so the rig sits on the root at steady speed and still smooths its corrections. The clamp stops a replication overshoot from throwing the lead point. `tests/unit` checks the spring against a constant-velocity target: within 0.5 studs of it after 0.5 s **(tune)**.
+**Why the lead.** A critically damped spring toward a target moving at speed v settles 2τv behind it. In the spike (S3, F1) that was 6.1 to 6.4 studs behind the replicated root at 38 studs/s and 12.5 to 13 studs in a dash, at τ = 0.08 s: no pops, but a rig visibly behind the ball the server judges bites from. Springing toward `root + velocity × 2τ` cancels the trail, so the rig sits on the root at steady speed and still smooths its corrections. The clamp stops a replication overshoot from throwing the lead point. In code the spring takes one exact step per frame toward a target sampled at the frame's end, which has already moved `velocity × dt`, so the per-frame lead is `velocity × (2τ − dt/2)`; `shared/Logic/RigMath` does this, and `CameraController`'s fallback spring (used when the own creature has no rig) takes its lead from there; a lead of a full 2τ per step leaves the camera half a frame ahead of the rig. `tests/unit` checks the spring against a constant-velocity target: within 0.5 studs of it after 0.5 s **(tune)**.
 
 The engine already interpolates replicated assemblies; the spring hides its corrections and lets us add banking, squash and stretch without touching replicated state. Pass criteria are in S3.
 
@@ -843,8 +847,8 @@ Struct of arrays, one `buffer` per field, indexed by group ID (0 to 639). Total 
 --!strict
 --!native
 export type PreyBuffers = {
-	kind: buffer,        -- u8   0 = free slot, else PreyDef.wire
-	gen: buffer,         -- u8   generation, +1 each time the slot is reused
+	kind: buffer,        -- u8   0 = free slot; prey: PreyDef.wire (1..127); trait prey: 128 + wire (3.2)
+	gen: buffer,         -- u8   generation, +1 each time the slot is reused; wraps 254 → 0
 	flags: buffer,       -- u8   bit0 fleeing, bit1 stunned, bit2 lured, bit3 dormant, bit4 event prey
 	count: buffer,       -- u8   members at spawn (1..24)
 	alive: buffer,       -- u32  bit i set = member i alive
@@ -864,7 +868,7 @@ export type PreyBuffers = {
 }
 ```
 
-Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 18 bytes × 640 groups × 24 players = 276 kB.
+Per player (slot) the service keeps what that client was last told, for dead reckoning: `known` (u8 per group: 0 or `gen + 1`, which is why `gen` wraps at 254 and never reaches 255), `sentPos` (3 × u16), `sentVel` (3 × i8), `sentTick` (u16), `sentAlive` (u32), `keyTick` (u16). That is 18 bytes × 640 groups × 24 players = 276 kB.
 
 ### 8.3 Spatial grid
 
@@ -880,13 +884,13 @@ Two-dimensional on X and Z, 64-stud cells, 32 × 32 = 1,024 cells. `cellHead` is
 | 0 to 5 | Interest and send for the players whose `slot % 6` equals the frame number (4 players per frame) |
 | 3 | Spawner: respawns, event prey, the roaming `crystal_jelly` drift (one group of five members, about one drift per server every 300 s, canon 8.2) |
 
-A group is **active** if any player is within 700 studs. Dormant groups are stepped once a second with `dt = 1`.
+A group is **active** if any player is within 700 studs. Dormant groups are stepped once a second with `dt = 1`, as a single group point. 700 studs is beyond the 600-stud interest radius (8.5), so every group any client draws moves at the full 10 Hz and the dormant rate only touches groups nobody can see; chapter 02, section 9.1 copies this rule. The budget does not depend on it: the S3-C2 build measured the simulation at 0.12 ms per tick at the Frenzy count, against the 2.0 ms budget below.
 
 Per tick:
 
 1. **Threat pass (player-centric).** For each creature and predator, visit the groups in its 3 × 3 cells. If the creature could eat that prey (`BiteRules.canEatPrey`) and is within `fleeRadius[kind]`, set the group's flee direction away from it and `stateUntil = now + 1.2 s`. For `swarm` kinds also raise the scatter target to 1. For a Moonlit creature within 40 studs, set the lured flag instead.
-2. **Steer.** Fleeing: desired velocity = flee direction × `fleeSpeed`. Lured: toward the creature at 4 studs/s. Otherwise: toward the wander target at `cruiseSpeed`; pick a new seeded target inside the home volume every 3 to 6 s. `drift` kinds have a constant slow velocity.
-3. **Integrate.** `vel += clampLength(desired − vel, accel × dt)`; `pos += vel × dt`. Scatter moves toward its target at 2 per second up and 0.5 per second down.
+2. **Steer.** Fleeing: desired velocity = flee direction × `fleeSpeed`. Lured: toward the creature at 4 studs/s. Otherwise: toward the wander target at `cruiseSpeed`; pick a new seeded target inside the home volume every 3 to 6 s. `drift` kinds have a constant slow velocity. A flee lasts at most `fleeBurst`; the group is then tired for 2 s and moves at cruise speed (chapter 03, section 2.1).
+3. **Integrate.** `vel += clampLength(desired − vel, accel × dt)`; `pos += vel × dt`. `accel = fleeSpeed × turnRate` (turn rate in radians per second): the sideways acceleration that turns a group at its turn rate at flee speed; a turn rate of 0 (turns in any direction) counts as one turn per second (2π rad/s), and `drift` kinds use 1 stud/s² **(tune)**. Scatter moves toward its target at 2 per second up and 1/3 per second down, so a scattered swarm regroups over 3 s (chapter 02, section 9.2).
 4. **Leash.** Outside the home volume, add a pull back; beyond 1.5 times its radius, clamp. Prey therefore never need collision with the world: volumes are authored in open water. `hop` kinds take `y = WorldIndex.floorY(x, z) + hopArc(phase)`.
 5. **History.** Write the quantised position and scatter into the 8-sample ring (0.8 s) used by bite validation.
 
@@ -960,8 +964,8 @@ Full record, 22 bytes:
 | Offset | Type | Field |
 |---|---|---|
 | 0 | u16 | `groupId` |
-| 2 | u8 | `gen` |
-| 3 | u8 | `kind` (PreyDef wire index) |
+| 2 | u8 | `gen`, 0 to 254 (wraps; 8.2) |
+| 3 | u8 | `kind`: the `data:Prey` wire index (1 to 127), or 128 + the `data:TraitPrey` wire index (section 3.2) |
 | 4 | u16 | `qx` |
 | 6 | u16 | `qy` |
 | 8 | u16 | `qz` |
