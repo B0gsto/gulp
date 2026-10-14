@@ -20,6 +20,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
+local RunLoopService = require("./RunLoopService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
@@ -66,7 +67,7 @@ local function spawnCreature(player: Player)
 	local slot = slotOf[player]
 	stageOf[player] = "spawned"
 	WorldIndex.sendWorldInfo(player) -- once, after ClientReady (09 §5.3, §9.1)
-	CreatureService.spawn(player)
+	CreatureService.spawn(player, RunLoopService.join(player, slot)) -- Nursery or cove (6.3)
 	DataService.pushAll(player) -- the first state push, before onReady
 	PlayerLifecycle.onReady:fire(player, slot)
 end
@@ -129,8 +130,10 @@ local function leave(player: Player)
 		DataService.release(player) -- left between the profile and the slot
 		return
 	end
-	-- TODO(B19): leave settlement (RunLoopService.suspendOnLeave) runs from onLeaving; section
-	-- 13.1 frees the slot only after it. The profile is released after settlement (12.5).
+	-- Leave settlement: the run first (called directly: RunLoopService cannot require this module,
+	-- which requires it), then onLeaving; section 13.1 frees the slot only after it. The profile is
+	-- released after settlement (12.5).
+	RunLoopService.suspendOnLeave(player)
 	PlayerLifecycle.onLeaving:fire(player, slot)
 	CreatureService.remove(slot)
 	DataService.release(player)

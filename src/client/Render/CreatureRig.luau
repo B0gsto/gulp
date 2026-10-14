@@ -494,7 +494,7 @@ end
 --------------------------------------------------------------------------------------------------
 -- Public API
 
---- Clip asset IDs by clip name ("Swim", "SwimFast", "Idle", "Dash", "Bite"). Rigs built after
+--- Clip asset IDs by clip name (RigMath.CLIPS). Rigs built after
 --- this call load the clips that have an ID.
 function CreatureRig.setClipIds(ids: { [string]: number })
 	clipIds = ids
@@ -673,7 +673,13 @@ function CreatureRig.setForm(rig: Rig, form: Form)
 	end
 end
 
---- Plays a one-shot clip ("Dash" or "Bite") when it is uploaded; the code sway has no one-shots
+--- Whether `clip` is loaded on this rig (its asset ID is in the manifest and it loaded).
+function CreatureRig.hasClip(rig: Rig, clip: Clip): boolean
+	local track: AnimationTrack? = rig.tracks[clip]
+	return track ~= nil
+end
+
+--- Plays a one-shot clip ("Dash", "Bite" or "TierUp") when it is uploaded; the code sway has no one-shots
 --- yet (the jaw and the dash squash are code-owned bones for a later task).
 function CreatureRig.playAction(rig: Rig, clip: Clip)
 	local track = rig.tracks[clip]

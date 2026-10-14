@@ -248,6 +248,20 @@ Defaults.goals = table.freeze({
 	rerolls = table.freeze({ free = 1, video = 1, product = 3 }), -- 02 §15.3, 05 §3.5: per day
 })
 
+-- Logic/RunRules and RunLoopService: canon 5.5; 02 §0.7, §5.1, §12; 09 §6.3, §6.8.
+Defaults.run = table.freeze({
+	gulpCardSeconds = 1.2, -- 02 §12.1: the gulp card, and so "Swim again", comes up at T+1.20
+	respawnFadeOutSeconds = 0.3, -- 02 §12.4: the client's fade out after the tap; moved while black
+	respawnFadeInSeconds = 0.3, -- 02 §12.4: then the fade in; released when it ends
+	respawnTargetSeconds = 0.8, -- 02 §12.4: control again within 0.8 s of the tap
+	respawnSeconds = 2.0, -- 09 §6.3 Gulped row: the budget from the tap (canon limit 3 s)
+	respawnGraceSeconds = 2, -- 09 §6.3: MovementValidator.grace(slot, 2) after a respawn or a return
+	tierGraceSeconds = 0.5, -- 09 §6.8: MovementValidator.grace(slot, 0.5) on a tier change
+	tierUpProtectSeconds = 1.0, -- 02 §5.1: Protected(tierUp), T+0.00 to T+1.00
+	returnProtectSeconds = 3, -- 09 §6.3, canon 5.5: Protected for 3 s after a revive or a resume
+	returnClearRadius = 60, -- 09 §6.3 return rule: nothing that can eat it within 60 studs
+})
+
 -- Logic/SaveSchema and DataService: the starting values of a new save (09 §12.2) and the save
 -- limits of 09 §12.2 and §12.4. Values the bible does not state are marked "ours".
 Defaults.save = table.freeze({
