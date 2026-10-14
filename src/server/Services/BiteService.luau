@@ -6,9 +6,10 @@
 -- A `Bite` message passes Net/Server's wrapper first (14.2: size, range, 12 claims/s, bucket 20).
 -- Each prey target of the claim then runs 8.9's checks in order; the first failure decides it:
 --   1 rate    12 prey eats a second per player, bucket 20 (02 §4.6), one token per target
---   2 state   the claimant has a creature (alive, in a run, not stunned, not flagged: TODOs below)
+--   2 state   the claimant has a creature, not gulped (02 §0.6: InCove bites prey too), not
+--             stunned, not flagged (TODOs below)
 --   3 gone    the group is live at the claimed gen and the member is alive (PreyService.peek)
---   4 tier    canon 5.2: prey tier ≤ eater tier (canEatPrey below)
+--   4 tier    canon 5.2: prey tier ≤ eater tier (BiteRules.canEatPrey)
 --   5 time    tc = clamp(claimTime, now − 0.4 s, now) (Logic/BiteMath); a group still fading in
 --             at tc is refused as "time"
 --   6 range   |mouth − prey| ≤ reach at tc (Logic/BiteMath)
@@ -23,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Bite = require(ReplicatedStorage.Shared.Net.Codec.Bite)
 local BiteMath = require(ReplicatedStorage.Shared.Logic.BiteMath)
 local BiteResult = require(ReplicatedStorage.Shared.Net.Codec.BiteResult)
+local BiteRules = require(ReplicatedStorage.Shared.Logic.BiteRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local RateLimit = require(ReplicatedStorage.Shared.Net.RateLimit)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
@@ -31,6 +33,7 @@ local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
 local CreatureService = require("./CreatureService")
 local PreyService = require("./PreyService")
+local RunLoopService = require("./RunLoopService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
@@ -85,12 +88,6 @@ local function reject(reason: number)
 	counters.rejects[name] = (counters.rejects[name] or 0) + 1
 end
 
--- Canon 5.2's prey rule: prey of the eater's tier or lower.
--- TODO(S4-C3): switch to BiteRules.canEatPrey once src/shared/Logic/BiteRules.luau lands.
-local function canEatPrey(eaterTier: number, preyTier: number): boolean
-	return preyTier <= eaterTier
-end
-
 local function inNursery(x: number, y: number, z: number): boolean
 	return VolumeMath.firstContaining(nurseries, x, y, z) ~= nil
 end
@@ -124,8 +121,13 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 	counters.claims += 1
 	local slot = player:GetAttribute("Slot")
 	local state = if type(slot) == "number" then CreatureService.get(slot) else nil
-	if state == nil or state.player ~= player or op ~= Bite.OP_PREY then
-		-- No creature, or a player or predator bite. TODO(B25, S12-C2): op 2 (player bites; 02 §4.7
+	if
+		state == nil
+		or state.player ~= player
+		or op ~= Bite.OP_PREY
+		or RunLoopService.state(state.slot) == "dead"
+	then
+		-- No creature, a gulped one, or a player or predator bite. TODO(B25, S12-C2): op 2 (player bites; 02 §4.7
 		-- has the server detect them). TODO(B24): op 3 (predators and wild creatures, 9.3).
 		local n = if op == Bite.OP_PREY then count else 1
 		counters.targets += n
@@ -135,8 +137,7 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 		local mass, tier = if state then state.mass else 0, if state then state.tier else 1
 		return BiteResult.encode(seq, 0, BiteResult.REASON_STATE, mass, tier)
 	end
-	-- TODO(B19, S4-C4): only in a run (RunLoopService.state(slot)); TODO(B24): not stunned;
-	-- TODO(B14, S8-C2): not flagged (7.3, level 3 rejects bites for 10 s). These are "state".
+	-- TODO(B24): not stunned; TODO(B14, S8-C2): not flagged (7.3, level 3 rejects bites for 10 s). These are "state".
 	local tc = BiteMath.claimTime(Server.fromTimeMs(claimMs), t)
 	-- TODO(B14, S8-C2): the pose at tc from MovementValidator.poseAt(slot, tc), the pose ring of
 	-- 09 §7. Until B14 exists the current root pose stands in for it.
@@ -159,7 +160,7 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 			local def, preySpeed = PreyService.peek(g, i, gen)
 			if def == nil then
 				reason = BiteResult.REASON_GONE
-			elseif not canEatPrey(state.tier, def.tier) then
+			elseif not BiteRules.canEatPrey(state.tier, def.tier) then
 				reason = BiteResult.REASON_TIER
 			else
 				-- bodyScale is read per target: an accepted bite earlier in the claim grows the mouth.

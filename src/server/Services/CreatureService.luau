@@ -61,6 +61,7 @@ CreatureService.name = "CreatureService"
 CreatureService.onTierChanged = Signal.new() :: Types.Signal<Slot, number>
 
 local states: { [Slot]: CreatureState } = {}
+local protectedUntil: { [Slot]: number } = {} -- os.clock() at which `Protected` turns off
 local massWrittenAt: { [Slot]: number } = {}
 local massPending: { [Slot]: boolean } = {}
 local folder: Folder
@@ -179,7 +180,7 @@ function CreatureService.coveSpawnCFrame(slot: Slot): CFrame
 end
 
 function CreatureService.init()
-	states, massWrittenAt, massPending = {}, {}, {}
+	states, massWrittenAt, massPending, protectedUntil = {}, {}, {}, {}
 	local existing = workspace:FindFirstChild(FOLDER)
 	if existing and existing:IsA("Folder") then
 		folder = existing
@@ -225,11 +226,12 @@ function CreatureService.start()
 	}, onAbility)
 end
 
---- Builds the player's creature, places it in their cove, makes it their Character, gives its
---- root to them and sets the public attributes (sections 6.2 and 6.3, Join row). The slot is
---- the `Slot` attribute PlayerLifecycle set. A second call for the same session returns the
---- creature already built.
-function CreatureService.spawn(player: Player): CreatureState
+--- Builds the player's creature, places it at `at` (RunLoopService.join's answer: the Nursery
+--- for an account that has never banked, else the cove; the cove spawn when nil), makes it their
+--- Character, gives its root to them and sets the public attributes (sections 6.2 and 6.3, Join
+--- row). The slot is the `Slot` attribute PlayerLifecycle set. A second call for the same
+--- session returns the creature already built.
+function CreatureService.spawn(player: Player, at: CFrame?): CreatureState
 	local slot = player:GetAttribute("Slot")
 	assert(type(slot) == "number", "CreatureService.spawn: the player has no Slot yet")
 	local existing = states[slot]
@@ -240,8 +242,6 @@ function CreatureService.spawn(player: Player): CreatureState
 
 	-- TODO(B20, S4-C6): species and pattern from the profile (`species.selected`); the
 	-- free Minnow until DataService exists.
-	-- TODO(B19, S4-C4 and S4-C6): an account that has never banked starts its first run in the
-	-- Nursery (6.3, Join row; canon 5.5), and a suspended run resumes by the return rule.
 	local species = DEFAULT_SPECIES
 	local def = Index.Species.byId[species]
 	local mass = Index.Tiers.byTier[def.startTier].massNeeded
@@ -262,7 +262,7 @@ function CreatureService.spawn(player: Player): CreatureState
 	}
 	states[slot] = state
 
-	local cf = CreatureService.coveSpawnCFrame(slot)
+	local cf = at or CreatureService.coveSpawnCFrame(slot)
 	model:PivotTo(cf)
 	local turn = root:FindFirstChild("Turn") :: AlignOrientation -- safe: built just above
 	turn.CFrame = cf.Rotation
@@ -275,9 +275,9 @@ function CreatureService.spawn(player: Player): CreatureState
 	player:SetAttribute("Tier", state.tier)
 	massWrittenAt[slot] = os.clock()
 	player:SetAttribute("Mass", roundMass(mass))
-	player:SetAttribute("Phase", "cove")
-	-- TODO(B20, S4-C6): `Pattern` from the profile. TODO(B19): `Traits`. TODO(B19, B25):
-	-- `Protected` from protect().
+	player:SetAttribute("Phase", "cove") -- RunLoopService owns it from here
+	player:SetAttribute("Protected", false)
+	-- TODO(B20, S4-C6): `Pattern` from the profile. TODO(B19, S6-C3): `Traits`.
 	return state
 end
 
@@ -289,6 +289,7 @@ function CreatureService.remove(slot: Slot)
 		return
 	end
 	states[slot] = nil
+	protectedUntil[slot] = nil
 	massWrittenAt[slot] = nil
 	massPending[slot] = nil
 	local player = state.player
@@ -334,10 +335,34 @@ end
 --- TODO(B24): hazards and status effects (02 §0.6 overlays) are written with PredatorService.
 function CreatureService.setStatus(_slot: Slot, _effect: string, _seconds: number) end
 
---- Protects the creature for `seconds` (revive, reconnect, newcomer shield) and sets the
---- `Protected` attribute. TODO(B19, S4-C4; B25, S12-C2): revive and reconnect protection with
---- RunLoopService, the newcomer shield with player bites.
-function CreatureService.protect(_slot: Slot, _reason: string, _seconds: number) end
+--- Protects the creature for `seconds` (tier-up, revive, reconnect, newcomer shield) and sets
+--- the `Protected` attribute until the longest window ends (02 §6.3: no one can eat it). The
+--- reason is not kept yet. TODO(B25, S12-C2): BiteRules reads the window per reason (the
+--- newcomer bubble is spent differently, 09 §10.2), with player bites.
+function CreatureService.protect(slot: Slot, _reason: string, seconds: number)
+	local state = states[slot]
+	if not state or seconds <= 0 then
+		return
+	end
+	local ends = os.clock() + seconds
+	if ends <= (protectedUntil[slot] or -math.huge) then
+		return
+	end
+	protectedUntil[slot] = ends
+	state.player:SetAttribute("Protected", true)
+	task.delay(seconds, function()
+		if states[slot] == state and protectedUntil[slot] == ends then
+			protectedUntil[slot] = nil
+			state.player:SetAttribute("Protected", false)
+		end
+	end)
+end
+
+--- Whether the creature of `slot` is inside a protection window.
+function CreatureService.isProtected(slot: Slot): boolean
+	local ends = protectedUntil[slot]
+	return ends ~= nil and os.clock() < ends
+end
 
 --- Moves the creature to `cf` (the return rule of section 6.3 picks the place; the caller
 --- follows it with MovementValidator.grace). The owner's copy snaps to it (spike S4).

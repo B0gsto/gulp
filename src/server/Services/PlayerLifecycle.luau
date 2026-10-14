@@ -18,6 +18,7 @@ local SlotPool = require(ReplicatedStorage.Shared.Logic.SlotPool)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
+local RunLoopService = require("./RunLoopService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
@@ -64,7 +65,7 @@ local function spawnCreature(player: Player)
 	local slot = slotOf[player]
 	stageOf[player] = "spawned"
 	WorldIndex.sendWorldInfo(player) -- once, after ClientReady (09 §5.3, §9.1)
-	CreatureService.spawn(player)
+	CreatureService.spawn(player, RunLoopService.join(player, slot)) -- Nursery or cove (6.3)
 	-- TODO(B20, S4-C6): the first state push (DataService) goes here, before onReady.
 	PlayerLifecycle.onReady:fire(player, slot)
 end
@@ -117,8 +118,10 @@ local function leave(player: Player)
 	if not slot then
 		return
 	end
-	-- TODO(B19, B20): leave settlement (RunLoopService.suspendOnLeave, profile release) runs
-	-- from onLeaving; section 13.1 frees the slot only after it.
+	-- Leave settlement: the run first (called directly: RunLoopService cannot require this module,
+	-- which requires it), then onLeaving. TODO(B20, S4-C6): profile release from onLeaving;
+	-- section 13.1 frees the slot only after it.
+	RunLoopService.suspendOnLeave(player)
 	PlayerLifecycle.onLeaving:fire(player, slot)
 	CreatureService.remove(slot)
 	slotOf[player], playerAt[slot], stageOf[player], policyOf[player] = nil, nil, nil, nil

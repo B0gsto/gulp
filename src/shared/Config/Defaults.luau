@@ -248,4 +248,15 @@ Defaults.goals = table.freeze({
 	rerolls = table.freeze({ free = 1, video = 1, product = 3 }), -- 02 §15.3, 05 §3.5: per day
 })
 
+-- Logic/RunRules and RunLoopService: canon 5.5; 02 §0.7, §5.1, §12; 09 §6.3, §6.8.
+Defaults.run = table.freeze({
+	respawnSeconds = 2.0, -- 09 §6.3 Gulped row: 2.0 s total (canon limit 3 s); 02 §12.1's shortest
+	gulpEffectSeconds = 0.8, -- 09 §6.3: the client's gulp effect the server waits for
+	respawnGraceSeconds = 2, -- 09 §6.3: MovementValidator.grace(slot, 2) after a respawn or a return
+	tierGraceSeconds = 0.5, -- 09 §6.8: MovementValidator.grace(slot, 0.5) on a tier change
+	tierUpProtectSeconds = 1.0, -- 02 §5.1: Protected(tierUp), T+0.00 to T+1.00
+	returnProtectSeconds = 3, -- 09 §6.3, canon 5.5: Protected for 3 s after a revive or a resume
+	returnClearRadius = 60, -- 09 §6.3 return rule: nothing that can eat it within 60 studs
+})
+
 return Defaults
