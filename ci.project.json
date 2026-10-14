@@ -30,19 +30,41 @@
         "FallenPartsDestroyHeight": -5000,
         "Gravity": 196.2
       },
-      "Arena": {
+      // Test arena (docs/09, sections 3.1, 6.6 and 9.1). The floor's top is at Y = -100, so the
+      // water above it is the sea. Collision is the shell (World group); Volumes holds the tagged
+      // parts WorldIndex reads and destroys at start. src/server/Tests/WorldIndexSpec.luau uses them.
+      "Collision": {
         "$className": "Model",
-        "Floor": {
-          "$className": "Part",
-          "$properties": {
-            "Anchored": true,
-            "Size": [512, 4, 512],
-            "CFrame": [0, -2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], // position, then the rotation matrix
-            "Material": "Sand",
-            "TopSurface": "Smooth",
-            "BottomSurface": "Smooth"
-          }
-        }
+        "$properties": { "ModelStreamingMode": "Persistent" },
+        "Floor": { "$className": "Part", "$properties": { "Anchored": true, "Size": [512, 4, 512], "CFrame": [0, -102, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Material": "Sand", "TopSurface": "Smooth", "BottomSurface": "Smooth" } },
+        // A rock 40 wide, from the floor up to Y = -40, for floorY and segmentBlocked
+        "Rock": { "$className": "Part", "$properties": { "Anchored": true, "Size": [40, 60, 40], "CFrame": [60, -70, -60, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Material": "Rock" } }
+      },
+      "Volumes": {
+        "$className": "Folder",
+        // Open water of the arena is reef; the Nursery ball nests inside it and wins
+        "ZoneReef": { "$className": "Part", "$properties": { "Anchored": true, "Size": [512, 100, 512], "CFrame": [0, -50, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "Zone", "ZoneId": "reef" } },
+        "ZoneNursery": { "$className": "Part", "$properties": { "Anchored": true, "Size": [80, 80, 80], "CFrame": [-150, -50, -150, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "Zone", "ZoneId": "nursery" } },
+        "SafeNursery": { "$className": "Part", "$properties": { "Anchored": true, "Size": [80, 80, 80], "CFrame": [-150, -50, -150, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "SafeNursery" } },
+        // Kelp lies beyond the arena's east edge, 64 studs clear of the reef block
+        "ZoneKelp": { "$className": "Part", "$properties": { "Anchored": true, "Size": [200, 100, 200], "CFrame": [420, -50, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "Zone", "ZoneId": "kelp" } },
+        // Cove 3: an upright cylinder (axis turned from X to Y), radius 15, 20 tall
+        "CoveMouth3": { "$className": "Part", "$properties": { "Anchored": true, "Size": [20, 30, 30], "CFrame": [150, -50, 150, 0, -1, 0, 1, 0, 0, 0, 0, 1], "Shape": "Cylinder", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "CoveMouth", "CoveIndex": 3 } },
+        "CoveInterior3": { "$className": "Part", "$properties": { "Anchored": true, "Size": [20, 20, 20], "CFrame": [150, -50, 180, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "CoveInterior", "CoveIndex": 3 } },
+        "HazardJelly": { "$className": "Part", "$properties": { "Anchored": true, "Size": [30, 30, 30], "CFrame": [-150, -50, 150, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "Hazard", "HazardId": "jelly_bloom" } },
+        // The 12 revive points at their rows of docs/03, section 6.11: (x, -depth, z)
+        "Rp01": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-60, -30, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_01" } },
+        "Rp02": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [0, -30, -280, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_02" } },
+        "Rp03": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-100, -30, 100, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_03" } },
+        "Rp04": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [120, -30, 40, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_04" } },
+        "Rp05": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-867, -100, 76, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_05" } },
+        "Rp06": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [0, -45, -800, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_06" } },
+        "Rp07": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-676, -70, -390, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_07" } },
+        "Rp08": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [120, -45, -760, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_08" } },
+        "Rp09": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [600, -75, -60, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_09" } },
+        "Rp10": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-70, -75, 610, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_10" } },
+        "Rp11": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [438, -80, 438, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_11" } },
+        "Rp12": { "$className": "Part", "$properties": { "Anchored": true, "Size": [4, 4, 4], "CFrame": [-212, -80, 583, 1, 0, 0, 0, 1, 0, 0, 0, 1], "Shape": "Ball", "Transparency": 1, "CanCollide": false, "CanQuery": false, "CanTouch": false, "Tags": ["Volume"] }, "$attributes": { "Kind": "RevivePoint", "PointId": "rp_12" } }
       }
     }
   }

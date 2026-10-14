@@ -6,6 +6,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 type Service = Types.Service
@@ -14,8 +15,11 @@ type Service = Types.Service
 -- Net/Client find them even while no service has registered a handler yet.
 require(script.Parent.Net.Server)
 
+-- Section 4.5's order, listing only the services written so far; each task adds its own.
 local loaded: { Service } = {
-	-- No services yet: each one is added here by the task that writes it.
+	require(script.Parent.Services.WorldIndex),
+	require(script.Parent.Services.CreatureService),
+	require(script.Parent.Services.PlayerLifecycle), -- always last
 }
 
 for _, service in loaded do
@@ -23,4 +27,21 @@ for _, service in loaded do
 end
 for _, service in loaded do
 	service.start()
+end
+
+-- Engine-test hook (docs/09, section 16.3). Studio's MCP `execute_luau` and Open Cloud Luau
+-- execution run in their own VM, where requiring Tests/RunAll would load fresh copies of every
+-- module instead of the running services. This BindableFunction runs RunAll inside this VM:
+--   return game.ServerScriptService.Server.RunTests:Invoke()
+-- Only in development places (dev cheats on) and the CI place; ServerScriptService never
+-- replicates, so no client can reach it.
+local environment = Defaults.forGame(game.GameId)
+if environment.devCheats or environment.name == "ci" then
+	local hook = Instance.new("BindableFunction")
+	hook.Name = "RunTests"
+	hook.OnInvoke = function(): string
+		local runAll = require(script.Parent.Tests.RunAll) :: () -> string
+		return runAll()
+	end
+	hook.Parent = script.Parent
 end

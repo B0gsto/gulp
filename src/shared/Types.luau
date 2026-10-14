@@ -3,6 +3,7 @@
 -- `local Types = require("./Types")`. Each block below is copied from the section named above
 -- it; change the bible first, then this file. No fields are invented here: a type the bible names
 -- without defining (SwimInput, CreatureState, RunPhase, ...) is added by the module that owns it.
+local ScreenScale = require("./Logic/ScreenScale")
 local Signal = require("./Util/Signal")
 
 -- Section 5.1: a number 1 to 24 assigned at join. It is the player's index in every buffer and
@@ -20,6 +21,25 @@ export type Signal<T...> = Signal.Signal<T...>
 
 -- Section 5.2: `UserInputService.PreferredInput`, re-read on every change.
 export type InputMode = "Touch" | "Keys" | "Pad"
+
+-- Section 5.2: InputController turns raw input into one SwimInput; Sim/SwimModel consumes it.
+-- Fields from chapter 02: section 1.1 (the four model values), 2.3 and 2.4 (brake), 2.1 and 2.5
+-- (dash). Angles in degrees. The caller owns the table and may reuse it every frame.
+export type SwimInput = {
+	throttle: number, -- 0 to 1, forward thrust
+	strafe: number, -- −1 to 1, sideways thrust, positive to the right (Keys and two-thumb only)
+	brake: boolean, -- S or LT: forward speed relaxes to 0 at the tier's brake constant
+	-- Heading: a target yaw (Keys: the camera look direction), or nil to steer by rate.
+	-- Yaw uses the Roblox convention (CFrame.fromEulerAnglesYXZ): 0 faces −Z, positive turns left.
+	yawTarget: number?,
+	yawRate: number, -- °/s, positive turns right (02 §2.1: screen right is positive); used when yawTarget is nil
+	pitchTarget: number, -- −70 to +70, positive points the nose up
+	dash: boolean, -- a dash press this frame; true every frame while a held dash is held (02 §2.1)
+}
+
+-- Section 5.2: `QualityController.screenClass()`; the classes and their tests are chapter 15,
+-- section 2.2, worked out in `Logic/ScreenScale`.
+export type ScreenClass = ScreenScale.ScreenClass
 
 -- Section 3.2: content data. `wire` is the row's 1-based position in the canon table.
 export type Scope = "MVP" | "L" | "P1" | "P2"
@@ -155,6 +175,28 @@ export type RevivePointDef = {
 	z: number,
 	depth: number,
 }
+
+-- Section 9.1: gameplay volumes, read from tagged Studio parts by WorldIndex at server start and
+-- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
+-- rows), so a world point turns into the part's local space with plain arithmetic.
+export type ZoneId = string
+-- One of the 12 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
+-- 1.70.1 widens these singleton unions to `string` through loops and refinements.
+export type VolumeKind = string
+export type VolumeShape = string -- "Block", "Ball" or "Cylinder"; a Cylinder's axis is its local X
+export type VolumeAttribute = string | number | boolean
+export type Volume = {
+	kind: VolumeKind,
+	shape: VolumeShape,
+	inv: { number },
+	hx: number, -- half size along local X, Y, Z
+	hy: number,
+	hz: number,
+	attrs: { [string]: VolumeAttribute }, -- the part's attributes, `Kind` included
+}
+
+-- Section 9.1: only the centre of a RevivePoint ball is kept; it is never sent to clients.
+export type RevivePoint = { id: string, wire: number, x: number, y: number, z: number }
 
 export type PatternDef = {
 	id: string, -- pat_<species>_<name>, 18 at launch
