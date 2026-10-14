@@ -1,7 +1,8 @@
 --!strict
 -- The string table's text formats (docs/09, section 18.1; docs/08, section 14; task S5-C5):
---   * `assets/loc/strings.csv`, columns `key, context, en` (RFC 4180 quoting), the source of
---     `Data/Generated/Strings.luau` and the file uploaded as the cloud localisation table;
+--   * `assets/loc/strings.csv`, the cloud localisation table's columns `Key, Context, Example,
+--     Source` (docs/09 §18.1, V33; RFC 4180 quoting), English in `Source` and `Example` left
+--     empty: the source of `Data/Generated/Strings.luau` and the file uploaded as that table;
 --   * chapter 08's text list (sections 14.1 to 14.12), whose rows the CSV copies: the key, the
 --     English and the note for translators (the CSV's context);
 --   * the keys client code asks `Loc.t` for.
@@ -11,7 +12,7 @@ export type Row = { key: string, context: string, en: string }
 
 local Strings = {}
 
-Strings.HEADER = { "key", "context", "en" }
+Strings.HEADER = { "Key", "Context", "Example", "Source" }
 
 --- The records of a CSV text: a field may be quoted ("a, b"), with "" for a quote inside and line
 --- breaks allowed inside quotes. Returns nil and why on a malformed text.
@@ -89,13 +90,13 @@ end
 function Strings.toCsv(rows: { Row }): string
 	local lines = { table.concat(Strings.HEADER, ",") }
 	for _, row in rows do
-		table.insert(lines, `{quoted(row.key)},{quoted(row.context)},{quoted(row.en)}`)
+		table.insert(lines, `{quoted(row.key)},{quoted(row.context)},,{quoted(row.en)}`)
 	end
 	return table.concat(lines, "\n") .. "\n"
 end
 
---- The rows of a strings CSV text, checked: the header is `key,context,en`, every record has
---- three fields, and no key is empty or repeated. Returns nil and why on any problem.
+--- The rows of a strings CSV text, checked: the header is `Key,Context,Example,Source`, every
+--- record has four fields (`Example` is not kept), and no key is empty or repeated. Returns nil and why on any problem.
 function Strings.rowsOfCsv(text: string): ({ Row }?, string?)
 	local records, why = Strings.parseCsv(text)
 	if not records then
@@ -109,8 +110,8 @@ function Strings.rowsOfCsv(text: string): ({ Row }?, string?)
 	local seen: { [string]: number } = {}
 	for i = 2, #records do
 		local record = records[i]
-		if #record ~= 3 then
-			return nil, `record {i}: {#record} fields, not 3`
+		if #record ~= 4 then
+			return nil, `record {i}: {#record} fields, not 4`
 		end
 		local key = record[1]
 		if key == "" then
@@ -120,7 +121,7 @@ function Strings.rowsOfCsv(text: string): ({ Row }?, string?)
 			return nil, `record {i}: "{key}" repeats record {seen[key]}`
 		end
 		seen[key] = i
-		table.insert(rows, { key = key, context = record[2], en = record[3] })
+		table.insert(rows, { key = key, context = record[2], en = record[4] })
 	end
 	return rows
 end
