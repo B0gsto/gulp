@@ -22,6 +22,7 @@ local CANON = "docs/01-game-canon.md"
 local MECHANICS = "docs/02-mechanics.md"
 local CATALOG = "docs/03-content-catalog.md"
 local ECONOMY = "docs/05-economy-and-monetization.md"
+local ART = "docs/06-art-bible.md"
 
 type Field = { name: string, value: string }
 type Tables = { [string]: Table }
@@ -435,6 +436,20 @@ local function buildPrey(canon: Tables, catalog: Tables, name: string, slice: bo
 			table.insert(fields, f)
 		end
 		optional(fields, "eventOnly", eventOf[row.key])
+		-- "Respawn (s)": nil for event prey ("Event only"). The Crystal Jelly's cell gives the drift
+		-- interval first and the time a drift stays second (03 §3.1).
+		local respawn = numbers(cell(t, row, "Respawn (s)"))
+		optional(fields, "respawn", respawn[1])
+		if isTrait then
+			optional(fields, "lifetime", respawn[2])
+			-- "Alive per server": the most alive at once; event prey also give the total released in
+			-- one event ("N in total per event"). A cell that is only that total has no alive count.
+			local alive = cell(t, row, "Alive per server")
+			local total = string.match(alive, "(%d+) in total per event")
+			local onlyTotal = total ~= nil and string.match(alive, "^%s*%d+ in total") ~= nil
+			optional(fields, "alive", if onlyTotal then nil else numbers(alive)[1])
+			optional(fields, "eventTotal", if total then tonumber(total) else nil)
+		end
 		table.insert(rows, fields)
 	end
 	return {
@@ -665,6 +680,192 @@ local function buildPreySpawns(
 	}
 end
 
+-- Trait prey alive per zone: the trait prey rows of 02 §9.6 data:PreyTargets ("Animals"), one row
+-- per zone with a count. No playerScale or eventScale (02 §9.6); areaScale applies, so each row
+-- carries its zone's plan area. Event prey and the Crystal Jelly have no row there.
+local function buildTraitPreySpawns(
+	canon: Tables,
+	mechanics: Tables,
+	catalog: Tables,
+	slice: boolean
+): Module
+	local targets = get(mechanics, MECHANICS, "PreyTargets")
+	local traitPrey = keySet(get(catalog, CATALOG, "TraitPrey"))
+	local areas = get(catalog, CATALOG, "ZoneAreas")
+	local zones = get(canon, CANON, "Zones")
+	local areaOf: { [string]: number } = {}
+	for _, row in areas.rows do
+		areaOf[row.key] = firstNumber(areas, row, "Plan area (studs²)")
+	end
+	local rows = {}
+	for _, zone in zones.rows do
+		local column = zoneColumn(targets, MarkdownTables.plain(cell(zones, zone, "Zone")))
+		if column == nil or (slice and not zone.inSlice) then
+			continue
+		end
+		for _, row in targets.rows do
+			if not traitPrey[row.key] or (slice and not row.inSlice) then
+				continue
+			end
+			local alive = numbers(cell(targets, row, column :: string))[1]
+			if alive == nil then
+				continue -- "—": not in this zone
+			end
+			local area = areaOf[zone.key]
+			if area == nil then
+				fail(`data:ZoneAreas has no row {zone.key}`)
+			end
+			table.insert(rows, {
+				field("zone", zone.key),
+				field("prey", row.key),
+				field("alive", alive :: number),
+				field("zoneArea", area :: number),
+			})
+		end
+	end
+	return {
+		name = "TraitPreySpawns",
+		typeName = "TraitPreySpawnDef",
+		sources = {
+			`{MECHANICS} data:PreyTargets`,
+			`{CATALOG} data:TraitPrey, data:ZoneAreas`,
+			`{CANON} data:Zones`,
+		},
+		rows = rows,
+	}
+end
+
+-- A record literal from names and the numbers of a cell, in order; nil when the cell has none.
+-- Names past the numbers given are left out (optional in the type).
+local function record(text: string, names: { string }, required: number, where: string): string?
+	local values = numbers(text)
+	if #values == 0 then
+		return nil
+	end
+	if #values < required or #values > #names then
+		fail(`{where}: expected {required} to {#names} numbers, got {#values}: {text}`)
+	end
+	local parts = {}
+	for i, value in values do
+		table.insert(parts, `{names[i]} = {numberText(value)}`)
+	end
+	return `\{ {table.concat(parts, ", ")} \}`
+end
+
+-- Flee look settings (06 §7.6): "label number unit" parts after the style, joined by "·".
+local FLEE_KEYS: { [string]: string } = {
+	["wobble"] = "burstWobbleMult",
+	["sway"] = "burstSwayMult",
+	["hop"] = "hopMult",
+	["regroup"] = "regroupS",
+	["bank"] = "bankDeg",
+	["turns"] = "turns",
+	["pause"] = "pauseS",
+	["roll"] = "rollStuds",
+	["uncurl"] = "uncurlS",
+	["deeper"] = "deeperStuds",
+	["jet"] = "jetStuds",
+	["ink"] = "inkS",
+}
+
+-- The prey motion table (06 §7.6, data:PreyMotion): how each prey and trait prey moves on the
+-- client. Every ID must be in data:Prey or data:TraitPrey and every prey must have a row.
+local function buildPreyMotion(art: Tables, catalog: Tables, slice: boolean): Module
+	local t = get(art, ART, "PreyMotion")
+	local known: { [string]: boolean } = {}
+	for _, name in { "Prey", "TraitPrey" } do
+		for key in keySet(get(catalog, CATALOG, name)) do
+			known[key] = true
+		end
+	end
+	local seen = keySet(t)
+	for key in known do
+		if not seen[key] then
+			fail(`data:PreyMotion has no row {key}`)
+		end
+	end
+	local rows = {}
+	for _, row in rowsFor(t, slice) do
+		if not known[row.key] then
+			fail(`data:PreyMotion, row {row.key}: not in data:Prey or data:TraitPrey`)
+		end
+		local where = `data:PreyMotion, row {row.key}`
+		local drawn = cell(t, row, "Drawn as")
+		local fields = {
+			field("id", row.key),
+			field("scope", scope(t, row)),
+			field("draw", ids(t, row, "Drawn as")[1] or MarkdownTables.plain(drawn)),
+		}
+		local function add(name: string, value: string?)
+			if value ~= nil then
+				table.insert(fields, { name = name, value = value })
+			end
+		end
+		add(
+			"wobble",
+			record(
+				cell(t, row, "Wobble (Hz, yaw °, roll °, bob studs)"),
+				{ "hz", "yawDeg", "rollDeg", "bobStuds" },
+				4,
+				where
+			)
+		)
+		add(
+			"sway",
+			record(
+				cell(t, row, "Sway (Hz, swing °, Hz per stud/s; tail lag s)"),
+				{ "hz", "ampDeg", "hzPerStudPerS", "tailLagS" },
+				3,
+				where
+			)
+		)
+		add(
+			"hop",
+			record(
+				cell(t, row, "Hop (height, length studs; time, rest s; hops in a row)"),
+				{ "height", "length", "timeS", "restS", "count" },
+				4,
+				where
+			)
+		)
+		local pulseCell = cell(t, row, "Pulse (Hz, size)")
+		local pulseKind = ids(t, row, "Pulse (Hz, size)")[1]
+		if pulseKind ~= nil then
+			local values = numbers(pulseCell)
+			local parts = { `kind = {literal(pulseKind)}`, `hz = {numberText(values[1])}` }
+			if values[2] ~= nil then
+				table.insert(parts, `amount = {numberText(values[2])}`)
+			end
+			add("pulse", `\{ {table.concat(parts, ", ")} \}`)
+		end
+		optional(fields, "driftSpeed", maybeNumber(t, row, "Drift (studs/s)"))
+		local fleeCell = cell(t, row, "Flee look")
+		local flee = { `style = {literal(oneId(t, row, "Flee look"))}` }
+		local first = true
+		for part in string.gmatch((string.gsub(fleeCell, "·", "|")), "[^|]+") do -- "·" is two bytes
+			if first then
+				first = false
+				continue
+			end
+			local label = string.match(part, "^%s*(%a+)")
+			local key = if label then FLEE_KEYS[label] else nil
+			local value = numbers(part)[1]
+			if key == nil or value == nil then
+				fail(`{where}: unknown flee setting "{part}"`)
+			end
+			table.insert(flee, `{key} = {numberText(value :: number)}`)
+		end
+		add("flee", `\{ {table.concat(flee, ", ")} \}`)
+		table.insert(rows, fields)
+	end
+	return {
+		name = "PreyMotion",
+		typeName = "PreyMotionDef",
+		sources = { `{ART} data:PreyMotion`, `{CATALOG} data:Prey, data:TraitPrey` },
+		rows = rows,
+	}
+end
+
 local function buildProducts(economy: Tables, slice: boolean): Module
 	local rows = {}
 	for _, name in { "Passes", "Products", "PearlPacks" } do
@@ -793,6 +994,7 @@ local canon = load(CANON)
 local catalog = load(CATALOG)
 local mechanics = load(MECHANICS)
 local economy = load(ECONOMY)
+local art = load(ART)
 local modules = {
 	buildTiers(canon, slice),
 	buildSpecies(catalog, economy, slice),
@@ -808,6 +1010,8 @@ local modules = {
 	buildGoals(catalog, slice),
 	buildRevivePoints(canon, catalog, slice),
 	buildPreySpawns(canon, mechanics, catalog, slice),
+	buildTraitPreySpawns(canon, mechanics, catalog, slice),
+	buildPreyMotion(art, catalog, slice),
 }
 
 if not fs.isDir(OUTPUT_ROOT) then

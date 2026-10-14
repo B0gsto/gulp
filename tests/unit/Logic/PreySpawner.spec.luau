@@ -87,6 +87,24 @@ describe("PreySpawner", function()
 		end
 	)
 
+	it("spawns three groups of a normal row per pass in a Frenzy, one of a trait row", function()
+		local sp = reefSpawner()
+		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
+		PreySpawner.setRate(sp, 3)
+		local shrimp = rowOf(sp, "shrimp")
+		local goby = rowOf(sp, "dotted_goby")
+		expect(shrimp.target - shrimp.count >= 3).toBe(true)
+		local before = shrimp.count
+		goby.count -= 2 -- two trait slots free, as if eaten with no delay left
+		local gobyBefore = goby.count
+		PreySpawner.pass(sp, 1, NONE, NONE, NONE, 0)
+		expect(shrimp.count).toBe(before + 3)
+		expect(goby.count).toBe(gobyBefore + 1)
+		PreySpawner.setRate(sp, 1)
+		PreySpawner.pass(sp, 2, NONE, NONE, NONE, 0)
+		expect(shrimp.count <= before + 3).toBe(true)
+	end)
+
 	it("turns a swarm down to two members into stragglers that leave after 10 s alone", function()
 		local sp, sim = reefSpawner()
 		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)

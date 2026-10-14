@@ -91,6 +91,10 @@ export type PreyDef = {
 	radius: number,
 	wobble: number,
 	eventOnly: string?,
+	respawn: number?, -- s from eaten to a new group (03 §2.1, §3.1); nil for event prey
+	lifetime: number?, -- trait prey: s a Crystal Jelly drift stays before it leaves (03 §3.1)
+	alive: number?, -- trait prey: most alive per server at once (03 §3.1)
+	eventTotal: number?, -- event prey: released in one tide event (03 §3.1)
 }
 
 export type TraitDef = {
@@ -148,6 +152,42 @@ export type PreySpawnDef = {
 	baseUnit: "groups" | "members", -- plankton motes and tuna are counted as individuals
 	perPlayerInside: number?, -- Nursery only: groups added per player inside (no playerScale)
 	zoneArea: number, -- the zone's plan area in studs² (03 §6.1, data:ZoneAreas)
+}
+
+-- Trait prey alive per zone (02 §9.6, data:PreyTargets): no playerScale or eventScale; areaScale
+-- applies (Logic/PreySpawnMath).
+export type TraitPreySpawnDef = {
+	zone: string, -- data:Zones ID
+	prey: string, -- data:TraitPrey ID
+	alive: number, -- animals alive in the zone on the real map
+	zoneArea: number, -- the zone's plan area in studs² (03 §6.1, data:ZoneAreas)
+}
+
+-- The prey motion table (06 §7.6, data:PreyMotion): client looks only. Every number is (tune).
+export type PreyMotionDef = {
+	id: string, -- data:Prey or data:TraitPrey ID
+	scope: Scope,
+	draw: string, -- "billboard", "rigid", or the rig (chapter 07, section 4.0)
+	wobble: { hz: number, yawDeg: number, rollDeg: number, bobStuds: number }?,
+	sway: { hz: number, ampDeg: number, hzPerStudPerS: number, tailLagS: number? }?,
+	hop: { height: number, length: number, timeS: number, restS: number, count: number? }?,
+	pulse: { kind: "twinkle" | "glow" | "shimmer" | "squash" | "crawl", hz: number, amount: number? }?,
+	driftSpeed: number?, -- studs/s
+	flee: {
+		style: string,
+		burstWobbleMult: number?,
+		burstSwayMult: number?,
+		hopMult: number?,
+		regroupS: number?,
+		bankDeg: number?,
+		turns: number?,
+		pauseS: number?,
+		rollStuds: number?,
+		uncurlS: number?,
+		deeperStuds: number?,
+		jetStuds: number?,
+		inkS: number?,
+	},
 }
 
 export type TideDef = {

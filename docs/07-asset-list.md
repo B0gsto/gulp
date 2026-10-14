@@ -567,7 +567,7 @@ Prey are data on the server and are drawn by each client (canon section 14). A p
 4. **Distance:** prey of tier 3 and up have a quarter-triangle rigid version (`_LOD2`); every prey becomes a single dot (`FX_Glint`) when it is very small on screen.
 5. **Every prey of tier 1 or more has an outline shell** (`_Shell`), 10% of body height thick so the green line survives at small size. Prey never eat a player, so they need no thick shell. Plankton has none.
 
-No prey has an authored clip. The motion of each one is a row of settings in the prey motion table below. Being eaten is an effect (`FX_BubblePop_…`).
+No prey has an authored clip. The motion of each one is a row of settings in the prey motion table (document 06, section 7.6, data:PreyMotion). Being eaten is an effect (`FX_BubblePop_…`).
 
 ### 4.0 Shared prey rigs, settings and textures
 
@@ -576,7 +576,7 @@ No prey has an authored clip. The motion of each one is a row of settings in the
 | `RIG_Prey3` | [MVP] | Three sway bones for fish-shaped prey of tier 3 and up; the Tuna adds a fourth | 3 or 4 bones | — | 1 | not started |
 | `RIG_PreyRibbon4` | [MVP] | Four-bone chain for long bodies: Ribbonfish, Spark Eel | 4 bones | — | 0.8 | not started |
 | `RIG_PreyBlob4` | [MVP] | Centre and three rim bones for pulse and squash: Urchin Puff, Inklet, Crystal Jelly | 4 bones | — | 1 | not started |
-| (data) Prey motion table | [MVP] | For each of the 21 prey: wobble or sway speed and size, hop arc, pulse rate, flee settings. Tuned in the game | 21 entries | document 03, section 2.2 | 3 | not started |
+| (data) Prey motion table | [MVP] | For each of the 21 prey: wobble or sway speed and size, hop arc, pulse rate, flee settings. Tuned in the game | 21 entries; the table is `data:PreyMotion` in document 06, section 7.6, generated to `PreyMotion` | document 03, sections 2.1, 2.2 and 3.1 | 3 | not started |
 | `T_PreySmall_Alb` | [MVP] | One atlas for prey tiers 0 to 2: three Plankton dots, Krill, Tiny Shrimp, Sardine | 256² | — | 2 | not started |
 | `T_PreyLarge_Alb` | [MVP] | Four 128 × 128 cells: Reef Darter, Mackerel, Bonito, Tuna | 256² | — | 2.5 | not started |
 | `T_TraitPrey_01_Alb` | [MVP] | Four cells: Glowfry, Zebra Darter, Dotted Goby, Lunar Fry | 256² | — | 2.5 | not started |

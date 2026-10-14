@@ -11,7 +11,8 @@
 --           (playerScale, the Nursery's per-player rule, Frenzy ×2, areaScale), trait prey from
 --           TRAIT_ALIVE (02 §9.6, MVP rows; no playerScale or eventScale, areaScale applies).
 --   Pass.   `pass` runs once a second (02 §9.5). Per row below target whose respawn delay has run,
---           it spawns one whole group at a point of one of the row's areas with no player within
+--           it spawns one whole group (three of normal prey in a Feeding Frenzy, 02 §14.4)
+--           at a point of one of the row's areas with no player within
 --           60 studs (the farthest of 4 tries otherwise). Stragglers (a swarm or school down to two
 --           members, 02 §9.2) leave after 10 s with no player within 80 studs and no longer count,
 --           so the school respawns whole. A row above 150% of target (after a Frenzy) loses its
@@ -503,13 +504,18 @@ function PreySpawner.pass(
 		end
 	end
 
-	-- One group per row below target whose delay has run.
+	-- One group per row below target whose delay has run; three for normal prey in a Frenzy
+	-- (02 §14.4, "Three spawns per pass instead of one").
 	local spawned = 0
+	local frenzyBurst = math.max(1, math.floor(sp.rate))
 	for rowIndex, row in sp.rows do
-		if row.count < row.target and now >= row.readyAt then
-			if spawnRow(sp, rowIndex, row, now, px, py, pz, n) then
-				spawned += 1
+		local burst = if row.trait then 1 else frenzyBurst
+		while burst > 0 and row.count < row.target and now >= row.readyAt do
+			burst -= 1
+			if not spawnRow(sp, rowIndex, row, now, px, py, pz, n) then
+				break
 			end
+			spawned += 1
 		end
 	end
 	return spawned

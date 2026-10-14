@@ -999,7 +999,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Code task | Module or file | Bible | Size | Depends on | Who |
 |---|---|---|---|---|---|---|
-| S16-C1 | `TideService` and `TideController`: phase from the UTC clock, Frenzy on all four slots through `TideDef.fallback`, `PreyService.setSpawnRate`, lighting preset | B26 | 09 §11.1, 02 §14 | M | S4-C3, S3-C3 | Agent |
+| S16-C1 | `TideService` and `TideController`: phase from the UTC clock, Frenzy on all four slots through `TideDef.fallback`, `PreyService.setTide(tideId?)`, lighting preset | B26 | 09 §11.1, 02 §14 | M | S4-C3, S3-C3 | Agent |
 | S16-C2 | `HUD.TideClock` and screen S09 event banners (warning, start, end) | `client/UI/Hud` | 08 §3.13, §4.7 | M | S16-C1 | Agent |
 | S16-C3 | `LeaderboardService` server board and `HUD.Biggest` | B29 | 08 §3.14 | S | S2-C3 | Agent |
 | S16-C4 | `ShopService` passes (Deep Pockets, Bigger Cove) and the four Pearl packs with the five-a-day limit; prices read with `GetProductInfo` | B27 | 05 §8.2, §8.4, §14 | L | S14-C1 | Agent + owner |
