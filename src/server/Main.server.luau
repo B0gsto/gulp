@@ -14,8 +14,9 @@ type Service = Types.Service
 -- Net/Client find them even while no service has registered a handler yet.
 require(script.Parent.Net.Server)
 
+-- Section 4.5's order, listing only the services written so far; each task adds its own.
 local loaded: { Service } = {
-	-- No services yet: each one is added here by the task that writes it.
+	require(script.Parent.Services.WorldIndex),
 }
 
 for _, service in loaded do
