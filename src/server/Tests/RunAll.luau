@@ -23,6 +23,7 @@ local SPECS: { () -> () } = {
 	require("./RunLoopSpec"),
 	require("./EconomySpec"),
 	require("./LiveConfigSpec"),
+	require("./CoveSpec"),
 }
 
 local function runAll(): string

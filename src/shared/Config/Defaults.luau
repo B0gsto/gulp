@@ -229,6 +229,36 @@ Defaults.cove = table.freeze({
 	refundMin = 5, -- 05 §3.10: release refund floor
 	awayMinSeconds = 600, -- 02 §13.3: "While you were away" card after 10 minutes away
 	awayMinPearls = 10, -- 02 §13.3: and 10 Pearls earned
+	maxSlots = 30, -- 05 §4.2: slots bought with Pearls stop at 30
+	biggerCoveSlots = 10, -- 05 §4.2: Bigger Cove adds 10 on top, at read time (09 §12.2)
+	-- 05 §4.2: the price of each slot after the six free ones, by slot number. The table has no
+	-- data: block in chapter 05, so it is copied here until one is added (then generated).
+	slotPrices = table.freeze({
+		[7] = 1200,
+		[8] = 1500,
+		[9] = 1900,
+		[10] = 2400,
+		[11] = 3000,
+		[12] = 3750,
+		[13] = 4500,
+		[14] = 5750,
+		[15] = 7250,
+		[16] = 9000,
+		[17] = 11000,
+		[18] = 14000,
+		[19] = 17500,
+		[20] = 22000,
+		[21] = 27500,
+		[22] = 34000,
+		[23] = 43000,
+		[24] = 54000,
+		[25] = 67000,
+		[26] = 84000,
+		[27] = 105000,
+		[28] = 130000,
+		[29] = 165000,
+		[30] = 205000,
+	}),
 })
 
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.

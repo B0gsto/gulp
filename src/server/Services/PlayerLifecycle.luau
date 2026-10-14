@@ -4,20 +4,23 @@
 -- joined during start-up.
 --
 -- Join:  profile (DataService.load; no profile, no play: the player is kicked), slot (and the
---        `Slot` attribute), policy, cove; then, once the client has sent
---        ClientReady (it waits for `workspace.PersistentLoaded` first, spike F4), the creature,
---        then `onReady`. ClientReady may arrive before the join steps finish; it is kept.
--- Leave: `onLeaving` (settlement), the creature is removed, then the slot is freed.
+--        `Slot` attribute; the cove rule of 13.1), policy, cove (CoveService.open); then, once the
+--        client has sent ClientReady (it waits for `workspace.PersistentLoaded` first, spike F4),
+--        the creature, then `onReady`. ClientReady may arrive before the join steps finish; it is kept.
+-- Leave: `onLeaving` (settlement), the creature is removed, the cove closed, then the slot is
+--        freed.
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local PolicyRules = require(ReplicatedStorage.Shared.Logic.PolicyRules)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local SlotPool = require(ReplicatedStorage.Shared.Logic.SlotPool)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local CoveService = require("./CoveService")
 local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
 local LiveConfig = require("./LiveConfig")
@@ -87,8 +90,11 @@ local function join(player: Player)
 		DataService.release(player) -- replayed twice while loading, or gone
 		return
 	end
-	-- TODO(B22, S5-C2): pass the cove rule of section 13.1 to SlotPool.take as the preference.
-	local slot = SlotPool.take(pool)
+	-- The cove rule of section 13.1 (chapter 04, section 5.5): nearest the Gap for an account that
+	-- has never banked, the farthest of the 20 nearest for a returning one.
+	local data = DataService.get(player)
+	local banks = if data then data.stats.banks else 0
+	local slot = SlotPool.take(pool, CoveRules.preference(banks))
 	if not slot then
 		Log.error(TAG, `no free slot for {player.UserId}`)
 		DataService.release(player)
@@ -108,6 +114,7 @@ local function join(player: Player)
 		return -- left while the call yielded
 	end
 	policyOf[player] = PolicyRules.from(ok, result)
+	CoveService.open(player, slot) -- slot = cove number; the pile is brought up to date (13.2)
 
 	stageOf[player] = "joined"
 	if readyAsked[player] then
@@ -138,6 +145,7 @@ local function leave(player: Player)
 	RunLoopService.suspendOnLeave(player)
 	PlayerLifecycle.onLeaving:fire(player, slot)
 	CreatureService.remove(slot)
+	CoveService.close(player) -- the pile settled at session end (13.2); the cove freed (13.1)
 	DataService.release(player)
 	slotOf[player], playerAt[slot], stageOf[player], policyOf[player] = nil, nil, nil, nil
 	SlotPool.free(pool, slot)
