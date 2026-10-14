@@ -183,7 +183,7 @@ Every body mesh, including the puffed and tucked forms, gets two outline shells:
 | `T_Shared_Rgh, T_Shared_RghWet, T_Shared_RghChalk` | [MVP] | Three flat roughness textures used by every asset so nothing shows the default plastic shine: matte, wet (eyes, Pearls), chalk (sand) | 8 × 8 each | — | 0.3 | not started |
 | `M_Prop_EyeX, T_Shared_EyeX_Alb` | [MVP] | Two-triangle card with an X mark, shown over each eye for the four frames of being gulped | 2 tris, 64² | — | 0.3 | not started |
 | `T_Shared_EyeRing_Emi` | [MVP] | Soft glow ring for every creature's eyes during Moon Tide; two dots for anything that can eat the player | 64² | — | 0.3 | not started |
-| `M_Prop_HatchEgg` | [MVP] | The pale egg a new Fry hatches from, on the Hatch Bed in the Nursery and on the Home Stone in a cove. Whole egg and two cracked halves | 200 tris | T_Cove_Alb | 1.2 | not started |
+| `M_Prop_HatchEgg` | [MVP] | The pale egg a new Fry hatches from, on the Hatch Bed in the Nursery and on the Home Stone in a cove. Whole egg and two cracked halves (`_Top`, `_Bottom`), one FBX; 2.6 across and 3.3 tall **(tune)**, so the tier-1 Fry fits inside it curled (chapter 14, section 5.1) | 200 tris on screen at a time (the whole egg, or the two halves together) | T_Cove_Alb | 1.2 | not started |
 | (check) Wild creatures | [L] | Computer-controlled wild creatures (canon section 15) are the six species meshes with their base textures, clips, voices and both outline shells, at tiers 1 to 5. They never wear a pattern. No new mesh or texture: the leaf name tag that marks them as wild is `UI_HUD_WildTag` in document 08. This row is the check that each species reads as that species, with the tag, next to real players | — | all six species | 1 | not started |
 
 ### 2.1 Family clip sets
@@ -204,7 +204,7 @@ Shared by every species in the family. Lengths are frames at 30 a second (docume
 | `A_Fish_Gulped` | [MVP] | Stretch 140% toward the mouth, the body pulled in behind the head. Bones only: the shrink to nothing is code, `Model:ScaleTo` over frames 4 to 8 (06 §7.2) | 8 frames | RIG_Fish | 0.6 | not started |
 | `A_Fish_Bank` | [MVP] | Happy spin with eyes closed on entering the cove | 18 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Breach` | [MVP] | Arc through the air and flop back in | 30 frames | RIG_Fish | 0.8 | not started |
-| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s | 45 frames | RIG_Fish | 1 | not started |
+| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s. The bones lower the body into the egg and raise it out (no root motion): the Fry's model stays 3.1 studs **(tune)** above the egg's base for the whole clip, and the egg swaps for its halves on frame 15 (chapter 14, section 5.1) | 45 frames | RIG_Fish | 1 | not started |
 | `A_Fish_CoveNotice` | [L] | A specimen turns to face a visitor with a small happy squash, then turns back | 30 frames | RIG_Fish | 0.6 | not started |
 | `A_Eel_Swim` | [MVP] | Reference swim cycle that the sway code is matched to; the fallback if code cannot layer over clips | loop 20 frames | RIG_Eel | 1.8 | not started |
 | `A_Eel_SwimFast` | [MVP] | Dash-speed version | loop 10 frames | RIG_Eel | 1 | not started |

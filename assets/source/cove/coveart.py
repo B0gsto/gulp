@@ -14,8 +14,9 @@ swimming in. Roblox axes are (-x, z, y) (animrbx.A): the mouth's LookVector poin
 Texturing (06 5.1, 5.3, 5.6): one 512 atlas for the whole cove kit, base colours in the colour
 map (a SurfaceAppearance hides vertex colour, spike F16). The two structure meshes are far larger
 than the atlas can cover at 24 px/stud, so they use tileable cells (stone, sand, terrace step, ceiling
-crack, arch stone) that faces share: overlapping UV islands, each face inside one cell. Free atlas
-space (RESERVED) is left for the cove props of the later rows of 07 6.6.
+crack, arch stone) that faces share: overlapping UV islands, each face inside one cell. The last
+free corner (RESERVED) holds the hatch egg's cells since S6-A2 (eggart.py); the later cove props of
+07 6.6 need room found elsewhere (or a second atlas).
 """
 import json
 import math
@@ -30,6 +31,7 @@ import numpy as np  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 import common  # noqa: E402
+import eggart  # noqa: E402  (S6-A2: the hatch egg's atlas cells)
 import preyart  # noqa: E402
 import validate  # noqa: E402
 
@@ -72,8 +74,11 @@ CELLS = {   # pixels (x0, y0, x1, y1), y from the top of the image
     "niche": (256, 320, 384, 448),   # the lit back wall behind the Trophy Rock
     "throat": (384, 320, 512, 448),  # the mouth's throat: flat cool shade, no joints, so the opening reads dark
     "throat_deep": (256, 448, 384, 512),   # the throat's last 6.5 studs: its deep half in shadow (fv 0 is the deep end)
+    "egg_shell": (384, 448, 480, 512),     # S6-A2 M_Prop_HatchEgg (eggart.py): a third of the shell, repeated round it
+    "egg_inside": (480, 448, 512, 496),    # inside of its broken halves
+    "egg_edge": (480, 496, 512, 512),      # their broken edge
 }
-RESERVED = "x 384-511 of rows 448-511"   # cove props (07 6.6), not painted here
+RESERVED = "none: the last free corner (x 384-511 of rows 448-511) holds the hatch egg since S6-A2"
 INSET = 2                           # pixels kept from a cell's edge (bilinear bleed)
 BLOCKS = {0: "mid", 1: "light", 2: "dark", 3: "accent"}
 
@@ -212,7 +217,9 @@ def paint_throat_deep(w, h):
 
 PAINTERS = {"throat": paint_throat, "throat_deep": paint_throat_deep, "warm": paint_wall, "cool": paint_cool, "blend": paint_blend,
             "blend_u": lambda w, h: paint_blend(w, h, along_u=True), "crack": paint_crack,
-            "terrace": paint_terrace, "sand": paint_sand, "stone": paint_stone, "niche": paint_niche}
+            "terrace": paint_terrace, "sand": paint_sand, "stone": paint_stone, "niche": paint_niche,
+            "egg_shell": lambda w, h: eggart.paint_shell(w, h, INSET), "egg_inside": eggart.paint_inside,
+            "egg_edge": eggart.paint_edge}
 
 
 def atlas():

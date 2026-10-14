@@ -29,8 +29,51 @@ def flat(path, size):
     return Image.alpha_composite(back, img).convert("RGB")
 
 
+def square(job):
+    """The strip as a square sheet (`square` pixels, 06 15.5's 1536): one cell per view and key pose,
+    in reading order (a row of the grid per view when the counts allow), each cell titled with its
+    view and pose; the footer under the grid. Text reads at 768."""
+    side, rows, labels = job["square"], job["rows"], job["labels"]
+    cells = [(row["view"], labels[c], path) for row in rows for c, path in enumerate(row["frames"])]
+    cols = max(1, min(len(labels), int(len(cells) ** 0.5 + 0.999)))
+    nrows = (len(cells) + cols - 1) // cols
+    lab = max(16, side // 64)
+    small, foot = font(lab), font(max(14, int(lab * 0.8)))
+    line_h = int(lab * 0.8 * 1.35)
+    lines = []
+    for line in job["footer"]:
+        cur = ""
+        for word in line.split(" "):
+            trial = (cur + " " + word).strip()
+            if cur and foot.getlength(trial) > side - 16:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = trial
+        lines.append(cur)
+    footer_h = line_h * len(lines) + 12
+    cell_w = side // cols
+    cell_h = (side - footer_h) // nrows
+    label_h = int(lab * 1.5)
+    pic = min(cell_w, cell_h - label_h)
+    sheet = Image.new("RGB", (side, side), (24, 28, 36))
+    draw = ImageDraw.Draw(sheet)
+    for i, (view, text, path) in enumerate(cells):
+        x, y = (i % cols) * cell_w, (i // cols) * cell_h
+        draw.text((x + 8, y + (label_h - lab) // 2), "%s  %s" % (view, text), fill=INK, font=small)
+        sheet.paste(flat(path, pic), (x + (cell_w - pic) // 2, y + label_h))
+    y = nrows * cell_h + 6
+    for line in lines:
+        draw.text((8, y), line, fill=INK, font=foot)
+        y += line_h
+    os.makedirs(os.path.dirname(job["strip"]), exist_ok=True)
+    sheet.save(job["strip"])
+
+
 def strip(job):
     """Text is sized to the sheet, so the labels still read when the strip is viewed at 768 wide."""
+    if job.get("square"):
+        return square(job)
     size, rows, labels = job.get("strip_size", job["size"]), job["rows"], job["labels"]
     cols = len(labels)
     lab = max(16, int(size * cols / 64))           # about 12 px at 768 wide

@@ -769,6 +769,102 @@ def fish_gulped_pose(frame, k=1.0):
     return pose
 
 
+# ---------------------------------------------------------------- the hatch (07 section 2.1, task S6-A2)
+# A_Fish_Hatch, 45 frames (07: "wriggle out of the egg and stretch; the player has control by
+# 1.5 s"; the beat is 04 3.6 B1: "it wobbles twice, cracks, and the Fry pops out with a stretch").
+# A showpiece (06 7.1: 4 to 6 frames of anticipation, squash and stretch 60 to 150%).
+#   0-13   curled in the egg, standing on its tail: tipped nose-up 65 degrees, squashed to 86% and
+#          bent into the dash's C, fins hugged; two wriggles (frames 3-7 and 9-13) that the code's
+#          two egg wobbles follow
+#   13-15  the squeeze: 82%, tipped back further, head tucked (anticipation)
+#   15-18  the pop on frame 15 (the code swaps M_Prop_HatchEgg for its two halves there): the body
+#          bursts up out of the cup nose first, uncurls past straight to 130%, arched proud with
+#          every fin flared and the mouth open in a squeak; 130% to 122% held to frame 21, levelling
+#   21-27  overshoot to 93% and back, then a wriggle free, a shake running down the body
+#   27-33  the stretch: 112% with the fins spread wide and a yawn, held 4 frames
+#   33-45  settle with one 3% rebound, ending on the rest pose, level and facing ahead (the Gap)
+# Root never moves (clips.py "no root motion"): the body is lowered into the egg by moving the
+# Spine2, Spine3 and Girth bones down HATCH_DEPTH studs, as the idle bob does, and tipped by turning
+# them together about the body centre (pitch_body: a rigid turn, no skin bends), so the code places
+# the Fry's model at its swim spot over the egg and does not move it. The curl and squash stay
+# inside what the rig skins cleanly (weightcheck.py: the dash's C at the dash's 85%). Every value is (tune).
+HATCH_DEPTH = 1.5              # studs the body sits below its rest place inside the egg, at k = 1
+HATCH_BACK = 0.04              # and behind it (+Y), so the tipped-up head clears the shell
+HATCH_STRETCH = [(0, 0.86), (3, 0.86), (5, 0.88, "snap"), (7, 0.86, "io"), (9, 0.86), (11, 0.88, "snap"), (13, 0.86, "io"),
+                 (15, 0.82, "in"), (18, 1.30, "snap"), (21, 1.22, "io"), (24, 0.93, "io"), (27, 1.0, "io"),
+                 (29, 1.12, "out"), (33, 1.11, "io"), (37, 0.97, "io"), (41, 1.01, "io"), (45, 1.0, "io")]
+HATCH_CURL = [(0, 1.0), (3, 1.0), (5, 0.8, "snap"), (7, 1.0, "io"), (9, 1.0), (11, 0.8, "snap"), (13, 1.0, "io"),
+              (18, -0.3, "snap"), (21, 0.1, "io"), (24, 0.0, "io")]
+HATCH_C = DASH_C               # the dash's even C (degrees at curl 1; + curls the head left)
+HATCH_PITCH = [(0, 1.0), (13, 1.0), (15, 1.08, "in"), (18, 0.5, "snap"), (21, 0.22, "io"), (24, -0.05, "io"), (27, 0.0, "io")]
+HATCH_PITCH_DEG = 65.0         # nose up, the whole body turned about its centre
+HATCH_RISE = [(0, -1.0), (13, -1.0), (15, -1.06, "in"), (18, 0.08, "snap"), (21, 0.06, "io"), (24, -0.03, "io"), (27, 0.0, "io")]
+HATCH_ARCH = [(0, 0.3), (13, 0.3), (15, 1.0, "in"), (18, -1.0, "snap"), (21, -0.8, "io"), (25, 0.15, "io"), (28, 0.0, "io")]
+HATCH_ARCH_DEG = (7.0, 11.0)    # head down in the tuck, head up on the pop (the tail answers a frame late, 06 7.1 drag)
+HATCH_FINS = [(0, -1.0), (15, -1.0), (18, 1.0, "snap"), (21, 0.8, "io"), (25, 0.15, "io"), (29, 1.15, "out"), (33, 1.1, "io"),
+              (39, 0.0, "io")]
+HATCH_JAW = [(0, 0.0), (15, 0.0), (17, 26.0, "snap"), (21, 20.0, "io"), (25, 0.0, "io"), (29, 14.0, "out"), (33, 16.0, "io"),
+             (37, 0.0, "io")]
+HATCH_SHAKE = [(0, 0.0), (22, 0.0), (23.5, 1.0, "io"), (25, -1.0, "io"), (26.5, 0.75, "io"), (28, -0.4, "io"), (30, 0.0, "io")]
+HATCH_SHAKE_BONES = TIERUP_WAG_BONES
+HATCH_WRIGGLE = [(0, 0.0), (3, 0.0), (4, 1.0, "snap"), (5.5, -0.8, "io"), (7, 0.0, "io"), (9, 0.0), (10, 1.0, "snap"),
+                 (11.5, -0.8, "io"), (13, 0.0, "io")]
+BODY_CENTRE_T = -CANON_NOSE / CANON_LENGTH     # the origin (Root) as a body fraction
+
+
+def pitch_body(pose, angle, k=1.0):
+    """Turns the whole posed body `angle` degrees about X through its centre (+ dips the nose), after
+    everything else in `pose`: the pose of each bone on Root (Spine2 and Spine3, which carry the
+    chains, and the Girth bones, whose heads sit on the skin) is composed with the turn, so the
+    curl and squash keep their shape in the body's own frame. Rest matrices are pure translations
+    (meshgen.build_armature), so a bone's pose maps p to head + loc + R (p - head); turned by P
+    about the centre it becomes loc' = P (head + loc) - head, R' = P R."""
+    from mathutils import Euler, Matrix, Vector
+    turn = Matrix.Rotation(math.radians(angle), 3, 'X')
+    top, bot, half = (r * k for r in GIRTH_REF)
+    yg = k * (CANON_NOSE + GIRTH_T * CANON_LENGTH)
+    heads = {"Spine2": (0.0, k * (CANON_NOSE + PIVOTS["Spine2"] * CANON_LENGTH), 0.0),
+             "Spine3": (0.0, k * (CANON_NOSE + PIVOTS["Spine3"] * CANON_LENGTH), 0.0),
+             "Girth_Top": (0.0, yg, top), "Girth_Bot": (0.0, yg, -bot), "Girth_L": (half, yg, 0.0), "Girth_R": (-half, yg, 0.0)}
+    for bone, head in heads.items():
+        entry = pose.get(bone, {})
+        h = Vector(head)
+        loc = turn @ (h + Vector(entry.get("loc", (0.0, 0.0, 0.0)))) - h
+        rot = (turn @ Euler([math.radians(a) for a in entry.get("rot", (0.0, 0.0, 0.0))], 'XYZ').to_matrix()).to_euler('XYZ')
+        pose[bone] = {"loc": tuple(loc), "rot": tuple(math.degrees(a) for a in rot)}
+    return pose
+
+
+def fish_hatch_pose(frame, k=1.0):
+    """A_Fish_Hatch: curled in the egg on its tail with two wriggles, a squeeze, the pop to 130% up
+    and out of the cup nose first, a wriggle free, a big stretch with a yawn, settle (06 7.1, 7.2
+    timing rules; 04 B1)."""
+    stretch = ease_keys(frame, HATCH_STRETCH)
+    pose = fish_squash_pose(stretch, k) if stretch < 1.0 else fish_stretch_pose(stretch, k)
+    # The C: every bone curls together into it; out of it, each bone back from the middle follows a
+    # little later, so the uncurl whips down the body to the tail fin.
+    for bone, angle, pivot, lag in HATCH_C:
+        rotate_about(pose, bone, (0.0, 0.0, angle * ease_keys(max(frame - lag, min(frame, 15.0)), HATCH_CURL)), pivot, k)
+    arch = lambda c: HATCH_ARCH_DEG[0] * c if c > 0.0 else HATCH_ARCH_DEG[1] * c
+    rotate_about(pose, "Spine1", (arch(ease_keys(frame, HATCH_ARCH)), 0.0, 0.0), 0.50, k)
+    rotate_about(pose, "Spine4", (-0.7 * arch(ease_keys(frame - 1.0, HATCH_ARCH)), 0.0, 0.0), 0.79, k)
+    for bone, angle, pivot, lag in HATCH_SHAKE_BONES:
+        rotate_about(pose, bone, (0.0, 0.0, 1.6 * angle * ease_keys(frame - lag, HATCH_SHAKE)), pivot, k)
+    _put(pose, "TailFin", rot=(0.0, 0.0, 16.0 * ease_keys(frame - 1.0, HATCH_WRIGGLE)))
+    pitch_body(pose, -HATCH_PITCH_DEG * ease_keys(frame, HATCH_PITCH), k)
+    rise = k * ease_keys(frame, HATCH_RISE)
+    for bone in ("Spine2", "Spine3") + GIRTH:
+        _put(pose, bone, loc=(0.0, -HATCH_BACK * rise, HATCH_DEPTH * rise))
+    fins = ease_keys(frame - 1.0, HATCH_FINS)
+    hug, spread = max(-fins, 0.0), max(fins, 0.0)
+    flutter = 10.0 * math.sin(math.pi * (frame - 21.0) / 2.0) if 21.0 <= frame <= 29.0 else 0.0
+    _put(pose, "Pec_L", rot=(-18.0 * spread, 40.0 * spread + flutter, 26.0 * hug))
+    _put(pose, "Pec_R", rot=(-18.0 * spread, -40.0 * spread - flutter, -26.0 * hug))
+    _put(pose, "Dorsal", rot=(18.0 * spread - 16.0 * hug, 0.0, 0.0))
+    _put(pose, "Jaw", rot=(ease_keys(frame, HATCH_JAW), 0.0, 0.0))
+    return pose
+
+
 # name -> (pose function, key frames for the review strip as (frame, label)). Loop or not, and
 # the length, come from chapter 07 (clips.py).
 FISH_CLIPS = {
@@ -788,4 +884,6 @@ FISH_CLIPS = {
                                          (10, "96%"), (13, "wag"), (18, "settled")]),
     "A_Fish_Gulped": (fish_gulped_pose, [(0, "start"), (2, "pulled"), (4, "stretch 140%"), (6, "shrinking"),
                                          (8, "drawn in")]),
+    "A_Fish_Hatch": (fish_hatch_pose, [(0, "curled 86%, on its tail"), (5, "wriggle"), (15, "squeeze 82%"), (18, "pop 130%"),
+                                       (24, "overshoot 93%"), (25, "wriggle free"), (31, "stretch 112%"), (45, "settled")]),
 }

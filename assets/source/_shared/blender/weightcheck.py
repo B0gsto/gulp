@@ -73,6 +73,11 @@ def poses(k=1.0):
         ("Gulped f4: stretch 140%", rigs.fish_gulped_pose(4, k)),
         ("Gulped f6: shrinking", rigs.fish_gulped_pose(6, k)),
         ("Gulped f8: drawn in", rigs.fish_gulped_pose(8, k)),
+        ("Hatch f0: curled 86%", rigs.fish_hatch_pose(0, k)),       # S6-A2
+        ("Hatch f15: squeeze 82%", rigs.fish_hatch_pose(15, k)),
+        ("Hatch f18: pop 130%", rigs.fish_hatch_pose(18, k)),
+        ("Hatch f25: wriggle free", rigs.fish_hatch_pose(25, k)),
+        ("Hatch f31: stretch 112%", rigs.fish_hatch_pose(31, k)),
     ]
 
 

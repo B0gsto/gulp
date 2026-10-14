@@ -49,7 +49,12 @@ STRIP_VIEWS = ("Side", "Top")  # the fish wave is sideways, so it reads from the
 CLIP_VIEW = "ThreeQuarter"
 # Clips whose strips need more (S4-A3 review): bigger cells, and a close-up row of the head from
 # the side (the front `head` share of the body), where the action is in the mouth.
-STRIP_EXTRA = {"A_Fish_Gulp": {"size": 800, "head": 0.45}}
+# S6-A2: the hatch reads with its egg: a square 1536 sheet (06 15.5 sheet size) of side views of the
+# Fry alone and three-quarter views with the egg (the build's spec "clip_props": objects and a
+# per-frame hook that shows the whole egg or the thrown halves).
+STRIP_EXTRA = {"A_Fish_Gulp": {"size": 800, "head": 0.45},
+               "A_Fish_Hatch": {"views": ("Side", "ThreeQuarter"), "props_views": ("ThreeQuarter",), "square": 1536}}
+ONLY_ENV = "GULP_ONLY_CLIPS"  # comma-separated A_ names: the clips step renders only those (the rest are unchanged)
 RE_PATH = re.compile(r'^pose\.bones\["([^"]+)"\]\.(location|rotation_quaternion|rotation_euler|scale)$')
 RE_LENGTH = re.compile(r"^\s*(loop\s+)?(\d+)(?:\s+to\s+(\d+))?\s+frames", re.I)
 
@@ -217,21 +222,22 @@ def check(spec, clip, report):
 
 # ---------------------------------------------------------------- previews (06 15.5)
 
-def _render_set(objs, view, frames, folder, prefix, head=None):
+def _render_set(objs, view, frames, folder, prefix, head=None, on_frame=None):
     previewlib.show_only(objs)
     previewlib.show_helpers(False)
+    at = lambda f: (bpy.context.scene.frame_set(f), on_frame and on_frame(f))
     pts = []
     for f in sorted(set(frames)):          # one still camera that frames every pose: motion shows against it,
-        bpy.context.scene.frame_set(f)     # and a stretch or a lunge cannot leave the cell
+        at(f)                              # and a stretch or a lunge cannot leave the cell
         pts += previewlib.world_points(objs)
     if head:                               # a close-up: only the front `head` share of the body (-Y forward)
         y0, y1 = min(p.y for p in pts), max(p.y for p in pts)
         pts = [p for p in pts if p.y <= y0 + head * (y1 - y0)]
-    bpy.context.scene.frame_set(frames[0])
+    at(frames[0])
     previewlib.fit_camera(view, objs, margin=1.3, pts=pts)
     out = []
     for i, f in enumerate(frames):
-        bpy.context.scene.frame_set(f)
+        at(f)
         out.append(os.path.join(folder, "%s_%s%s_%03d.png" % (prefix, view, "_head" if head else "", i)))
         previewlib.render(out[-1])
     return out
@@ -245,8 +251,11 @@ def preview(spec, report, validation_ok):
     results = {}
     tmp = tempfile.mkdtemp(prefix="gulp_clips_")
     try:
+        only = [n for n in os.environ.get(ONLY_ENV, "").split(",") if n]
         for clip in spec.get("actions", []):
             arm, name = clip["armature"], clip["name"]
+            if only and name not in only:
+                continue
             arm.data.pose_position = 'POSE'
             arm.animation_data.action = clip["action"]
             length = clip["end"] - clip["start"]
@@ -255,17 +264,22 @@ def preview(spec, report, validation_ok):
             strip_size = extra.get("size", STRIP_SIZE)
             scene.render.resolution_x = scene.render.resolution_y = strip_size
             key_frames = [clip["start"] + k for k, _ in keys]
-            rows = [{"view": v, "frames": _render_set(objs, v, key_frames, tmp, name + "_k")} for v in STRIP_VIEWS]
+            props = spec.get("clip_props", {}).get(name)        # {"objects": [...], "at": hook(frame)}
+            with_props = lambda v: (objs + props["objects"], props["at"]) if props and v in extra.get("props_views", ()) else (objs, None)
+            rows = [{"view": v, "frames": _render_set(with_props(v)[0], v, key_frames, tmp, name + "_k", on_frame=with_props(v)[1])}
+                    for v in extra.get("views", STRIP_VIEWS)]
             if extra.get("head"):
                 rows.insert(1, {"view": "Head", "frames": _render_set(objs, "Side", key_frames, tmp, name + "_k", head=extra["head"])})
             scene.render.resolution_x = scene.render.resolution_y = PREVIEW_SIZE
             # 2 seconds at 30 fps: a loop repeats, an action plays and then holds its last frame
             seq = [clip["start"] + (i % length if clip.get("loop") else min(i, length)) for i in range(PREVIEW_SECONDS * common.FPS)]
             unique = sorted(set(seq))
-            rendered = dict(zip(unique, _render_set(objs, CLIP_VIEW, unique, tmp, name + "_c")))
+            clip_objs, hook = with_props(CLIP_VIEW)
+            rendered = dict(zip(unique, _render_set(clip_objs, CLIP_VIEW, unique, tmp, name + "_c", on_frame=hook)))
             rows_ok = [r for r in report.rows if r["subject"] == name]
             base = os.path.join(common.review_dir(name), common.today())
             job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE, "strip_size": strip_size,
+                   "square": extra.get("square"),
                    "labels": ["f%d %s" % (k, lab) for k, lab in keys], "rows": rows,
                    "clip_frames": [rendered[f] for f in seq], "fps": common.FPS,
                    "footer": ["%s  %d frames%s  %s  RIG_%s" % (name, length, " loop" if clip.get("loop") else "",
