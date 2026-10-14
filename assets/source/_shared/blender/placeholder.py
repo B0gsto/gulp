@@ -227,11 +227,12 @@ def fx_mask(name, row, size):
     """Effect masks: white on clear in their shape class, with the PH stamp in dark opaque ink so
     it shows in colour and in alpha. Shafts (GodRay, Streak) are a soft vertical gradient at the
     row's width x height; rings (Ring, TierRing, Foam) a soft ring; flipbooks (`_Flip`, `4×4`) a
-    grid of frames that grow and break up; everything else the soft dot of 07 section 16."""
+    grid of frames that grow and break up (a `2×2` mask holds variants the same way); everything else the soft dot of 07 section 16."""
     import texgen
     from PIL import Image
-    m = re.search(r"(\d+)\s*×\s*(\d+)", column(row, "Size") or "")
-    grid = re.search(r"(\d+)×(\d+)", (column(row, "Size") or "").replace(" ", "").split(",")[-1]) if name.endswith("_Flip") else None
+    cell = column(row, "Size") or ""
+    m = None if "²" in cell else re.search(r"(\d+)\s*×\s*(\d+)", cell)        # `64 × 256`: a non-square mask
+    grid = re.search(r"(\d+)×(\d+)", cell.replace(" ", "").split(",")[-1]) if "," in cell else None   # `512², 4×4` frames or variants
     w, h = (int(m.group(1)), int(m.group(2))) if m and not grid else (size, size)
     shape = "shaft" if any(k in name for k in ("GodRay", "Streak")) else "ring" if any(k in name for k in ("Ring", "Foam")) else "dot"
 
