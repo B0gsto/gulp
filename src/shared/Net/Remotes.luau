@@ -3,9 +3,9 @@
 -- 17.3. Pure data: Net/Server creates one remote per entry under ReplicatedStorage.Net, and
 -- Net/Client waits for them. Nothing else creates remotes (section 4.4).
 --
--- `encoding` follows the rule above the table in 5.3: every payload is one `buffer` except
--- `State` and the low-rate `*Action` remotes, which carry a small array of scalars. `ClientReady`
--- carries nothing.
+-- `encoding` follows the rule above the table in 5.3: "buffer" is one `buffer` argument; "scalars"
+-- is plain Luau arguments (numbers, booleans, short strings, or one table where the row says so:
+-- `WorldInfo`'s volume table, Codec/WorldInfo). `ClientReady` carries nothing.
 local Types = require("../Types")
 
 export type Kind = "Reliable" | "Unreliable"
@@ -103,8 +103,19 @@ Remotes.list = {
 		32
 	),
 	c2s("GoalAction", "Reliable", "scalars", "op + index", 2, 4, "MVP"),
-	c2s("SettingsSet", "Reliable", "buffer", "key + value", 2, 4, "MVP"),
-	c2s("TutorialStep", "Reliable", "buffer", "step number", 2, 4, "MVP"),
+	withString(
+		c2s(
+			"SettingsSet",
+			"Reliable",
+			"scalars",
+			"key (settings list, <= 32 chars) + value (number or boolean)",
+			2,
+			4,
+			"MVP"
+		),
+		32
+	),
+	c2s("TutorialStep", "Reliable", "scalars", "step number (integer)", 2, 4, "MVP"),
 	c2s("EmoteAction", "Reliable", "scalars", "emote index 1 to 6", 1 / 3, 1, "L"), -- 1 per 3 s
 	sized(
 		c2s(
@@ -122,18 +133,18 @@ Remotes.list = {
 
 	-- Server to client.
 	s2c("State", "Reliable", "scalars", "path string, value"),
-	s2c("WorldInfo", "Reliable", "buffer", "volume table, once after ClientReady"),
+	s2c("WorldInfo", "Reliable", "scalars", "volume table, once after ClientReady"),
 	sized(s2c("BiteResult", "Reliable", "buffer", "9 bytes"), 9, 9),
-	s2c("PreyEvent", "Reliable", "buffer", "1 + 6n bytes"),
+	sized(s2c("PreyEvent", "Reliable", "buffer", "1 + 6n bytes, n >= 1"), 7, nil),
 	s2c(
 		"CreatureEvent",
 		"Reliable",
-		"buffer",
+		"scalars",
 		"gulped, revived, status, tier change, bite absorbed, emote [L]"
 	),
 	sized(s2c("PredatorEvent", "Reliable", "buffer", "14 bytes"), 14, 14),
-	s2c("TideEvent", "Reliable", "buffer", "override start and end only"),
-	s2c("CoveView", "Reliable", "buffer", "specimen list of one cove"),
+	s2c("TideEvent", "Reliable", "scalars", "override start and end only"),
+	s2c("CoveView", "Reliable", "scalars", "specimen list of one cove"),
 	sized(s2c("PreyState", "Unreliable", "buffer", "<= 900 bytes, 10 Hz"), nil, 900),
 	sized(s2c("PredatorState", "Unreliable", "buffer", "<= 400 bytes, 10 Hz"), nil, 400),
 } :: { RemoteDef }

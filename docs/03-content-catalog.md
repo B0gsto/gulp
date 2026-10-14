@@ -216,7 +216,10 @@ Notes (all tune):
 
 ### 2.3 Spawn weight and live cap per zone
 
-**Weight** is the share of spawn rolls in that zone (each column adds to 100). **Cap** is the most groups alive in that zone at once. All (tune). During a Feeding Frenzy caps are doubled.
+**Weight** is the share of spawn rolls in that zone (each column adds to 100). **Cap** is the most groups alive in that zone at once. All (tune). During a Feeding Frenzy caps are doubled. How many groups each zone aims to keep alive is chapter 02, section 9.6 (data:PreyTargets); a spawn area smaller than the zone scales caps and targets by area (the same section).
+
+<!-- data:PreySpawns -->
+Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`.
 
 | Prey | Nursery Lagoon | Sunlit Reef | Kelp Forest | The Drop-off | The Trench [P2] |
 |---|---|---|---|---|---|
@@ -228,6 +231,8 @@ Notes (all tune):
 | `mackerel` | None | None | 18 · cap 12 groups | 38 · cap 14 groups | None |
 | `bonito` | None | None | None | 31 · cap 6 packs | 50 · cap 6 packs |
 | `tuna` | None | None | None | 6 · cap 4 | 30 · cap 6 |
+
+<!-- /data -->
 
 ### 2.4 Spawn rules for prey
 
@@ -442,6 +447,21 @@ The Sunlit Reef is a round basin in the middle. A ring of rock called **the Rim*
 | The Drop-off | [MVP] | Half ring on the east and south, from B045 clockwise to B225 | r 560 to r 1,000: 440 wide, about 2,450 long | 0 to 480 | 300 on the Ledge, 180 below depth 150 |
 | The Trench | [P2] | Curved crack in the Deep Floor, r 900 to r 980, B100 to B170 | About 1,150 long × 80 wide | 480 to 600 | 90 |
 | Coves | [MVP] | 24 chambers inside the Rim | Each 76 wide × 110 long × 44 high | 8 to 52 | Whole chamber |
+
+**Plan areas** (seen from above) are worked out from the sizes above. Chapter 02, section 9.6 divides a zone's prey by its plan area when a spawn area of another size (a test arena) needs its share.
+
+<!-- data:ZoneAreas -->
+Soft-launch slice (chapter 13, section 3.2): `nursery`, `reef`, `kelp`.
+
+| ID | Plan area (studs²) | Arithmetic |
+|---|---|---|
+| `nursery` | 29,374 | An oval 220 × 170: π × 110 × 85 |
+| `reef` | 502,655 | A disc of radius 400: π × 400² |
+| `kelp` | 1,078,195 | A half ring from r 560 to r 1,000: π ÷ 2 × (1,000² − 560²) |
+| `dropoff` | 1,078,195 | The same half ring on the other side |
+| `trench` | 92,000 | About 1,150 long × 80 wide |
+
+<!-- /data -->
 
 **Top-down map.** North is up. One character is 30 studs wide and 60 studs tall.
 

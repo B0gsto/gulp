@@ -556,7 +556,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 **Acceptance criteria**
 
-- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members, and also at the Frenzy count of about 2,620 members in 508 groups (09 §8.4, §15.2, §16.2).
+- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 300 groups and 1,390 members, and also at the Frenzy count of about 2,710 members in 545 groups, trait prey included (09 §8.1, §8.4, §15.2, §16.2).
 - [ ] `prey_soak.sim` passes: bytes per player under 9,000 peak and 4,500 average; no packet over 900 bytes.
 - [ ] Device row 1 draws 80 prey meshes at 30 fps.
 - [ ] Krill scatter when the creature comes close; no prey Instance exists on the server.
