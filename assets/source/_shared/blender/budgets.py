@@ -50,6 +50,11 @@ BUDGETS = {
     "cove_prop": {"tris": 800, "tris_min": 100, "bones": 0},
     # Not a 06 6.3 row: the mouth arch's budget is chapter 07's (section 6.6, M_Cove_Mouth: 2,500 tris).
     "cove_mouth": {"tris": 2500, "bones": 0},
+    # Not 06 6.3 rows: the Rim kit's budgets are chapter 07's (section 6.1): M_Env_Rim_Wall_01-04
+    # 2,500 tris each; M_Env_Rim_Pass 5,000 tris in 2 meshes (2,500 a mesh); M_Env_Blue_Haze 200.
+    "rim_wall": {"tris": 2500, "bones": 0},
+    "rim_pass": {"tris": 2500, "bones": 0},
+    "haze": {"tris": 200, "bones": 0},
     # Not a bible row: M_Prop_ScaleCube is a script output (07 section 17 tool row).
     # It is held to the cove-prop ceiling, with no floor.
     "calibration": {"tris": 800, "bones": 0},

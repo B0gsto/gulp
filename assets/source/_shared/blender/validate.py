@@ -141,13 +141,35 @@ def check_mesh(spec, entry, report):
     add("one material", len(mesh.materials) == 1 and slots == {0}, "%d material(s)" % len(mesh.materials))
 
     uv_ok, uv_detail = len(mesh.uv_layers) == 1, "%d UV set(s)" % len(mesh.uv_layers)
-    if uv_ok:
+    tile = entry.get("uv_tile_studs")
+    if uv_ok and tile:
+        # 07 6.1 kit pieces on a tiling ground texture (T_Tile_*, one repeat every `tile` studs): UVs run
+        # past 0..1 on purpose; the check is the repeat length, the median over faces of 3D size per UV unit.
+        uvl = mesh.uv_layers[0].data
+        ratios = []
+        for poly in mesh.polygons:
+            if poly.area < 1.0:
+                continue
+            us = [uvl[li].uv for li in poly.loop_indices]
+            a = 0.0
+            for k in range(1, len(us) - 1):
+                a += abs((us[k].x - us[0].x) * (us[k + 1].y - us[0].y) - (us[k + 1].x - us[0].x) * (us[k].y - us[0].y)) / 2.0
+            if a > 1e-9:
+                ratios.append((poly.area / a) ** 0.5)
+        ratios.sort()
+        med = ratios[len(ratios) // 2] if ratios else 0.0
+        add("tiling UVs", abs(med - tile) <= 0.15 * tile,
+            "1 UV set; median %.1f studs per repeat over %d faces, %.0f to %.0f between the 10th and 90th percentiles "
+            "(tile repeats every %d studs)" % (med, len(ratios), ratios[len(ratios) // 10] if ratios else 0,
+                                                ratios[9 * len(ratios) // 10] if ratios else 0, tile))
+    elif uv_ok:
         flat = [0.0] * (2 * len(mesh.loops))
         mesh.uv_layers[0].data.foreach_get("uv", flat)
         lo, hi = min(flat), max(flat)
         uv_ok = lo >= -1e-6 and hi <= 1.0 + 1e-6
         uv_detail = "1 UV set, %.3f to %.3f" % (lo, hi)
-    add("one UV set in 0..1", uv_ok, uv_detail)
+    if not (uv_ok and tile):
+        add("one UV set in 0..1", uv_ok, uv_detail)
 
     cols = [a.name for a in mesh.color_attributes]
     add("vertex colours", cols == [common.COLOR_ATTR], "layers: %s" % (", ".join(cols) or "none"))
@@ -273,6 +295,14 @@ def check_placement(spec, obj, add):
             add("facing", ok, "front marker centred at y %.2f; front is -Y" % cy)
         else:
             add("facing", False, "no vertices tagged as the front marker")
+    elif facing.get("kind") == "normals":
+        # a thin curved sheet (M_Env_Blue_Haze): its tagged front face must point -Y on average
+        attr = mesh.attributes.get(common.TAG_ATTR)
+        front = {i for i, t in enumerate(attr.data) if t.value == common.TAG_FRONT} if attr else set()
+        tagged = [p for p in mesh.polygons if all(i in front for i in p.vertices)]
+        area = sum(p.area for p in tagged)
+        ny = sum(p.normal.y * p.area for p in tagged) / area if area else 0.0
+        add("facing", bool(tagged) and ny < -0.9, "front faces' area-weighted normal y %.3f; front is -Y" % ny)
     else:
         add("facing", False, "the asset states no facing check")
 
