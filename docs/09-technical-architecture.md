@@ -164,7 +164,8 @@ gulp/
 │   │   └── Loading.client.luau     custom loading screen, removes the default one
 │   ├── shared/                 → ReplicatedStorage.Shared
 │   │   ├── Types.luau              every exported type used across modules
-│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
+│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau,
+│   │   │                           FtueConfig.luau (every tunable of chapter 04, section 3.1)
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
 │   │   │   │                       Zones, Tides, PreySpawns, TraitPreySpawns, PreyMotion, Products,
@@ -173,7 +174,7 @@ gulp/
 │   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
 │   │   ├── Logic/                  pure rules: BiteRules, TierMath, TraitRules, BankMath,
-│   │   │                           CoveIncome, TideClock, GoalRules, Migrations
+│   │   │                           CoveIncome, TideClock, GoalRules, Migrations, FtueRules
 │   │   ├── Sim/                    pure simulation: SwimModel, PreySim, Formation, SpatialGrid,
 │   │   │                           Quantize, PredatorSim
 │   │   ├── Net/
@@ -341,6 +342,13 @@ export type CodexCategoryDef = { id: string, wire: number, scope: Scope,   -- cd
 
 export type RevivePointDef = { id: string, wire: number, zone: string,     -- rp_01 to rp_12 (chapter 03, section 6.11)
 	x: number, z: number, depth: number }                                  -- world position (x, −depth, z)
+
+export type NurseryPointDef = { id: string, wire: number,                 -- hatch_bed ... home_current_mouth (chapter 03, section 6.2)
+	at: number, to: number,                  -- distance along the first-run route; to = at for a point
+	x: number, z: number, toX: number, toZ: number,   -- the place; a stretch's start and end
+	top: number, bottom: number, toBottom: number,    -- depth band (toBottom: at a stretch's end)
+	floor: boolean,                          -- bottom is the sea floor; the band runs up to the surface
+	markX: number?, markZ: number? }         -- the landmark a point serves (the Glow Grotto's mouth)
 
 export type PatternDef = { id: string, wire: number, scope: Scope, species: string,   -- pat_<species>_<name>, 18 at launch
 	source: "robux" | "codex" | "starter_pack" }                           -- chapter 03, section 1.3
@@ -519,7 +527,7 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **DataService** | MVP | Load, migrate, session-lock, autosave and release profiles; push state patches to the owner | The ProfileStore session, `Profile.Data` | `get(player): ProfileData?`, `patch(player, path: string, value: any)`, `saveNow(player): boolean`, `onLoaded: Signal<Player>` |
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber, ctx?)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
-| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
+| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `nurseryPathAt(x,y,z): string?` (the `NurseryPath` `PointId`, section 9.1), `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
 | **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `isProtected(slot): boolean` (any protection window open: revive, reconnect, newcomer shield), `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
 | **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState`; the `Traits` attribute; `run.traits` and `run.progress` in `State` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot, source?)` (`prey` by default), `defenceTierBonus(slot)`, `traits(slot)` (the held list, for the bank), `reset(slot)` (a bank's new start and a respawn), `onGained: Signal<Slot, string, number>` |
@@ -1111,6 +1119,7 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 | `GullSky`, `MorayHole`, `PredatorNode` | `PredatorId`, `Next` | PredatorService |
 | `HatchBed` | — (one small Ball part; only its centre and the part's look vector are kept) | `RunLoopService.join`: where an account that has never banked hatches for its first run, facing along the look vector (chapter 04, section 3.5; chapter 03, section 6.2 places it at (−398, 340), floor 24, facing east). Exactly one per place with a Nursery |
 | `RevivePoint` | `PointId`: `rp_01` to `rp_12` (chapter 03, section 6.11) | `RunLoopService`: where a revived or resumed creature returns (section 6.3) |
+| `NurseryPath` | `PointId`: a row of chapter 03's `data:NurseryPath` (section 6.2): `swarm_a`, `plankton_trail`, `swarm_b`, `glow_grotto`, `kelp_curtain`, `little_arch`, `elbow_leg_1`, `elbow_bend`, `elbow_leg_2`, `home_current_mouth` | `WorldIndex.nurseryPathAt` and `TutorialDirector`: where on the first-run route a creature is, such as crossing the Gap (chapter 04, section 3.5). Shapes and sizes are chapter 03's (section 6.2, authoring the route); `Logic/NurseryRoute` builds them and `tools/studio/place_nursery_volumes.luau` places them |
 
 A `RevivePoint` is a small Ball part; only its centre is kept. `WorldIndex` stores the 12 centres with the volume table and does not send them to clients. `tools/studio/check_place.luau` fails if any of the 12 IDs is missing, sits away from its row in the generated `RevivePoints` table, or lies inside the collision shell or a `Hazard` volume.
 
@@ -1394,7 +1403,8 @@ export type ProfileData = {
 	offers: { [string]: number },                -- offer ID → UTC day last dismissed (chapter 05, section 9)
 	social: { bubbleDay: number, bubbledUserIds: { number } },   -- [L] coves given a Bubble today, by owner
 	board: { week: number, weekBest: number },                   -- [L] avoids reads before writes
-	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04)
+	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04); stage: S0_LOADING = 0
+		                                         -- to S10_RUN2 = 10, DONE = 11 (chapter 04, section 3.1)
 		version: number,                         -- tutorial version the account saw, currently 1 (chapter 04, section 9)
 		attempts: number },                      -- +1 each time the tutorial restarts after a disconnect before the first bank
 	ab: { [string]: string },                    -- experiment key → arm, copied at first exposure (chapter 10, section 8.1)

@@ -582,22 +582,28 @@ depth  WEST                                                              EAST
 
 **First-run route · [MVP].** Chapter 04 scripts a new player's first run along this route and owns the beats; this table fixes the places. Distances are measured along the route from the Hatch Bed (tune). Inside the Nursery the route is one gentle arc (radius 140, turning 45° to the left), so the next target is always ahead on screen.
 
-| Route point (chapter 04's name) | Distance along the route | Position (X, Z) · depth | What is there |
-|---|---|---|---|
-| Hatch Bed | 0 | (−398, 340) · floor 24 | The egg. The Fry hatches facing east, along the route. |
-| Swarm A | 14 | (−384, 339) · 18 | 6 scripted krill |
-| Plankton trail | 20 to 56 | (−378, 339) to (−344, 329) · 18 | 10 scripted motes, one every 4 studs |
-| Swarm B | 60 | (−340, 327) · 18 | 14 scripted krill |
-| Glow Grotto | 90 | Route point (−314, 312); grotto mouth (−322, 301) · 10 to 26 | 5 scripted Glowfry wait under the overhang |
-| Kelp curtain | 110 | (−299, 299) · 6 to 28 | The Nursery end of Little Arch. A kelp curtain closes it until chapter 04's script opens it. Only a first-run player sees it or is stopped by it. |
-| Little Arch ("the Gap") | 110 to 135 | (−299, 299) to (−281, 281) · 6 to 28 | The 25-stud tunnel. The Nursery ends at its Reef end, the 135 mark. |
-| The Elbow, first leg ("the channel") | 135 to 235 | (−281, 281) to (−210, 210) · floor 30 down to 56 | Straight, heading north-east |
-| The Elbow, bend | 235 | (−210, 210) · floor 56 | 40° to the right |
-| The Elbow, second leg | 235 to 335 | (−210, 210) to (−110, 201) · floor 56 | Straight, heading just north of east |
-| Home Current mouth | 335 | (−110, 201) · 30 | Where chapter 04's Home Current picks the player up. Section 6.7 gives the distances from here to the coves. |
+<!-- data:NurseryPath -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| ID | Route point (chapter 04's name) | Distance along the route | Position (X, Z) · depth | What is there |
+|---|---|---|---|---|
+| `hatch_bed` | Hatch Bed | 0 | (−398, 340) · floor 24 | The egg. The Fry hatches facing east, along the route. |
+| `swarm_a` | Swarm A | 14 | (−384, 339) · 18 | 6 scripted krill |
+| `plankton_trail` | Plankton trail | 20 to 56 | (−378, 339) to (−344, 329) · 18 | 10 scripted motes, one every 4 studs |
+| `swarm_b` | Swarm B | 60 | (−340, 327) · 18 | 14 scripted krill |
+| `glow_grotto` | Glow Grotto | 90 | Route point (−314, 312); grotto mouth (−322, 301) · 10 to 26 | 5 scripted Glowfry wait under the overhang |
+| `kelp_curtain` | Kelp curtain | 110 | (−299, 299) · 6 to 28 | The Nursery end of Little Arch. A kelp curtain closes it until chapter 04's script opens it. Only a first-run player sees it or is stopped by it. |
+| `little_arch` | Little Arch ("the Gap") | 110 to 135 | (−299, 299) to (−281, 281) · 6 to 28 | The 25-stud tunnel. The Nursery ends at its Reef end, the 135 mark. |
+| `elbow_leg_1` | The Elbow, first leg ("the channel") | 135 to 235 | (−281, 281) to (−210, 210) · floor 30 down to 56 | Straight, heading north-east |
+| `elbow_bend` | The Elbow, bend | 235 | (−210, 210) · floor 56 | 40° to the right |
+| `elbow_leg_2` | The Elbow, second leg | 235 to 335 | (−210, 210) to (−110, 201) · floor 56 | Straight, heading just north of east |
+| `home_current_mouth` | Home Current mouth | 335 | (−110, 201) · 30 | Where chapter 04's Home Current picks the player up. Section 6.7 gives the distances from here to the coves. |
+
+<!-- /data -->
 
 - The route passes 27 studs north of the Bubble Fountain. Krill Corner is 40 studs behind the Hatch Bed.
 - **Authoring:** the Hatch Bed is marked in Studio by one volume of kind `HatchBed` (chapter 09, section 9.1): a small Ball part centred on the egg at (−398, 340), floor 24, its look vector pointing east along the route. The first-run spawn reads it; nothing else does.
+- **Authoring the route:** every other row is one volume of kind `NurseryPath` (chapter 09, section 9.1) whose `PointId` is the row's ID, so the server and the tutorial can tell where on the route a creature is. `Logic/NurseryRoute` builds them from this table and `tools/studio/place_nursery_volumes.luau` places them (and the `HatchBed`). A stretch (the plankton trail, Little Arch, both legs of the Elbow) is a Block from its first position to its second, looking along the route: Little Arch 50 wide over depths 6 to 28; each leg of the Elbow 36 wide (chapter 04, section 3.5) from the surface to its deepest floor; the trail 4 × 4. The kelp curtain is a Block 50 wide over depths 6 to 28 and 2 thick **(tune)**, centred on its position across the arch's Nursery end. The Elbow's bend is an upright Cylinder 36 across from the surface to its floor, so the two legs join without a gap. Every other point (both swarms, the Glow Grotto at its mouth, the Home Current mouth) is a Ball 4 across **(tune)** at its depth (the middle of a band), facing along the route; the Grotto's faces from its mouth toward its route point. Where volumes overlap the smaller one counts, so the curtain wins over Little Arch and the bend over the legs. A creature has crossed the Gap when it leaves `little_arch` into `elbow_leg_1`.
 - Predators never enter the Nursery, so chapter 04's scripted Barracuda waits on the Reef side: under a rock shelf on the Rim face at (−267, 295), 20 studs to the right of Little Arch's Reef end.
 - The whole route is in the west half of the Reef, which has no real Barracuda and no anemones (section 6.3).
 
