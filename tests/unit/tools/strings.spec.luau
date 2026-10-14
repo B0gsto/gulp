@@ -51,7 +51,7 @@ end)
 describe("assets/loc/strings.csv", function()
 	it("is chapter 08's text list, sections 14.1 to 14.12, word for word", function()
 		local docs = Strings.rowsOfDocs(fs.readFile("docs/08-ui-ux.md"))
-		expect(#docs).toBe(426) -- 08 §14.13: "426 strings in sections 14.1 to 14.12"
+		expect(#docs).toBe(428) -- 08 §14.13: "428 strings in sections 14.1 to 14.12"
 		expect(csvRows()).toEqual(docs)
 	end)
 

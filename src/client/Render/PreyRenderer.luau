@@ -53,6 +53,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Flags = require(ReplicatedStorage.Shared.Config.Flags)
 local Formation = require(ReplicatedStorage.Shared.Sim.Formation)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
@@ -73,6 +74,7 @@ local InputController = require(script.Parent.Parent.Controllers.InputController
 local OutlineBudget = require(script.Parent.OutlineBudget)
 local Outlines = require(script.Parent.Outlines)
 local Pools = require(script.Parent.Pools)
+local Theme = require(script.Parent.Parent.UI.Kit.Theme)
 
 export type GraphicsTier = PreyMirror.GraphicsTier
 
@@ -81,6 +83,7 @@ type Item = {
 	shell: BasePart?, -- nil for prey that never get an outline (plankton), and until first used
 	outlined: boolean,
 	fading: boolean, -- drawn part-transparent while fading back in after a rejected claim
+	mark: { ring: BillboardGui, light: PointLight }?, -- trait prey only (see `makeMark`)
 }
 
 -- One far glint emitter (8.8): an anchored, invisible host part moved with the meshes, holding
@@ -119,7 +122,7 @@ local TWO_PI = 2 * math.pi
 
 -- 06 §6.3 lengths (studs) and 06 §6.2 Mid colours. Width and height of the placeholder ellipsoid
 -- are shares of the length (tune); plankton is a round mote.
-local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
+local PLACEHOLDER: { [string]: { length: number, colour: string, light: string? } } = {
 	plankton = { length = 0.4, colour = "#D9FFE8" },
 	krill = { length = 0.8, colour = "#FF8C7A" },
 	shrimp = { length = 1.0, colour = "#FFB48A" },
@@ -128,8 +131,10 @@ local PLACEHOLDER: { [string]: { length: number, colour: string } } = {
 	mackerel = { length = 3.6, colour = "#2FA89A" },
 	bonito = { length = 5.5, colour = "#6F8FD9" },
 	tuna = { length = 8.5, colour = "#4F6FD0" },
+	-- Trait prey with a 06 §4.3 row: 03 §3.2 length, 06 §4.3 Mid (M_Prey_Glowfry, task S6-A1).
+	glowfry = { length = 0.9, colour = "#C29424", light = "#FFE98A" }, -- 06 §4.3 Light
 }
-local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey until chapter 06 rows are wired (tune)
+local PLACEHOLDER_COLOUR = "#E6EEF5" -- trait prey without a 06 §4.3 row yet (tune)
 local WIDTH, HEIGHT = 0.4, 0.45 -- shares of the length (tune)
 
 local player = Players.LocalPlayer
@@ -147,6 +152,7 @@ local pools: { [number]: Pools.Pool<Item> } = {}
 local poolList: { Pools.Pool<Item> } = {}
 local missingKind: { [number]: boolean } = {}
 local clock = 0 -- seconds of drawing, for the wiggle
+local outlineScale = 1 -- 04 §3.2, §4: the FTUE's thicker food outline (TutorialDirector sets it)
 
 -- Scratch, reused every frame (09 §4.7).
 local moveParts: { BasePart } = {}
@@ -273,7 +279,7 @@ local function lookOf(kind: number): Look?
 		then template.Size
 		elseif def.tier == 0 then Vector3.new(length, length, length)
 		else Vector3.new(length * WIDTH, length * HEIGHT, length)
-	local edibleT = OutlineRules.thickness(size.Y, "edible", true)
+	local edibleT = OutlineRules.thickness(size.Y, "edible", true) * outlineScale
 	-- 06 §7.6 data:PreyMotion: the wobble block, else the sway as a yaw wiggle, else still.
 	local motion = Index.PreyMotion.byId[def.id]
 	local wobble = motion and motion.wobble
@@ -322,6 +328,56 @@ local function makeShell(look: Look): BasePart?
 	return s
 end
 
+-- 04 §3.6 B5 (and 07's placeholder prey): every trait prey carries a soft light and a small ring
+-- facing the camera in its trait's rarity colour (08 §3.6's marker colours), on while it is drawn.
+local function makeMark(look: Look, body: BasePart): { ring: BillboardGui, light: PointLight }?
+	local traitId = look.def.givesTrait
+	if traitId == nil then
+		return nil
+	end
+	local tr = Defaults.traits
+	local trait = Index.Traits.byId[traitId]
+	local colour = (if trait then (Theme.RARITY :: any)[trait.rarity] else nil)
+		or Theme.RARITY.Common
+	local place = PLACEHOLDER[look.def.id]
+	local length = math.max(look.size.X, look.size.Y, look.size.Z)
+	local ring = Instance.new("BillboardGui")
+	ring.Name = "TraitRing"
+	ring.Size = UDim2.fromScale(length * tr.preyRing, length * tr.preyRing)
+	ring.LightInfluence = 0
+	ring.Enabled = false
+	ring.MaxDistance = meshDistance
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.fromScale(1, 1)
+	circle.BackgroundTransparency = 1
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = circle
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = colour
+	stroke.Thickness = tr.preyRingStroke
+	stroke.Parent = circle
+	circle.Parent = ring
+	ring.Parent = body
+	local light = Instance.new("PointLight")
+	light.Name = "TraitLight"
+	light.Color = if place and place.light then Color3.fromHex(place.light) else colour
+	light.Range = tr.preyLightRange
+	light.Brightness = tr.preyLightBrightness
+	light.Shadows = false
+	light.Enabled = false
+	light.Parent = body
+	return { ring = ring, light = light }
+end
+
+local function setMark(item: Item, on: boolean)
+	local mark = item.mark
+	if mark and mark.light.Enabled ~= on then
+		mark.ring.Enabled = on
+		mark.light.Enabled = on
+	end
+end
+
 local function makeItem(look: Look): Item
 	local body: BasePart
 	if look.template then
@@ -334,7 +390,13 @@ local function makeItem(look: Look): Item
 	setVisualPart(body)
 	body.Transparency = 1
 	body.Parent = folder
-	return { body = body, shell = makeShell(look), outlined = false, fading = false }
+	return {
+		body = body,
+		shell = makeShell(look),
+		outlined = false,
+		fading = false,
+		mark = makeMark(look, body),
+	}
 end
 
 local function destroyItem(item: Item)
@@ -774,6 +836,7 @@ function PreyRenderer.render(dt: number)
 						item.fading = false
 						body.Transparency = 0
 					end
+					setMark(item, true)
 					local cf = CFrame.new(x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22)
 					push(body, cf)
 					local shell = item.shell
@@ -807,6 +870,7 @@ function PreyRenderer.render(dt: number)
 			local item = Pools.at(pool, n)
 			item.body.Transparency = 1
 			item.fading = false
+			setMark(item, false)
 			local shell = item.shell
 			if shell and item.outlined then
 				item.outlined = false
@@ -864,6 +928,44 @@ function PreyRenderer.nearest(kindFilter: { [number]: boolean }?): (number?, Vec
 	return id, Vector3.new(mirror.dx[i], mirror.dy[i], mirror.dz[i]), d
 end
 
+--- One live trait prey group for Glow's markers (02 §8.4): its trait, distance from the local
+--- creature's centre and drawn position. The records are reused frame to frame.
+export type TraitPreyNear = { traitId: string, distance: number, position: Vector3 }
+
+--- Fills `out` with the live trait prey groups within `radius` studs of the local creature's
+--- centre (any number; TraitRules.pickMarkers keeps the nearest six) and returns the count.
+--- Records past the count are stale. Called every frame only while the player holds Glow.
+function PreyRenderer.traitPreyNear(radius: number, out: { TraitPreyNear }): number
+	local viewer = viewerPosition()
+	if viewer == nil then
+		return 0
+	end
+	local r2 = radius * radius
+	local n = 0
+	for _, id in mirror.ids do
+		local i = id + 1
+		local kind = mirror.kind[i]
+		if kind > Formation.TRAIT_BASE and mirror.alive[i] ~= 0 then
+			local ax, ay, az =
+				mirror.dx[i] - viewer.X, mirror.dy[i] - viewer.Y, mirror.dz[i] - viewer.Z
+			local d2 = ax * ax + ay * ay + az * az
+			local def = if d2 <= r2 then Formation.defOf(kind) else nil
+			if def and def.givesTrait then
+				n += 1
+				local record = out[n]
+				if record == nil then
+					record = { traitId = def.givesTrait, distance = 0, position = Vector3.zero }
+					out[n] = record
+				end
+				record.traitId = def.givesTrait
+				record.distance = math.sqrt(d2)
+				record.position = Vector3.new(mirror.dx[i], mirror.dy[i], mirror.dz[i])
+			end
+		end
+	end
+	return n
+end
+
 --- 5.2: the graphics tier (QualityController calls it): the tier's numbers from tune.quality.*
 --- (15.1: 80, 150 or 250 meshes within 150, 250 or 350 studs).
 function PreyRenderer.setQuality(newTier: GraphicsTier)
@@ -873,6 +975,28 @@ function PreyRenderer.setQuality(newTier: GraphicsTier)
 		Pools.setCap(pool, budget, destroyItem)
 	end
 	setHostCap(farEmitters)
+end
+
+--- 04 §3.2 and §4: the food outline's width times `scale` (the FTUE's 30% thicker outline,
+--- FtueConfig.prompts.outlineThicken); 1 is the normal width. Resizes the shells already made.
+function PreyRenderer.setOutlineScale(scale: number)
+	if scale == outlineScale then
+		return
+	end
+	outlineScale = scale
+	for kind, look in looks do
+		local t = OutlineRules.thickness(look.size.Y, "edible", true) * scale
+		look.shellSize = look.size + Vector3.new(2 * t, 2 * t, 2 * t)
+		local pool = pools[kind]
+		if pool then
+			for n = 1, Pools.size(pool) do
+				local shell = Pools.at(pool, n).shell
+				if shell then
+					shell.Size = look.shellSize
+				end
+			end
+		end
+	end
 end
 
 --- Dev: makes `feed` the one packet source ("remote" by default; PreyHarness takes it while it

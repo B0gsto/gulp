@@ -67,9 +67,13 @@ Defaults.environments = table.freeze({
 	production = environment("production", true, false, true, false), -- GULP: public
 })
 
--- The development table with all purchases disabled: what an unknown GameId gets (a place file
--- opened in Studio has GameId 0, so Studio runs as development).
-Defaults.unknown = environment("development", false, true, false, true)
+-- The development table with all purchases disabled and no dev cheats: what an unknown GameId
+-- gets on a live server, so an experience missing from GAME_IDS (production before its row is
+-- added) never exposes server/Dev.
+Defaults.unknown = environment("development", false, true, false, false)
+-- The same in Studio, with dev cheats on: a place file opened in Studio has GameId 0, and server/Dev
+-- (the RunTests hook, `/ftue reset`) is what Studio runs on.
+Defaults.studio = environment("development", false, true, false, true)
 
 -- `game.GameId` of each experience → its environment. An experience that is not listed yet runs
 -- on `Defaults.unknown`. GULP CI is tools/cloud/target.json's universe.
@@ -81,14 +85,15 @@ local GAME_IDS: { [number]: EnvironmentName } = {
 }
 Defaults.GAME_IDS = table.freeze(GAME_IDS)
 
---- The environment table for `gameId` (pass `game.GameId`). An unknown ID selects the
---- development table with all purchases disabled.
-function Defaults.forGame(gameId: number): Environment
+--- The environment table for `gameId` (pass `game.GameId`, and `RunService:IsStudio()` as
+--- `studio`). An unknown ID selects the development table with all purchases disabled, with dev
+--- cheats only in Studio.
+function Defaults.forGame(gameId: number, studio: boolean?): Environment
 	local name = Defaults.GAME_IDS[gameId]
 	if name then
 		return Defaults.environments[name]
 	end
-	return Defaults.unknown
+	return if studio then Defaults.studio else Defaults.unknown
 end
 
 -- Section 17.4: the default of every live-config key, under its final name. A key that is not
@@ -222,6 +227,24 @@ Defaults.traits = table.freeze({
 	crystalBank = 1.5, -- canon 9, 02 §8.4, 05 §3.1: bank Pearls ×1.5
 	longfinDash = 0.30, -- canon 9, 02 §8.4: dash length +30%
 	spinyDefence = 1, -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
+	activateDelay = 0.5, -- 02 §8.2: s from the last pip to the effect becoming active
+	glowRadius = 60, -- canon 9, 02 §8.4: studs from the centre within which trait prey get a marker
+	glowMarkers = 6, -- 02 §8.4: at most this many markers, nearest first
+	glowLight = 20, -- 02 §8.4: the body light's radius, studs
+	-- 04 §3.6 B5 "the body lights up": Render/CreatureRig's placeholder Glow until
+	-- `T_Trait_Glow_Fish_Emi` is in (task S6-C2; 14 §5.1). A warm Neon tint over each body piece,
+	-- see-through enough to keep the eyes, and a body light that lights the floor below. All (tune).
+	glowLightColour = "FFD98A", -- the Glow signature `#FFE98A` (06 §8.2), a touch warmer
+	glowLightBrightness = 3.5,
+	glowTintColour = "FFC24A", -- Neon renders it lighter: a warm gold glow
+	glowTintTransparency = 0.4,
+	glowTintGrow = 1.04, -- the tint piece's size over its body piece
+	-- 04 §3.6 B5, 07 placeholder prey ("trait prey carry a ring"): Render/PreyRenderer's mark on
+	-- every trait prey (task S6-C2; 14 §5.1). All (tune).
+	preyRing = 2.2, -- the ring's width in prey lengths, facing the camera
+	preyRingStroke = 3, -- px: its line, in the trait's rarity colour
+	preyLightRange = 8, -- studs: the soft light each trait prey carries
+	preyLightBrightness = 1.2,
 })
 
 -- Logic/BankMath: 02 §0.7, §11.4; 05 §3.1. The mass bands and rates (canon 5.4 data:BankRates)
@@ -243,6 +266,24 @@ Defaults.cove = table.freeze({
 	biggerCoveSlots = 10, -- 05 §4.2: Bigger Cove adds 10 on top, at read time (09 §12.2)
 	gap = table.freeze({ -290, 290 }), -- 03 §6.2: Little Arch, "the Gap" (X, Z); 04 §5.5 measures from it
 	returningPool = 20, -- 04 §5.5, 09 §13.1: a returning player's cove is among the 20 nearest the Gap
+})
+
+-- Logic/NurseryRoute: the first-run route and its volumes (03 §6.2 data:NurseryPath; 04 §3.5).
+Defaults.nursery = table.freeze({
+	arcRadius = 140, -- 03 §6.2: inside the Nursery the route is one arc of radius 140
+	arcTurn = 45, -- 03 §6.2: turning 45° to the left (degrees), from facing east at the Hatch Bed
+	archWidth = 50, -- 03 §6.2: Little Arch's opening is 50 wide (the Gap and its kelp curtain)
+	channelWidth = 36, -- 04 §3.5: the channel (the Elbow) is 36 wide
+	curtainThickness = 2, -- 03 §6.2 (tune): the kelp curtain volume, across the arch's Nursery end
+	markerSize = 4, -- 03 §6.2 (tune): a point's Ball, and the trail's cross-section
+	-- The Nursery Lagoon (03 §6.2): an oval 220 long × 170 wide centred (−361, 361), depth 0 to 30.
+	-- NurseryRoute.lagoon lays it out as the `SafeNursery` Block that bounds the oval, its length
+	-- along the line from the centre to Little Arch (the only way out, at the oval's end).
+	lagoonX = -361, -- 03 §6.2: centre X
+	lagoonZ = 361, -- 03 §6.2: centre Z
+	lagoonLength = 220, -- 03 §6.2: length
+	lagoonWidth = 170, -- 03 §6.2: width
+	lagoonDepth = 30, -- 03 §6.2: depth 0 to 30
 })
 
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.

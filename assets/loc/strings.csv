@@ -357,6 +357,8 @@ guide.cove,Creatures in the cove earn Pearls over time,,Your cove earns Pearls
 guide.claim,Touch; collect the Pearls,,Tap to claim
 guide.pick,Points at the Creatures button,,Pick a new creature
 guide.out,Leave the cove to start a new run,,Swim out for more
+guide.home_tag,Under the home marker in the first run; one short word,,HOME
+guide.dash_now,On the dash button during the scripted chase; one short shout,,DASH!
 settings.title,Panel title,,Settings
 settings.controls,[L] Header for the control choices,,Controls
 settings.scheme_drag,[L] One thumb steers,,Drag to swim

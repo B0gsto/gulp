@@ -10,6 +10,7 @@
 -- No default controls exist: the stub `PlayerModule` stops them loading (09 §6.10).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
@@ -72,6 +73,7 @@ local arrowLeft, arrowRight, arrowUp, arrowDown, altHeld = false, false, false, 
 -- Swim up, swim down (02 §2.3): either Shift, each tracked so releasing one keeps the other.
 local spaceHeld, leftShift, rightShift = false, false, false
 local lookYaw, lookPitch = 0, 0 -- locked mouse look
+local pilot: ((SwimInput) -> ())? = nil -- setPilot (Studio only)
 local mouseDX, mouseDY = 0, 0
 -- Free cursor: no steering while the window is unfocused or the cursor is over GUI that sinks
 -- input (02 §2.3). `overGui` is the gameProcessed flag of the last mouse movement; a release or
@@ -305,7 +307,18 @@ function InputController.read(): SwimInput
 	end
 	input.dash = dashPressed or dashHeld
 	dashPressed = false
+	if pilot then
+		pilot(input)
+	end
 	return input
+end
+
+--- Studio only: `fn` rewrites each frame's SwimInput (the tutorial play check's autopilot,
+--- TutorialDirector); nil gives the controls back. Ignored outside Studio.
+function InputController.setPilot(fn: ((SwimInput) -> ())?)
+	if RunService:IsStudio() then
+		pilot = fn
+	end
 end
 
 --- The current input mode (15 §5.1).

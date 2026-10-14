@@ -134,7 +134,13 @@ function SaveSchema.template(): ProfileData
 		offers = {},
 		social = { bubbleDay = 0, bubbledUserIds = {} },
 		board = { week = 0, weekBest = 0 },
-		ftue = { stage = 0, completed = false, version = S.ftueVersion, attempts = 0 },
+		ftue = {
+			stage = 0,
+			completed = false,
+			version = S.ftueVersion,
+			attempts = 0,
+			logged = 0, -- 10 §4.2 once-per-account events sent (AnalyticsRules.ONCE bits)
+		},
 		ab = {},
 		settings = {
 			sfx = S.sfx,

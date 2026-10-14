@@ -94,6 +94,8 @@ One screen, no text other than the logo.
 | Sound | `MUS_Nursery` base layer fades in over 1 s. `SFX_Bite_Small` on each dot. |
 | Exit | When phases C and D are done the screen splits into bubbles (0.4 s) to reveal the egg. The size the 2D Fry reached is discarded. |
 
+The toy's feel **(tune)**: the Fry is 76 rpx long and closes 6/s of the gap to the thumb (at most 900 rpx/s); dots are 14 rpx, drift left at 150 rpx/s with a 16 rpx wave, about one every 0.5 s, at most 12 on screen. Until the art exists every element is drawn in code from flat shapes in the colours of chapter 06. Chapter 08, section 8.1 describes this screen differently (a bar, tips, a slow message at 10 s); chapter 14, section 4, entry 30 records the disagreement. The code follows this section.
+
 ### 2.3 What streams first
 
 | Set | Contents | Needed for | Budget (tune) |
@@ -121,7 +123,7 @@ Times are J (seconds since `PlayerAdded`).
 
 ### 3.1 Stages
 
-The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location).
+The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location: `shared/Config`, section 3). The saved stage is a number: `S0_LOADING` is 0, each stage after it the number in its name, and `DONE` is 11.
 
 | Stage | Enters when | Leaves when |
 |---|---|---|
@@ -146,15 +148,15 @@ Seven prompt types cover the whole FTUE. Each has a glyph set per input type. Ga
 
 | Prompt | Asset | What it looks like | Phone | PC | Gamepad [L] |
 |---|---|---|---|---|---|
-| Ghost thumb | `UI_Ftue_GhostThumb` | A see-through thumbprint presses at lower centre and drags toward the target, looping every 1.6 s | Thumbprint | Mouse glyph plus a W key cap, with the arrow-key glyph `UI_Hint_KeyArrows` beside W: the arrow keys steer, for laptops with a trackpad and no mouse (chapter 15, section 3.3) | Left-stick glyph |
+| Ghost thumb | `UI_Guide_GhostThumb` | A white thumbprint presses at lower centre and drags toward the target, looping every 1.6 s | Thumbprint | Mouse glyph plus a W key cap, with the arrow-key glyph `UI_Hint_KeyArrows` beside W: the arrow keys steer, for laptops with a trackpad and no mouse (chapter 15, section 3.3) | Left-stick glyph |
 | Food outline | Canon green outline | Always on (canon 5.2). During the FTUE it is 30% thicker **(tune)**. | Same | Same | Same |
 | Food trail | Plankton motes | Edible motes every 4 studs. Following the trail is eating. | Same | Same | Same |
 | Pips | `UI_Hud_TraitPips` | Five empty dots around trait slot 1; each fills with a pop | Same | Same | Same |
-| Home marker | `UI_Hud_HomeMarker` | A cave icon pinned to the screen edge in the direction of the cove, with a pulsing ring | Same | Same | Same |
+| Home marker | `UI_HUD_HomeMarker` | A cave icon pinned to the screen edge in the direction of the cove, with a pulsing ring | Same | Same | Same |
 | Bubble trail | `FX_HomeTrail` | A line of pearl-white bubbles, one every 6 studs, drifting along the route | Same | Same | Same |
-| Dash pulse | `UI_Hud_DashButton` | The dash button swells to 1.3× and back twice a second with a white ring | Button under right thumb | Q key cap | A button glyph |
+| Dash pulse | `UI_HUD_DashButton` | The dash button swells to 1.3× and back twice a second with a white ring | Button under right thumb | Q key cap | A button glyph |
 
-Danger uses the canon red outline plus a red screen-edge glow (`UI_Hud_DangerEdge`) on the side the predator is on.
+Danger uses the canon red outline plus a red screen-edge glow (`UI_HUD_DangerEdge`) on the side the predator is on, which leaves the home marker uncovered (08 §7).
 
 ### 3.3 Every word shown in the first 180 seconds
 
@@ -222,7 +224,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 |---|---|
 | On screen | Close on a pale egg on sea grass. It wobbles twice, cracks, and the Fry pops out with a stretch. Swarm A is already visible ahead. |
 | Player does | Nothing needed. Any touch after 0.4 s ends the hatch and gives control at once. |
-| Game does | Plays `A_Minnow_Hatch`. Gives control at 1.5 s. |
+| Game does | Plays `A_Fish_Hatch`. Gives control at 1.5 s. |
 | Prompt | None |
 | Sound | `SFX_Hatch` (a soft pop and a squeak). `MUS_Nursery` base layer continues from the loading screen. |
 | Camera | Starts 8 studs from the egg, low. Pulls back to the tier 1 follow distance (14 studs **(tune)**; chapter 02, section 3.1 owns the camera table) over 1.5 s and settles behind the Fry facing Swarm A. |
@@ -237,7 +239,7 @@ All scripted prey belongs to one player: only that player's client draws it and 
 | Game does | Bite on contact: the krill is sucked in, the Fry does a 0.15 s gulp pulse (scale 1.12× and back), three bubbles rise. The mass bar appears on the first bite, already 10% full. |
 | Prompt | Ghost thumb from T = 0 if there has been no input; it hides on the first drag of 0.2 s or more. |
 | Sound | `SFX_Bite_Small`. Each bite within 1.5 s of the last plays one semitone higher, up to +7. |
-| Camera | Follow camera. No moves. |
+| Camera | Follow camera, still framed on Swarm A as B1 left it (14 §5.1). No moves; the framing eases out after the first bite. |
 | Fail-safe | T = 2.5 with no bite: Swarm A drifts toward the Fry at 6 studs/s, so a krill reaches the mouth by T = 5 with no input at all (`ftue_bite_assist`). Three taps without a drag: the ghost thumb replays with a longer drag. Swimming away: the swarm follows at 6 studs/s up to 60 studs from the hatch point. |
 
 #### B3 · Feed (T 5 to 20)
@@ -368,6 +370,16 @@ See section 6.
 | App goes to the background | Same as the 20 s hold, at once |
 | Disconnect before the first bank | Section 9 |
 
+How the timers are read (set by task S6-C2 where this chapter was silent; chapter 14, section 5.1):
+
+- The 8 s and 20 s rules, and the hold on going to the background, apply in `S2` to `S5`, `S7`, `S9` and `S10`. Not in `S1` (the hatch ends by itself), `S6` (section 5.4) or `S8` (control is suspended).
+- "Beat timers" are every fail-safe timer, including those set on T (T = 30, 40, 50, 70). They run on a beat clock that stops during a hold; T itself, and every analytics value, keeps running.
+- B6's 8, 20 and 40 s count from the moment the curtain opens and restart whenever the player moves toward the Gap. The curtain opens 2.5 s after `S5` starts also when `S5` started at T = 70 without the trait.
+- B12's 20 and 40 s count from the tide clock (6.1, 10.3 s after the bank).
+- Turning back into the Nursery during the chase returns the stage to `S5`; the next crossing re-enters `S6`.
+- A run resumed in `S6` cannot replay the crossing, so the chase counts as `skipped` and the script carries on in `S7`.
+- The fast form's halved idle timers are this section's 4, 8 and 20 s, and B6's 8, 20 and 40 s.
+
 ### 3.8 When each HUD element first appears
 
 | Element | First appears | Tag |
@@ -385,6 +397,8 @@ See section 6.
 | Shop button (Robux) | Second bank, or 6 minutes of account play time, whichever is first **(tune)**; never before T = 120 | [MVP] |
 | Ability button | First run as a species with an active ability (not Minnow: Dart is passive) | [MVP] |
 | Server leaderboard chip (the canon's "biggest on this server" strip) | First time at tier 3 in run 2 or later | [MVP] |
+
+Section 1.4's spacing holds over this table: elements whose times fall together (the dash button and trait slot 1, both 1.0 s after the first tier-up) show in that order, at least 4 s apart, so the trait slot comes at about 5 s, as the Glowfry reach the player. Elements a rejoin puts back show at once (chapter 14, section 4, row 40).
 
 There is no chat button: Roblox text chat is switched off in the MVP (canon section 14).
 

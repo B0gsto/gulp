@@ -1,5 +1,5 @@
 --!strict
--- HudMath: the numbers the run HUD stage 1 shows (docs/08, sections 3.4, 3.12 and 3.16). Pure,
+-- HudMath: the numbers the run HUD shows (docs/08, sections 3.4, 3.12, 3.16 and 4.2). Pure,
 -- so it runs in Lune. Text is never built here: callers pass the parts to `Loc.t`.
 local Index = require("../Data/Index")
 local TierMath = require("./TierMath")
@@ -20,6 +20,10 @@ HudMath.POPS_MAX = 4
 HudMath.POP_MERGE = 1 / 6
 HudMath.POP_LIFE = 0.5
 HudMath.POP_RISE = 48
+-- 08 §3.16 does not say how live pops share the mouth: each older pop keeps at least this many
+-- rpx above the next newer one (the Number 28 line and 2 to spare), so they stack and never
+-- overlap (task S6-C2; 14 §5.1) (tune).
+HudMath.POP_GAP = 30
 
 export type ShortKind = "plain" | "thousand" | "million"
 
@@ -84,6 +88,32 @@ function HudMath.homeDistance(studs: number): number
 	return math.max(0, math.floor(studs / HudMath.HOME_ROUND + 0.5) * HudMath.HOME_ROUND)
 end
 
+-- 08 §4.2: the tier-up card shows up to three prey that just became edible.
+HudMath.NEW_FOOD_MAX = 3
+
+--- The prey that became edible on a rise from `from` to `to` (08 §4.2; canon 5.2: a prey of
+--- tier n is edible from tier n): MVP prey first, then trait prey, in table order, event-only
+--- prey left out, at most three IDs.
+function HudMath.newFood(from: number, to: number): { string }
+	local out: { string } = {}
+	for _, list in { Index.Prey.list, Index.TraitPrey.list } do
+		for _, def in list do
+			if #out >= HudMath.NEW_FOOD_MAX then
+				return out
+			end
+			if
+				def.tier > from
+				and def.tier <= to
+				and def.scope == "MVP"
+				and def.eventOnly == nil
+			then
+				table.insert(out, def.id)
+			end
+		end
+	end
+	return out
+end
+
 export type Pop = { amount: number, born: number, lastHit: number }
 
 --- Adds a bite of `amount` to the live pops at clock `now` (08 §3.16). A bite within the merge
@@ -116,6 +146,16 @@ function HudMath.popPose(age: number): (number, number)
 	local rise = HudMath.POP_RISE * (1 - (1 - t) * (1 - t)) -- quad out
 	local fade = if t < 0.4 then 0 else (t - 0.4) / 0.6
 	return rise, fade
+end
+
+--- Stacks live pops (08 §3.16): `ys` are their screen Ys (rpx, down is +), oldest first. Each is
+--- raised to at least `POP_GAP` above the next newer one; the newest stays where it is.
+function HudMath.popStack(ys: { number }): { number }
+	local out = table.clone(ys)
+	for i = #out - 1, 1, -1 do
+		out[i] = math.min(out[i], out[i + 1] - HudMath.POP_GAP)
+	end
+	return out
 end
 
 return table.freeze(HudMath)

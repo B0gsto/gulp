@@ -164,7 +164,8 @@ gulp/
 │   │   └── Loading.client.luau     custom loading screen, removes the default one
 │   ├── shared/                 → ReplicatedStorage.Shared
 │   │   ├── Types.luau              every exported type used across modules
-│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
+│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau,
+│   │   │                           FtueConfig.luau (every tunable of chapter 04, section 3.1)
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
 │   │   │   │                       Zones, Tides, PreySpawns, TraitPreySpawns, PreyMotion, Products,
@@ -173,7 +174,7 @@ gulp/
 │   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
 │   │   ├── Logic/                  pure rules: BiteRules, TierMath, TraitRules, BankMath,
-│   │   │                           CoveIncome, TideClock, GoalRules, Migrations
+│   │   │                           CoveIncome, TideClock, GoalRules, Migrations, FtueRules
 │   │   ├── Sim/                    pure simulation: SwimModel, PreySim, Formation, SpatialGrid,
 │   │   │                           Quantize, PredatorSim
 │   │   ├── Net/
@@ -186,7 +187,8 @@ gulp/
 │   │   ├── Services/               one file per service in section 5
 │   │   ├── Net/                    Server.luau (creates remotes, validation wrapper), RateLimiter
 │   │   ├── World/                  CollisionGroups, VolumeReader, HeightField (used by Services/WorldIndex)
-│   │   ├── Dev/                    BotPlayers, Cheats (dev places only)
+│   │   ├── Dev/                    BotPlayers, Cheats (dev places only; developer commands such as
+│   │   │                           `/ftue reset`, run from the server's command line, section 5.1)
 │   │   ├── Tests/                  engine-side specs and RunAll.luau
 │   │   └── Vendor/ProfileStore.luau
 │   └── client/                 → StarterPlayer.StarterPlayerScripts.Client
@@ -343,6 +345,13 @@ export type CodexCategoryDef = { id: string, wire: number, scope: Scope,   -- cd
 export type RevivePointDef = { id: string, wire: number, zone: string,     -- rp_01 to rp_12 (chapter 03, section 6.11)
 	x: number, z: number, depth: number }                                  -- world position (x, −depth, z)
 
+export type NurseryPointDef = { id: string, wire: number,                 -- hatch_bed ... home_current_mouth (chapter 03, section 6.2)
+	at: number, to: number,                  -- distance along the first-run route; to = at for a point
+	x: number, z: number, toX: number, toZ: number,   -- the place; a stretch's start and end
+	top: number, bottom: number, toBottom: number,    -- depth band (toBottom: at a stretch's end)
+	floor: boolean,                          -- bottom is the sea floor; the band runs up to the surface
+	markX: number?, markZ: number? }         -- the landmark a point serves (the Glow Grotto's mouth)
+
 export type PatternDef = { id: string, wire: number, scope: Scope, species: string,   -- pat_<species>_<name>, 18 at launch
 	source: "robux" | "codex" | "starter_pack" }                           -- chapter 03, section 1.3
 
@@ -449,7 +458,7 @@ No framework. Each side has one script that loads a fixed list in order.
 local ORDER = { "LiveConfig", "Analytics", "DataService", "WorldIndex", "TideService", "EconomyService",
 	"CreatureService", "MovementValidator", "TraitService", "PreyService", "PredatorService",
 	"BiteService", "RunLoopService", "CoveService", "ShopService", "GoalsService",
-	"CodexService", "LeaderboardService", "EmoteService", "PlayerLifecycle" }   -- EmoteService is [L]
+	"CodexService", "LeaderboardService", "EmoteService", "TutorialService", "PlayerLifecycle" }   -- EmoteService is [L]
 
 local loaded: { Service } = {}
 for _, name in ORDER do
@@ -516,15 +525,15 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 
 | Service | Scope | Responsibility | Owns | Public API |
 |---|---|---|---|---|
-| **PlayerLifecycle** | MVP | Join and leave sequence: slot, profile, policy, cove, creature, first state push; leave and shutdown settlement | `slotOf[Player]`, `playerAt[Slot]` | `getSlot(player): Slot?`, `getPlayer(slot): Player?`, `onReady: Signal<Player, Slot>`, `onLeaving: Signal<Player, Slot>`, `policy(player): Policy` (the PolicyService answer stored at join, section 18.2; the most restrictive values until it arrives or when the call failed) |
+| **PlayerLifecycle** | MVP | Join and leave sequence: slot, profile, policy, cove, creature, first state push; leave and shutdown settlement | `slotOf[Player]`, `playerAt[Slot]` | `getSlot(player): Slot?`, `getPlayer(slot): Player?`, `onReady: Signal<Player, Slot>`, `onLeaving: Signal<Player, Slot>`, `policy(player): Policy` (the PolicyService answer stored at join, section 18.2; the most restrictive values until it arrives or when the call failed), `controlGranted(player)` (sends `sys_load_time`, J from `PlayerAdded`, once a session, chapter 10, section 4.2; called at the spawn for an account with `ftue.completed`, and by the tutorial when the hatch ends otherwise; in the account's first session it also starts T for `fs_time_mark`, chapter 10, section 3.3), `loadMode(player): (number?, number?)` (`ClientReady`'s load mode and J when it came) |
 | **DataService** | MVP | Load, migrate, session-lock, autosave and release profiles; push state patches to the owner | The ProfileStore session, `Profile.Data` | `get(player): ProfileData?`, `patch(player, path: string, value: any)`, `saveNow(player): boolean`, `onLoaded: Signal<Player>` |
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber, ctx?)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
-| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
+| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `nurseryPathAt(x,y,z): string?` (the `NurseryPath` `PointId`, section 9.1), `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
 | **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `isProtected(slot): boolean` (any protection window open: revive, reconnect, newcomer shield), `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
-| **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
-| **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setTide(tideId?)` (respawn delays ÷ the tide's `spawnRateMult`; targets and caps ×2 only for `frenzy`, chapter 02, section 14.4), `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)` |
+| **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState`; the `Traits` attribute; `run.traits` and `run.progress` in `State` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot, source?)` (`prey` by default), `defenceTierBonus(slot)`, `traits(slot)` (the held list, for the bank), `pipsNeeded(slot): number` (5, or 4 with Keen Nose; the tutorial's Glowfry count), `reset(slot)` (a bank's new start and a respawn), `onGained: Signal<Slot, string, number>` |
+| **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setTide(tideId?)` (respawn delays ÷ the tide's `spawnRateMult`; targets and caps ×2 only for `frenzy`, chapter 02, section 14.4), `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)`, `spawnScripted(slot, spec): number?`, `steerScripted(slot, scriptedId, target?, speed?): boolean`, `scriptedAlive(slot, scriptedId): (number, Vector3?)` (members alive and the leash centre) and `clearScripted(slot)` (one player's scripted prey, section 8.1), event `onScriptedEaten: Signal<Slot, number, string>` (slot, scripted ID, prey ID), event `onWildEaten: Signal<Slot, string>` (slot, prey ID: a wild member eaten, deferred) |
 | **PredatorService** | MVP | Predator state machines, telegraphs, strikes; hazard volume checks; wild creatures [L] (section 9.3) | Predator buffers (32 slots) | `list(): {PredatorView}`, `gather(x,y,z)` (Whale Fall), `tryEat(slot, predatorId, t): boolean`, `onGulp: Signal<Slot, string>` |
 | **BiteService** | MVP | Validates bite claims on prey, players and edible predators; applies results | Bite sequence and rate state | Remote handler only, plus `onPlayerEaten: Signal<Slot, Slot>` |
 | **RunLoopService** | MVP | Run lifecycle: start, bank, gulp, revive, suspend, resume, settle (sections 12.5 and 13.4) | `RunState` per slot | `join(player, slot)` (places a joining player's creature: the Join row of 6.3), `startRun(player)` (named so it does not clash with every service's `start()` lifecycle function, 4.3), `bank(player)`, `gulp(slot, by: string)`, `offerRevive(player)`, `suspendOnLeave(player)`, `resume(player): boolean`, `settleExpired(player)`, `state(slot): RunPhase` |
@@ -534,6 +543,7 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **GoalsService** | MVP | Three daily goals (one Easy, one Medium, one Hard; on an account's first day the fixed set `dg_eat_50`, `dg_tier3`, `dg_bank_snapper`), progress, claim, reroll; login streak [L] (seven boxes; a missed day never resets it) | Goal and streak state in profile | `progress(player, kind, amount)`, `claim(player, index)`, `reroll(player, index, how)`, `openStreakBox(player)` |
 | **CodexService** | MVP | Records discoveries: Species, Tiers, Traits, Prey [MVP]; Dangers, Places, Tides [L]. Reef Rank [L] from rank points (section 13.4) | Codex and rank in profile | `discover(player, kind, id, tier?)`, `addRankPoints(player, amount)` |
 | **LeaderboardService** | MVP: server board. L: global boards | Biggest creature on this server; weekly biggest banked; most Bubbles | Cached top lists | `serverTop(): {Entry}`, `submitBank(player, mass)`, `globalTop(board): {Entry}` |
+| **TutorialService** | MVP | The server half of the first-time script (chapter 04, section 3; module B31): owns and saves `ftue.stage`, `ftue.completed` and `ftue.attempts` (04 §3.1, §9); feeds the pure `Logic/FtueRules` from the game (`TutorialStep`, `onScriptedEaten` and `onWildEaten` (bites only, never a bare mass rise), mass, `onTierChanged`, `onGained` for the first trait only, the `NurseryPath` place) and runs its actions: the player's scripted prey through `PreyService.spawnScripted` and `steerScripted` at `Config/FtueConfig`'s route distances (`Logic/FtuePlan`), the fail-safes, the idle rule and the restart forms; sends the presentation to the owner as `State` `ftue.cue` (section 5.3). Starts a session at `PlayerLifecycle.onReady` for an account with `ftue.completed = false` and no bank, and for a finished account whose saved stage is `S9_COVE` or `S10_RUN2`, which keeps that stage (04 §4: the run 2 assists read it) and replays nothing; any other finished account gets no session and no stage save. Calls `PlayerLifecycle.controlGranted` at the end of the hatch (T = 0). Until the chase exists (task S7-C1) `S6_CHASE` passes straight into `S7_CURRENT` as a skipped chase. Its `onStep(player, step, ctx)` and `onFailsafe(player, kind, value)` hooks carry the onboarding steps and `ftue_failsafe` to `Analytics` (task S6-C6), with `ftue_milestone`, `ftue_bite_assist` and `ftue_chase_result`; the once-per-account ones are kept in `ftue.logged` (section 12.2), and `load_partial` and `load_minimal` come from `PlayerLifecycle.loadMode` at the session's start. Developer reset (04 §9): `Dev/Cheats` runs `/ftue reset` from `DevCommand:Invoke(userId, "/ftue reset")` on `ServerScriptService.Server`, which `Main` creates only where dev cheats are on, and `reset` refuses itself where they are off (Studio's command bar in server mode, the Developer Console's server tab, or MCP `execute_luau` on the server; text chat is off) | One session per player in the script (FtueRules state, its scripted groups) | `stage(player): number?`, `reset(player): (boolean, string?)` (dev only, reason `devCheats` or `noCreature` when refused: clears `ftue`, a new Fry on the Hatch Bed, the script from the hatch, first cue `reset`), `onStep`, `onFailsafe` |
 | **EmoteService** | L | Quick emotes (chapter 02, section 17.1): checks the ID, the cooldown (one per 3 s; more than 8 in 30 s locks emotes for 20 s) and the creature's state, then relays to players within 120 studs. No text is ever sent | Cooldown state per slot | Remote handler only |
 
 ### 5.2 Client controllers
@@ -551,15 +561,15 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **TideController** | MVP | Countdown and phase visuals from the shared `TideClock`; lighting presets | none | `state(): TideState` |
 | **AudioController** | MVP | Music states, pooled one-shots, underwater filter; no default sounds | Sound pool | `play(id, at?)`, `setMusicState(state)` |
 | **UIController** | MVP | Hud and screens built in code from `UI/Kit`; all core GUI off | `PlayerGui` tree | `open(screen)`, `close(screen)`, `toast(key, args)` |
-| **TutorialDirector** | MVP | First-session script: spawn prey trail, prompts, first bank | Local step pointer (server holds the saved step) | `step(): number` |
+| **TutorialDirector** | MVP | First-session script's presentation: the hatch, prompts, HUD first appearances, music layers, the first bank, from `TutorialService`'s `State` `ftue.cue`; reports loading done, taps, steering and going to the background through `TutorialStep` (section 5.3) | Local step pointer (server holds the saved step) | `step(): number` |
 
 ### 5.3 Remotes
 
-Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. The payload column says how each one is encoded. **Buffers** (one `buffer` argument, laid out in 8.7 and 8.9): `Bite`, `Ability`, `Telemetry`, `BiteResult`, `PreyEvent`, `PredatorEvent`, `PreyState` and `PredatorState`. **Every other remote carries plain Luau arguments** (numbers, booleans, short strings, or one table where the row says so): `State`, `WorldInfo`, the low-rate `*Action` remotes, `SettingsSet`, `TutorialStep`, `CreatureEvent`, `TideEvent` and `CoveView`. Plain arguments are type-checked and range-checked on arrival like everything else (14.2).
+Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedStorage.Net`. The payload column says how each one is encoded. **Buffers** (one `buffer` argument, laid out in 8.7 and 8.9): `Bite`, `Ability`, `Telemetry`, `BiteResult`, `PreyEvent`, `PredatorEvent`, `PreyState` and `PredatorState`. **Every other remote carries plain Luau arguments** (numbers, booleans, short strings, or one table where the row says so): `State`, `WorldInfo`, the low-rate `*Action` remotes, `ClientReady`, `SettingsSet`, `TutorialStep`, `CreatureEvent`, `TideEvent` and `CoveView`. Plain arguments are type-checked and range-checked on arrival like everything else (14.2).
 
 | Remote | Kind | Direction | Payload | Rate limit per player (bucket size) |
 |---|---|---|---|---|
-| `ClientReady` | Reliable | C→S | none | 1 per session |
+| `ClientReady` | Reliable | C→S | Plain argument: one integer, the load mode of the loading screen (`Logic/LoadTime.MODE`): 1 `full`, 2 `partial`, 3 `minimal` (chapter 04, section 2.4; `PlayerLifecycle.loadMode`, for `ftue_failsafe` `load_partial` and `load_minimal`, chapter 10, section 4.2) | 1 per session |
 | `Bite` | Reliable | C→S | 8 to 40 bytes (8.9) | 12/s (20) |
 | `Ability` | Reliable | C→S | 6 bytes: `op` u8 (1 dash, 2 ability press, 3 ability release for held abilities such as Shell), `seq` u8, `timeMs` u32 (the client's estimate of server time when pressed). The client starts its dash at once and reports it with op 1; the server's dash window (7.1) opens only from that message | 4/s (6) |
 | `RunAction` | Reliable | C→S | op + up to 2 numbers. Op 1 **Swim again**, no numbers: accepted only while `Phase = dead` and the gulp card is up (chapter 02, section 12.1); the server pays scraps and respawns (6.3). There is no timeout: the card waits for the tap, and leaving settles the run. Other ops are added with the features that need them, each listed here | 5/s (8) |
@@ -567,14 +577,14 @@ Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedS
 | `ShopAction` | Reliable | C→S | op + sku string ≤ 32 chars | 3/s (5) |
 | `GoalAction` | Reliable | C→S | op + index | 2/s (4) |
 | `SettingsSet` | Reliable | C→S | Plain arguments, not a buffer: key (string from the fixed settings list, ≤ 32 chars) + value (number or boolean) | 2/s (4) |
-| `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: step number (integer) | 2/s (4) |
+| `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: one integer (`Logic/FtuePlan.Code`). 2: onboarding step 02, the first frame of the loading screen (chapter 10, section 3.1; `Client/Main` sends it once `first/Loading` sets its `LoadShown` attribute, as the screen runs before the remotes exist); 101: the loading screen exits (`LoadDone`, the end of `S0_LOADING`); 102: a tap that is not a drag; 103: a steering input (a drag of 0.2 s or more, a movement key, a stick), sent again at most once a second while it lasts; 104: the app went to the background. Values held before the session exists are kept for it; any other integer from 2 to 104 is ignored. The client keeps to the rate limit | 2/s (4) |
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
-| `State` | Reliable | S→C | path string, value. A path is dot-separated keys, a segment of digits indexing an array (`cove.slots`, `goals.list.2.progress`); at most 128 characters and 8 segments. The first segment is a top-level key of the profile (12.2: `pearls`, `cove`, `goals`, `tokens` …) or `config`, the root of the live config keys forwarded to clients (17.4: `config.flag.tideEvents`). Profile keys sit at the top level next to `config`; there are no other roots, and no profile key may be named `config` | n/a |
+| `State` | Reliable | S→C | path string, value. A path is dot-separated keys, a segment of digits indexing an array (`cove.slots`, `goals.list.2.progress`); at most 128 characters and 8 segments. The first segment is a top-level key of the profile (12.2: `pearls`, `cove`, `goals`, `tokens` …) or `config`, the root of the live config keys forwarded to clients (17.4: `config.flag.tideEvents`). Profile keys sit at the top level next to `config`; there are no other roots, and no profile key may be named `config`. During a run `TraitService` sends `run.traits` (the held list) and `run.progress` (trait ID → pips) itself, at the paths of the profile's `RunSnapshot` (12.2), without writing the profile. `TutorialService` sends `ftue.cue`, never saved: `{ seq, actions }`, one per batch of the first-time script's presentation actions in order (the kinds and fields of `Logic/FtueRules`' header: `reset` (first in the batch after a developer `/ftue reset`: the client drops whatever it is presenting), `hatch`, `giveControl`, `hold`, `prompt`, `hud`, `pulse`, `music`, `openFog`, `openCurtain`, `predatorShadow`, `startChase`, `autoDash`, `startCurrent`, `reformCurrent`, `pull`, `bankSequence`, `coveItem`, `exitTrail`, `feedNearest`), `seq` rising by one per batch for as long as the player is on the server, across tutorial sessions (a reset does not start it again), so the client plays a batch only when its `seq` is above the last one played; `ftue.stage` arrives through `DataService.patch` | n/a |
 | `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady`; the decoder rejects more than 1,024 volumes, more than 16 attributes on a volume or a string over 256 characters **(tune)** | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
 | `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
-| `CreatureEvent` | Reliable | S→C | Plain arguments to every client, the kind first: `"gulped", slot, by` (`by`: `player:<slot>` or a predator ID); `"tier", slot, tier, previousTier`; `"banked", slot, mass, pearls, crystal, deepPockets, best, specimen` (the bank of 13.4: `mass` the banked mass, `pearls` what the bank paid, `crystal` and `deepPockets` whether those multipliers applied, `best` true for a new best mass, `specimen` `added`, `full` (kept as `cove.pendingSpecimen`) or `none` (tier 1, or refused); the owner's client opens the bank summary from it, chapter 08); revived, status, bite absorbed and emote [L] are added with their features, each listed here | n/a |
+| `CreatureEvent` | Reliable | S→C | Plain arguments to every client, the kind first: `"gulped", slot, by` (`by`: `player:<slot>` or a predator ID); `"tier", slot, tier, previousTier`; `"banked", slot, mass, pearls, crystal, deepPockets, best, specimen` (the bank of 13.4: `mass` the banked mass, `pearls` what the bank paid, `crystal` and `deepPockets` whether those multipliers applied, `best` true for a new best mass, `specimen` `added`, `full` (kept as `cove.pendingSpecimen`) or `none` (tier 1, or refused); the owner's client opens the bank summary from it, chapter 08); `"traitGained", slot, traitId, index` (02 §8.2: `index` is the slot it took, 1 to 3; the owner's client plays the slot's Just gained flash and S08 from it, every client grows the body feature in); `"traitShed", slot, traitId, index` (02 §8.3: the slot it left; the feature pops off as bubbles); revived, status, bite absorbed and emote [L] are added with their features, each listed here | n/a |
 | `PredatorEvent` | Reliable | S→C | 14 bytes | n/a |
 | `TideEvent` | Reliable | S→C | override start and end only | n/a |
 | `CoveView` | Reliable | S→C | specimen list of one cove | n/a |
@@ -671,7 +681,7 @@ Streaming properties cannot be set from scripts (**V4**), and the spike found th
 - **Creature models are Atomic** (one part each) and stream by distance. A player more than `StreamingTargetRadius` away has no model on this client; the leaderboard and cove signs use `Player` attributes instead.
 - Everything the client creates itself (rigs, prey, effects) is exempt from streaming out (**V4**).
 - `ReplicationFocus` is the root while alive and the cove anchor part while dead.
-- **The client waits for `workspace.PersistentLoaded`** before it touches any Persistent model (the collision shell). Persistent models are absent when `StarterPlayerScripts` start, even when `game:IsLoaded()` is true; the event fired 3 to 341 ms later in the spike (F4). `first/Loading` keeps the loading screen up until it has fired.
+- **The client waits for `workspace.PersistentLoaded`** before it touches any Persistent model (the collision shell). Persistent models are absent when `StarterPlayerScripts` start, even when `game:IsLoaded()` is true; the event fired 3 to 341 ms later in the spike (F4). `first/Loading` keeps the loading screen up until it has fired. It runs first, so it is the script that listens; it requires nothing from `ReplicatedStorage`, which has not arrived when it starts. When the minimum set of chapter 04, section 2.3 is in, or the slow-load rule of 04 §2.4 starts anyway, it sets the attribute `LoadMode` (`full`, `partial` or `minimal`) on itself, and `Client/Main` sends `ClientReady` on it, carrying the mode (section 5.3). When the creature has arrived too it sets `LoadDone` and plays its 0.4 s exit; the tutorial starts the hatch from `LoadDone` and skips the hatch animation when `LoadMode` is `minimal`.
 - **`PauseOutsideLoadedArea` is harmless with our root.** It freezes a non-Humanoid root without anchoring it; in the spike it fired once, 0.7 s after joining, for 56 to 69 ms (F7). Nothing reacts to it except this: while `Player.GameplayPaused` is true, client code and `MovementValidator` ignore the root's velocity (the validator's grace in 7.4 already covers the pose).
 
 ### 6.7 Smoothing other players
@@ -862,9 +872,11 @@ Population. Chapter 02 owns the live targets (section 9.6, data:PreyTargets) and
 
 Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate (normal prey respawn delays are divided by the tide's `spawnRateMult`, 3, and the spawner makes three spawns per row per pass instead of one) and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. Only the `frenzy` tide doubles targets and caps; a spawn rate above 1 on its own does not (chapter 02, section 14.4). That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. The Frenzy spawns no event prey, and tides never overlap (canon section 10), so the worst case the soak checks adds Moon Tide's `lunar_fry` at once (12 animals in 3 groups of 4, chapter 03, section 3.1) to the Frenzy count: 548 groups and about 2,720 members, still inside `MAX_GROUPS`. This is a conservative bound, not a state the game can reach: a Frenzy and a Moon Tide never run at once. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
 
+**Scripted prey.** Chapter 04's first-run prey (section 3.5: Swarm A, the plankton trail, Swarm B, the Glowfry) belongs to one player (04 §12, C8). `PreyService.spawnScripted(slot, spec)` makes it as ordinary groups that are **owned** by that slot: a ball (a member count around a centre, its spread as the leash) or one group of one at each given point (the trail's motes, every 4 studs, since a group's members can only sit where `Formation.offset` puts them). Each owned group gets a home of its own around its spawn point, so it needs no `PreySpawn` volume, moves and flees as its `PreyDef` says inside that leash, and reacts only to its owner's creature; a `calm` spec reacts to nothing, so it never flees or scatters (chapter 04, section 4: the FTUE krill). `steerScripted` slides a group's leash centre toward a target at a given speed, one step per tick, and its members follow inside the leash: the tutorial points it at the player, 6 studs/s inside 25 studs (chapter 04, sections 3.6 B2 and B3, and 4), except Swarm A, which stays still through the first bite until the T = 2.5 assist or the player swims away (B2; 14 §4 row 34). Spark's `stunNear` skips owned groups (its signature names no slot, and scripted prey moves as its script says). Owned groups are in no spawn row: no target, cap, cull or `areaScale` counts them. Only the owner's interest set and packets carry them, only the owner gets their `PreyEvent`s, and to every other slot they are gone: `peek` returns nothing and `tryEat` refuses. `onScriptedEaten` fires deferred, after the bite claim. Scripted prey belongs to the creature it was spawned for: `spawnScripted` refuses a slot with no creature, and the prey goes when the slot's player or creature changes or goes. A gap with no creature ends it too, because the scripted intro offers no revive (chapter 02, section 12.3), nothing can eat a newcomer in run 1 (chapter 04, section 4), and a resumed run replays the script from its last completed beat (chapter 04, section 9). They take group slots from the same 640, so they have their own budget **(tune)**: at most 92 owned groups on the server (640 less the 548 of the worst case above, so normal prey always have their slots) and 20 per slot (one newcomer's whole route is 17: 1 + 10 + 1 + 5); at most 456 owned members on the server (92 groups at the worst case's mean of about 4.96 members, so all 640 groups hold about 3,180 members, not 2,208 more) and 65 per slot (the route's 35 members, 6 + 10 + 14 + 5, plus B4's `grow_burst` of 10 krill and a `home_lure` krill swarm of up to 20); a spec that does not fit whole is refused. `prey_soak.sim` runs four newcomers on the route through the Frenzy to prove the slot and byte budgets with them.
+
 ### 8.2 Server data layout
 
-Struct of arrays, one `buffer` per field, indexed by group ID (0 to 639). Total about 86 kB (135 bytes per group × 640).
+Struct of arrays, one `buffer` per field, indexed by group ID (0 to 639). Total about 88 kB (137 bytes per group × 640).
 
 ```lua
 --!strict
@@ -888,6 +900,8 @@ export type PreyBuffers = {
 	nextInCell: buffer, prevInCell: buffer,     -- u16 intrusive list
 	histPos: buffer,     -- 8 samples × (u16 x, u16 y, u16 z, u8 scatter, u8 pad) per group = 64 B
 	histHead: buffer,    -- u8
+	owner: buffer,       -- u8   0 = shared, else the one slot that owns the group (scripted prey, 8.1)
+	calm: buffer,        -- u8   1 = an owned group that reacts to no threat (scripted prey, 8.1)
 }
 ```
 
@@ -923,7 +937,7 @@ Schooling is therefore free: members hold formation by construction, "flee as a 
 
 ### 8.5 Interest management
 
-For each player at 10 Hz, visit grid cells within 600 studs and classify each group by distance to the player's root:
+For each player at 10 Hz, visit grid cells within 600 studs and classify each group by distance to the player's root. A group owned by another slot (scripted prey, 8.1) is skipped:
 
 | Band | Distance (tune) | Send when the client's dead-reckoned error exceeds | Drawn as |
 |---|---|---|---|
@@ -1112,6 +1126,7 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 | `GullSky`, `MorayHole`, `PredatorNode` | `PredatorId`, `Next` | PredatorService |
 | `HatchBed` | — (one small Ball part; only its centre and the part's look vector are kept) | `RunLoopService.join`: where an account that has never banked hatches for its first run, facing along the look vector (chapter 04, section 3.5; chapter 03, section 6.2 places it at (−398, 340), floor 24, facing east). Exactly one per place with a Nursery |
 | `RevivePoint` | `PointId`: `rp_01` to `rp_12` (chapter 03, section 6.11) | `RunLoopService`: where a revived or resumed creature returns (section 6.3) |
+| `NurseryPath` | `PointId`: a row of chapter 03's `data:NurseryPath` (section 6.2): `swarm_a`, `plankton_trail`, `swarm_b`, `glow_grotto`, `kelp_curtain`, `little_arch`, `elbow_leg_1`, `elbow_bend`, `elbow_leg_2`, `home_current_mouth` | `WorldIndex.nurseryPathAt` and `TutorialService`: where on the first-run route a creature is, such as crossing the Gap (chapter 04, section 3.5). Shapes and sizes are chapter 03's (section 6.2, authoring the route); `Logic/NurseryRoute` builds them and `tools/studio/place_nursery_volumes.luau` places them |
 
 A `RevivePoint` is a small Ball part; only its centre is kept. `WorldIndex` stores the 12 centres with the volume table and does not send them to clients. `tools/studio/check_place.luau` fails if any of the 12 IDs is missing, sits away from its row in the generated `RevivePoints` table, or lies inside the collision shell or a `Hazard` volume.
 
@@ -1397,9 +1412,11 @@ export type ProfileData = {
 	offers: { [string]: number },                -- offer ID → UTC day last dismissed (chapter 05, section 9)
 	social: { bubbleDay: number, bubbledUserIds: { number } },   -- [L] coves given a Bubble today, by owner
 	board: { week: number, weekBest: number },                   -- [L] avoids reads before writes
-	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04)
+	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04); stage: S0_LOADING = 0
+		                                         -- to S10_RUN2 = 10, DONE = 11 (chapter 04, section 3.1)
 		version: number,                         -- tutorial version the account saw, currently 1 (chapter 04, section 9)
-		attempts: number },                      -- +1 each time the tutorial restarts after a disconnect before the first bank
+		attempts: number,                        -- +1 each time the tutorial restarts after a disconnect before the first bank
+		logged: number },                        -- once-per-account first-time events already sent (chapter 10, section 4.2: each `ftue_failsafe` ctx, each `ftue_milestone`, `ftue_bite_assist`), one bit each in `Logic/AnalyticsRules.ONCE` order (append only); 0 for a new account
 	ab: { [string]: string },                    -- experiment key → arm, copied at first exposure (chapter 10, section 8.1)
 	settings: { sfx: number, music: number,      -- 0..10
 		colourBlind: boolean,
@@ -1864,7 +1881,7 @@ Four experiences, so data stores never mix (data stores belong to an experience)
 | Staging | `GULP Staging` | Owner and invited testers, private | Real, disposable | Studio "Publish to Roblox As" from the dev place | On | On | Off |
 | Production | `GULP` | Public | Real | Studio "Publish to Roblox As" from the dev place, after staging passes | On | On | Off |
 
-`Config/Defaults.luau` holds one table per environment keyed by `game.GameId` (product IDs, pass IDs, analytics on or off, dev cheats on or off). An unknown `GameId` selects the development table with all purchases disabled.
+`Config/Defaults.luau` holds one table per environment keyed by `game.GameId` (product IDs, pass IDs, analytics on or off, dev cheats on or off). An unknown `GameId` selects the development table with all purchases disabled, and with dev cheats on only in Studio (`RunService:IsStudio()`, where a place file has GameId 0), so a live experience missing from the list never exposes `server/Dev`.
 
 ### 17.2 Producing and publishing a build
 
@@ -2005,7 +2022,7 @@ Sizes: **S** is under about 300 lines and one agent session; **M** is 300 to 800
 | B28 | `GoalsService`, `CodexService` | B20 | M | MVP |
 | B29 | `LeaderboardService`, server board | B10 | S | MVP |
 | B30 | `AudioController` | B13 | M | MVP |
-| B31 | `TutorialDirector` and the onboarding funnel | B19, B23 | M | MVP |
+| B31 | `TutorialDirector` (client), `TutorialService` (server) and the onboarding funnel | B19, B23 | M | MVP |
 | B32 | Species abilities: Dart, Puff, Slip | B11, B14, B25 | M | MVP |
 | B33 | `LiveConfig`, flags, `Loc` | B05 | S | MVP |
 | B34 | `BotPlayers`, soak simulations, `QualityController` (screen class, three tiers, step down, cut order), first performance pass | B14, B16 | M | MVP |

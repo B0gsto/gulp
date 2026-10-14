@@ -5,7 +5,8 @@
 --
 -- `encoding` follows the rule above the table in 5.3: "buffer" is one `buffer` argument; "scalars"
 -- is plain Luau arguments (numbers, booleans, short strings, or one table where the row says so:
--- `WorldInfo`'s volume table, Codec/WorldInfo). `ClientReady` carries nothing.
+-- `WorldInfo`'s volume table, Codec/WorldInfo). `ClientReady` carries one integer, the load mode
+-- (Logic/LoadTime.MODE). "none" (no payload) is kept for a remote that needs nothing.
 local Types = require("../Types")
 
 export type Kind = "Reliable" | "Unreliable"
@@ -81,7 +82,7 @@ end
 --- Every remote, in the order of the table in 5.3.
 Remotes.list = {
 	-- Client to server. Rate limit per player (bucket size).
-	c2s("ClientReady", "Reliable", "none", "none", 0, 1, "MVP"), -- 1 per session
+	c2s("ClientReady", "Reliable", "scalars", "load mode 1 to 3 (integer)", 0, 1, "MVP"), -- 1 per session
 	sized(c2s("Bite", "Reliable", "buffer", "8 to 40 bytes (8.9)", 12, 20, "MVP"), 8, 40),
 	sized(
 		c2s(
@@ -140,7 +141,7 @@ Remotes.list = {
 		"CreatureEvent",
 		"Reliable",
 		"scalars",
-		"gulped, revived, status, tier change, bite absorbed, emote [L]"
+		"gulped, revived, status, tier change, banked, traitGained, traitShed, bite absorbed, emote [L]"
 	),
 	sized(s2c("PredatorEvent", "Reliable", "buffer", "14 bytes"), 14, 14),
 	s2c("TideEvent", "Reliable", "scalars", "override start and end only"),

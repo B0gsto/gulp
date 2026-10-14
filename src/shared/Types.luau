@@ -274,11 +274,30 @@ export type CoveMouthDef = {
 	z: number,
 }
 
+-- Chapter 03, section 6.2 data:NurseryPath: one place on the first-run route (chapter 04,
+-- section 3.5). Y is up and the surface is Y 0, so depth d is Y −d.
+export type NurseryPointDef = {
+	id: string, -- hatch_bed, swarm_a ... home_current_mouth
+	wire: number,
+	at: number, -- distance along the route from the Hatch Bed; a stretch starts here
+	to: number, -- where a stretch ends; `at` for a point
+	x: number, -- the place (x, z); a stretch's start
+	z: number,
+	toX: number, -- a stretch's end; `x`, `z` for a point
+	toZ: number,
+	top: number, -- depth band: from `top` down to `bottom` (one depth: top = bottom)
+	bottom: number,
+	toBottom: number, -- the band's bottom at a stretch's end ("floor 30 down to 56")
+	floor: boolean, -- `bottom` is the sea floor and the band runs up from it to the surface
+	markX: number?, -- the landmark a point serves (the Glow Grotto's mouth), when it has one
+	markZ: number?,
+}
+
 -- Section 9.1: gameplay volumes, read from tagged Studio parts by WorldIndex at server start and
 -- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
 -- rows), so a world point turns into the part's local space with plain arithmetic.
 export type ZoneId = string
--- One of the 13 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
+-- One of the 14 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
 -- 1.70.1 widens these singleton unions to `string` through loops and refinements.
 export type VolumeKind = string
 export type VolumeShape = string -- "Block", "Ball" or "Cylinder"; a Cylinder's axis is its local X
@@ -488,6 +507,7 @@ export type ProfileData = {
 		completed: boolean,
 		version: number, -- tutorial version the account saw, currently 1
 		attempts: number, -- +1 each time the tutorial restarts before the first bank
+		logged: number, -- once-per-account first-time events sent (AnalyticsRules.ONCE bits)
 	},
 	ab: { [string]: string }, -- experiment key → arm, copied at first exposure
 	settings: {

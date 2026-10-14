@@ -34,16 +34,23 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local HullMesh = require(script.Parent.HullMesh)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local OutlineRules = require(ReplicatedStorage.Shared.Logic.OutlineRules)
 local Outlines = require(script.Parent.Outlines)
 local RigMath = require(ReplicatedStorage.Shared.Logic.RigMath)
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local CreatureRig = {}
 
 local TAG = "CreatureRig"
 local VISUAL_GROUP = "Visual" -- 09 §6.5
+-- Glow (06 §8.2 trait table: colour #FFE98A, light brightness 0.5; the radius is 02 §8.4's).
+local GLOW = Defaults.traits -- the placeholder Glow look (04 §3.6 B5)
+local GLOW_LIGHT_COLOUR = Color3.fromHex(GLOW.glowLightColour)
+local GLOW_TINT_COLOUR = Color3.fromHex(GLOW.glowTintColour)
+local GLOW_OVERLAY_TRANSPARENCY = GLOW.glowTintTransparency
 
 export type Form = "Juvenile" | "Adult"
 export type Kind = OutlineRules.Kind
@@ -60,6 +67,11 @@ type FormParts = {
 	hulls: { HullShell }, -- placeholder only
 	folder: Instance?, -- placeholder only: where its hulls go
 }
+
+-- Glow's body light (02 §8.4, 04 B5; task S6-C3): a point light on the rig root and, until
+-- S6-A1's overlay shell and `T_Trait_Glow_Fish_Emi` land, a see-through Neon tint: a copy of each
+-- body piece 4% larger in a warm gold, welded to it (Config/Defaults.traits `glow*`).
+type Glow = { light: PointLight, overlays: { Juvenile: { BasePart }, Adult: { BasePart } } }
 
 export type Rig = {
 	model: Model,
@@ -84,6 +96,8 @@ export type Rig = {
 	pos: Vector3,
 	heading: Vector3,
 	cframe: CFrame,
+	glow: Glow?, -- set while the creature holds Glow
+	override: AnimationTrack?, -- a one-off clip that owns the bones while it plays (the hatch)
 }
 
 -- Clip IDs by clip name, filled by CreatureController from the manifest.
@@ -543,6 +557,8 @@ function CreatureRig.new(species: string, radiusMult: number): Rig
 		pos = root.Position,
 		heading = Vector3.new(0, 0, -1),
 		cframe = root.CFrame,
+		glow = nil,
+		override = nil,
 	}
 	for _, clip in RigMath.CLIPS do
 		local id = clipIds[clip]
@@ -574,6 +590,10 @@ end
 function CreatureRig.applyScale(rig: Rig, scale: number)
 	if math.abs(rig.model:GetScale() - scale) > 1e-4 then
 		rig.model:ScaleTo(scale)
+		local glow = rig.glow
+		if glow then
+			glow.light.Range = TraitRules.GLOW_LIGHT -- 02 §8.4: 20 studs at every size
+		end
 	end
 end
 
@@ -684,6 +704,75 @@ function CreatureRig.setForm(rig: Rig, form: Form)
 	if outline ~= "none" then
 		CreatureRig.setOutline(rig, outline, colour)
 	end
+	local glow = rig.glow
+	if glow then
+		for _, o in glow.overlays.Juvenile do
+			o.Transparency = if form == "Juvenile" then GLOW_OVERLAY_TRANSPARENCY else 1
+		end
+		for _, o in glow.overlays.Adult do
+			o.Transparency = if form == "Adult" then GLOW_OVERLAY_TRANSPARENCY else 1
+		end
+	end
+end
+
+-- The Neon tint overlay of one form's body pieces (see `Glow`).
+local function glowOverlays(parts: FormParts, shown: boolean): { BasePart }
+	local list: { BasePart } = {}
+	for _, body in parts.body do
+		local o = body:Clone()
+		o:ClearAllChildren()
+		o.Name = body.Name .. "_GlowTint"
+		o.Size = body.Size * GLOW.glowTintGrow
+		o.CFrame = body.CFrame
+		o.Material = Enum.Material.Neon
+		o.Color = GLOW_TINT_COLOUR
+		if o:IsA("MeshPart") then
+			o.TextureID = "" -- one flat Neon colour over the whole piece
+		end
+		o.Transparency = if shown then GLOW_OVERLAY_TRANSPARENCY else 1
+		setVisualPart(o)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = body
+		weld.Part1 = o
+		weld.Parent = o
+		o.Parent = body.Parent
+		table.insert(list, o)
+	end
+	return list
+end
+
+--- Glow's look (02 §8.4, 04 B5 "the body lights up"): the body light, radius 20 studs, and the
+--- placeholder tint overlay; off removes both. Cheap when unchanged.
+--- TODO(B19): off while camouflaged and not seen from outside an ink cloud (02 §8.7).
+function CreatureRig.setGlow(rig: Rig, on: boolean)
+	local glow = rig.glow
+	if on == (glow ~= nil) then
+		return
+	end
+	if glow then
+		glow.light:Destroy()
+		for _, list in { glow.overlays.Juvenile, glow.overlays.Adult } do
+			for _, o in list do
+				o:Destroy()
+			end
+		end
+		rig.glow = nil
+		return
+	end
+	local light = Instance.new("PointLight")
+	light.Name = "GlowLight"
+	light.Color = GLOW_LIGHT_COLOUR
+	light.Brightness = GLOW.glowLightBrightness
+	light.Range = TraitRules.GLOW_LIGHT
+	light.Shadows = false
+	light.Parent = rig.root
+	rig.glow = {
+		light = light,
+		overlays = {
+			Juvenile = glowOverlays(rig.forms.Juvenile, rig.form == "Juvenile"),
+			Adult = glowOverlays(rig.forms.Adult, rig.form == "Adult"),
+		},
+	}
 end
 
 --- Whether `clip` is loaded on this rig (its asset ID is in the manifest and it loaded).
@@ -701,12 +790,53 @@ function CreatureRig.playAction(rig: Rig, clip: Clip)
 	end
 end
 
+--- Plays the clip with asset `id` once (04 §3.6 B1: `A_Fish_Hatch`) at `speed`; the loops and
+--- the code sway leave the bones to it until it ends or `stopOverride`. Nil when it cannot load.
+function CreatureRig.playOverride(rig: Rig, id: number, speed: number): AnimationTrack?
+	local animator = rig.animator
+	if animator == nil then
+		return nil
+	end
+	local animation = Instance.new("Animation")
+	animation.AnimationId = `rbxassetid://{id}`
+	local ok, loaded = pcall(animator.LoadAnimation, animator, animation)
+	if not ok or typeof(loaded) ~= "Instance" then
+		Log.warn(TAG, `clip {id} did not load`)
+		return nil
+	end
+	local track = loaded :: AnimationTrack -- safe: LoadAnimation returns an AnimationTrack
+	for _, other in rig.tracks do
+		other:Stop(0)
+	end
+	track.Looped = false
+	track.Priority = Enum.AnimationPriority.Action4
+	track:Play(0, 1, speed)
+	rig.override = track
+	return track
+end
+
+--- Ends the one-off clip early (control came before it finished).
+function CreatureRig.stopOverride(rig: Rig)
+	local track = rig.override
+	if track then
+		rig.override = nil
+		track:Stop()
+	end
+end
+
 local swayBones = RigMath.SWAY
 
 --- Animates one frame at `speed` studs/s against `topSpeed`. With clips: crossfades the loops.
 --- Without: advances the phase and writes the sway onto the bones (render step, after the
 --- Animator). Hot path: no allocation beyond the CFrames it writes.
 function CreatureRig.animate(rig: Rig, dt: number, speed: number, topSpeed: number)
+	local override = rig.override
+	if override then
+		if override.IsPlaying then
+			return
+		end
+		rig.override = nil
+	end
 	local loop: Clip = RigMath.loopFor(speed, topSpeed) :: Clip
 	if next(rig.tracks) ~= nil then
 		if loop ~= rig.loop or not (rig.tracks[loop] and rig.tracks[loop].IsPlaying) then

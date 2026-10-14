@@ -69,7 +69,7 @@ Canon section 16 gives the prefixes, the mesh categories and the mesh suffixes, 
 
 - Maps: `Alb` colour, `Emi` glow mask, `Mask` greyscale opacity, `Rgh` roughness, `Nrm` normal (not used at soft launch). This file adds `Flip` for a flipbook sheet.
 - Species textures are `T_<Species>_<Juv or Adult>_Alb`. A pattern adds `Pat<Pattern>` after the species: `T_Minnow_PatSunrise_Juv_Alb`.
-- Trait overlays are `T_Trait_<Trait>_<Family>_<Map>`; the kit-piece atlas is `T_Trait_Pieces_Alb`. Effect textures are `T_FX_<Name>_<Map>`.
+- Trait overlays are `T_Trait_<Trait>_<Family>_<Map>`, and the fallback-zone file of the same overlay adds `_Fallback` before the map (`T_Trait_Glow_Fish_Fallback_Emi`); the kit-piece atlas is `T_Trait_Pieces_Alb`. Effect textures are `T_FX_<Name>_<Map>`.
 - One exception: the three shared roughness textures keep the names document 06 gives them, `T_Shared_Rgh`, `T_Shared_RghWet` and `T_Shared_RghChalk`.
 
 **Rigs and animations**
@@ -183,7 +183,7 @@ Every body mesh, including the puffed and tucked forms, gets two outline shells:
 | `T_Shared_Rgh, T_Shared_RghWet, T_Shared_RghChalk` | [MVP] | Three flat roughness textures used by every asset so nothing shows the default plastic shine: matte, wet (eyes, Pearls), chalk (sand) | 8 × 8 each | — | 0.3 | not started |
 | `M_Prop_EyeX, T_Shared_EyeX_Alb` | [MVP] | Two-triangle card with an X mark, shown over each eye for the four frames of being gulped | 2 tris, 64² | — | 0.3 | not started |
 | `T_Shared_EyeRing_Emi` | [MVP] | Soft glow ring for every creature's eyes during Moon Tide; two dots for anything that can eat the player | 64² | — | 0.3 | not started |
-| `M_Prop_HatchEgg` | [MVP] | The pale egg a new Fry hatches from, on the Hatch Bed in the Nursery and on the Home Stone in a cove. Whole egg and two cracked halves | 200 tris | T_Cove_Alb | 1.2 | not started |
+| `M_Prop_HatchEgg` | [MVP] | The pale egg a new Fry hatches from, on the Hatch Bed in the Nursery and on the Home Stone in a cove. Whole egg and two cracked halves (`_Top`, `_Bottom`), one FBX; 2.6 across and 3.3 tall **(tune)**, so the tier-1 Fry fits inside it curled; the halves show closed from the crack until the top flies off (chapter 14, section 5.1) | 200 tris on screen at a time (the whole egg, or the two halves together) | T_Cove_Alb | 1.2 | not started |
 | (check) Wild creatures | [L] | Computer-controlled wild creatures (canon section 15) are the six species meshes with their base textures, clips, voices and both outline shells, at tiers 1 to 5. They never wear a pattern. No new mesh or texture: the leaf name tag that marks them as wild is `UI_HUD_WildTag` in document 08. This row is the check that each species reads as that species, with the tag, next to real players | — | all six species | 1 | not started |
 
 ### 2.1 Family clip sets
@@ -204,7 +204,7 @@ Shared by every species in the family. Lengths are frames at 30 a second (docume
 | `A_Fish_Gulped` | [MVP] | Stretch 140% toward the mouth, the body pulled in behind the head. Bones only: the shrink to nothing is code, `Model:ScaleTo` over frames 4 to 8 (06 §7.2) | 8 frames | RIG_Fish | 0.6 | not started |
 | `A_Fish_Bank` | [MVP] | Happy spin with eyes closed on entering the cove | 18 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Breach` | [MVP] | Arc through the air and flop back in | 30 frames | RIG_Fish | 0.8 | not started |
-| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s | 45 frames | RIG_Fish | 1 | not started |
+| `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s. The bones carry the body from inside the egg out to its swim spot (no root motion): the Fry's model stays 3.0 studs ahead of the egg's base and 2.6 up **(tune)** for the whole clip; the egg rocks on frames 5 and 12, cracks (swaps for its closed halves) on frame 8, and the top is flipped off on frame 15 and lands open side up behind the egg on frame 26 (chapter 14, section 5.1) | 45 frames | RIG_Fish | 1 | not started |
 | `A_Fish_CoveNotice` | [L] | A specimen turns to face a visitor with a small happy squash, then turns back | 30 frames | RIG_Fish | 0.6 | not started |
 | `A_Eel_Swim` | [MVP] | Reference swim cycle that the sway code is matched to; the fallback if code cannot layer over clips | loop 20 frames | RIG_Eel | 1.8 | not started |
 | `A_Eel_SwimFast` | [MVP] | Dash-speed version | loop 10 frames | RIG_Eel | 1 | not started |
@@ -429,7 +429,7 @@ Planned order from canon section 7, tags from document 03. Each row bundles the 
 
 Document 06 (section 8) gives every trait one of three channels so three traits can share a body:
 
-- **Pattern** and **Light** traits are **overlay textures** in the family UV layout: one per trait per family, 256 × 256. Each row below is two files, the home zone and the fallback zone (used when two traits share a channel). Each trait has one scripted Blender master; the `Fish` row carries the hours for that master and the other families are bakes from it with touch-ups.
+- **Pattern** and **Light** traits are **overlay textures** in the family UV layout: one per trait per family, 256 × 256. Each row below is two files, the home zone and the fallback zone (used when two traits share a channel; the second file adds `_Fallback`, section 1.2). Each trait has one scripted Blender master; the `Fish` row carries the hours for that master and the other families are bakes from it with touch-ups.
 - **Form** traits are **kit pieces**: small rigid meshes attached to socket bones. One set of pieces serves every family; a placement table per species says which sockets, how many and at what scale.
 
 An overlay row is tagged with the later of its trait tag and its family tag. All gain and shed effects are shared (`FX_TraitGain`, `FX_TraitShed`). Trait icons belong to document 08.
@@ -464,7 +464,7 @@ Spiny and Longfin have no overlay; they are kit pieces only.
 
 | Asset | Tag | Description | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|
-| `T_Trait_Glow_Fish_Emi` | [MVP] | Glow band along the lateral line, nose to tail. Includes the scripted master | 256², glow mask; 2 files | M_Species_Base_Fish | 2.5 | not started |
+| `T_Trait_Glow_Fish_Emi`, `T_Trait_Glow_Fish_Fallback_Emi` | [MVP] | Glow band along the lateral line, nose to tail. Includes the scripted master | 256², glow mask; 2 files | M_Species_Base_Fish | 2.5 | not started |
 | `T_Trait_Glow_Eel_Emi` | [MVP] | Bake from the master onto the `Eel` layout and touch up | 256², glow mask; 2 files | M_Species_Base_Eel | 1 | not started |
 | `T_Trait_Glow_Turtle_Emi` | [L] | Bake from the master onto the `Turtle` layout and touch up | 256², glow mask; 2 files | M_Species_Base_Turtle | 1 | not started |
 | `T_Trait_Glow_Squid_Emi` | [L] | Bake from the master onto the `Squid` layout and touch up | 256², glow mask; 2 files | M_Species_Base_Squid | 1 | not started |
@@ -586,7 +586,7 @@ No prey has an authored clip. The motion of each one is a row of settings in the
 | `T_TraitPrey_03_Alb` | [MVP] | Crystal Jelly at soft launch; three cells left for launch | 256² | — | 1 | not started |
 | (update) T_TraitPrey_03_Alb launch cells | [L] | Add Spark Eel, Leaf Drifter and Vent Snail | — | T_TraitPrey_03_Alb | 1.8 | not started |
 | `T_TraitPrey_04_Alb` | [L] | Three Marrow chunks; one cell spare | 256² | — | 0.8 | not started |
-| `T_TraitPrey_Emi` | [MVP] | Glow masks for Glowfry, Lunar Fry and Crystal Jelly; Spark Eel, Vent Snail and Marrow added at launch | 256² | trait prey atlases | 1.2 | not started |
+| `T_TraitPrey_Emi` | [MVP] | Glow masks for Glowfry, Lunar Fry and Crystal Jelly; Spark Eel, Vent Snail and Marrow added at launch. Each mask sits in its prey's albedo cell place: Glowfry top-left, Crystal Jelly top-right, Lunar Fry bottom-right (task S6-A1) | 256² | trait prey atlases | 1.2 | not started |
 | `M_Prey_*_Shell` | [MVP] | Outline shells for the seven prey of tier 1 or more, by script. Prey only ever show the green "you can eat it" outline, so there is no thick shell. Plankton has none | 80 to 360 tris by tier (document 06, section 6.3) | prey meshes | 1.5 | not started |
 | `M_Prey_*_LOD2` | [MVP] | Quarter-triangle rigid versions of Reef Darter, Mackerel, Bonito and Tuna, each with its `_LOD2_Shell` | quarter; shells 80 tris or a quarter of the full shell, whichever is more (tune) | prey meshes | 1 | not started |
 | `M_Prey_<trait prey>_Shell, _LOD2 (soft launch)` | [MVP] | Outline shells (green outline only) for the nine soft-launch trait prey; distance versions for the three of tier 3 | shell 40% of each body | trait prey meshes | 1.8 | not started |
@@ -611,7 +611,7 @@ Always single animals. Each has a silhouette no plain prey has and two small spa
 
 | Asset | Tag | Description | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|
-| `M_Prey_Glowfry` | [MVP] | Glowfry, tier 1, gives Glow. Tiny round fry with a lit belly. Rigid | 300 tris | T_TraitPrey_01_Alb, T_TraitPrey_Emi | 1.2 | not started |
+| `M_Prey_Glowfry` | [MVP] | Glowfry, tier 1, gives Glow. Tiny round fry with a lit belly. Rigid | 410 tris (S6-A1: a round body needs 16 sides; 06 §6.3 allows 300 to 700) | T_TraitPrey_01_Alb, T_TraitPrey_Emi | 1.2 | not started |
 | `M_Prey_ZebraDarter` | [MVP] | Zebra Darter, tier 2, gives Stripes. Reef Darter body with a taller fin and bold bands | 300 tris, 3 bones | M_Prey_Darter, T_TraitPrey_01_Alb | 0.8 | not started |
 | `M_Prey_DottedGoby` | [MVP] | Dotted Goby, tier 1, gives Spots. Big-headed bottom sitter. Rigid; hops on the sand | 300 tris | T_TraitPrey_01_Alb | 1.2 | not started |
 | `M_Prey_LunarFry` | [MVP] | Lunar Fry, tier 2, gives Moonlit. Glowfry body with a crescent tail, silver. The brightest thing in the sea; Moon Tide only | 300 tris | M_Prey_Glowfry, FX_LunarFryTrail | 0.8 | not started |
@@ -757,8 +757,8 @@ Places with no mesh of their own: **Krill Corner** (a bowl-shaped floor chunk), 
 
 | Asset | Tag | Description | Qty | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|---|
-| `M_Env_Nursery_Floor_01–04` | [MVP] | Pale sand floor chunks; one is the Krill Corner bowl | 4 | 3,000 tris each | T_Tile_Sand_Alb | 5 | not started |
-| `M_Env_Nursery_Rim_01–02` | [MVP] | Low rounded rim pieces that enclose the pool | 2 | 1,000 tris | T_Tile_Rock_Alb | 2 | not started |
+| `M_Env_Nursery_Floor_01–04` | [MVP] | Pale sand floor chunks; one is the Krill Corner bowl (`_03`). Every edge carries one shared profile, so any chunk meets any other at any 90-degree turn; laid unrotated on the 128-stud grid the sand repeat runs on across the seams (document 13, S6-A3). The slice keeps `_01` to `_03` (13 §3.2) | 4 | 3,000 tris each | T_Tile_Sand_Alb | 5 | not started |
+| `M_Env_Nursery_Rim_01–02` | [MVP] | Low rounded rim pieces that enclose the pool: banks of pastel coral rock whose toe follows the oval of document 03 §6.2 (`_01` its long sides, `_02` its ends) and whose crest is a rounded, uneven dome 4 to 12 above the surface (never above the Rim's top, 03 §6.1), different on each piece; within 5 studs of a joint both neighbours share one profile, and copies chain end to end at scale 1 and one tint, tangent to tangent, each running 30 studs past its joints under its neighbour, so a ring reads as one rolling bank (S6-A3 independent review loop 3). Painted from the rim cell of `T_EnvNursery_Alb`, a gradient map of three flat pastel coral blocks (S6-A3 independent review loop 1), not a tiling ground texture: `T_Tile_Rock_Alb` read as paving on a wall (S5-A2), the Rim's `T_Rim_Alb` as cold cobbles and the shared `T_Tile_CoralRock_Alb` as cobbles in the pastel pool (S6-A3) | 2 | 1,000 tris | T_EnvNursery_Alb | 2 | not started |
 | `M_Env_Nursery_Coral_01–03` | [MVP] | Round pastel corals | 3 | 250 tris | T_EnvNursery_Alb | 2 | not started |
 | `M_Env_Nursery_GrassTuft_01–02` | [MVP] | Soft sea-grass tufts | 2 | 80 tris | T_EnvNursery_Alb | 1 | not started |
 | `M_Env_Nursery_GlowBuoy` | [MVP] | Lantern warm-white (`#FFF1DC`) glow buoy. A ring of them marks the safe edge | 1 | 150 tris | T_EnvNursery_Alb | 1 | not started |
@@ -768,7 +768,7 @@ Places with no mesh of their own: **Krill Corner** (a bowl-shaped floor chunk), 
 | `M_Env_Nursery_LM_SleepyClam` | [MVP] | Landmark "Sleepy Clam": giant clam 16 across that opens and closes slowly and snores bubbles. Two bones | 1 | 1,800 tris, 2 bones | T_EnvNursery_Alb | 3 | not started |
 | `A_SleepyClam_Snore` | [MVP] | Slow open and close | 1 | loop 120 frames | M_Env_Nursery_LM_SleepyClam | 0.6 | not started |
 | `M_Prop_Nursery_ShellSign` | [MVP] | Shell signpost beside the Sleepy Clam that points to Little Arch. A picture, no words | 1 | 200 tris | T_EnvNursery_Alb | 0.8 | not started |
-| `T_EnvNursery_Alb` | [MVP] | Pastel atlas for the Nursery pieces | 1 | 512² | — | 2.5 | not started |
+| `T_EnvNursery_Alb` | [MVP] | Pastel atlas for the Nursery pieces: one cell for each (S6-A3: the three corals, both grass tufts, the glow buoy, Little Arch and its shell lights, Three Rings, the Sleepy Clam's shell and mantle, the Shell Sign and its post, and the rim bank, a 64 × 256 gradient map both rim pieces share) | 1 | 512² | — | 2.5 | not started |
 | (assembly) Nursery Lagoon | [MVP] | Build the pool, place the kit and landmarks, check that Little Arch is visible from everywhere and the first Krill are in view from the Hatch Bed | 1 | — | Nursery kit, shared pieces | 6 | not started |
 
 ### 6.3 Sunlit Reef [MVP]
@@ -1730,7 +1730,6 @@ Section 1.2 is the final naming rule. Effect and sound names that other document
 | `SFX_PearlCount` | 04 | `SFX_UI_PearlTick`, ending in `SFX_UI_PearlBurst` |
 | `SFX_GoalDone` | 04 | `SFX_UI_GoalDone` |
 | `SFX_TideHorn` | 04 | `SFX_TideBell` (warning) and `SFX_TideHorn_<Event>` (start) |
-| `A_Minnow_Hatch` | 04 | `A_Fish_Hatch` (the family clip) |
 | `Juvenile`, `Adult` mesh parts | 09 | No change needed: these are instance names inside the rig Model, not asset names. The files they hold are `M_Species_<Species>_Juv` and `_Adult` |
 | `M_Prop_Trait<Trait>_<Piece>`, `T_Trait<Trait>_<Family>_<Map>`, `T_TraitPieces_Alb` | 13 | `M_Trait_<Trait>_<Piece>`, `T_Trait_<Trait>_<Family>_<Map>`, `T_Trait_Pieces_Alb` (canon section 16) |
 | The Shark Pup ability clip under the old ability name | 13 | `A_Shark_RampageStart` |

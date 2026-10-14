@@ -446,6 +446,75 @@ local function buildCoveMouths(catalog: Tables, slice: boolean): Module
 	}
 end
 
+-- Chapter 03, section 6.2: the first-run route through the Nursery and the Elbow (task S6-D1).
+-- "Distance along the route" is one distance (a point) or "a to b" (a stretch). "Position (X, Z) ·
+-- depth" holds the place before its last "·" and the depth after it. A stretch has two places, its
+-- start and its end; a point has one, or two when the second is the landmark it serves ("Route
+-- point (...); grotto mouth (...)"), kept as `markX`, `markZ`. The depth is one number, a band
+-- "a to b", or a floor ("floor a", "floor a down to b"): the water from the surface (depth 0) down
+-- to that floor, `floor` true.
+local function buildNurseryPath(catalog: Tables, slice: boolean): Module
+	local t = get(catalog, CATALOG, "NurseryPath")
+	local rows = {}
+	for _, row in rowsFor(t, slice) do
+		local distances = numbers(cell(t, row, "Distance along the route"))
+		local position = string.gsub(cell(t, row, "Position (X, Z) · depth"), "\u{2212}", "-")
+		local place, depthText = string.match(position, "^(.*)·%s*(.-)%s*$")
+		if place == nil or depthText == nil then
+			fail(`data:NurseryPath, row {row.key}: no "· depth" in {position}`)
+		end
+		local pairs = {}
+		for x, z in string.gmatch(place :: string, "%(%s*(%-?[%d%.]+)%s*,%s*(%-?[%d%.]+)%s*%)") do
+			table.insert(pairs, { tonumber(x) :: number, tonumber(z) :: number })
+		end
+		local depths = numbers(depthText :: string)
+		local floor = string.find(depthText :: string, "^floor") ~= nil
+		local stretch = #distances == 2
+		if
+			(#distances ~= 1 and not stretch)
+			or #pairs < 1
+			or #pairs > 2
+			or (stretch and #pairs ~= 2)
+			or #depths < 1
+			or #depths > 2
+		then
+			fail(`data:NurseryPath, row {row.key}: cannot read {position}`)
+		end
+		local first, second = pairs[1], pairs[2] or pairs[1]
+		local top = if floor then 0 else depths[1]
+		local bottom = depths[1]
+		local toBottom = depths[#depths]
+		if not floor then
+			bottom = toBottom -- "a to b" is a band from a down to b
+		end
+		local fields = {
+			field("id", row.key),
+			field("wire", row.position),
+			field("at", distances[1]),
+			field("to", distances[#distances]),
+			field("x", first[1]),
+			field("z", first[2]),
+			field("toX", if stretch then second[1] else first[1]),
+			field("toZ", if stretch then second[2] else first[2]),
+			field("top", top),
+			field("bottom", bottom),
+			field("toBottom", toBottom),
+			field("floor", floor),
+		}
+		if not stretch and #pairs == 2 then
+			table.insert(fields, field("markX", second[1]))
+			table.insert(fields, field("markZ", second[2]))
+		end
+		table.insert(rows, fields)
+	end
+	return {
+		name = "NurseryPath",
+		typeName = "NurseryPointDef",
+		sources = { `{CATALOG} data:NurseryPath` },
+		rows = rows,
+	}
+end
+
 local BASE_DASH_TIME = 0.35 -- seconds; chapter 02, Dashing state: `0.35 × (1 + ...)`
 local CRUISE_SHARE = 0.4 -- chapter 03, section 2.1 notes: cruise speed is 40% of flee speed
 
@@ -1205,6 +1274,7 @@ local modules = {
 	buildGoals(catalog, slice),
 	buildRevivePoints(canon, catalog, slice),
 	buildCoveMouths(catalog, slice),
+	buildNurseryPath(catalog, slice),
 	buildPreySpawns(canon, mechanics, catalog, slice),
 	buildTraitPreySpawns(canon, mechanics, catalog, slice),
 	buildPreyMotion(art, catalog, slice),

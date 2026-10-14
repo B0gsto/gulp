@@ -71,6 +71,22 @@ describe("HudMath.pushPop (docs/08 section 3.16)", function()
 		HudMath.pushPop(pops, 10, 2)
 		expect(#pops).toBe(1)
 	end)
+	it("stacks live pops so none overlaps the next", function()
+		local gap = HudMath.POP_GAP
+		-- a bite just after another: the older pop is pushed up, the newest stays at the mouth
+		local ys = HudMath.popStack({ 100, 110 })
+		expect(ys[2]).toBe(110)
+		expect(ys[1]).toBe(110 - gap)
+		-- already far enough apart: unchanged
+		local apart = HudMath.popStack({ 40, 100 })
+		expect(apart[1]).toBe(40)
+		-- a chain of four keeps every neighbour `gap` apart
+		local four = HudMath.popStack({ 100, 100, 100, 100 })
+		for i = 1, 3 do
+			expect(four[i + 1] - four[i] >= gap).toBe(true)
+		end
+		expect(#HudMath.popStack({})).toBe(0)
+	end)
 	it("rises 48 rpx and fades out over its life", function()
 		local rise, fade = HudMath.popPose(0.5)
 		expect(rise).toBeCloseTo(48, 1e-9)
@@ -90,5 +106,33 @@ describe("HudMath.grouped (docs/08 section 5.1)", function()
 		expect(HudMath.grouped(123_456)).toBe("123,456")
 		expect(HudMath.grouped(1_234_567)).toBe("1,234,567")
 		expect(HudMath.grouped(-5)).toBe("0")
+	end)
+end)
+
+describe("HudMath.newFood (docs/08 section 4.2)", function()
+	it("lists the prey that became edible, regular prey first, at most three", function()
+		local food = HudMath.newFood(1, 2)
+		expect(#food).toBe(3)
+		expect(food[1]).toBe("sardine")
+		for _, id in food do
+			local def = Index.Prey.byId[id] or Index.TraitPrey.byId[id]
+			expect(def ~= nil and def.tier == 2).toBe(true)
+		end
+	end)
+	it("covers every tier passed on a jump of two", function()
+		local food = HudMath.newFood(2, 4)
+		expect(food[1]).toBe("darter")
+		expect(food[2]).toBe("mackerel")
+	end)
+	it("leaves out [L] and event-only prey, and is empty when nothing new is edible", function()
+		for from = 0, 6 do
+			for _, id in HudMath.newFood(from, from + 1) do
+				local def = Index.Prey.byId[id] or Index.TraitPrey.byId[id]
+				expect(def.scope).toBe("MVP")
+				expect(def.eventOnly).toBe(nil)
+			end
+		end
+		expect(#HudMath.newFood(6, 7)).toBe(0)
+		expect(#HudMath.newFood(3, 3)).toBe(0)
 	end)
 end)

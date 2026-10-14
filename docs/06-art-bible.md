@@ -145,6 +145,8 @@ Measured on the side view. Body length excludes the tail fin.
 | Body depth as a share of body length (fish family) | 45 to 55%, as the species' size row in section 6.2 allows | 42% | 45% | 25 to 35% |
 | Smallest radius on any outside corner | 6% of body height | 5% | 6% | 1% (sharp is allowed) |
 
+A trait prey whose chapter 03 look names a round body may be deeper than the prey column: the Glowfry ("tiny round fry") is 58% (task S6-A1).
+
 All values **(tune)** after the first three species are reviewed side by side. Where a proportion here and a size in section 6.2 disagree, the size wins. The Minnow juvenile was 3.0 × 1.1 studs, which with chapter 03's short round tail could not reach this depth (spike S0-A7, F26); on 14 October 2026 its height became 1.365 studs, the reviewed S2-A1 mesh, whose body depth is 47% of its body length.
 
 ### 3.4 How danger reads in shape
@@ -263,6 +265,7 @@ Light / mid / dark / accent. All **(tune)** in the first review round.
 | `shrimp` | [MVP] | `#FFE6D1` | `#FFB48A` | `#C2693D` | — | |
 | `sardine` | [MVP] | `#F2F8FC` | `#BFD9E8` | `#5C9AD9` | — | |
 | `darter` | [MVP] | `#FFF6C9` | `#FFD23D` | `#2F7F8C` | `#FF7A5C` | |
+| `glowfry` | [MVP] | `#FFE98A` | `#C29424` | `#6B3A0E` | — | Trait prey on the darter's palette (below). Light is the Glow signature colour, the lantern belly and eye rings, painted as a lemon-white lamp (near white at the core, a saturated cool lemon at the edge). Mid is a deep warm gold (L\* 64), warmer and redder than the lantern's lemon as well as about 26 L\* below it, so the two part by hue and saturation and do not merge into one yellow at 20 pixels (review loop 2 of task S6-A1; it was the darter's `#FFD23D` deepened to `#D6B222`). Its hue (41°) is inside lantern amber's band, allowed because its saturation stays at 70% or under wherever its value passes 85% (section 4.5). Dark is a warm umber at L\* 30 for the tail's tip and the tail saddle, in place of the darter's teal, which read as stray black marks on the yellow; the other fins carry no dark (pupils and smile in `ui.ink`, as the Minnow's) (task S6-A1) |
 | `mackerel` | [MVP] | `#E8F2F0` | `#2FA89A` | `#16574F` | — | Dark tiger marks on the back |
 | `bonito` | [MVP] | `#E6EEF5` | `#6F8FD9` | `#23366B` | — | |
 | `tuna` | [MVP] | `#F0F4F8` | `#4F6FD0` | `#162657` | `#FFD23D` | Yellow finlets |
@@ -749,7 +752,7 @@ A creature has three visual channels. Each trait owns one channel, so three trai
 
 | ID | Rarity | Scope | Channel | Method | Signature colour | Home zone on the body | Fallback zone | Pieces and cost |
 |---|---|---|---|---|---|---|---|---|
-| `glow` | Common | [MVP] | Light | Overlay (emissive) + light | `#FFE98A` | Lateral line, nose to tail | Tail tip and fin edges | 256 overlay; `PointLight` range 10 × scale, brightness 0.5 |
+| `glow` | Common | [MVP] | Light | Overlay (emissive) + light | `#FFE98A` | Lateral line, nose to tail | Tail tip and fin edges | 256 overlay; `PointLight` range 20 studs at every size (02 §8.4), brightness 0.5 |
 | `stripes` | Common | [MVP] | Pattern | Overlay | `#1E2A4A` on `#FFFFFF` | Flank: 4 bold bands | Rear third: 2 bands | 256 overlay |
 | `spots` | Common | [MVP] | Pattern | Overlay | `#FFF3D1` dots ringed `#3A2A4A` | Back and flank: 7 to 9 dots | Head and shoulders: 4 dots | 256 overlay. Smallest dot is 8% of body height. |
 | `plated` | Uncommon | [MVP] | Form | Kit pieces + thin overlay | `#B8C4CC`, edge `#6B7A85` | Back: 5 overlapping plates | Head: 1 helmet plate | 1 plate piece (60 triangles) used 5 times; a second "cracked" piece for after the saved bite |
@@ -793,6 +796,8 @@ The combination sheet (section 15.5) renders every species with the 12 hardest t
 |---|---|---|
 | A. Decal layers (dropped) | A `Decal` on a skinned `MeshPart` is projected per face, not along the mesh UVs (spike S0-A4, F18). | Fail |
 | **B. Overlay shell** (chosen) | A second skinned mesh 0.5% outside the body with the overlay as its `SurfaceAppearance`, `AlphaMode = Transparency`, built into the template before spawning (above). Each overlay's `SurfaceAppearance` is made ahead of time and cloned; game scripts cannot set its maps (F17). | Pass, IoU 0.994. Doubles the creature's triangles while any pattern trait is active |
+
+A Light trait's overlay (`T_Trait_<Trait>_<Family>[_Fallback]_Emi`) is one 8-bit greyscale mask that also carries itself as alpha, so the one file is the shell's colour map, tinted with the trait's signature colour (section 8.2), and its emissive mask (task S6-A1). The masks are baked from each trait's scripted master by the trait overlay bake (`assets/source/_shared/blender/traitbake.py`, chapter 07 section 14.1).
 | C. Composite | Build one texture per creature on the client from base and overlays, shown only through `MeshPart.TextureContent`, with no PBR maps: game scripts cannot set an `EditableImage` as a `SurfaceAppearance` map (spike S0-A4, F17) | Kept only as a fallback |
 
 ---
@@ -812,7 +817,7 @@ Counts are unique meshes. All [MVP] unless tagged.
 
 | Zone | Floor and walls | Kit pieces | Unique to the zone |
 |---|---|---|---|
-| **Nursery Lagoon** | 4 sand chunks, 2 low rim pieces | 3 round pastel corals, 2 sea-grass tufts, 3 smooth pebbles, 2 shells | A ring of lantern warm-white (`#FFF1DC`) glow buoys marking the safe edge; water so shallow the surface ripples show on the sand |
+| **Nursery Lagoon** | 4 sand chunks, 2 low rim pieces (pastel coral, from the 9.3 coral hues: three flat blocks: mid `#E89D93` with one broad gradient up the bank from rose `#E5979A` at its foot to peach `#ECA596` under the cap, a pale cap `#FDD5C7`, a thin soft violet `#54427F` toe band at the sand; the sand `#F6E3B4` stays 17 L\* or more above the mid) | 3 round pastel corals, 2 sea-grass tufts, 3 smooth pebbles, 2 shells | A ring of lantern warm-white (`#FFF1DC`) glow buoys marking the safe edge; water so shallow the surface ripples show on the sand |
 | **Sunlit Reef** | 8 sand chunks, 6 reef-rock blocks, 4 arches and tunnels | 12 corals (brain, staghorn, fan, tube, table; 3 sizes), 4 sponges, 3 sea grasses, `anemone` [L], 2 eel-hole rings | Crevices for `urchin_puff`, caves for `glowfry`, bait `hook`s hanging from the surface |
 | **Kelp Forest** | 6 silt chunks, 4 mossy boulders, 3 root mounds with moray holes | Kelp plant in 3 heights (40, 80, 140 studs), canopy leaf cards, 3 ferns, 2 fallen logs | The canopy: a broken ceiling of leaves with shafts of light between |
 | **The Drop-off** | 8 cliff modules, 4 ledges, 3 overhangs, 2 floor shelves | 4 dark sponges, 3 sea whips, 2 tube-worm clusters, nine `vent` chimneys at the Chimneys, each 12 studs tall (cold stone in the MVP, lit at launch [L]) | The Tin Pickle wreck (home of `spark_eel` [L]), the pale bowl of Whale's Rest (the Whale Fall site [L]), current streams |

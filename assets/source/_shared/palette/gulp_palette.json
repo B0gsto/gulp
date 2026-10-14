@@ -23,6 +23,7 @@
     "shrimp": {"light": "#FFE6D1", "mid": "#FFB48A", "dark": "#C2693D"},
     "sardine": {"light": "#F2F8FC", "mid": "#BFD9E8", "dark": "#5C9AD9"},
     "darter": {"light": "#FFF6C9", "mid": "#FFD23D", "dark": "#2F7F8C", "accent": "#FF7A5C"},
+    "glowfry": {"light": "#FFE98A", "mid": "#C29424", "dark": "#6B3A0E"},
     "mackerel": {"light": "#E8F2F0", "mid": "#2FA89A", "dark": "#16574F"},
     "bonito": {"light": "#E6EEF5", "mid": "#6F8FD9", "dark": "#23366B"},
     "tuna": {"light": "#F0F4F8", "mid": "#4F6FD0", "dark": "#162657", "accent": "#FFD23D"},
@@ -33,6 +34,9 @@
     "old_scar": {"light": "#F5F8FA", "mid": "#B9C4CC", "dark": "#4A5560", "accent": "#FFD9D0"},
     "jelly_bloom": {"light": "#FFFFFF", "mid": "#FFC2E2", "dark": "#7A5CC2"},
     "anemone": {"light": "#FFE6F0", "mid": "#FF8FB8", "dark": "#A83D6B", "accent": "#FFF2A8"}
+  },
+  "traits": {
+    "glow": {"signature": "#FFE98A"}
   },
   "rarity": {
     "common": "#C9D6DF",
@@ -54,7 +58,12 @@
   },
   "named": {
     "ember_crack": "#FF7A1F",
-    "hook_float_red": "#D2564B"
+    "hook_float_red": "#D2564B",
+    "nursery_rim_mid": "#E89D93",
+    "nursery_rim_mid_rose": "#E5979A",
+    "nursery_rim_mid_peach": "#ECA596",
+    "nursery_rim_light": "#FDD5C7",
+    "nursery_rim_dark": "#54427F"
   },
   "ui": {
     "ink": "#14213D",
