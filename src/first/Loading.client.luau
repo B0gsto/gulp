@@ -73,6 +73,24 @@ local CONFIG = table.freeze({
 	dotWave = 16, -- rpx of up-and-down drift (tune)
 	dotsMax = 12, -- the dot pool (tune)
 	splitBubbles = 26, -- bubbles in the exit (tune)
+	-- The stand-in look (no bible value: presentation only, replaced by the `UI_Load_*` art).
+	logoY = 0.22, -- share of the height: the logo's centre, in the top third (04 §2.2)
+	logoStroke = 0.042, -- share of the logo box height: about 6% of the cap height
+	logoShadow = 0.06, -- share of the logo box height: the drop shadow's offset down
+	chompPop = 0.15, -- the Fry's scale pop on a bite, on top of its growth
+	chompTime = 0.1, -- s, the pop
+	squashTime = 0.18, -- s, the body's squash on a bite
+	puffs = 9, -- the bite-puff pool (3 a bite)
+	puffLife = 0.45, -- s
+	tailWiggle = 16, -- degrees either way
+	tailRate = 9, -- rad/s
+	dotGlow = 1.75, -- the glow ring around a dot, as a multiple of its size (varied by 15%)
+	ambient = 6, -- slow background bubbles (pool)
+	ambientEvery = 2.6, -- s between them, on average
+	ambientSpeed = 34, -- rpx/s rising, on average
+	bubbleSize = 62, -- rpx, a progress bubble
+	bubbleGap = 23, -- rpx between progress bubbles
+	slowIcon = 92, -- rpx, the spinner's diameter (the slow sign's height inside its pill)
 })
 
 -- 04 §2.3's minimum set under chapter 07 names, found under ReplicatedStorage.Assets (09 §3.1).
@@ -96,8 +114,16 @@ local REST = {
 }
 
 local hex = Color3.fromHex
+local WATER = hex("#4CCFD2") -- 06 §4.2, Nursery Lagoon mid water: lagoon teal
+local SURFACE = hex("#9FF0E6") -- 06 §4.2, Nursery Lagoon surface band
+local DEEP = hex("#2FAFC0") -- 06 §4.2, Nursery Lagoon deep band
+local WHITE = Color3.new(1, 1, 1)
 local COLOUR = table.freeze({
-	water = hex("#4CCFD2"), -- 06 §4.2, Nursery Lagoon mid water: lagoon teal
+	water = WATER,
+	waterTop = WATER:Lerp(SURFACE, 0.2), -- the gentle top-to-bottom shade stays in the lagoon ramp
+	waterBottom = WATER:Lerp(DEEP, 0.25),
+	logoLow = WHITE:Lerp(SURFACE, 0.17), -- the wordmark's faint white-to-sea-glass gradient
+	bubbleShade = WHITE:Lerp(SURFACE, 0.45), -- a full bubble's lower side
 	ink = hex("#14213D"), -- 06 §4.6 navy (Kit/Theme.INK)
 	white = Color3.new(1, 1, 1),
 	dim = hex("#B8C4CC"), -- 06 §4.6 disabled grey: pale, never amber (04 §2.4)
@@ -154,10 +180,19 @@ gui.DisplayOrder = 100
 gui.IgnoreGuiInset = true -- before ScreenInsets, which it can rewrite
 gui.ScreenInsets = Enum.ScreenInsets.None
 
-local background = frame("Background", gui, COLOUR.water, 0)
-background.Size = UDim2.fromScale(1, 1)
+local function gradient(parent: Instance, rotation: number): UIGradient
+	local g = Instance.new("UIGradient")
+	g.Rotation = rotation
+	g.Parent = parent
+	return g
+end
 
--- Light rays: tall, soft, slowly swaying (stand-in for `UI_Load_Background`).
+-- The sea: lagoon teal, a touch lighter at the top (stand-in for `UI_Load_Background`).
+local background = frame("Background", gui, COLOUR.white, 0)
+background.Size = UDim2.fromScale(1, 1)
+gradient(background, 90).Color = ColorSequence.new(COLOUR.waterTop, COLOUR.waterBottom)
+
+-- Light rays: tall, soft, slowly swaying.
 local rays: { Frame } = {}
 for i, x in { 0.18, 0.42, 0.63, 0.86 } do
 	local ray = frame("Ray", background, COLOUR.white, 0.86)
@@ -165,45 +200,90 @@ for i, x in { 0.18, 0.42, 0.63, 0.86 } do
 	ray.Position = UDim2.fromScale(x, -0.25)
 	ray.Size = UDim2.fromScale(0.05 + 0.03 * (i % 2), 1.5)
 	ray.Rotation = 16
-	local fade = Instance.new("UIGradient")
-	fade.Rotation = 90
-	fade.Transparency = NumberSequence.new({
+	gradient(ray, 90).Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
 		NumberSequenceKeypoint.new(0.7, 0.8),
 		NumberSequenceKeypoint.new(1, 1),
 	})
-	fade.Parent = ray
 	rays[i] = ray
 end
 
--- Dots under the Fry.
+-- Slow background bubbles, rising from the floor (a pool, moved each frame).
+type Drift = {
+	disc: Frame,
+	rim: UIStroke,
+	x: number,
+	y: number,
+	speed: number,
+	phase: number,
+	alive: boolean,
+}
+local ambientLayer = frame("Ambient", background, COLOUR.white, 1)
+ambientLayer.Size = UDim2.fromScale(1, 1)
+local drifts: { Drift } = {}
+for i = 1, CONFIG.ambient do
+	local disc = frame("Drift", ambientLayer, COLOUR.white, 0.9)
+	disc.AnchorPoint = Vector2.new(0.5, 0.5)
+	disc.Visible = false
+	round(disc)
+	local rim = stroke(disc, COLOUR.white)
+	rim.Transparency = 0.6
+	drifts[i] = { disc = disc, rim = rim, x = 0, y = 0, speed = 0, phase = 0, alive = false }
+end
+
+-- The edge vignette: four soft navy fades, darker in the corners where they cross.
+for _, edge in
+	{
+		{ size = UDim2.fromScale(1, 0.22), at = Vector2.new(0, 0), rotation = 90 },
+		{ size = UDim2.fromScale(1, 0.22), at = Vector2.new(0, 1), rotation = -90 },
+		{ size = UDim2.fromScale(0.16, 1), at = Vector2.new(0, 0), rotation = 0 },
+		{ size = UDim2.fromScale(0.16, 1), at = Vector2.new(1, 0), rotation = 180 },
+	}
+do
+	local shade = frame("Vignette", background, COLOUR.ink, 0)
+	shade.AnchorPoint = edge.at
+	shade.Position = UDim2.fromScale(edge.at.X, edge.at.Y)
+	shade.Size = edge.size
+	gradient(shade, edge.rotation).Transparency =
+		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(1, 1) })
+end
+
+-- Dots and bite puffs under the Fry.
 local dotLayer = frame("Dots", background, COLOUR.white, 1)
 dotLayer.Size = UDim2.fromScale(1, 1)
 
--- The logo: top third, 30% of the screen width (stand-in for `UI_Load_Logo`, 560 x 240).
-local logo = Instance.new("TextLabel")
-logo.Name = "Logo"
-logo.BackgroundTransparency = 1
-logo.AnchorPoint = Vector2.new(0.5, 0.5)
-logo.Position = UDim2.fromScale(0.5, 0.19)
-logo.Size = UDim2.fromScale(0.3, 0.3)
-logo.FontFace = Font.fromEnum(Enum.Font.FredokaOne) -- 06 §12.3 display face
-logo.Text = "GULP" -- the wordmark, never translated (08 §13.11)
-logo.TextColor3 = COLOUR.white
-logo.TextScaled = true
-logo.ZIndex = 3
-logo.Parent = background
-local logoAspect = Instance.new("UIAspectRatioConstraint")
-logoAspect.AspectRatio = 560 / 240
-logoAspect.DominantAxis = Enum.DominantAxis.Width
-logoAspect.Parent = logo
-local logoStroke = Instance.new("UIStroke")
-logoStroke.Color = COLOUR.ink
-logoStroke.LineJoinMode = Enum.LineJoinMode.Round
-logoStroke.Parent = logo
+-- The logo: top third, 30% of the screen width (stand-in for `UI_Load_Logo`, 560 x 240): white
+-- with a faint sea-glass fade, a thick navy outline and a soft navy shadow under it.
+local function wordmark(name: string, colour: Color3, transparency: number): (TextLabel, UIStroke)
+	local label = Instance.new("TextLabel")
+	label.Name = name
+	label.BackgroundTransparency = 1
+	label.AnchorPoint = Vector2.new(0.5, 0.5)
+	label.Size = UDim2.fromScale(0.3, 0.3)
+	label.FontFace = Font.fromEnum(Enum.Font.FredokaOne) -- 06 §12.3 display face
+	label.Text = "GULP" -- the wordmark, never translated (08 §13.11)
+	label.TextColor3 = colour
+	label.TextTransparency = transparency
+	label.TextScaled = true
+	label.ZIndex = 3
+	label.Parent = background
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 560 / 215 -- a little wider than the art, so the word fills the width
+	aspect.DominantAxis = Enum.DominantAxis.Width
+	aspect.Parent = label
+	local outline = Instance.new("UIStroke")
+	outline.Color = COLOUR.ink
+	outline.Transparency = transparency
+	outline.LineJoinMode = Enum.LineJoinMode.Round
+	outline.Parent = label
+	return label, outline
+end
+local logoShadow, logoShadowStroke = wordmark("LogoShadow", COLOUR.ink, 0.65) -- navy at 35%
+local logo, logoStroke = wordmark("Logo", COLOUR.white, 0)
+gradient(logo, 90).Color = ColorSequence.new(COLOUR.white, COLOUR.logoLow)
 
--- The Fry (stand-in for `UI_Load_Mascot`): body, belly, tail and eye, facing right. Positions are
--- shares of its box; `face(-1)` mirrors them.
+-- The Fry (stand-in for `UI_Load_Mascot`): body, belly, tail and a big eye with a highlight,
+-- facing right. Positions are shares of its box; `face(-1)` mirrors them.
 local fry = frame("Fry", background, COLOUR.white, 1)
 fry.AnchorPoint = Vector2.new(0.5, 0.5)
 fry.ZIndex = 4
@@ -230,18 +310,25 @@ belly.ZIndex = 2
 round(belly)
 local eye = frame("Eye", body, COLOUR.white, 0)
 eye.AnchorPoint = Vector2.new(0.5, 0.5)
-eye.Size = UDim2.fromScale(0.34, 0.34)
+eye.Size = UDim2.fromScale(0.46, 0.46)
 eye.SizeConstraint = Enum.SizeConstraint.RelativeYY
 eye.ZIndex = 3
 round(eye)
 local eyeStroke = stroke(eye, COLOUR.ink)
 local pupil = frame("Pupil", eye, COLOUR.ink, 0)
 pupil.AnchorPoint = Vector2.new(0.5, 0.5)
-pupil.Size = UDim2.fromScale(0.55, 0.55)
+pupil.Size = UDim2.fromScale(0.58, 0.58)
 pupil.ZIndex = 3
 round(pupil)
+local glint = frame("Glint", pupil, COLOUR.white, 0)
+glint.AnchorPoint = Vector2.new(0.5, 0.5)
+glint.Position = UDim2.fromScale(0.36, 0.32)
+glint.Size = UDim2.fromScale(0.4, 0.4)
+glint.ZIndex = 3
+round(glint)
 
 local facing = 0
+local tailX = 0.2
 local function face(direction: number)
 	if direction == facing then
 		return
@@ -250,14 +337,16 @@ local function face(direction: number)
 	local function x(share: number): number
 		return if direction > 0 then share else 1 - share
 	end
-	tail.Position = UDim2.fromScale(x(0.2), 0.5)
+	tailX = x(0.2)
+	tail.Position = UDim2.fromScale(tailX, 0.5)
 	body.Position = UDim2.fromScale(x(0.6), 0.5)
-	eye.Position = UDim2.fromScale(if direction > 0 then 0.74 else 0.26, 0.4)
-	pupil.Position = UDim2.fromScale(if direction > 0 then 0.62 else 0.38, 0.5)
+	eye.Position = UDim2.fromScale(if direction > 0 then 0.72 else 0.28, 0.4)
+	pupil.Position = UDim2.fromScale(if direction > 0 then 0.6 else 0.4, 0.52)
 end
 face(1)
 
--- The progress row: five bubbles along the bottom (04 §2.2).
+-- The progress row: five bubbles along the bottom (04 §2.2). Empty is a faint outline; full is a
+-- solid white bubble with a shine; at J 20 (04 §2.4) the whole row turns pale grey and solid.
 local row = frame("Progress", background, COLOUR.white, 1)
 row.AnchorPoint = Vector2.new(0.5, 0.5)
 row.Position = UDim2.fromScale(0.5, 0.9)
@@ -269,64 +358,152 @@ rowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
 rowLayout.Parent = row
 
-type Bubble = { disc: Frame, rim: UIStroke, shine: Frame, pop: UIScale, full: boolean }
+type Bubble = {
+	disc: Frame,
+	rim: UIStroke,
+	shade: UIGradient,
+	shine: Frame,
+	pop: UIScale,
+	full: boolean,
+}
 local bubbles: { Bubble } = {}
 for i = 1, CONFIG.bubbles do
 	local disc = frame("Bubble", row, COLOUR.white, 1)
 	disc.LayoutOrder = i
 	disc.ZIndex = 3
 	round(disc)
-	local shine = frame("Shine", disc, COLOUR.white, 0.25)
+	local shade = gradient(disc, 50)
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, COLOUR.white),
+		ColorSequenceKeypoint.new(0.45, COLOUR.white),
+		ColorSequenceKeypoint.new(1, COLOUR.bubbleShade),
+	})
+	local shine = frame("Shine", disc, COLOUR.white, 0)
 	shine.AnchorPoint = Vector2.new(0.5, 0.5)
-	shine.Position = UDim2.fromScale(0.32, 0.32)
-	shine.Size = UDim2.fromScale(0.26, 0.26)
+	shine.Position = UDim2.fromScale(0.33, 0.31)
+	shine.Size = UDim2.fromScale(0.28, 0.2)
+	shine.Rotation = -35
 	shine.ZIndex = 3
 	round(shine)
 	local pop = Instance.new("UIScale")
 	pop.Parent = disc
-	bubbles[i] =
-		{ disc = disc, rim = stroke(disc, COLOUR.white), shine = shine, pop = pop, full = false }
+	bubbles[i] = {
+		disc = disc,
+		rim = stroke(disc, COLOUR.white),
+		shade = shade,
+		shine = shine,
+		pop = pop,
+		full = false,
+	}
 end
 
--- The slow sign (04 §2.4 at J 30; stand-in for `UI_Loading_SlowIcon`): a spinner and a signal icon
--- with one bar lit. No text.
-local slow = frame("Slow", background, COLOUR.white, 1)
+local dimmed = false
+local function paintBubble(b: Bubble)
+	if dimmed then
+		b.disc.BackgroundColor3 = COLOUR.dim
+		b.disc.BackgroundTransparency = if b.full then 0 else 0.45
+		b.rim.Color = COLOUR.dim
+		b.rim.Transparency = 0
+		b.shade.Enabled = false
+		b.shine.Visible = false
+	else
+		b.disc.BackgroundColor3 = COLOUR.white
+		b.disc.BackgroundTransparency = if b.full then 0 else 1
+		b.rim.Color = COLOUR.white
+		b.rim.Transparency = if b.full then 0 else 0.6
+		b.shade.Enabled = b.full
+		b.shine.Visible = b.full
+	end
+end
+for _, b in bubbles do
+	paintBubble(b)
+end
+
+-- The slow sign (04 §2.4 at J 30; stand-in for `UI_Loading_SlowIcon`): a spinning ring and a
+-- signal icon with one bar lit, on a faint navy pill. No text.
+local slow = frame("Slow", background, COLOUR.ink, 0.8)
 slow.AnchorPoint = Vector2.new(0.5, 0.5)
-slow.Position = UDim2.fromScale(0.5, 0.79)
+slow.Position = UDim2.fromScale(0.5, 0.765)
 slow.Visible = false
 slow.ZIndex = 3
-local spinner = frame("Spinner", slow, COLOUR.white, 1)
-spinner.AnchorPoint = Vector2.new(0.5, 0.5)
-spinner.ZIndex = 3
-round(spinner)
-local spinnerStroke = stroke(spinner, COLOUR.white)
-local arc = Instance.new("UIGradient")
-arc.Transparency = NumberSequence.new({
+round(slow)
+local function ring(name: string, transparency: number): (Frame, UIStroke)
+	local r = frame(name, slow, COLOUR.white, 1)
+	r.AnchorPoint = Vector2.new(0.5, 0.5)
+	r.ZIndex = 3
+	round(r)
+	local s = stroke(r, COLOUR.white)
+	s.Transparency = transparency
+	return r, s
+end
+local ringTrack, trackStroke = ring("Track", 0.75)
+local spinner, spinnerStroke = ring("Spinner", 0)
+gradient(spinnerStroke, 0).Transparency = NumberSequence.new({
 	NumberSequenceKeypoint.new(0, 0),
-	NumberSequenceKeypoint.new(0.5, 0.15),
-	NumberSequenceKeypoint.new(0.52, 1),
+	NumberSequenceKeypoint.new(0.45, 0),
+	NumberSequenceKeypoint.new(0.62, 1),
 	NumberSequenceKeypoint.new(1, 1),
 })
-arc.Parent = spinnerStroke
 local signalBars: { Frame } = {}
 for i = 1, 3 do
-	local bar = frame("Bar", slow, COLOUR.white, if i == 1 then 0 else 0.7)
+	local bar = frame("Bar", slow, COLOUR.white, if i == 1 then 0 else 0.65)
 	bar.AnchorPoint = Vector2.new(0.5, 1)
 	bar.ZIndex = 3
 	round(bar, UDim.new(0.5, 0))
 	signalBars[i] = bar
 end
 
--- Dot pool.
-type Dot = { disc: Frame, x: number, y: number, phase: number, alive: boolean }
+-- Dot pool: a white dot in a faint glow ring.
+type Dot = {
+	disc: Frame,
+	glow: Frame,
+	x: number,
+	y: number,
+	phase: number,
+	rate: number,
+	alive: boolean,
+}
 local dots: { Dot } = {}
 for i = 1, CONFIG.dotsMax do
-	local disc = frame("Dot", dotLayer, COLOUR.white, 0.05)
+	local disc = frame("Dot", dotLayer, COLOUR.white, 0.02)
 	disc.AnchorPoint = Vector2.new(0.5, 0.5)
 	disc.Visible = false
 	disc.ZIndex = 2
 	round(disc)
-	dots[i] = { disc = disc, x = 0, y = 0, phase = 0, alive = false }
+	local glow = frame("Glow", disc, COLOUR.white, 0.8)
+	glow.AnchorPoint = Vector2.new(0.5, 0.5)
+	glow.Position = UDim2.fromScale(0.5, 0.5)
+	glow.ZIndex = 2
+	round(glow)
+	dots[i] = { disc = disc, glow = glow, x = 0, y = 0, phase = 0, rate = 1.7, alive = false }
+end
+
+-- Bite puffs: three small rising rings at the mouth on each dot eaten.
+type Puff = {
+	disc: Frame,
+	rim: UIStroke,
+	x: number,
+	y: number,
+	vx: number,
+	born: number,
+	alive: boolean,
+}
+local puffs: { Puff } = {}
+for i = 1, CONFIG.puffs do
+	local disc = frame("Puff", dotLayer, COLOUR.white, 1)
+	disc.AnchorPoint = Vector2.new(0.5, 0.5)
+	disc.Visible = false
+	disc.ZIndex = 5
+	round(disc)
+	puffs[i] = {
+		disc = disc,
+		rim = stroke(disc, COLOUR.white),
+		x = 0,
+		y = 0,
+		vx = 0,
+		born = 0,
+		alive = false,
+	}
 end
 
 -- Layout in rpx, again whenever the screen changes size.
@@ -335,30 +512,44 @@ local function layout()
 	local size = gui.AbsoluteSize
 	width, height = math.max(size.X, 1), math.max(size.Y, 1)
 	rpx = math.min(width, height) / 720
-	logoStroke.Thickness = math.max(2, 3.3 * rpx)
+	local logoHeight = width * 0.3 * 215 / 560
+	logoStroke.Thickness = math.max(2, CONFIG.logoStroke * logoHeight)
+	logoShadowStroke.Thickness = logoStroke.Thickness
+	logo.Position = UDim2.fromScale(0.5, CONFIG.logoY)
+	logoShadow.Position = UDim2.new(0.5, 0, CONFIG.logoY, CONFIG.logoShadow * logoHeight)
 	local length = CONFIG.fryLength * rpx
 	fry.Size = UDim2.fromOffset(length, length * 0.56)
 	bodyStroke.Thickness = math.max(1, 2.7 * rpx)
 	tailStroke.Thickness = bodyStroke.Thickness
-	eyeStroke.Thickness = math.max(1, 1.4 * rpx)
-	local disc = 30 * rpx
-	rowLayout.Padding = UDim.new(0, 16 * rpx)
-	row.Size = UDim2.fromOffset(CONFIG.bubbles * disc + (CONFIG.bubbles - 1) * 16 * rpx, disc)
+	eyeStroke.Thickness = math.max(1, 1.6 * rpx)
+	local disc, gap = CONFIG.bubbleSize * rpx, CONFIG.bubbleGap * rpx
+	rowLayout.Padding = UDim.new(0, gap)
+	row.Size = UDim2.fromOffset(CONFIG.bubbles * disc + (CONFIG.bubbles - 1) * gap, disc)
 	for _, b in bubbles do
 		b.disc.Size = UDim2.fromOffset(disc, disc)
-		b.rim.Thickness = math.max(1.5, 2.7 * rpx)
+		b.rim.Thickness = math.max(1.5, 4 * rpx)
 	end
-	local spin = 34 * rpx
-	slow.Size = UDim2.fromOffset(spin * 2.4, spin)
-	spinner.Size = UDim2.fromOffset(spin, spin)
-	spinner.Position = UDim2.fromOffset(spin * 0.5, spin * 0.5)
-	spinnerStroke.Thickness = math.max(2, 4 * rpx)
+	-- The slow sign, in shares of the icon height `h`: the ring at the left, the bars at the right.
+	local h = CONFIG.slowIcon * rpx
+	slow.Size = UDim2.fromOffset(h * 2.5, h * 1.3)
+	for _, r in { ringTrack, spinner } do
+		r.Size = UDim2.fromOffset(h, h)
+		r.Position = UDim2.fromOffset(h * 0.8, h * 0.65)
+	end
+	spinnerStroke.Thickness = math.max(2, 6.5 * rpx)
+	trackStroke.Thickness = spinnerStroke.Thickness
 	for i, bar in signalBars do
-		bar.Size = UDim2.fromOffset(6 * rpx, (8 + 7 * i) * rpx)
-		bar.Position = UDim2.fromOffset(spin * 1.45 + (i - 1) * 10 * rpx, spin * 0.92)
+		bar.Size = UDim2.fromOffset(h * 0.16, h * (0.15 + 0.2 * i))
+		bar.Position = UDim2.fromOffset(h * (1.6 + 0.26 * (i - 1)), h * 1.025)
 	end
 	for _, dot in dots do
 		dot.disc.Size = UDim2.fromOffset(CONFIG.dotSize * rpx, CONFIG.dotSize * rpx)
+	end
+	for _, p in puffs do
+		p.rim.Thickness = math.max(1, 1.6 * rpx)
+	end
+	for _, d in drifts do
+		d.rim.Thickness = math.max(1, 1.6 * rpx)
 	end
 end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
@@ -379,7 +570,8 @@ local velX, velY = 0, 0
 local growth = 0
 local nextDotAt = 0
 local chompAt = -math.huge
-local CHOMP_TIME = 0.18 -- s, the body's squash on a bite (tune)
+local tailPhase = 0
+local nextDriftAt = 0
 
 local function pointerTo(position: Vector3)
 	local inset = GuiService:GetGuiInset() -- InputObject positions start below it; this ScreenGui ignores it
@@ -418,18 +610,39 @@ local function spawnDot(now: number)
 			dot.alive = true
 			dot.x = width + CONFIG.dotSize * rpx
 			dot.y = height * (0.32 + 0.48 * math.random())
-			dot.phase = now * 1.7 + math.random() * 6.28
+			dot.rate = 1.3 + 0.9 * math.random() -- each dot waves at its own pace
+			dot.phase = now * dot.rate + math.random() * 6.28
+			local glow = CONFIG.dotGlow * (0.85 + 0.3 * math.random())
+			dot.glow.Size = UDim2.fromScale(glow, glow)
 			dot.disc.Visible = true
 			return
 		end
 	end
 end
 
-local function eat(dot: Dot, now: number)
+local function puff(x: number, y: number, now: number)
+	local made = 0
+	for _, p in puffs do
+		if not p.alive then
+			p.alive = true
+			p.x, p.y = x + (math.random() - 0.5) * 10 * rpx, y
+			p.vx = (math.random() - 0.5) * 60 * rpx
+			p.born = now - made * 0.04
+			p.disc.Visible = true
+			made += 1
+			if made == 3 then
+				return
+			end
+		end
+	end
+end
+
+local function eat(dot: Dot, now: number, y: number)
 	dot.alive = false
 	dot.disc.Visible = false
 	growth = math.min(growth + CONFIG.growPerDot, CONFIG.growMax)
 	chompAt = now
+	puff(dot.x, y, now)
 	if biteSound then
 		SoundService:PlayLocalSound(biteSound)
 	end
@@ -454,10 +667,19 @@ local function stepToy(dt: number, now: number)
 	local bob = math.sin(now * 3) * 3 * rpx
 	fry.Position = UDim2.fromOffset(fryX, fryY + bob)
 	fry.Rotation = math.clamp(tilt, -30, 30) * facing
-	fryScale.Scale = 1 + growth
-	local chomp = math.clamp((now - chompAt) / CHOMP_TIME, 0, 1)
+	-- Growth stays; a bite adds a short pop on top of it.
+	local pop = (now - chompAt) / CONFIG.chompTime
+	fryScale.Scale = (1 + growth)
+		* (if pop < 1 then 1 + CONFIG.chompPop * math.sin(pop * math.pi) else 1)
+	local chomp = math.clamp((now - chompAt) / CONFIG.squashTime, 0, 1)
 	local squash = math.sin(chomp * math.pi) * 0.1
 	body.Size = UDim2.fromScale(0.78 + squash, 1 - squash)
+	-- The tail swings, faster when the Fry swims.
+	local speed = math.sqrt(velX * velX + velY * velY) / (600 * rpx)
+	tailPhase += dt * CONFIG.tailRate * (1 + math.min(speed, 1))
+	local swing = math.sin(tailPhase)
+	tail.Rotation = 45 + CONFIG.tailWiggle * swing
+	tail.Position = UDim2.fromScale(tailX, 0.5 + 0.07 * swing)
 
 	-- Dots drift in from the right with a gentle wave; the Fry eats any it touches.
 	if now >= nextDotAt then
@@ -468,14 +690,62 @@ local function stepToy(dt: number, now: number)
 	for _, dot in dots do
 		if dot.alive then
 			dot.x -= CONFIG.dotSpeed * rpx * dt
-			local y = dot.y + math.sin(now * 1.7 + dot.phase) * CONFIG.dotWave * rpx
+			local y = dot.y + math.sin(now * dot.rate + dot.phase) * CONFIG.dotWave * rpx
 			if dot.x < -CONFIG.dotSize * rpx then
 				dot.alive = false
 				dot.disc.Visible = false
 			elseif (dot.x - fryX) ^ 2 + (y - fryY) ^ 2 <= reach * reach then
-				eat(dot, now)
+				eat(dot, now, y)
 			else
 				dot.disc.Position = UDim2.fromOffset(dot.x, y)
+			end
+		end
+	end
+
+	-- Bite puffs rise, swell and fade.
+	for _, p in puffs do
+		if p.alive then
+			local age = (now - p.born) / CONFIG.puffLife
+			if age >= 1 then
+				p.alive = false
+				p.disc.Visible = false
+			elseif age >= 0 then
+				local size = (4 + 7 * age) * rpx
+				p.disc.Position = UDim2.fromOffset(
+					p.x + p.vx * age * CONFIG.puffLife,
+					p.y - 70 * rpx * age * CONFIG.puffLife
+				)
+				p.disc.Size = UDim2.fromOffset(size, size)
+				p.rim.Transparency = 0.15 + 0.85 * age
+			end
+		end
+	end
+
+	-- Slow background bubbles: one now and then, rising and swaying.
+	if now >= nextDriftAt then
+		nextDriftAt = now + CONFIG.ambientEvery * (0.6 + 0.8 * math.random())
+		for _, d in drifts do
+			if not d.alive then
+				local size = (10 + 16 * math.random()) * rpx
+				d.alive = true
+				d.x, d.y = width * (0.05 + 0.9 * math.random()), height + size
+				d.speed = CONFIG.ambientSpeed * (0.7 + 0.6 * math.random()) * rpx
+				d.phase = math.random() * 6.28
+				d.disc.Size = UDim2.fromOffset(size, size)
+				d.disc.Visible = true
+				break
+			end
+		end
+	end
+	for _, d in drifts do
+		if d.alive then
+			d.y -= d.speed * dt
+			if d.y < -30 * rpx then
+				d.alive = false
+				d.disc.Visible = false
+			else
+				d.disc.Position =
+					UDim2.fromOffset(d.x + math.sin(now * 0.8 + d.phase) * 8 * rpx, d.y)
 			end
 		end
 	end
@@ -589,14 +859,13 @@ local function decide()
 end
 
 local fillInfo = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local dimmed = false
 local function showProgress()
 	local share = if mode then 1 else (stepsDone + (if shellReady() then 1 else 0)) / stepsTotal
 	local lit = math.floor(share * CONFIG.bubbles + 1e-6)
 	for i, b in bubbles do
 		if i <= lit and not b.full then
 			b.full = true
-			b.disc.BackgroundTransparency = 0.2
+			paintBubble(b)
 			b.pop.Scale = 1.3
 			TweenService:Create(b.pop, fillInfo, { Scale = 1 }):Play()
 		end
@@ -605,10 +874,8 @@ local function showProgress()
 	local late = j() >= CONFIG.dimAt and player:GetAttribute("Slot") == nil
 	if late ~= dimmed then
 		dimmed = late
-		local colour = if late then COLOUR.dim else COLOUR.white
 		for _, b in bubbles do
-			b.disc.BackgroundColor3 = colour
-			b.rim.Color = colour
+			paintBubble(b)
 		end
 	end
 	if j() >= CONFIG.slowAt and not slow.Visible then
