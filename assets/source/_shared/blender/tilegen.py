@@ -178,13 +178,13 @@ def paint_sand(seed=11):
     rng = np.random.default_rng(seed)
     u, v = grid()
     base = base_of("T_Tile_Sand_Alb")
-    s = 0.20 * waves(rng, u, v, 1, 2.3, 8)                       # big soft patches (rest areas)
+    s = 0.26 * waves(rng, u, v, 1, 2.3, 8)                       # big soft patches (rest areas)
     # wind ripples: integer wave vector (1, 6) bent by a slow periodic warp, faded in and out
     warp = 0.55 * waves(rng, u, v, 1, 2, 6) + 0.25 * waves(rng, u, v, 2, 3, 6)
     ph = 2 * math.pi * (1 * u + 6 * v + warp)
     rip = np.sin(ph) + 0.38 * np.sin(2 * ph + 0.6)              # asymmetric: steep lee side
     fade = smooth(-0.35, 0.55, waves(rng, u, v, 1, 2, 6))
-    s += 0.36 * rip / 1.3 * fade
+    s += 0.45 * rip / 1.3 * fade
     # scattered shell bits (light) and grit pebbles (dark), each a soft painted dab with its own shade
     for dx, dy, r in dots(rng, u, v, 16, 6, 10):
         d = np.hypot(dx, dy) / r

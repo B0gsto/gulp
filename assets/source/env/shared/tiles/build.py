@@ -216,9 +216,9 @@ def render():
             else:
                 rng.inputs["From Min"].default_value, rng.inputs["From Max"].default_value = 0.25 * dist, float(dist)
             sun_data.color = lin(sunc)
-            sun_data.energy = 1.6 * bright
+            sun_data.energy = 1.35 * bright
             amb.inputs["Color"].default_value = lin(ambc) + (1.0,)
-            amb.inputs["Strength"].default_value = 0.55
+            amb.inputs["Strength"].default_value = 0.45
             bg.inputs["Color"].default_value = lin(fogc) + (1.0,)
             bg.inputs["Strength"].default_value = 1.0
             for shape in SHAPES:
