@@ -63,18 +63,20 @@ def load_build(build_file):
     return module
 
 
-def run(build_file, steps):
-    asset_dir = os.path.dirname(build_file)
-    asset_id = os.path.basename(asset_dir)
+def run(build_file, steps, builder=None):
+    """`builder` (a function returning the spec) replaces the build file's build(); the
+    placeholder generator uses it. Then no .blend is saved."""
+    asset_dir = os.path.dirname(build_file) if build_file else None
+    asset_id = os.path.basename(asset_dir) if asset_dir else None
     for step in steps:
         if step not in IMPLEMENTED:
             print("[run] step '%s' is not in this first version of the tool: skipped" % step)
 
     template.open_template()
-    spec = load_build(build_file).build()
+    spec = builder() if builder else load_build(build_file).build()
     name = spec["name"]
-    spec.setdefault("id", asset_id)
-    print("[run] built %s (%s)" % (name, asset_id))
+    spec.setdefault("id", asset_id or name)
+    print("[run] built %s (%s)" % (name, spec["id"]))
     if "lod" in steps:
         versions.run_lod(spec)
     if "shell" in steps:
@@ -100,7 +102,7 @@ def run(build_file, steps):
         result["preview"] = preview.run(spec, report, ok)
         if spec.get("versions_made") or spec.get("uv"):
             result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
-    if "build" in steps:
+    if "build" in steps and asset_dir:
         blend = os.path.join(asset_dir, asset_id + ".blend")
         bpy.ops.wm.save_as_mainfile(filepath=blend, check_existing=False, copy=True)
         result["blend"] = os.path.relpath(blend, common.REPO_DIR)

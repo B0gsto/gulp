@@ -29,6 +29,7 @@ import template
 
 SHELL_COLOUR = {"Shell": "signal.can_eat", "ShellThick": "signal.can_eat_you"}   # 06 section 13.2
 THICK_FACTOR = 1.5
+SHELL_SHARE = 0.4
 THICK_ONLY = ("gull", "moray", "old_scar")      # 07 section 1.2: they cannot be eaten
 NO_OUTLINE = ("plankton", "hook")               # 06 section 13.2
 
@@ -401,6 +402,7 @@ def run_shell(spec):
             if hidden:
                 delete_verts(obj.data, hidden)
             target = budgets.tri_budget(budget, "shell", lod=lod, body_tris=spec.get("body_tris") or triangles(entry["object"].data))
+            target = min(target, max(12, int(round(SHELL_SHARE * triangles(src.data)))))   # 06 13.2: about 40% of the level
             decimate(obj, target)
             tidy(obj, None, src)
             crossings = grow(obj.data, d)

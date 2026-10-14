@@ -6,3 +6,4 @@
 *.blend1
 *.fbx
 __pycache__/
+/placeholder/
