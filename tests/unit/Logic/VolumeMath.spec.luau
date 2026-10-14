@@ -184,11 +184,13 @@ describe("VolumeMath", function()
 		expect(VolumeMath.validate({ Kind = "RevivePoint", PointId = "rp_01" }, zones)).toBe(true)
 		expect(VolumeMath.validate({ Kind = "RevivePoint" }, zones)).toBe(false)
 		expect(VolumeMath.validate({ Kind = "EelHole" }, zones)).toBe(true)
+		expect(VolumeMath.validate({ Kind = "HatchBed" }, zones)).toBe(true)
 	end)
 
-	it("lists the twelve kinds of section 9.1 and the three safe ones", function()
+	it("lists the thirteen kinds of section 9.1 and the three safe ones", function()
 		expect(#VolumeMath.KINDS).toBe(13)
 		expect(VolumeMath.kindOf("HatchBed")).toBe("HatchBed") -- 09 §9.1
+		expect(table.find(VolumeMath.KINDS, "HatchBed") ~= nil).toBe(true)
 		expect(VolumeMath.SAFE_KINDS).toEqual({ "SafeNursery", "CoveMouth", "CoveInterior" })
 	end)
 

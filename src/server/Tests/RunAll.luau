@@ -20,6 +20,7 @@ local SPECS: { () -> () } = {
 	require("./PreySpec"),
 	require("./BiteSpec"),
 	require("./DataSpec"),
+	require("./RunLoopSpec"),
 }
 
 local function runAll(): string

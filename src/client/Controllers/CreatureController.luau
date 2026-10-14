@@ -24,14 +24,21 @@
 --
 -- Later parts, by sprint (docs/13): pooled nameplates, smoothing pass criteria for other players
 -- and the juvenile-to-adult swap under FX_Metamorph are S9-C1 (the rig already holds both forms);
--- the Leviathan crest and trait visuals come with their art; the tier-up squash pop with Render/Fx
--- (S10-C1); the Smooth-tier outline caps with QualityController.
+-- the Leviathan crest and trait visuals come with their art; FX_TierUp_T<n>, the burst, hit-stop
+-- and sounds with Render/Fx (S10-C1) and the banner with screen S07 (S6-C5); the Smooth-tier
+-- outline caps with QualityController.
+--
+-- Tier-up (task S4-C4; 02 §1.8, §5.1; 09 §6.8): RunLoopService's `CreatureEvent` "tier" with a
+-- rise plays `A_Fish_TierUp` when the manifest has its asset ID, else the code pop (RigMath.popMult,
+-- 0.6 s to 112% on the mesh only). A gulped creature (`Phase = dead`) hides its rig until it is
+-- back, and its smoothing restarts there so it does not glide across the map.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local CameraController = require(script.Parent.CameraController)
+local Client = require(script.Parent.Parent.Net.Client)
 local CreatureRig = require(script.Parent.Parent.Render.CreatureRig)
 local Index = require(ReplicatedStorage.Shared.Data.Index)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
@@ -70,6 +77,8 @@ type Entry = {
 	kind: OutlineRules.Kind,
 	shown: boolean,
 	scaling: boolean,
+	dead: boolean, -- Phase = dead: the rig is hidden
+	popAt: number?, -- os.clock() when the code tier-up pop started
 	connections: { RBXScriptConnection },
 }
 
@@ -120,7 +129,9 @@ local function readFacts(e: Entry): boolean
 	e.tier = tier
 	e.mass = numberAttr(from, "Mass", 0)
 	-- 09 §8.8 and canon 5.2: protected, in a cove, or gulped means nobody can eat it now.
-	e.shielded = attr(from, "Protected") == true or attr(from, "Phase") ~= "run"
+	local phase = attr(from, "Phase")
+	e.shielded = attr(from, "Protected") == true or phase ~= "run"
+	e.dead = phase == "dead"
 	if def then
 		e.radiusMult = def.radiusMult
 		e.topSpeed = SwimModel.topSpeed(tier, def, 1)
@@ -161,11 +172,23 @@ local function recomputeAll()
 	end
 end
 
+-- Hides the rig of a gulped creature, and restarts its smoothing when it comes back.
+local function showAlive(e: Entry)
+	local parent = if e.dead then nil else rigFolder
+	if e.rig.model.Parent ~= parent then
+		e.rig.model.Parent = parent
+		if parent then
+			e.rig.follow = RigMath.newFollow()
+		end
+	end
+end
+
 local function onFacts(e: Entry)
 	if readFacts(e) then
 		CreatureRig.destroy(e.rig)
 		buildRig(e)
 	end
+	showAlive(e)
 	RigMath.retargetScale(e.rig.scaleEase, TierMath.bodyScale(e.mass))
 	if e.own then
 		recomputeAll()
@@ -238,10 +261,13 @@ local function add(model: Instance)
 		kind = "none",
 		shown = false,
 		scaling = false,
+		dead = false,
+		popAt = nil,
 		connections = {},
 	}
 	readFacts(e)
 	buildRig(e)
+	showAlive(e)
 	byModel[model] = e
 	table.insert(entries, e)
 	watch(e, source(e))
@@ -324,7 +350,7 @@ local function update(dt: number)
 	local n = 0
 	for _, e in entries do
 		local root, rig = e.root, e.rig
-		if root.Parent ~= nil then
+		if root.Parent ~= nil and not e.dead then
 			local f = rig.follow
 			local target = root.CFrame
 			local p = target.Position
@@ -340,6 +366,15 @@ local function update(dt: number)
 			rig.pos, rig.heading, rig.cframe = pos, heading, cf
 
 			local scale, moving = RigMath.stepScale(rig.scaleEase, dt)
+			local popAt = e.popAt
+			if popAt then
+				local t = now - popAt
+				scale *= RigMath.popMult(t) -- the mesh only; the root never pops (02 §1.8)
+				moving = true
+				if t >= RigMath.POP_SECONDS then
+					e.popAt = nil
+				end
+			end
 			if moving then
 				CreatureRig.applyScale(rig, scale)
 				e.scaling = true
@@ -418,6 +453,27 @@ function CreatureController.localMouth(): (Vector3, number)
 	return e.rig.pos + e.rig.heading * ahead, radius
 end
 
+-- `CreatureEvent` (09 §5.3; RunLoopService): "tier", slot, tier, previous tier. Other kinds are
+-- for later tasks (the gulp camera, 02 §3.6, S6; status, revive).
+local function onCreatureEvent(kind: unknown, slot: unknown, tier: unknown, before: unknown)
+	if kind ~= "tier" or type(slot) ~= "number" or type(tier) ~= "number" then
+		return
+	end
+	if type(before) ~= "number" or tier <= before then
+		return -- 02 §5.1 tier-down: no pop (SFX_TierDown comes with AudioController)
+	end
+	for _, e in entries do
+		if e.player and e.player:GetAttribute("Slot") == slot then
+			if CreatureRig.hasClip(e.rig, "TierUp") then
+				CreatureRig.playAction(e.rig, "TierUp")
+			else
+				e.popAt = os.clock()
+			end
+			-- TODO(S10-C1): FX_TierUp_T<tier> (FX_Metamorph at 4) and FX_TierUp_Burst, Render/Fx.
+		end
+	end
+end
+
 function CreatureController.init()
 	table.clear(entries)
 	table.clear(byModel)
@@ -477,6 +533,7 @@ function CreatureController.start()
 	end
 	Players.PlayerAdded:Connect(rebindOrphans)
 
+	Client.on("CreatureEvent", onCreatureEvent)
 	CameraController.setFollowTarget(ownFollow)
 	-- Just before the camera, so it reads this frame's rig.pos. The render step runs after the
 	-- Animator has reset the bones, so the sway written here holds (spike surprise 3).
