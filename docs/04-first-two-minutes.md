@@ -94,6 +94,8 @@ One screen, no text other than the logo.
 | Sound | `MUS_Nursery` base layer fades in over 1 s. `SFX_Bite_Small` on each dot. |
 | Exit | When phases C and D are done the screen splits into bubbles (0.4 s) to reveal the egg. The size the 2D Fry reached is discarded. |
 
+The toy's feel **(tune)**: the Fry is 76 rpx long and closes 6/s of the gap to the thumb (at most 900 rpx/s); dots are 14 rpx, drift left at 150 rpx/s with a 16 rpx wave, about one every 0.5 s, at most 12 on screen. Until the art exists every element is drawn in code from flat shapes in the colours of chapter 06. Chapter 08, section 8.1 describes this screen differently (a bar, tips, a slow message at 10 s); chapter 14, section 4, entry 30 records the disagreement. The code follows this section.
+
 ### 2.3 What streams first
 
 | Set | Contents | Needed for | Budget (tune) |
@@ -121,7 +123,7 @@ Times are J (seconds since `PlayerAdded`).
 
 ### 3.1 Stages
 
-The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location).
+The server owns the stage and saves it in the profile as `ftue.stage`. The client plays the presentation. All tunables live in one config module (`FtueConfig`; document 09 owns its location: `shared/Config`, section 3). The saved stage is a number: `S0_LOADING` is 0, each stage after it the number in its name, and `DONE` is 11.
 
 | Stage | Enters when | Leaves when |
 |---|---|---|
@@ -367,6 +369,16 @@ See section 6.
 | No input during the chase | Section 5.4 |
 | App goes to the background | Same as the 20 s hold, at once |
 | Disconnect before the first bank | Section 9 |
+
+How the timers are read (set by task S6-C2 where this chapter was silent; chapter 14, section 5.1):
+
+- The 8 s and 20 s rules, and the hold on going to the background, apply in `S2` to `S5`, `S7`, `S9` and `S10`. Not in `S1` (the hatch ends by itself), `S6` (section 5.4) or `S8` (control is suspended).
+- "Beat timers" are every fail-safe timer, including those set on T (T = 30, 40, 50, 70). They run on a beat clock that stops during a hold; T itself, and every analytics value, keeps running.
+- B6's 8, 20 and 40 s count from the moment the curtain opens and restart whenever the player moves toward the Gap. The curtain opens 2.5 s after `S5` starts also when `S5` started at T = 70 without the trait.
+- B12's 20 and 40 s count from the tide clock (6.1, 10.3 s after the bank).
+- Turning back into the Nursery during the chase returns the stage to `S5`; the next crossing re-enters `S6`.
+- A run resumed in `S6` cannot replay the crossing, so the chase counts as `skipped` and the script carries on in `S7`.
+- The fast form's halved idle timers are this section's 4, 8 and 20 s, and B6's 8, 20 and 40 s.
 
 ### 3.8 When each HUD element first appears
 

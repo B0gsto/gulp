@@ -1,19 +1,24 @@
 --!strict
 -- Hud: the run HUD (S03), build stage 1 of docs/08 section 15: `HUD.MassBar` and `HUD.Dash` on
 -- the `GulpHUD` layer; `HUD.DragRing`, `HUD.MassPops` and `HUD.Home` on the full-screen
--- `GulpWorld` layer; `HUD.Outlines` switches the world's outline shells (08 §3.11). Rects come
--- from `Shared.Logic.HudLayout`; UIController builds it and feeds it each frame.
+-- `GulpWorld` layer; `HUD.Outlines` switches the world's outline shells (08 §3.11). `HUD.Traits`
+-- (08 §3.6) on `GulpHUD` and `HUD.TraitMarkers` (08 §3.10, while Glow is held) on `GulpWorld`
+-- (task S6-C3). Rects come from `Shared.Logic.HudLayout`; UIController builds it and feeds it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 local Outlines = require("../../Render/Outlines")
+local PreyRenderer = require("../../Render/PreyRenderer")
 local Screen = require("../Kit/Screen")
+local TraitRules = require(ReplicatedStorage.Shared.Logic.TraitRules)
 
 local Dash = require("./Dash")
 local DragRing = require("./DragRing")
 local Home = require("./Home")
 local MassBar = require("./MassBar")
 local MassPops = require("./MassPops")
+local TraitMarkers = require("./TraitMarkers")
+local Traits = require("./Traits")
 
 local Hud = {}
 
@@ -24,6 +29,8 @@ export type Id =
 	| "HUD.MassPops"
 	| "HUD.Outlines"
 	| "HUD.Home"
+	| "HUD.Traits"
+	| "HUD.TraitMarkers"
 
 export type Tick = {
 	now: number,
@@ -42,6 +49,8 @@ type Built = {
 	dragRing: DragRing.DragRing,
 	pops: MassPops.MassPops,
 	home: Home.Home,
+	traits: Traits.Traits,
+	markers: TraitMarkers.TraitMarkers,
 	hudRoot: Frame,
 	worldRoot: Frame,
 }
@@ -55,9 +64,25 @@ local visible: { [string]: boolean } = {
 	["HUD.MassPops"] = true,
 	["HUD.Outlines"] = true,
 	["HUD.Home"] = true,
+	["HUD.Traits"] = true,
+	["HUD.TraitMarkers"] = true,
 }
 local shown = true -- false while a post-run screen covers the HUD
 local inCove = false -- 08 §5.1: in the cove the mass bar and its pops are hidden
+-- `Phase = dead`: the traits and their pips are hidden until the respawn clears them (02 §8.1;
+-- TraitService resets them only when Swim again moves the creature) or a revive brings them back.
+local gulped = false
+-- HUD.Traits and HUD.TraitMarkers (S6-C3): the held traits, a pip recency counter per trait for
+-- TraitRules.slotView's ties, the trait rects, and scratch for the per-frame marker pick.
+local heldTraits: { string } = {}
+local heldSeen: { [string]: number } = {} -- TraitRules.noteHeld: Glow's markers start 0.5 s late
+local heldRead = false
+local lastPips: { [string]: number } = {}
+local pipRecency: { [string]: number } = {}
+local pipClock = 0
+local traitRects: HudLayout.TraitRects? = nil
+local nearTraitPrey: { PreyRenderer.TraitPreyNear } = {}
+local markerPick: { PreyRenderer.TraitPreyNear } = {}
 
 local function apply()
 	local b = built
@@ -69,6 +94,8 @@ local function apply()
 	b.dragRing.root.Visible = shown and visible["HUD.DragRing"]
 	b.pops.root.Visible = shown and visible["HUD.MassPops"] and not inCove
 	b.home.root.Visible = shown and visible["HUD.Home"]
+	b.traits.root.Visible = shown and visible["HUD.Traits"] and not inCove and not gulped
+	b.markers.root.Visible = shown and visible["HUD.TraitMarkers"] and not inCove and not gulped
 	Outlines.setVisible(visible["HUD.Outlines"])
 end
 
@@ -82,6 +109,8 @@ local function relayout(layout: Screen.Layout)
 	b.massBar.layout(r.massBar.x, r.massBar.y, r.massBar.width)
 	local tile = HudLayout.minTarget(layout.screenClass) == HudLayout.MOUSE_MIN
 	b.dash.layout(r.dash.x, r.dash.y, r.dash.width, r.dash.height, r.dashHit.width, tile)
+	traitRects = HudLayout.traits(layout.screenClass, layout.contentSize)
+	b.traits.layout(traitRects :: HudLayout.TraitRects) -- safe: assigned on the line above
 end
 
 --- Builds the stage 1 HUD. `press` is `InputController.press` for the dash button.
@@ -99,6 +128,8 @@ function Hud.build(press: (action: "Dash" | "Ability", down: boolean) -> ())
 		dragRing = DragRing.new(worldRoot),
 		pops = MassPops.new(worldRoot),
 		home = Home.new(worldRoot),
+		traits = Traits.new(hudRoot),
+		markers = TraitMarkers.new(worldRoot),
 		hudRoot = hudRoot,
 		worldRoot = worldRoot,
 	}
@@ -130,6 +161,12 @@ function Hud.setCove(on: boolean)
 	apply()
 end
 
+--- While gulped (`Phase = dead`) HUD.Traits and HUD.TraitMarkers are hidden.
+function Hud.setGulped(on: boolean)
+	gulped = on
+	apply()
+end
+
 --- The GulpHUD layer's root, for the cove HUD (S14); nil before `build`.
 function Hud.root(): Frame?
 	local b = built
@@ -152,6 +189,33 @@ function Hud.setHomeBest(best: boolean)
 	local b = built
 	if b then
 		b.home.setBest(best)
+	end
+end
+
+--- The held traits and pips of the run (`run.traits`, `run.progress`, 09 §5.3) for HUD.Traits
+--- (08 §3.6), and whether Keen Nose cuts the pips to four.
+function Hud.setTraits(traits: { string }, progress: { [string]: number }, keenNose: boolean)
+	heldTraits = traits
+	TraitRules.noteHeld(heldSeen, traits, os.clock(), not heldRead)
+	heldRead = true
+	for id, count in progress do
+		if count > (lastPips[id] or 0) then
+			pipClock += 1
+			pipRecency[id] = pipClock
+		end
+	end
+	lastPips = table.clone(progress)
+	local b = built
+	if b then
+		b.traits.set(TraitRules.slotView(traits, progress, pipRecency, keenNose))
+	end
+end
+
+--- The Just gained flash of slot `index` (08 §3.6), on the "traitGained" `CreatureEvent`.
+function Hud.traitGained(index: number)
+	local b = built
+	if b then
+		b.traits.gained(index)
 	end
 end
 
@@ -186,6 +250,56 @@ function Hud.update(f: Tick)
 	end
 	b.pops.update(f.now, mx, my)
 
+	-- 02 §8.4 Glow: the six nearest trait prey within 60 studs, ring on screen, edge off screen,
+	-- from 0.5 s after the gain (02 §8.2).
+	local markers = 0
+	local glowAt = heldSeen.glow
+	if
+		camera
+		and visible["HUD.TraitMarkers"]
+		and not inCove
+		and not gulped
+		and glowAt ~= nil
+		and TraitRules.isActive(glowAt, f.now)
+	then
+		local n = PreyRenderer.traitPreyNear(TraitRules.GLOW_RADIUS, nearTraitPrey)
+		table.clear(markerPick)
+		for i = 1, n do
+			markerPick[i] = nearTraitPrey[i]
+		end
+		markers = TraitRules.pickMarkers(markerPick :: { any }) -- safe: records carry the fields
+		local origin, content = layout.contentOrigin, layout.contentSize
+		for i = 1, markers do
+			local prey = markerPick[i]
+			local x, y, front = project(camera, prey.position, scale)
+			local cx, cy = x - origin.x, y - origin.y
+			local onScreen = front
+				and cx >= 0
+				and cy >= 0
+				and cx <= content.width
+				and cy <= content.height
+			local angle = 0
+			if not onScreen then
+				local dx, dy = cx - content.width / 2, cy - content.height / 2
+				if not front then
+					dx, dy = -dx, -dy
+				end
+				angle = math.atan2(dy, dx)
+				local ex, ey = HudLayout.traitMarkerEdge(content, angle)
+				x, y = ex + origin.x, ey + origin.y
+			end
+			b.markers.place(i, {
+				x = x,
+				y = y,
+				onScreen = onScreen,
+				angle = angle,
+				traitId = prey.traitId,
+				dimmed = TraitRules.has(heldTraits, prey.traitId),
+			})
+		end
+	end
+	b.markers.hideFrom(markers + 1)
+
 	if camera and f.home and visible["HUD.Home"] then
 		local origin = layout.contentOrigin
 		local content = layout.contentSize
@@ -207,6 +321,9 @@ function Hud.update(f: Tick)
 				ring = HudLayout.ringRect(pose.ringX - origin.x, pose.ringY - origin.y)
 			end
 			local avoid = HudLayout.homeAvoid(layout.screenClass, r, ring)
+			if traitRects then
+				table.insert(avoid, traitRects.row) -- the home marker slides around the slots too
+			end
 			local hx, hy, used = HudLayout.homeMarker(content, angle, avoid)
 			local _ = used
 			b.home.place({

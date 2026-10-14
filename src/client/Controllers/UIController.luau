@@ -355,7 +355,9 @@ function UIController.start()
 	end
 	player:GetAttributeChangedSignal("Phase"):Connect(function()
 		refreshCove(true)
+		Hud.setGulped(player:GetAttribute("Phase") == "dead")
 	end)
+	Hud.setGulped(player:GetAttribute("Phase") == "dead")
 	player:GetAttributeChangedSignal("Slot"):Connect(function()
 		viewCapacity = nil
 		refreshPileAnchor()
@@ -369,6 +371,30 @@ function UIController.start()
 			if CoveHud.isShown() then
 				CoveHud.set(coveState())
 			end
+		end
+	end)
+
+	-- HUD.Traits (08 §3.6): TraitService's `run.traits` and `run.progress` (09 §5.3), and the
+	-- Just gained flash on the own "traitGained" event (S08 itself is S6-C5's).
+	local function refreshTraits()
+		local run = StateStore.get("run")
+		local traits = if type(run) == "table" then run.traits else nil
+		local progress = if type(run) == "table" then run.progress else nil
+		Hud.setTraits(
+			if type(traits) == "table" then traits else {},
+			if type(progress) == "table" then progress else {},
+			ownsPass("pass_keen_nose")
+		)
+	end
+	StateStore.observe("run", refreshTraits)
+	StateStore.observe("passes", refreshTraits)
+	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, _id: unknown, index: unknown)
+		if
+			kind == "traitGained"
+			and slot == player:GetAttribute("Slot")
+			and type(index) == "number"
+		then
+			Hud.traitGained(index)
 		end
 	end)
 
