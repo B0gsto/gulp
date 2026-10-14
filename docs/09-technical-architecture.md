@@ -2002,25 +2002,25 @@ Checked on 13 October 2026. Pages on `create.roblox.com` were fetched as `/docs/
 
 | Ref | Open question | How it gets settled |
 |---|---|---|
-| U1 | A `Player.Character` model with no Humanoid works with no core-script errors; a stub `PlayerModule` stops default controls. The official page describes Character as containing a Humanoid and does not say one is required. Only forum sources say it works | S1, S9 |
-| U2 | `buffer` values as remote arguments, their size on the wire, and how much the engine's own creature replication costs | S7, S6 |
-| U3 | A server-side `CFrame` write on a client-owned part moves it on the owner | S4 |
-| U4 | Server Authority with a non-Humanoid custom controller, and its release status on the official page (the DevForum announcement is titled "Full Release"; the docs page states no status) | S12 |
+| U1 | A `Player.Character` model with no Humanoid works with no core-script errors; a stub `PlayerModule` stops default controls. The official page describes Character as containing a Humanoid and does not say one is required. Only forum sources say it works | S1, S9; **Mac half settled in Sprint 0** (`docs/spike-report.md`): no core-script errors in 10/10 joins, the stub stops default controls. Phone open |
+| U2 | `buffer` values as remote arguments, their size on the wire, and how much the engine's own creature replication costs | S7, S6; **partly settled in Sprint 0**: buffers arrive intact, about 930–980 bytes on the wire per 900-byte payload, and 999 bytes or more are dropped silently. Engine replication cost open |
+| U3 | A server-side `CFrame` write on a client-owned part moves it on the owner | S4; **settled in Sprint 0** (Mac): it moves, within 0.27 s at 200 ms lag |
+| U4 | Server Authority with a non-Humanoid custom controller, and its release status on the official page (the DevForum announcement is titled "Full Release"; the docs page states no status) | S12; S12 failed inconclusively in Sprint 0, still open |
 | U5 | Character Controller Library without a Humanoid | Not used |
-| U6 | Chat bubbles on a non-Humanoid model; voice and ProximityPrompt behaviour without a Humanoid | S16; voice and prompts not used |
+| U6 | Chat bubbles on a non-Humanoid model; voice and ProximityPrompt behaviour without a Humanoid | S16; voice and prompts not used; **bubbles settled in Sprint 0**: they draw with `ChatVersion = TextChatService`, not under legacy chat |
 | U7 | Maximum texture size: the specification page says both 4,096 and 1,024 | Author at 1,024 or below |
 | U8 | Any Open Cloud way to publish a place with `SurfaceAppearance` intact, or to download a place | Manual publish |
 | U9 | Luau execution concurrency: the reference says 10 per place, Roblox's demo repository says 2 per universe | S17; CI uses a concurrency group of 1 |
-| U10 | Relative string requires resolve the same way in Roblox, Lune and luau-lsp | S11 |
+| U10 | Relative string requires resolve the same way in Roblox, Lune and luau-lsp | S11; **settled in Sprint 0**: they do |
 | U11 | `BindToClose` time limit, server memory ceiling, and the memory at which phones close the client. No official numbers found | Measure in soak and phone runs |
 | U12 | Exact client-to-server remote throttle | Our own limits are tighter |
-| U13 | Whether MCP can start a multi-client test; whether the Rojo plugin reconnects without a click | S15 |
+| U13 | Whether MCP can start a multi-client test; whether the Rojo plugin reconnects without a click | S15; **multi-client half settled in Sprint 0**: yes, through `StudioTestService:ExecuteMultiplayerTestAsync`, not `start_stop_play`. Rojo reconnect open |
 | U14 | The 13-and-over rule for rewarded video (search result only); the full `AdAvailabilityResult` list | Re-fetch before B37 |
-| U15 | Studio and Blender memory use on this Mac | Measure in week one |
-| U16 | StyLua and Selene config keys (from memory, not re-fetched); whether `luau-lsp analyze` loads Roblox definitions unaided; Rojo's default port | First run of `tools/check` |
+| U15 | Studio and Blender memory use on this Mac | Measure in week one; **settled in Sprint 0**: Studio 3.1 GB idle, 3.6–3.9 GB in a play test, about 9.3 GB with a two-client test (physical footprint); Blender under 0.4 GB |
+| U16 | StyLua and Selene config keys (from memory, not re-fetched); whether `luau-lsp analyze` loads Roblox definitions unaided; Rojo's default port | First run of `tools/check`; **luau-lsp half settled in Sprint 0**: it needs `--definitions` |
 | U17 | Whether `rojo build` can write non-scriptable Workspace properties into the CI place | B01 |
-| U18 | Two skinned MeshParts on one skeleton; `PauseOutsideLoadedArea` with a non-Humanoid character | S8, S5 |
-| U19 | Which core interface elements cannot be removed (the Roblox menu button is expected) | S10 |
+| U18 | Two skinned MeshParts on one skeleton; `PauseOutsideLoadedArea` with a non-Humanoid character | S8, S5; **settled in Sprint 0** (Mac): both work; the pause freezes the root without anchoring it |
+| U19 | Which core interface elements cannot be removed (the Roblox menu button is expected) | S10; Mac Studio shows no menu button, but `TopbarInset` still reserves 120 × 58 px; real client open |
 | U20 | `MarketplaceService:BindReceiptHandler` behaviour; how long an unprocessed purchase is held | Not used; re-fetch before B27 |
 | U21 | Wally registry package names and versions | None used |
 | U22 | `MemoryStoreService` getter names | Not used |
