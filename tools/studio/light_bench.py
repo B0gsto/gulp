@@ -29,7 +29,12 @@ from studio import StudioSession, studio_lock  # noqa: E402
 from PIL import Image  # noqa: E402
 
 OUT = os.path.join(REPO, "build", "lighting")
-HIDDEN = 0.01
+# "Hidden": luminance (Weber) contrast with a fully fogged ball of at most 0.02, the usual just-noticeable
+# luminance contrast (Weber fraction about 1 to 2%), and about one 8-bit code step at the fog's brightness, the
+# floor of a screen capture. Spike F21's readings at the cap (0.003 at 220, 0.008 at 350) sit under it.
+HIDDEN = 0.02
+# "Disappears at the view distance", not well before it: still visible at 85% of it.
+VISIBLE_AT = 0.85
 CAMERA_STEP = "GulpCamera"  # CameraController RENDER_NAME
 TIDE = ('local T = require(game:GetService("Players").LocalPlayer.PlayerScripts:WaitForChild("Client")'
         '.Controllers.TideController) ')
@@ -56,10 +61,12 @@ return string.format("fogStart=%.2f fogEnd=%.2f fogColor=%s brightness=%.2f ambi
   workspace.CurrentCamera.CFrame.Position.Y)
 '''
 
-# One white 8-stud ball, moved from distance to distance along a level line 20 degrees right of the view centre
+# One white 8-stud ball (hidden when the distance is negative), moved from distance to distance along a level line 20 degrees right of the view centre
 # (clear of the creature in the middle of the frame). Returns the viewport position of its centre.
 BALL = r'''
 local d = %d
+local hide = d < 0
+d = math.abs(d)
 local cam = workspace.CurrentCamera
 local f = workspace:FindFirstChild("LightBench")
 if not f then
@@ -79,7 +86,7 @@ end
 local cf = cam.CFrame
 local dir = CFrame.fromAxisAngle(Vector3.yAxis, math.rad(-20)):VectorToWorldSpace(cf.LookVector)
 b.Position = cf.Position + dir * d
-b.Transparency = if d > 0 then 0 else 1
+b.Transparency = if hide then 1 else 0
 local v = cam:WorldToViewportPoint(b.Position)
 local vs = cam.ViewportSize
 return string.format("vp=%%.0fx%%.0f at=%%.1f,%%.1f", vs.X, vs.Y, v.X, v.Y)
@@ -166,45 +173,43 @@ def sample(img, x, y):
 
 
 def fog_check(sm, label, dists, cap):
-    if cap:
-        sm.lua("Client", TIDE + 'T.apply("LGT_Reef", %d) return "ok"' % cap)
-    else:
-        sm.lua("Client", TIDE + 'T.apply("LGT_Reef") return "ok"')
+    """06 10.2: the view distance is where a white 8-stud ball disappears. Legacy fog colours geometry, not the
+    sky, so "disappears" means the ball matches a fully fogged object, not the empty view: the reference is the
+    same ball 50 studs past FogEnd (fog factor 1, still inside the drawn range), at the same screen spot."""
+    sm.lua("Client", TIDE + ('T.apply("LGT_Reef", %d) return "ok"' % cap if cap else 'T.apply("LGT_Reef") return "ok"'))
     old = 'local f = workspace:FindFirstChild("LightBench") if f then f:Destroy() end return "ok"'
     sm.lua("Client", old)
-    # Legacy fog colours geometry, not the sky, so the reference is the ball at 600 studs (past every FogEnd, inside the drawn range), not
-    # the empty view; the empty view (the sky behind) is captured too, for the backdrop contrast.
-    sm.lua("Client", BALL % 0)
-    time.sleep(0.8)
-    sky = capture(sm, "fog-%s-sky" % label)
-    _, text = sm.lua("Client", BALL % 600)
-    time.sleep(0.8)
-    water = capture(sm, "fog-%s-far" % label)
-    m = re.search(r"vp=(\d+)x(\d+) at=([\d.-]+),([\d.-]+)", text)
-    rx, ry = float(m.group(3)) * water.width / int(m.group(1)), float(m.group(4)) * water.height / int(m.group(2))
-    yf, ys = sample(water, rx, ry), sample(sky, rx, ry)
-    sm.add("INFO", "backdrop %s" % label, "fully fogged ball vs the sky behind it: contrast %.3f (Y %.3f vs %.3f)"
-           % (abs(yf - ys) / max(ys, 1e-4), yf, ys))
     _, fog = sm.lua("Client", 'local L = game:GetService("Lighting") return string.format("%.1f %.1f", L.FogStart, L.FogEnd)')
     fs, fe = (float(v) for v in fog.split())
-    parts, first_hidden = [], None
-    for d in dists:
+
+    def shot(d, name):
         _, text = sm.lua("Client", BALL % d)
         m = re.search(r"vp=(\d+)x(\d+) at=([\d.-]+),([\d.-]+)", text)
-        vw, vh, x, y = int(m.group(1)), int(m.group(2)), float(m.group(3)), float(m.group(4))
-        time.sleep(0.6)
-        shown = capture(sm, "fog-%s-%d" % (label, d))
-        sx, sy = shown.width / vw, shown.height / vh
-        a, b = sample(shown, x * sx, y * sy), sample(water, x * sx, y * sy)
-        contrast = abs(a - b) / max(b, 1e-4)
-        linear = min(max((d - fs) / (fe - fs), 0), 1)
-        parts.append("%d:%.3f(fog %.2f)" % (d, contrast, linear))
-        if contrast < HIDDEN and first_hidden is None:
-            first_hidden = d
+        time.sleep(0.8)
+        img = capture(sm, name)
+        return sample(img, float(m.group(3)) * img.width / int(m.group(1)), float(m.group(4)) * img.height / int(m.group(2)))
+
+    y_sky = shot(-(int(fe) + 50), "fog-%s-sky" % label)  # same spot, ball hidden
+    y_ref = shot(int(fe) + 50, "fog-%s-ref" % label)
+    for _ in range(3):  # a ball not drawn yet reads as the sky: wait and take the reference again
+        if abs(y_ref - y_sky) / max(y_sky, 1e-4) > HIDDEN:
+            break
+        time.sleep(1.0)
+        y_ref = shot(int(fe) + 50, "fog-%s-ref" % label)
+    ref_ok = abs(y_ref - y_sky) / max(y_sky, 1e-4) > HIDDEN
+    sm.add("PASS" if ref_ok else "FAIL", "fog %s reference" % label,
+           "ball at %d studs (fully fogged) Y %.3f; sky behind it Y %.3f%s"
+           % (int(fe) + 50, y_ref, y_sky, "" if ref_ok else ": the reference ball was not drawn"))
+    contrast = {}
+    for d in dists:
+        contrast[d] = abs(shot(d, "fog-%s-%d" % (label, d)) - y_ref) / max(y_ref, 1e-4)
     sm.lua("Client", old)
-    sm.add("INFO", "fog %s" % label, "against a fully fogged ball: FogStart %.0f FogEnd %.0f; ball contrast %s; first hidden at %s studs"
-           % (fs, fe, " ".join(parts), first_hidden))
-    return first_hidden, fe
+    near = max(d for d in dists if d <= VISIBLE_AT * fe)
+    ok = ref_ok and contrast[int(fe)] <= HIDDEN and contrast[near] > HIDDEN
+    detail = " ".join("%d:%.3f(fog %.2f)" % (d, c, min(max((d - fs) / (fe - fs), 0), 1)) for d, c in contrast.items())
+    sm.add("PASS" if ok else "FAIL", "fog %s" % label,
+           "FogStart %.0f FogEnd %.0f; contrast with a fully fogged ball %s; hidden (<= %.2f) at %d, visible at %d"
+           % (fs, fe, detail, HIDDEN, int(fe), near))
 
 
 def run(sm):
@@ -214,7 +219,8 @@ def run(sm):
         sm.wait_mode("edit", 60)
     _, edit = sm.lua("Edit", 'local L = game:GetService("Lighting") return tostring(L.LightingStyle) .. " " '
                      '.. tostring(L.PrioritizeLightingQuality)')
-    sm.add("INFO", "edit place", "LightingStyle, PrioritizeLightingQuality in Edit: " + edit.strip())
+    sm.add("PASS" if edit.strip() == "Enum.LightingStyle.Realistic true" else "FAIL", "edit place",
+           "LightingStyle, PrioritizeLightingQuality in Edit: " + edit.strip() + " (want Realistic true; 06 10.1)")
     sm.call("start_stop_play", {"is_start": True}, 120)
     in_play, _ = sm.wait_mode("play", 60)
     ready, text = sm.poll_lua("Client", 'local p = game:GetService("Players").LocalPlayer '
@@ -237,12 +243,8 @@ def run(sm):
     _, srv = sm.lua("Server", 'local L = game:GetService("Lighting") return tostring(L.LightingStyle) .. " " '
                     '.. tostring(L.PrioritizeLightingQuality)')
     sm.add("INFO", "server", "LightingStyle, PrioritizeLightingQuality on the play server: " + srv.strip())
-    hid, fe = fog_check(sm, "authored", [20, 60, 150, 220, 300, 340, 370, 390, 400, 450], None)
-    sm.add("PASS" if hid is not None and hid <= fe else "FAIL", "fog authored",
-           "ball hidden by %s studs (target %.0f)" % (hid, fe))
-    hid, fe = fog_check(sm, "smooth", [20, 60, 150, 180, 200, 210, 220, 260], 220)
-    sm.add("PASS" if hid is not None and hid <= fe else "FAIL", "fog smooth cap",
-           "ball hidden by %s studs (cap %.0f)" % (hid, fe))
+    fog_check(sm, "authored", [20, 60, 150, 220, 300, 340, 370, 390, 400], None)
+    fog_check(sm, "smooth", [20, 60, 150, 180, 200, 210, 220], 220)
 
     sm.lua("Client", TIDE + 'T.apply("LGT_Reef") return "ok"')
     _, text = sm.lua("Client", SCENE)

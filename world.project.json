@@ -46,9 +46,13 @@
     "TextChatService": { "$properties": { "ChatVersion": "TextChatService" } },
     "VoiceChatService": { "$properties": { "EnableDefaultVoice": false } }, // 09 section 6.10
     "Lighting": {
-      // 06 section 10.1: set here, never by game scripts (spike S0-A5, F22). Technology stays unset.
-      // Presets (ambient, fog, grade) are written per player by TideController.
+      // 06 section 10.1: set here, never by game scripts (spike S0-A5, F22). Presets (ambient, fog,
+      // grade) are written per player by TideController. Technology must be written too (task S3-A2,
+      // measured): Studio derives LightingStyle and PrioritizeLightingQuality from Technology when it
+      // loads a file, so with Technology absent (read as Voxel) the place came up Soft / false. Future
+      // is the staff mapping of Realistic + prioritise on (PF26).
       "$properties": {
+        "Technology": "Future",
         "LightingStyle": "Realistic",
         "PrioritizeLightingQuality": true,
         "GlobalShadows": true,
