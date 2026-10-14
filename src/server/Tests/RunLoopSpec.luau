@@ -189,8 +189,9 @@ return function()
 				expect(RunLoopService.gulp(slot, "spec")).toBe(true)
 				expect(RunLoopService.state(slot)).toBe("dead")
 				expect(player:GetAttribute("Phase")).toBe("dead")
+				-- Held: anchored, so the server simulates it (the ownership API errors on an
+				-- anchored part, so the owner is not read here).
 				expect(state.root.Anchored).toBe(true)
-				expect(state.root:GetNetworkOwner()).toBe(nil)
 				expect(RunLoopService._test.lastSent()).toEqual({ "gulped" :: any, slot, "spec" })
 				expect(RunLoopService.gulp(slot, "again")).toBe(false) -- once per death
 				expect(RunLoopService._test.swimAgain(player)).toBe(false) -- the card is not up
