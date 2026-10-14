@@ -41,6 +41,7 @@ if LIB_DIR not in sys.path:
     sys.path.insert(0, LIB_DIR)
 
 import common  # noqa: E402
+import fishbody  # noqa: E402  (the family sizes; loads without Blender)
 
 DOC = os.path.join(common.REPO_DIR, "docs", "07-asset-list.md")
 BIBLE = os.path.join(common.REPO_DIR, "docs", "06-art-bible.md")
@@ -65,7 +66,7 @@ TEMPO = 124                     # 07 section 12, shared tempo (tune)
 # 06 section 6.2 (chapter 03 owns them): length, height, width at body scale 1.0. Where the
 # bible gives only a length, height and width follow the shape's proportions below (tune).
 SIZES = {
-    "minnow": (3.0, 1.1, 0.7), "puffer": (2.4, 2.0, 2.0), "shark": (3.4, None, None),
+    "minnow": (fishbody.LENGTH, fishbody.HEIGHT, fishbody.WIDTH), "puffer": (2.4, 2.0, 2.0), "shark": (3.4, None, None),
     "eel": (5.0, 0.8, 0.6), "turtle": (3.0, None, 2.6), "squid": (3.6, None, None),
     "plankton": (0.4, None, None), "krill": (0.8, None, None), "shrimp": (1.0, None, None),
     "sardine": (1.6, None, None), "darter": (2.4, None, None), "mackerel": (3.6, None, None),
@@ -480,8 +481,8 @@ def mesh_spec(name, row):
             raise SystemExit("%s: only the Fish family skeleton exists so far (rigs.py); %s waits for its family rig"
                              % (name, ident))
         L, H, W = SIZES[ident]
-        H = H or L * 1.1 / 3.0
-        W = W or L * 0.7 / 3.0
+        H = H or L * fishbody.HEIGHT / fishbody.LENGTH
+        W = W or L * fishbody.WIDTH / fishbody.LENGTH
         if "Adult" in parts:
             L *= ADULT_LENGTH
         colour = common.colour("creatures.%s.mid" % ident)
@@ -497,7 +498,7 @@ def mesh_spec(name, row):
         ey = -L / 2.0 + 0.2 * L
         eye = (min(half_w(ey) * 0.8 + 0.3 * eye_r, W / 2.0 - eye_r - 0.01), ey, 0.12 * H)
         pec = (half_w(-0.15 * L) * 0.8, -0.15 * L, -0.1 * H)
-        fit = rigs.FishFit(L, half_h, half_w, eye, pec, (0.0, -0.05 * L, H / 2.0))
+        fit = rigs.FishFit(fishbody.ProfileBody(-L / 2.0, body_end, half_h, half_w), eye, pec, (0.0, -0.05 * L, H / 2.0))
         bones = fit.bones()
         arm = meshgen.build_armature("RIG_Fish", bones)
         if "Puffed" in parts:               # 06 6.2: a ball 1.5 times the normal height
