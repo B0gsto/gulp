@@ -241,7 +241,7 @@ Over the limit: the server sends the client back to the last accepted position. 
 
 ## 2. Controls
 
-All schemes feed the model in section 1.1. Screen measurements are in Roblox offset pixels (density-independent on phones). Button placement belongs to document 08.
+All schemes feed the model in section 1.1. Screen measurements are in rpx, document 08's unit (its section 1.2: a pixel of the 1280 × 720 reference canvas, scaled with the interface). The drag numbers were first written in offset pixels and are kept 1:1 as rpx **(tune)**: on a phone at scale 0.52 they are about half their earlier device-pixel size, so they are tuned on device row 1 (task S2-D1). Button placement belongs to document 08.
 
 ### 2.1 Phone: drag to swim [MVP] (default)
 
@@ -250,9 +250,9 @@ All schemes feed the model in section 1.1. Screen measurements are in Roblox off
 | Swim touch | The first touch that does not start on a button. Later non-button touches are ignored until it lifts. |
 | Origin | The touch-down point (floating origin, anywhere on screen) |
 | Dead zone | 14 rpx radius (document 08's unit, its section 1.2). Inside it: throttle 0, no turn. |
-| Full deflection | 80 px from origin |
-| Clamp | 100 px. Past this the origin trails the finger so reversing direction is instant. |
-| Sensitivity setting | 0.5 to 1.5, divides the 80 px full-deflection distance. Default 1.0. |
+| Full deflection | 80 rpx from origin **(tune)**; the 168 rpx `HUD.DragRing` (radius 84) frames it |
+| Clamp | 100 rpx **(tune)**. Past this the origin trails the finger so reversing direction is instant. |
+| Sensitivity setting | 0.5 to 1.5, divides the 80 rpx full-deflection distance. Default 1.0. |
 
 Mapping, with `d` the drag vector and `m = clamp((|d| − 14) / (80 − 14), 0, 1)`:
 
@@ -276,8 +276,8 @@ pitchTarget = 70° × curve(y)             (position control: hold up to climb, 
 
 | Zone | Control |
 |---|---|
-| Left 40% of the screen | Floating stick, dead zone 14 rpx, full at 70 px. Up = throttle. Down = brake. Left/right = strafe. |
-| Right 60% (not on a button) | Look drag: 0.35° per px × sensitivity, yaw and pitch. The creature turns to face where the camera looks. |
+| Left 40% of the screen | Floating stick, dead zone 14 rpx, full at 70 rpx **(tune)**. Up = throttle. Down = brake. Left/right = strafe. |
+| Right 60% (not on a button) | Look drag: 0.35° per rpx × sensitivity **(tune)**, yaw and pitch. The creature turns to face where the camera looks. |
 
 No auto-level in this scheme. Buttons are the same as 2.1.
 

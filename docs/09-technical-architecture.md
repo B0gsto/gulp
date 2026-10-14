@@ -8,7 +8,7 @@ This chapter turns section 14 of `01-game-canon.md` into a buildable design. It 
 |---|---|---|
 | G1 | Phones first. Low-end phone holds 30 fps, mid phone 60 fps. | Client draws prey from pools, strict instance and draw-call budgets (section 15), no per-prey Instances on the server. |
 | G2 | 24 players per server. | Per-player work on the server is staggered across frames. Every per-player cost in this chapter is multiplied by 24. |
-| G3 | About 1,300 live prey in 250 groups, about 2,600 in about 510 groups during a Feeding Frenzy (twice normal, chapter 02, section 14.4) **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
+| G3 | About 1,300 live prey in 250 groups, about 2,540 members in 468 groups at the strict Frenzy target, with buffers and budgets sized for about 2,620 in 508 groups (`MAX_GROUPS = 512`, 8.1) during a Feeding Frenzy (twice normal, chapter 02, section 14.4) **(tune)**. | Prey are bytes in buffers, simulated and replicated per group, not per fish (section 8). |
 | G4 | No Humanoid, no avatar, no default interface. | We own spawning, movement, camera, input, health, death, nameplates and chat (section 6.10). |
 | G5 | Bites and Pearls cannot be forged. | The client never reports mass, tier or Pearls. It only claims "I bit X"; the server decides (sections 8.9, 10, 14). |
 | G6 | Movement feels instant on a phone. | The client owns its root part; the server validates after the fact (section 7). |
@@ -885,7 +885,7 @@ Per tick:
 4. **Leash.** Outside the home volume, add a pull back; beyond 1.5 times its radius, clamp. Prey therefore never need collision with the world: volumes are authored in open water. `hop` kinds take `y = WorldIndex.floorY(x, z) + hopArc(phase)`.
 5. **History.** Write the quantised position and scatter into the 8-sample ring (0.8 s) used by bite validation.
 
-Cost: about 250 group updates per tick (about 510 in a Frenzy), no allocation, no Instance access. **Budget: the simulation, steps 1 to 5 above, takes at most 2.0 ms per tick (0.35 ms averaged per frame) at the Frenzy count.** Interest and send (8.5) are not part of that 2.0 ms: they have their own budget, 0.25 ms per player per tick, 4 players per frame (15.2). The spike measured the two apart at 254 groups (S6): simulation p50 0.33 ms, p99 0.41 ms; interest and send about 0.13 ms per player p50 and 0.19 ms p99.
+Cost: about 250 group updates per tick (468 in a Frenzy, 508 at the sized count), no allocation, no Instance access. **Budget: the simulation, steps 1 to 5 above, takes at most 2.0 ms per tick (0.35 ms averaged per frame) at the Frenzy count.** Interest and send (8.5) are not part of that 2.0 ms: they have their own budget, 0.25 ms per player per tick, 4 players per frame (15.2). The spike measured the two apart at 254 groups (S6): simulation p50 0.33 ms, p99 0.41 ms; interest and send about 0.13 ms per player p50 and 0.19 ms p99.
 
 Schooling is therefore free: members hold formation by construction, "flee as a group" is one velocity, and "scatter when approached" is one number.
 
@@ -1121,7 +1121,7 @@ A hazard pass runs at 10 Hz: each creature in a run is tested against `Hazard` v
 | `anemone` [L] | Status `slow` 2 s | `vAllowed × 0.5` |
 | `vent` [L] | Only while the vent is `Erupting` (rule below): mass × 0.95 each second inside the column. Skipped with Ember | Server-side mass only |
 | `hook` | Biting the bait (the flagged prey member of 9.2) gives no mass; mass × 0.8; status `yank` 1.0 s | Server-side mass; 1.0 s validator grace for the pull upward |
-| `current` | None | `vAllowed × 1.6` while inside |
+| `current` | None | `vCurrent = 0.6 × tierSpeed` added to `vAllowed` while inside (7.1, 02 §1.2) |
 
 **Thermal vents [L]** (chapter 03, section 5.1 owns the rule; chapter 02, section 10.3 owns how the burn is ticked). There are nine `Hazard` volumes with `HazardId = "vent"` at the Chimneys. Each is the burning column: a cylinder 10 studs wide (radius 5) and 40 studs tall, rising from the chimney top; a creature is inside when its centre is. Three vents have no `CycleOffset` and are `Erupting` all the time. The other six cycle every 8 s: `Dormant` 4 s, `Rumble` 1 s (the warning, harmless), `Erupting` 3 s. The lengths are `HazardDef.cycle` and each vent's `CycleOffset` is fixed in Studio so the six never all erupt together. The state is a pure function of the clock, like the tides (section 11.1):
 
@@ -1745,7 +1745,7 @@ Never cut on any device: edible and danger outline shells on the nearest 6 objec
 | Test | What it runs | Fails when |
 |---|---|---|
 | `tests/sim/economy.sim.luau` | 2,000 scripted players through 30 days using the data tables: bites per minute by tier, bank and death rates, cove income | Time to each tier is more than 25% off canon 5.1; any species unlock day is more than 30% off canon section 7; Pearls per hour grows without bound |
-| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the full Frenzy count (8.1: about 2,600 members in about 510 groups), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
+| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the sized Frenzy count (8.1: about 2,620 members in 508 groups; the strict target is about 2,540 in 468), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
 | `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Either of: any honest trace reaches suspicion 10, or a trace at 1.3 × speed is not flagged within 5 s (it passes when no honest trace reaches 10 and the 1.3 × trace is flagged within 5 s, 13 Sprint 8) |
 
 Command: `lune run tools/test/runner -- sim`.

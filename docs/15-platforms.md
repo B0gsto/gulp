@@ -282,7 +282,7 @@ All movement, camera and interface code uses the real frame time, so the game pl
 
 | Action | Control | Detail |
 |---|---|---|
-| Swim | Drag anywhere that is not a button | Floating origin; dead zone 14 px, full at 80 px, clamp 100 px; left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° |
+| Swim | Drag anywhere that is not a button | Floating origin; dead zone 14 rpx, full at 80 rpx, clamp 100 rpx (tune); left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° |
 | Look | None. The camera follows. | Two-thumb scheme [L]: drag on the right 60%, 0.35° per px |
 | Brake | Lift the thumb | Coasts to a stop. Two-thumb [L]: stick down |
 | Dash | `HUD.Dash` | Press; holding repeats on cooldown ("held dash", on by default) |

@@ -380,7 +380,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S0-C3 | Swim feel: drag-to-swim on `LinearVelocity` and `AlignOrientation` at all seven tier scales; `Model:ScaleTo` from 1.0 to 6.5 on an animated skinned rig | S2, S18 | L | S0-C2 | Agent + owner (device rows 1 and 3) |
 | S0-C4 | Two clients at 100 and 200 ms: smoothing of the other player; server `CFrame` write on a client-owned root; anchor after `SetNetworkOwner(nil)` | S3, S4 | M | S0-C3 | Owner (two-client test is manual until S15 is answered) |
 | S0-C5 | Streaming: persistent collision shell, `PauseOutsideLoadedArea`, `GameplayPaused` | S5 | M | S0-C2 | Agent + owner |
-| S0-C6 | Prey bench: 250 groups and 1,300 members on the server (server step 2.0 ms or less per 100 ms tick; 6 kB/s or less per player), 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
+| S0-C6 | Prey bench: 250 groups and 1,300 members on the server (server step 2.0 ms or less per 100 ms tick; 6 kB/s or less per player), and the same step budget at the Frenzy count of 09 §8.1 (about 2,620 members in 508 groups; 09 §8.4, §16.2), 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
 | S0-C7 | Skinned rigs: `AnimationController` and `Animator` on a client-made rig, two MeshParts on one skeleton, 24 rigs on screen | S8 | M | S0-A2 | Agent + owner (device row 1) |
 | S0-C8 | One `src/shared` module in Roblox, Lune and luau-lsp; ProfileStore session start, autosave, end and refusal of a second session; clock agreement; one engine spec run through Open Cloud | S11, S13, S14, S17 | M | S0-C1 | Agent |
 | S0-C9 | Server Authority, time-boxed to 6 hours | S12 | L | S0-C3 | Agent + owner |
@@ -403,8 +403,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Type | Task | Who |
 |---|---|---|---|
-| S0-D1 | Decision | Answer chapter 14 decisions D1 (hours), D2 (budget), D3 (the slice), D11 (who owns the game) and D12 (fee or Roblox Plus) | Owner |
-| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). If D11 chooses the community (chapter 14's recommendation), create the Roblox community GULP first (100 Robux, 11 F23): ownership is hard to change later (chapter 14, R46). It is not opened or promoted until `S−4` (task S19-M2). Then create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11; the production experience GULP is created later under the same owner. | Owner |
+| S0-D1 | Decision | Answer chapter 14 decisions D1 (hours), D2 (budget), D3 (the slice), D11 (who owns the game) and D12 (fee or Roblox Plus). D2, D3, D11 and D12 were answered on 14 Oct 2026 (12 §11, 13 §3.2, 12 §2.1); D1 is still open | Owner |
+| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). D11 chose the community (14 Oct 2026, 12 §2.1 A6), so create the Roblox community GULP first (100 Robux, 11 F23): ownership is hard to change later (chapter 14, R46). It is not opened or promoted until `S−4` (task S19-M2). Then create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11; the production experience GULP is created later under the same owner. | Owner |
 | S0-M2 | Operations | Account checks A1 to A3 of 12 §2.1: ID age check, 2-step verification, verified email | Owner |
 | S0-M3 | Operations | Have device row 1 (low Android phone, 4 GB) and device row 2 or 3 in hand. Buy a used phone if needed (12 §11, up to 120 US dollars). | Owner |
 | S0-T1 | Test | Every spike item is run on the Mac; S1, S2, S6, S8 and the phone spike also on device row 1; S2 also on device row 3 | Owner |
@@ -445,8 +445,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 - [ ] Every "U" row of 09 §21.2 that a spike settles is marked settled in chapter 14, section 2.
 - [ ] The report states the measured memory of Studio, a play test and Blender on this Mac.
 - [ ] The report states WH and OH for the agent art trial.
-- [ ] The owner has written "go", "change" (with the rows above that apply) or "stop".
-- [ ] Decisions D1, D2, D3, D11 and D12 are answered in chapter 14, and the three experiences exist under the owner D11 chose (the community, if chosen, was created first).
+- [x] The owner has written "go", "change" (with the rows above that apply) or "stop" (Change, provisional, 14 Oct 2026).
+- [ ] Decision D1 is answered (D2, D3, D11 and D12 were answered on 14 Oct 2026), and the three experiences exist under the GULP community, which was created first (D11).
 
 **Risks.** A phone is not in hand by Wednesday (then S2, S6 and S8 slip to Sprint 1 and the decision is provisional). Server Authority eats the week (hard stop at 6 hours). **Cut first:** S16, then S12.
 **Hours.** 30 OH, all owner-led.
@@ -556,7 +556,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 **Acceptance criteria**
 
-- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members (09 §15.2).
+- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members, and also at the Frenzy count of about 2,620 members in 508 groups (09 §8.4, §15.2, §16.2).
 - [ ] `prey_soak.sim` passes: bytes per player under 9,000 peak and 4,500 average; no packet over 900 bytes.
 - [ ] Device row 1 draws 80 prey meshes at 30 fps.
 - [ ] Krill scatter when the creature comes close; no prey Instance exists on the server.
@@ -1628,7 +1628,7 @@ Sprint 0 spikes ──go──► B01 scaffold ─► B03 ─► B04 data ─►
 | Day-7 retention of any cohort | 8 days | Every read |
 | Ad review | About 24 to 48 hours | Sprints 23, 28, 64 |
 | Featuring submission for an event | 7 days ahead | Sprint 64 |
-| Roblox Plus, if chosen instead of the fee | 2 consecutive months before `S` | Decide in Sprint 0 (D12) |
+| Roblox Plus, if chosen instead of the fee | 2 consecutive months before `S` | Not needed: D12 chose the fee (14 Oct 2026) |
 | Free badges | 5 a day | Sprints 22 and 23 (four [MVP] batches), Sprint 65 (two [L] batches) |
 | Video thumbnail uploads | 3 a month, rejections count | Sprints 31, 64 |
 | A staging soak before a release with a save migration | 24 hours | Any release that changes the schema |

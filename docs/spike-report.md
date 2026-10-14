@@ -80,7 +80,7 @@ Owner time during the agent loops was about zero; the sign-off review of the fin
 
 ## 5. Design findings that change or threaten the bible
 
-**F1–F27: all proposals adopted (14 Oct 2026)**, by the owner on the agent's recommendation. The bible was changed to match on the same day (chapters 06, 07, 08, 09, 11 and 15); the proposals are kept below as the record.
+**F1–F27: all proposals adopted (14 Oct 2026)**, by the owner on the agent's recommendation. Where a finding needed values (F26: the Minnow dark, the tail accent, the Minnow height, the prey shell budgets), the values are the agent's rulings made on the owner's instruction, and the owner may revise them. The bible was changed to match on the same day, in chapters 02, 03, 06, 07, 08, 09, 11, 12, 13, 14 and 15; the proposals are kept below as the record.
 
 | # | Finding | Threatens | Proposal |
 |---|---|---|---|
@@ -135,15 +135,16 @@ Owner time during the agent loops was about zero; the sign-off review of the fin
 
 ## 7. Owner actions still needed for the decision
 
+Done on 14 October 2026: the S6 budget ruling (section 1), decisions D2, D3, D11 and D12 (chapters 12 and 13), and
+the rulings on F1 to F27 (section 5). Still to do:
+
 1. Run the phone halves on device row 1 (S1, S2, S6, S8, S9 touch, S0-A3 emissive, S0-A5 gate, S0-A6) and device
-   row 3 (S2, S0-A6).
-2. Run S13 and S17 once GULP Dev and GULP CI exist (S0-M1).
-3. Rule on the S6 budget reading (section 1).
-4. Sign off (or reject) the Minnow juvenile sheet from S0-A7 and record OH in section 4.
-5. Answer decisions D1, D2, D3, D11 and D12 in chapter 14.
-6. Create the community (if D11 chooses it) and then GULP Dev, GULP CI and GULP Staging (S0-M1).
-7. Account checks A1 to A3 (S0-M2); device rows 1 and 2 or 3 in hand (S0-M3).
-8. Rule on the findings F1 to F27 that need a bible change.
+   row 3 (S2, S0-A6). Any fail re-opens the decision (section 8).
+2. Create the GULP community (100 Robux), then GULP Dev, GULP CI and GULP Staging under it (S0-M1).
+3. Run S13 and S17 once GULP Dev and GULP CI exist.
+4. Account checks A1 to A3 (S0-M2); device rows 1 and 2 or 3 in hand (S0-M3).
+5. Sign off (or reject) the Minnow juvenile sheet and confirm the OH in section 4.
+6. Answer decision D1 (weekly hours); the plan assumes 30.
 
 ## 8. Decision
 
