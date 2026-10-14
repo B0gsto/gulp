@@ -1,0 +1,721 @@
+{
+ "ready": [
+  true,
+  2.07
+ ],
+ "S10_coreGuiDrawn": {
+  "found": 0,
+  "drawn": {
+   "dragBar_SurfaceGui": {
+    "sample": [
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15"
+    ],
+    "n": 4
+   }
+  }
+ },
+ "S9": {
+  "keyCallOk": true,
+  "keyCallText": "Success",
+  "before": {
+   "keyDisplacement": 0,
+   "keyFramesIsKeyDown": 0,
+   "playerScripts": [
+    "PlayerModule:ModuleScript:0",
+    "PlayerScriptsLoader:LocalScript:0",
+    "BubbleChat:LocalScript:0",
+    "ChatScript:LocalScript:12",
+    "RbxCharacterSounds:LocalScript:1",
+    "SpikeClient:LocalScript:0"
+   ],
+   "playerGui": [
+    "BubbleChat:ScreenGui:0",
+    "Chat:ScreenGui:59",
+    "Freecam:ScreenGui:1"
+   ],
+   "cameraType": "Scriptable",
+   "charAddedCount": 1,
+   "cameraTypeSetByUs": 1,
+   "frame": 168,
+   "keyboardInputBegan": 0,
+   "touchEnabled": false
+  },
+  "after": {
+   "keyDisplacement": 44.68017736077309,
+   "keyFramesIsKeyDown": 120,
+   "playerScripts": [
+    "PlayerModule:ModuleScript:0",
+    "PlayerScriptsLoader:LocalScript:0",
+    "BubbleChat:LocalScript:0",
+    "ChatScript:LocalScript:12",
+    "RbxCharacterSounds:LocalScript:1",
+    "SpikeClient:LocalScript:0"
+   ],
+   "playerGui": [
+    "BubbleChat:ScreenGui:0",
+    "Chat:ScreenGui:59",
+    "Freecam:ScreenGui:1"
+   ],
+   "cameraType": "Scriptable",
+   "charAddedCount": 1,
+   "cameraTypeSetByUs": 1,
+   "frame": 353,
+   "keyboardInputBegan": 3,
+   "touchEnabled": false
+  }
+ },
+ "S10_client": {
+  "guiInset": [
+   0,
+   58,
+   0,
+   0
+  ],
+  "coreGuiEnabled": {
+   "EmotesMenu": false,
+   "ExperienceShop": false,
+   "Captures": false,
+   "AvatarSwitcher": false,
+   "Chat": false,
+   "SelfView": false,
+   "Health": false,
+   "All": false,
+   "PlayerList": false,
+   "Backpack": false
+  },
+  "viewport": [
+   1280,
+   719
+  ],
+  "setCoreGuiEnabledOk": true,
+  "topbarInset": [
+   120,
+   0,
+   1280,
+   58
+  ]
+ },
+ "sequenceDone": [
+  true,
+  70.6
+ ],
+ "results": {
+  "S2_server_t3": {
+   "clientReported": true,
+   "rootSize": 3.4000000953674316,
+   "serverSeesY": -39.497039794921875,
+   "mass": 20.579526901245117
+  },
+  "S2_server_t4": {
+   "clientReported": true,
+   "rootSize": 4.599999904632568,
+   "serverSeesY": -37.83261489868164,
+   "mass": 50.96501159667969
+  },
+  "S14_server": {
+   "dateTimeNowMinusServerTimeNow": -0.00017690658569335938,
+   "secondsInGame": 13.329438958331593,
+   "serverTimeNowMinusOsTimeAtTick": [
+    0.014883041381835938,
+    0.014806985855102539,
+    0.015336990356445312
+   ]
+  },
+  "S2_t7": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.14144185185432434,
+   "scale": 6.5,
+   "climbedTo": -37.55231857299805,
+   "sizeReplicationDelay": 5.249996320344508e-06,
+   "inputFrame": 2801,
+   "tier": 7,
+   "rigExtents": [
+    11.700006484985352,
+    13.649999618530273,
+    22.750003814697266
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.31467600000905804,
+   "cruiseSpeed": 37.99684524536133,
+   "rootDiameter": 13,
+   "rigScale": 6.5,
+   "maxSpeed": 37.99969482421875,
+   "headingErrDegAfterTurn": 0.05233915627441309,
+   "frame": {
+    "p95Ms": 18.405500799417496,
+    "fps": 60.01201675391694,
+    "maxMs": 20.581791177392006,
+    "meanMs": 16.66332934786316,
+    "p50Ms": 16.667375341057777,
+    "p99Ms": 18.770083785057068,
+    "n": 284
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 38
+  },
+  "S2_server_t2": {
+   "clientReported": true,
+   "rootSize": 2.5999999046325684,
+   "serverSeesY": -40.449462890625,
+   "mass": 9.202771186828613
+  },
+  "S1_client": {
+   "dtFromHello": 0.6564208333438728,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.002986416657222435,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "cmd": "runAll",
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.012320874986471608,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04522766666195821
+    }
+   ]
+  },
+  "S2_t2": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.10355328023433685,
+   "scale": 1.3,
+   "climbedTo": -42.84231948852539,
+   "sizeReplicationDelay": 4.125002305954695e-06,
+   "inputFrame": 1190,
+   "tier": 2,
+   "rigExtents": [
+    2.3400073051452637,
+    2.72999906539917,
+    4.549999237060547
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.318034791664104,
+   "cruiseSpeed": 27.999629974365234,
+   "rootDiameter": 2.5999999046325684,
+   "rigScale": 1.2999999523162842,
+   "maxSpeed": 27.999807357788086,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 18.413666635751724,
+    "fps": 60.00622980489761,
+    "maxMs": 19.669165834784508,
+    "meanMs": 16.66493634496566,
+    "p50Ms": 16.675207763910294,
+    "p99Ms": 19.202999770641327,
+    "n": 284
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 28
+  },
+  "S5_client": {
+   "pausedFrames": 5,
+   "finalX": 4222.0029296875,
+   "pausedAtEnd": false,
+   "reefAtStart": 1500,
+   "reefMin": 1500,
+   "shellMin": 150,
+   "anchoredWhilePaused": false,
+   "farFloorT": 0.3885828750062501,
+   "farCounts": [
+    {
+     "farParts": 0,
+     "afterArrive": 0
+    },
+    {
+     "farParts": 283,
+     "afterArrive": 0.1
+    },
+    {
+     "farParts": 2487,
+     "afterArrive": 0.25
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 0.5
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 1
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 2
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 4
+    }
+   ],
+   "arriveT": 0.3028349166706903,
+   "firstFarPartT": 0.37105695833452046,
+   "pausedChanges": [
+    {
+     "paused": true,
+     "t": 0.30215433333069086
+    },
+    {
+     "paused": false,
+     "t": 0.38837162499839906
+    }
+   ],
+   "movedWhilePaused": 3983.16748046875
+  },
+  "S14_client": {
+   "secondsSinceScriptStart": 14.605216958327219,
+   "samples": [
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0005130767822265625,
+     "clientMinusServer": 0.009837865829467773,
+     "clientServerTimeNowMinusServerOsTime": 0.39135098457336426,
+     "clientDateTimeMinusClientServerTimeNow": -0.0009169578552246094,
+     "rtt": 0.04913187026977539
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0006759166717529297,
+     "clientMinusServer": 0.009203672409057617,
+     "clientServerTimeNowMinusServerOsTime": 0.6408796310424805,
+     "clientDateTimeMinusClientServerTimeNow": -0.001447916030883789,
+     "rtt": 0.04913687705993652
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.00016617774963378906,
+     "clientMinusServer": 0.007781267166137695,
+     "clientServerTimeNowMinusServerOsTime": 0.8909473419189453,
+     "clientDateTimeMinusClientServerTimeNow": -0.0009429454803466797,
+     "rtt": 0.04999089241027832
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.00029206275939941406,
+     "clientMinusServer": 0.01004791259765625,
+     "clientServerTimeNowMinusServerOsTime": 0.1583399772644043,
+     "clientDateTimeMinusClientServerTimeNow": -0.001692056655883789,
+     "rtt": 0.04870414733886719
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0005660057067871094,
+     "clientMinusServer": 0.00972604751586914,
+     "clientServerTimeNowMinusServerOsTime": 0.42429208755493164,
+     "clientDateTimeMinusClientServerTimeNow": -0.0009379386901855469,
+     "rtt": 0.04929184913635254
+    }
+   ]
+  },
+  "S2_server_t6": {
+   "clientReported": true,
+   "rootSize": 9,
+   "serverSeesY": -35.45539474487305,
+   "mass": 381.7035217285156
+  },
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.012320874986471608,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.00012916667037643492,
+   "sameModel": true,
+   "helloAfterJoin": 0.045480166663764976,
+   "characterAdded": true
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "S2_server_t7": {
+   "clientReported": true,
+   "rootSize": 13,
+   "serverSeesY": -34.44326400756836,
+   "mass": 1150.3465576171875
+  },
+  "S2_t6": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.11745895445346832,
+   "scale": 4.5,
+   "climbedTo": -38.41679763793945,
+   "sizeReplicationDelay": 1.6249992768280208e-05,
+   "inputFrame": 2480,
+   "tier": 6,
+   "rigExtents": [
+    8.100003242492676,
+    9.45000171661377,
+    15.750001907348633
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.3162871249951422,
+   "cruiseSpeed": 35.99833679199219,
+   "rootDiameter": 9,
+   "rigScale": 4.5,
+   "maxSpeed": 35.99974060058594,
+   "headingErrDegAfterTurn": 0.05595291190411356,
+   "frame": {
+    "p95Ms": 18.183792009949684,
+    "fps": 60.00001194053812,
+    "maxMs": 18.93549971282482,
+    "meanMs": 16.66666334985118,
+    "p50Ms": 16.658708453178406,
+    "p99Ms": 18.578875809907913,
+    "n": 285
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 36
+  },
+  "S2_t1": {
+   "physicsVelocityFramesAfterInput": 1,
+   "speedAfterStop07": 0.08393538743257523,
+   "scale": 1,
+   "climbedTo": -41.27877426147461,
+   "sizeReplicationDelay": 9.66666266322136e-06,
+   "inputFrame": 868,
+   "tier": 1,
+   "rigExtents": [
+    1.799993872642517,
+    2.0999999046325684,
+    3.500004768371582
+   ],
+   "positionChangedFramesAfterInput": 2,
+   "timeTo90pct": 0.3815722500003176,
+   "cruiseSpeed": 25.999658584594727,
+   "rootDiameter": 2,
+   "rigScale": 1,
+   "maxSpeed": 25.999692916870117,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 18.453791737556458,
+    "fps": 60.00425756776772,
+    "maxMs": 19.22091655433178,
+    "meanMs": 16.665484092868212,
+    "p50Ms": 16.589874401688576,
+    "p99Ms": 19.102124497294426,
+    "n": 285
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 26
+  },
+  "done": {
+   "t": 76.24706483332557
+  },
+  "S2_t4": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.10413305461406708,
+   "scale": 2.3,
+   "climbedTo": -40.502254486083984,
+   "sizeReplicationDelay": 5.29167300555855e-06,
+   "inputFrame": 1836,
+   "tier": 4,
+   "rigExtents": [
+    4.14000129699707,
+    4.829998970031738,
+    8.049996376037598
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.3342223333311267,
+   "cruiseSpeed": 31.999372482299805,
+   "rootDiameter": 4.599999904632568,
+   "rigScale": 2.299999952316284,
+   "maxSpeed": 31.999794006347656,
+   "headingErrDegAfterTurn": 0.05595291190411356,
+   "frame": {
+    "p95Ms": 18.37950013577938,
+    "fps": 60.01185932599027,
+    "maxMs": 19.058166071772575,
+    "meanMs": 16.66337306044631,
+    "p50Ms": 16.644708812236786,
+    "p99Ms": 18.91566626727581,
+    "n": 286
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 32
+  },
+  "S5_server": {
+   "gameplayPausedChangesOnServer": [
+    {
+     "paused": true,
+     "t": 67.20985024998663
+    },
+    {
+     "paused": false,
+     "t": 67.29343258333392
+    }
+   ],
+   "teleportAt": 67.14412141665525,
+   "serverRootXAfter6s": 4216.53662109375,
+   "persistentLoadedAfterJoin": 0.012320874986471608,
+   "replicationFocusIsRoot": true
+  },
+  "S2_t5": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.12493619322776794,
+   "scale": 3.2,
+   "climbedTo": -39.43483352661133,
+   "sizeReplicationDelay": 3.4166587283834815e-06,
+   "inputFrame": 2158,
+   "tier": 5,
+   "rigExtents": [
+    5.759995460510254,
+    6.720000267028809,
+    11.200002670288086
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.31650400000216905,
+   "cruiseSpeed": 33.99905776977539,
+   "rootDiameter": 6.400000095367432,
+   "rigScale": 3.200000047683716,
+   "maxSpeed": 33.99973678588867,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 18.190249800682068,
+    "fps": 59.99386493180727,
+    "maxMs": 19.13079246878624,
+    "meanMs": 16.668371026548492,
+    "p50Ms": 16.696792095899582,
+    "p99Ms": 18.7120009213686,
+    "n": 284
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 34
+  },
+  "S2_t3": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.11164628714323044,
+   "scale": 1.7,
+   "climbedTo": -42.03867721557617,
+   "sizeReplicationDelay": 8.374991011805832e-06,
+   "inputFrame": 1513,
+   "tier": 3,
+   "rigExtents": [
+    3.060004711151123,
+    3.570000648498535,
+    5.949999809265137
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.31602749999728985,
+   "cruiseSpeed": 29.99953269958496,
+   "rootDiameter": 3.4000000953674316,
+   "rigScale": 1.7000000476837158,
+   "maxSpeed": 29.99981117248535,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 18.44116672873497,
+    "fps": 60.026821181998244,
+    "maxMs": 19.002707675099373,
+    "meanMs": 16.659219667289246,
+    "p50Ms": 16.62050001323223,
+    "p99Ms": 18.82941648364067,
+    "n": 284
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 30
+  },
+  "S4_write": [
+   {
+    "i": 1,
+    "serverHeardAfter": 0.04930400848388672,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.03494381904602051,
+    "distBefore": 262.0443420410156
+   },
+   {
+    "i": 2,
+    "serverHeardAfter": 0.050241947174072266,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.03417086601257324,
+    "distBefore": 30
+   },
+   {
+    "i": 3,
+    "serverHeardAfter": 0.049746036529541016,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.03307294845581055,
+    "distBefore": 30
+   },
+   {
+    "i": 4,
+    "serverHeardAfter": 0.04845309257507324,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.034240007400512695,
+    "distBefore": 30
+   },
+   {
+    "i": 5,
+    "serverHeardAfter": 0.0488128662109375,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.037240028381347656,
+    "distBefore": 30
+   },
+   {
+    "i": 6,
+    "serverHeardAfter": 0.050544023513793945,
+    "serverDistAfter03": 5.387332439422607,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03865790367126465,
+    "distBefore": 327.0183410644531
+   },
+   {
+    "i": 7,
+    "serverHeardAfter": 0.04899406433105469,
+    "serverDistAfter03": 4.7940545082092285,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03736090660095215,
+    "distBefore": 34.38572692871094
+   },
+   {
+    "i": 8,
+    "serverHeardAfter": 0.049662113189697266,
+    "serverDistAfter03": 4.33929443359375,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03782916069030762,
+    "distBefore": 37.7768440246582
+   },
+   {
+    "i": 9,
+    "serverHeardAfter": 0.04899001121520996,
+    "serverDistAfter03": 5.0213165283203125,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03745603561401367,
+    "distBefore": 35.988624572753906
+   },
+   {
+    "i": 10,
+    "serverHeardAfter": 0.04939103126525879,
+    "serverDistAfter03": 5.5567474365234375,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03696799278259277,
+    "distBefore": 37.32224655151367
+   }
+  ],
+  "S4_where": {
+   "anchored": true,
+   "distFromSpawn": 0
+  },
+  "S4_fightClient": {
+   "localMaxDisplacement": 61.5,
+   "frames": 124,
+   "clientSawAnchored": true
+  },
+  "S4_freeze": {
+   "movedAfterThaw1s": 22.533512115478516,
+   "clientDistFromSpawnAfterServerMove": 0,
+   "ownerAfterThaw": "bogsto2003",
+   "serverMaxDriftWhileFrozen": 0,
+   "speedBeforeFreeze": 36.51302719116211,
+   "clientFight": {
+    "localMaxDisplacement": 61.5,
+    "frames": 124,
+    "clientSawAnchored": true
+   }
+  },
+  "S2_server_t5": {
+   "clientReported": true,
+   "rootSize": 6.400000095367432,
+   "serverSeesY": -36.661643981933594,
+   "mass": 137.25828552246094
+  },
+  "S2_server_t1": {
+   "clientReported": true,
+   "rootSize": 2,
+   "serverSeesY": -39.10807418823242,
+   "mass": 4.188790321350098
+  }
+ },
+ "S16": {
+  "coreGuiAllOff": {
+   "client": {
+    "chatCoreGuiEnabled": false,
+    "callOk": true,
+    "bubbleDisplayedEvent": true,
+    "bubbleConfigEnabled": true,
+    "partClass": "Part",
+    "chatVersion": "LegacyChatService"
+   },
+   "coreGui": {
+    "found": 0,
+    "drawn": {
+     "dragBar_SurfaceGui": {
+      "sample": [
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15"
+      ],
+      "n": 4
+     }
+    }
+   }
+  },
+  "chatCoreGuiOn": {
+   "client": {
+    "chatCoreGuiEnabled": true,
+    "callOk": true,
+    "bubbleDisplayedEvent": true,
+    "bubbleConfigEnabled": true,
+    "partClass": "Part",
+    "chatVersion": "LegacyChatService"
+   },
+   "coreGui": {
+    "found": 0,
+    "drawn": {
+     "dragBar_SurfaceGui": {
+      "sample": [
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15"
+      ],
+      "n": 4
+     }
+    }
+   }
+  },
+  "screenshot": [
+   true,
+   ""
+  ]
+ },
+ "console": {
+  "lines": 40,
+  "suspect": [
+   "Stack Begin",
+   "Stack Begin"
+  ],
+  "controlSeen": {
+   "SPIKE_WARN_CONTROL_Server": true,
+   "SPIKE_ERR_CONTROL_Server": true,
+   "SPIKE_WARN_CONTROL_Client": true,
+   "SPIKE_ERR_CONTROL_Client": true
+  }
+ },
+ "backToEdit": true
+}

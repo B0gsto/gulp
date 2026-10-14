@@ -1,0 +1,956 @@
+{
+ "ready": [
+  true,
+  1.99
+ ],
+ "S10_coreGuiDrawn": {
+  "topArea": [
+   "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+   "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+   "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+   "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15"
+  ],
+  "drawn": {
+   "dragBar_SurfaceGui": {
+    "sample": [
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15",
+     "ImageLabel ImageLabel 148x10@74,15"
+    ],
+    "n": 4
+   }
+  },
+  "screens": [
+   "RobloxGui:8",
+   "ScreenshotsCarousel:0",
+   "CaptureManager:0",
+   "CaptureOverlay:0",
+   "MomentsCreationFlow:0",
+   "RobloxNetworkPauseNotification:0",
+   "InExperienceInterventionApp:1",
+   "PurchasePromptApp:2",
+   "dragBar_SurfaceGui:1",
+   "dragBar_SurfaceGui:1",
+   "dragBar_SurfaceGui:1",
+   "dragBar_SurfaceGui:1",
+   "ExperienceChat:1",
+   "ImmersiveBrandedAds:0",
+   "RewardedVideoAdPlayer:0",
+   "SystemScrim:0",
+   "InGameFullscreenTitleBarScreen:15",
+   "ShortcutBar:0",
+   "RojoNotifications:3"
+  ],
+  "found": 0
+ },
+ "S9": {
+  "keyCallOk": true,
+  "keyCallText": "Success",
+  "before": {
+   "keyDisplacement": 0,
+   "keyFramesIsKeyDown": 0,
+   "playerScripts": [
+    "PlayerModule:ModuleScript:0",
+    "SpikeClient:LocalScript:0",
+    "RbxCharacterSounds:LocalScript:1",
+    "PlayerScriptsLoader:LocalScript:0"
+   ],
+   "playerGui": [
+    "Freecam:ScreenGui:1"
+   ],
+   "cameraType": "Scriptable",
+   "charAddedCount": 1,
+   "cameraTypeSetByUs": 1,
+   "frame": 45,
+   "keyboardInputBegan": 0,
+   "touchEnabled": false
+  },
+  "after": {
+   "keyDisplacement": 44.28459632396698,
+   "keyFramesIsKeyDown": 30,
+   "playerScripts": [
+    "PlayerModule:ModuleScript:0",
+    "SpikeClient:LocalScript:0",
+    "RbxCharacterSounds:LocalScript:1",
+    "PlayerScriptsLoader:LocalScript:0"
+   ],
+   "playerGui": [
+    "Freecam:ScreenGui:1"
+   ],
+   "cameraType": "Scriptable",
+   "charAddedCount": 1,
+   "cameraTypeSetByUs": 1,
+   "frame": 91,
+   "keyboardInputBegan": 3,
+   "touchEnabled": false
+  }
+ },
+ "S10_client": {
+  "guiInset": [
+   0,
+   58,
+   0,
+   0
+  ],
+  "coreGuiEnabled": {
+   "EmotesMenu": false,
+   "ExperienceShop": false,
+   "Captures": false,
+   "AvatarSwitcher": false,
+   "Chat": false,
+   "SelfView": false,
+   "Health": false,
+   "All": false,
+   "PlayerList": false,
+   "Backpack": false
+  },
+  "viewport": [
+   1280,
+   719
+  ],
+  "setCoreGuiEnabledOk": true,
+  "topbarInset": [
+   120,
+   0,
+   1280,
+   58
+  ]
+ },
+ "sequenceDone": [
+  true,
+  92.1
+ ],
+ "results": {
+  "S2_server_t3": {
+   "clientReported": true,
+   "rootSize": 3.4000000953674316,
+   "serverSeesY": -39.560302734375,
+   "mass": 20.579526901245117
+  },
+  "S2_server_t4": {
+   "clientReported": true,
+   "rootSize": 4.599999904632568,
+   "serverSeesY": -38.415283203125,
+   "mass": 50.96501159667969
+  },
+  "S14_server": {
+   "dateTimeNowMinusServerTimeNow": -0.0006420612335205078,
+   "secondsInGame": 13.330313375001424,
+   "serverTimeNowMinusOsTimeAtTick": [
+    0.005530118942260742,
+    0.004873037338256836,
+    0.004548072814941406,
+    0.004829883575439453
+   ]
+  },
+  "S2_t7": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.10750090330839157,
+   "scale": 6.5,
+   "climbedTo": -41.97264862060547,
+   "sizeReplicationDelay": 4.49999060947448e-06,
+   "inputFrame": 1107,
+   "tier": 7,
+   "rigExtents": [
+    11.700006484985352,
+    13.649999618530273,
+    22.75
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.33329766665701754,
+   "cruiseSpeed": 37.99800491333008,
+   "rootDiameter": 13,
+   "rigScale": 6.5,
+   "maxSpeed": 37.99969482421875,
+   "headingErrDegAfterTurn": 0.05595291190411356,
+   "frame": {
+    "p95Ms": 67.45204329490662,
+    "fps": 15.000975147107162,
+    "maxMs": 67.65033304691315,
+    "meanMs": 66.66233296125708,
+    "p50Ms": 66.7378306388855,
+    "p99Ms": 67.65033304691315,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 38
+  },
+  "S2_server_t2": {
+   "clientReported": true,
+   "rootSize": 2.5999999046325684,
+   "serverSeesY": -40.87060546875,
+   "mass": 9.202771186828613
+  },
+  "S1_client": {
+   "dtFromHello": 0.3404512083361624,
+   "constraintsFound": true,
+   "characterAdded": true,
+   "gameLoaded": true,
+   "shellAtCharacterAdded": 150,
+   "name": "Creature_11718681576",
+   "className": "Model",
+   "rootPresentWhenEventFired": true,
+   "persistentLoadedAfterScriptStart": 0.00390437500027474,
+   "early": {
+    "pausedAtStart": true,
+    "shellAtScriptStart": -1,
+    "charAtStart": false,
+    "gameLoadedAtStart": true
+   },
+   "hasHumanoid": false
+  },
+  "cmd": "runAll",
+  "S5_join": {
+   "persistentLoadedAfterJoin": 0.014082624998991378,
+   "pauseLog": [
+    {
+     "paused": false,
+     "t": 0.04786800000874791
+    },
+    {
+     "paused": true,
+     "t": 0.6952359166753013
+    },
+    {
+     "paused": false,
+     "t": 0.7637265416706214
+    }
+   ]
+  },
+  "S2_t2": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.07914653420448303,
+   "scale": 1.3,
+   "climbedTo": -43.471744537353516,
+   "sizeReplicationDelay": 3.875000402331352e-06,
+   "inputFrame": 484,
+   "tier": 2,
+   "rigExtents": [
+    2.3400073051452637,
+    2.72999906539917,
+    4.549999237060547
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.363059997558594e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.291534423828125e-05,
+     "rest": 0.3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.3329257083387347,
+   "cruiseSpeed": 27.99972915649414,
+   "rootDiameter": 2.5999999046325684,
+   "rigScale": 1.2999999523162842,
+   "maxSpeed": 27.999773025512695,
+   "headingErrDegAfterTurn": 0.05595291190411356,
+   "frame": {
+    "p95Ms": 67.67141819000244,
+    "fps": 15.003300217652157,
+    "maxMs": 68.12291592359543,
+    "meanMs": 66.65200225903955,
+    "p50Ms": 66.6985809803009,
+    "p99Ms": 68.12291592359543,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 28
+  },
+  "S5_client": {
+   "pausedFrames": 2,
+   "pausedAtEnd": false,
+   "finalX": 4153.17333984375,
+   "displacementDuringPauseAfterArrive": 0,
+   "anchoredWhilePaused": false,
+   "reefAtStart": 1500,
+   "reefMin": 1500,
+   "shellMin": 150,
+   "maxSpeedWhilePaused": 21.37040901184082,
+   "farFloorT": 0.438399083330296,
+   "farCounts": [
+    {
+     "farParts": 0,
+     "afterArrive": 0
+    },
+    {
+     "farParts": 448,
+     "afterArrive": 0.1
+    },
+    {
+     "farParts": 2656,
+     "afterArrive": 0.25
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 0.5
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 1
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 2
+    },
+    {
+     "farParts": 3828,
+     "afterArrive": 4
+    }
+   ],
+   "arriveT": 0.30112033332989085,
+   "firstFarPartT": 0.37078279166598804,
+   "pausedChanges": [
+    {
+     "paused": true,
+     "t": 0.3008199583273381
+    },
+    {
+     "paused": false,
+     "t": 0.4209640833287267
+    }
+   ],
+   "movedWhilePaused": 3994.997802734375
+  },
+  "S14_client": {
+   "secondsSinceScriptStart": 14.614355166660971,
+   "samples": [
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0001621246337890625,
+     "clientMinusServer": 0.008387327194213867,
+     "clientServerTimeNowMinusServerOsTime": 0.22954940795898438,
+     "clientDateTimeMinusClientServerTimeNow": -0.0005970001220703125,
+     "rtt": 0.0500948429107666
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0008671283721923828,
+     "clientMinusServer": 0.008468389511108398,
+     "clientServerTimeNowMinusServerOsTime": 0.496335506439209,
+     "clientDateTimeMinusClientServerTimeNow": -0.0002541542053222656,
+     "rtt": 0.04983711242675781
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0008559226989746094,
+     "clientMinusServer": 0.008387088775634766,
+     "clientServerTimeNowMinusServerOsTime": 0.7462430000305176,
+     "clientDateTimeMinusClientServerTimeNow": -0.00014209747314453125,
+     "rtt": 0.049798011779785156
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0007960796356201172,
+     "clientMinusServer": 0.008620977401733398,
+     "clientServerTimeNowMinusServerOsTime": 0.9964170455932617,
+     "clientDateTimeMinusClientServerTimeNow": -0.0002269744873046875,
+     "rtt": 0.04961991310119629
+    },
+    {
+     "serverDateTimeMinusServerTimeNow": -0.0001270771026611328,
+     "clientMinusServer": 0.00825357437133789,
+     "clientServerTimeNowMinusServerOsTime": 0.24638056755065918,
+     "clientDateTimeMinusClientServerTimeNow": -0.0003871917724609375,
+     "rtt": 0.050013065338134766
+    }
+   ]
+  },
+  "S2_server_t6": {
+   "clientReported": true,
+   "rootSize": 9,
+   "serverSeesY": -36.433837890625,
+   "mass": 381.7035217285156
+  },
+  "S1_server": {
+   "persistentLoadedAfterJoin": 0.014082624998991378,
+   "hasHumanoid": false,
+   "dtFromAssign": 0.003983791670179926,
+   "sameModel": true,
+   "helloAfterJoin": 0.047936166665749624,
+   "characterAdded": true
+  },
+  "S11_roblox": {
+   "ok": true,
+   "res": {
+    "scale8": 1.24,
+    "speed250": 34,
+    "tier250": 5
+   },
+   "packOk": true,
+   "pack": 42
+  },
+  "S2_server_t7": {
+   "clientReported": true,
+   "rootSize": 13,
+   "serverSeesY": -35.96630859375,
+   "mass": 1150.3465576171875
+  },
+  "S2_t6": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.10166845470666885,
+   "scale": 4.5,
+   "climbedTo": -41.43906784057617,
+   "sizeReplicationDelay": 2.833330654539168e-06,
+   "inputFrame": 943,
+   "tier": 6,
+   "rigExtents": [
+    8.100003242492676,
+    9.449999809265137,
+    15.750001907348633
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 4.363059997558594e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.3332933749916265,
+   "cruiseSpeed": 35.998939514160156,
+   "rootDiameter": 9,
+   "rigScale": 4.5,
+   "maxSpeed": 35.99971008300781,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 67.40549951791763,
+    "fps": 15.002046452047153,
+    "maxMs": 67.71008670330048,
+    "meanMs": 66.6575725649444,
+    "p50Ms": 66.69791787862778,
+    "p99Ms": 67.71008670330048,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 36
+  },
+  "S2_t1": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.0738660991191864,
+   "scale": 1,
+   "climbedTo": -41.80952453613281,
+   "sizeReplicationDelay": 5.208334187045693e-06,
+   "inputFrame": 369,
+   "tier": 1,
+   "rigExtents": [
+    1.799993872642517,
+    2.0999999046325684,
+    3.4999969005584717
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.291534423828125e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.40044149999448564,
+   "cruiseSpeed": 25.99977684020996,
+   "rootDiameter": 2,
+   "rigScale": 1,
+   "maxSpeed": 25.99977684020996,
+   "headingErrDegAfterTurn": 0.05595291190411356,
+   "frame": {
+    "p95Ms": 67.50508397817612,
+    "fps": 14.999681751004598,
+    "maxMs": 67.64816492795944,
+    "meanMs": 66.66808113665648,
+    "p50Ms": 66.67670607566833,
+    "p99Ms": 67.64816492795944,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 26
+  },
+  "done": {
+   "t": 98.6932702500053
+  },
+  "S2_t4": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.09041512757539749,
+   "scale": 2.3,
+   "climbedTo": -42.61798858642578,
+   "sizeReplicationDelay": 4.4166663428768516e-06,
+   "inputFrame": 714,
+   "tier": 4,
+   "rigExtents": [
+    4.14000129699707,
+    4.829998970031738,
+    8.049999237060547
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.33330220832431223,
+   "cruiseSpeed": 31.999540328979492,
+   "rootDiameter": 4.599999904632568,
+   "rigScale": 2.299999952316284,
+   "maxSpeed": 31.999744415283203,
+   "headingErrDegAfterTurn": 0.0625572578997782,
+   "frame": {
+    "p95Ms": 67.46391952037811,
+    "fps": 14.998825465445067,
+    "maxMs": 67.60033220052719,
+    "meanMs": 66.6718872290262,
+    "p50Ms": 66.70412421226501,
+    "p99Ms": 67.60033220052719,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 32
+  },
+  "S5_server": {
+   "gameplayPausedChangesOnServer": [
+    {
+     "paused": true,
+     "t": 89.67708183333161
+    },
+    {
+     "paused": false,
+     "t": 89.79383758333279
+    }
+   ],
+   "teleportAt": 89.61031400000502,
+   "serverRootXAfter6s": 4148.154296875,
+   "persistentLoadedAfterJoin": 0.014082624998991378,
+   "replicationFocusIsRoot": true
+  },
+  "S2_t5": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.09622208029031754,
+   "scale": 3.2,
+   "climbedTo": -41.37454605102539,
+   "sizeReplicationDelay": 3.2916723284870386e-06,
+   "inputFrame": 828,
+   "tier": 5,
+   "rigExtents": [
+    5.759995937347412,
+    6.720000743865967,
+    11.19999885559082
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.363059997558594e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.3392181396484375e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.3332254583365284,
+   "cruiseSpeed": 33.99931335449219,
+   "rootDiameter": 6.400000095367432,
+   "rigScale": 3.200000047683716,
+   "maxSpeed": 33.99972915649414,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 67.23908334970474,
+    "fps": 14.999012673650093,
+    "maxMs": 67.415252327919,
+    "meanMs": 66.67105507262995,
+    "p50Ms": 66.7039155960083,
+    "p99Ms": 67.415252327919,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 34
+  },
+  "S2_t3": {
+   "physicsVelocityFramesAfterInput": 0,
+   "speedAfterStop07": 0.08501653373241425,
+   "scale": 1.7,
+   "climbedTo": -43.30264663696289,
+   "sizeReplicationDelay": 5.083333235234022e-06,
+   "inputFrame": 599,
+   "tier": 3,
+   "rigExtents": [
+    3.060004949569702,
+    3.5700008869171143,
+    5.9499993324279785
+   ],
+   "bursts": [
+    {
+     "vel": 0,
+     "restSpeed": 0,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.315376281738281e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.291534423828125e-05,
+     "rest": 0.3,
+     "pos": 1
+    },
+    {
+     "vel": 0,
+     "restSpeed": 4.291534423828125e-05,
+     "rest": 0.3,
+     "pos": 1
+    }
+   ],
+   "positionChangedFramesAfterInput": 1,
+   "timeTo90pct": 0.333497041661758,
+   "cruiseSpeed": 29.999656677246094,
+   "rootDiameter": 3.4000000953674316,
+   "rigScale": 1.7000000476837158,
+   "maxSpeed": 29.999759674072266,
+   "headingErrDegAfterTurn": 0.059347025446578223,
+   "frame": {
+    "p95Ms": 67.75504350662231,
+    "fps": 15.000866806560136,
+    "maxMs": 68.03266704082489,
+    "meanMs": 66.6628144156765,
+    "p50Ms": 66.66970998048782,
+    "p99Ms": 68.03266704082489,
+    "n": 71
+   },
+   "rigScaleToOk": true,
+   "targetSpeed": 30
+  },
+  "S4_write": [
+   {
+    "i": 1,
+    "serverHeardAfter": 0.049230098724365234,
+    "serverDistAfter03": 0.00048828125,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.034661054611206055,
+    "distBefore": 278.2327575683594
+   },
+   {
+    "i": 2,
+    "serverHeardAfter": 0.0324091911315918,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.0172121524810791,
+    "distBefore": 29.99951171875
+   },
+   {
+    "i": 3,
+    "serverHeardAfter": 0.04996800422668457,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.03455519676208496,
+    "distBefore": 30
+   },
+   {
+    "i": 4,
+    "serverHeardAfter": 0.04996991157531738,
+    "serverDistAfter03": 0,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.03429698944091797,
+    "distBefore": 30
+   },
+   {
+    "i": 5,
+    "serverHeardAfter": 0.04937100410461426,
+    "serverDistAfter03": 1.52587890625e-05,
+    "owner": "bogsto2003",
+    "mode": "idle",
+    "ownerArrivedAfter": 0.0345311164855957,
+    "distBefore": 30
+   },
+   {
+    "i": 6,
+    "serverHeardAfter": 0.04980802536010742,
+    "serverDistAfter03": 3.442004680633545,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03487205505371094,
+    "distBefore": 327.45465087890625
+   },
+   {
+    "i": 7,
+    "serverHeardAfter": 0.04949378967285156,
+    "serverDistAfter03": 3.726043701171875,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.033647775650024414,
+    "distBefore": 32.94978332519531
+   },
+   {
+    "i": 8,
+    "serverHeardAfter": 0.04995608329772949,
+    "serverDistAfter03": 3.401214599609375,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03433799743652344,
+    "distBefore": 33.87691879272461
+   },
+   {
+    "i": 9,
+    "serverHeardAfter": 0.04990386962890625,
+    "serverDistAfter03": 4.0792694091796875,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03371882438659668,
+    "distBefore": 33.343963623046875
+   },
+   {
+    "i": 10,
+    "serverHeardAfter": 0.050042152404785156,
+    "serverDistAfter03": 3.77734375,
+    "owner": "bogsto2003",
+    "mode": "swim",
+    "ownerArrivedAfter": 0.03315305709838867,
+    "distBefore": 32.806617736816406
+   }
+  ],
+  "S4_where": {
+   "anchored": true,
+   "distFromSpawn": 0
+  },
+  "S4_fightClient": {
+   "localMaxDisplacement": 15,
+   "frames": 31,
+   "clientSawAnchored": true
+  },
+  "S4_freeze": {
+   "movedAfterThaw1s": 15.642440795898438,
+   "clientDistFromSpawnAfterServerMove": 0,
+   "ownerAfterThaw": "bogsto2003",
+   "serverMaxDriftWhileFrozen": 0,
+   "speedBeforeFreeze": 24.935157775878906,
+   "clientFight": {
+    "localMaxDisplacement": 15,
+    "frames": 31,
+    "clientSawAnchored": true
+   }
+  },
+  "S2_server_t5": {
+   "clientReported": true,
+   "rootSize": 6.400000095367432,
+   "serverSeesY": -37.322021484375,
+   "mass": 137.25828552246094
+  },
+  "S2_server_t1": {
+   "clientReported": true,
+   "rootSize": 2,
+   "serverSeesY": -38.90234375,
+   "mass": 4.188790321350098
+  }
+ },
+ "S16": {
+  "coreGuiAllOff": {
+   "client": {
+    "chatCoreGuiEnabled": false,
+    "callOk": true,
+    "bubbleDisplayedEvent": true,
+    "bubbleConfigEnabled": true,
+    "partClass": "Part",
+    "chatVersion": "TextChatService"
+   },
+   "coreGui": {
+    "topArea": [
+     "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+     "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+     "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15",
+     "dragBar_SurfaceGui/ImageLabel ImageLabel 148x10@74,15"
+    ],
+    "drawn": {
+     "dragBar_SurfaceGui": {
+      "sample": [
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15",
+       "ImageLabel ImageLabel 148x10@74,15"
+      ],
+      "n": 4
+     },
+     "ExperienceChat": {
+      "sample": [
+       "ChatBubbleFrame ImageLabel 149x32@175,160",
+       "Text TextLabel 133x16@183,168",
+       "Caret ImageLabel 9x6@245,191"
+      ],
+      "n": 3
+     }
+    },
+    "screens": [
+     "RobloxGui:8",
+     "ScreenshotsCarousel:0",
+     "CaptureManager:0",
+     "CaptureOverlay:0",
+     "MomentsCreationFlow:0",
+     "RobloxNetworkPauseNotification:0",
+     "InExperienceInterventionApp:1",
+     "PurchasePromptApp:2",
+     "dragBar_SurfaceGui:1",
+     "dragBar_SurfaceGui:1",
+     "dragBar_SurfaceGui:1",
+     "dragBar_SurfaceGui:1",
+     "ExperienceChat:6",
+     "ImmersiveBrandedAds:0",
+     "RewardedVideoAdPlayer:0",
+     "SystemScrim:0",
+     "InGameFullscreenTitleBarScreen:15",
+     "ShortcutBar:0",
+     "RojoNotifications:3"
+    ],
+    "found": 1
+   }
+  },
+  "screenshot": [
+   true,
+   ""
+  ]
+ },
+ "console": {
+  "lines": 39,
+  "suspect": [
+   "Stack Begin",
+   "Stack Begin"
+  ],
+  "controlSeen": {
+   "SPIKE_WARN_CONTROL_Server": true,
+   "SPIKE_ERR_CONTROL_Server": true,
+   "SPIKE_WARN_CONTROL_Client": true,
+   "SPIKE_ERR_CONTROL_Client": true
+  }
+ },
+ "backToEdit": true
+}
