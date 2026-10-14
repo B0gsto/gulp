@@ -22,7 +22,7 @@ local SETTINGS: { { any } } = {
 	{ "Workspace", "SignalBehavior", "Deferred" },
 	{ "Workspace", "PhysicsSteppingMethod", "Adaptive" },
 	{ "Workspace", "FallenPartsDestroyHeight", -5000 },
-	{ "Workspace", "Gravity", 196.2 },
+	{ "Workspace", "Gravity", 80 },
 	{ "Players", "CharacterAutoLoads", false },
 	{ "VoiceChatService", "EnableDefaultVoice", false },
 	{ "StarterGui", "ScreenOrientation", "LandscapeSensor" },

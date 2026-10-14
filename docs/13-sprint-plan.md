@@ -49,14 +49,14 @@ The owner's weekly hours are not confirmed (chapter 14, decision D1). The base c
 | Work | WH | OH |
 |---|---|---|
 | Sprint 0 spikes (all of Sprint 0, including its 18 WH of art spikes) | — | 30 |
-| Art and audio in the slice (chapter 07 hours), Sprints 1 to 22 | 566 | 273 |
+| Art and audio in the slice (chapter 07 hours), Sprints 1 to 22 | 569 | 274 |
 | Interface images in the slice (no hours in chapter 08; estimated here at 0.4 WH a drawing for about 110 drawings) | 45 | 17 |
 | Code in the slice (sum of task sizes in section 5; OH is 0.30 × WH plus the device tuning named in the tasks) | about 535 | 171 |
 | Design, data and tuning | — | 35 |
 | Device, multi-client and playtest work beyond the Friday slot | — | 30 |
 | Marketing and operations before `S` | — | 47 |
 | Weekly rhythm, 22 sprints × 4 (Sprint 0 is all spikes) | — | 88 |
-| **Total to soft launch** | | **about 690 OH (691), 23 sprints** |
+| **Total to soft launch** | | **about 690 OH (692), 23 sprints** |
 
 The code, art, rhythm and total figures are the sums of the "Hours" lines of Sprints 1 to 22 in section 5 (code 171, art and audio with interface images 290, other 112, rhythm 88), plus the 30 OH of Sprint 0. The split of the 112 "other" hours into the three rows above is an estimate.
 
@@ -170,6 +170,8 @@ The canon's go/no-go is day-1 retention and session time at or above the median 
 
 ### 3.2 Exactly what is in the slice
 
+**Accepted by the owner on 14 Oct 2026** as defined below (decision D3 (a), on the agent's recommendation).
+
 | Area | In the slice at `S` | Canon [MVP] items left out |
 |---|---|---|
 | Zones | Nursery Lagoon, Sunlit Reef, Kelp Forest (reduced), 24 coves, the Rim. East and south of the Reef and Kelp end in `M_Env_Blue_Haze` with a current that turns creatures back. | The Drop-off |
@@ -188,7 +190,7 @@ The canon's go/no-go is day-1 retention and session time at or above the median 
 | Screens | 24 of the 28 [MVP] screens: S01 to S04, S07 to S16, S18, S19, S22, S25, S27, S28, S31, S33, S35, S36 | S05 tide popover, S17 specimen detail, S23 and S24 Codex |
 | Platforms | Phone, tablet, PC and Mac with keys (15 §9, soft-launch stage) | Nothing |
 | Analytics | Funnels 1 to 7 of 10 §3, the first-session and return funnels, economy events, the guard rules of 10 §9.2 | Events for content that is not in the slice |
-| Audio | About 90 of the 132 [MVP] sound rows. All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
+| Audio | 107 of the 132 [MVP] sound rows (counted row by row against the slice on 14 Oct 2026; the earlier "about 90" was an estimate). All music from the Roblox Creator Store or a licensed pack: Nursery, Reef, Kelp, Cove, Chase, Current, Frenzy, Warning and two stingers. | Composed music; sounds for content that is not in the slice |
 | Store page | Icon A, thumbnails T1, T2, T3 and T5, description, no video at `S`. Store art shows only what is in the build: in these soft-launch versions the threat in icon A and in T3 is the Barracuda (as it already is in T1), and T5 shows Minnow and Pufferfish specimens only. | Icon D, T4 (its soft-launch version, five sizes), T6, the page-cut video (all return during soft launch); the public-launch versions of icon A and T3 (with Old Scar), of T4 (seven sizes, with the Leviathan and its crest) and of T5 (with the Eel), which are [L] rows in chapter 07 and are made in Sprint 61, after Old Scar ships in Sprint 40 |
 
 ### 3.3 The deferral list, with hours
@@ -199,7 +201,7 @@ Hours are first-pass WH from chapter 07, section 14.2, split row by row for this
 |---|---|---|---|---|
 | Species (2) | 114 | 70 | 44 | The Eel, `M_Species_Base_Eel`, `RIG_Eel`, the 13 `A_Eel_*` clips, Eel ability clips (43); the three Leviathan crests (2) |
 | Traits (3) | 38 | 20 | 18 | Eel overlays and placement (8); Longfin pieces, Ink, Crystal and Moonlit overlays, Crystal shards (10) |
-| Prey (4) | 44 | 28 | 16 | Bonito, Tuna (4); Ribbonfish, Inklet, Crystal Jelly, Lunar Fry (6); `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_02_Alb`, `_03_Alb`, their shells (6) |
+| Prey (4) | 44 | 31 | 13 | Bonito, Tuna (4); Ribbonfish, Inklet, Crystal Jelly, Lunar Fry (6); `RIG_PreyRibbon4`, `RIG_PreyBlob4`, `T_TraitPrey_03_Alb`, their shells (3.5). `T_TraitPrey_02_Alb` (2.5) is in the slice: it holds the Armor Shrimp and the Urchin Puff (moved 14 Oct 2026) |
 | Predators and hazards (5) | 75 | 19 | 56 | Old Scar (22), Moray (16), Gull (9), cold vents (5), hook set (4) |
 | Environment (6) | 337 | 173 | 164 | The Drop-off (90); 13 landmarks (42); a third of the kit variants and the matching assembly time (25); eel holes (4); Codex stone, perch net, trophy rock (4) |
 | Water and sky (7) | 26 | 23 | 3 | `SKY_MoonTide`, `T_Sky_Moon_Alb` |
@@ -211,7 +213,7 @@ Hours are first-pass WH from chapter 07, section 14.2, split row by row for this
 | Store-page source art (13) | 54 | 37 | 17 | `SCN_Icon_D_Puffed`, `SCN_Thumb_T4_FiveSizes`, `SCN_Thumb_T6_MoonTide`, `SCN_Thumb_T7_PickYourCreature_3`, `SCN_Brand_Banner`, part of the pose set (the Eel poses) and the capture set-ups |
 | Placeholders (16) | 26 | 18 | 8 | Stand-ins for rows no slice code loads |
 | Pipeline (14.1) | 65 | 59 | 6 | The part of the soft-launch import pass that belongs to deferred rows |
-| **Total** | **1,016** | **566** | **450** | |
+| **Total** | **1,016** | **569** | **447** | |
 
 The same deferrals as choices, largest first:
 
@@ -225,12 +227,12 @@ The same deferrals as choices, largest first:
 | 6 | Old Scar | 22 | No computer predator threatens tiers 4 to 6. Bank rate for big creatures will be high. Watched in the weekly review (section 5, Sprint 27). | Sprint 40, or earlier if the watch triggers |
 | 7 | Moray, Gull, hook, cold vents | 34 | Less variety of danger. The Barracuda and jelly blooms carry it. | Gull in Sprint 29; the rest in Sprints 36 and 41 |
 | 8 | Moon Tide and Moonlit | 10 + 3 + 3 + about 8 | One event type at `S`. The tide-pull measure (10 §7) is still testable. | Soft launch, Sprints 27 and 28 |
-| 9 | Longfin, Ink, Crystal; Bonito, Tuna | 20 | Five traits instead of nine | Sprints 36 and 42 |
+| 9 | Longfin, Ink, Crystal; Bonito, Tuna | 18 | Five traits instead of nine | Sprints 36 and 42 |
 | 10 | Other sounds and effects for deferred content | 24 | None | With their content |
 | 11 | Store art: icon D, T4, T6, T7 (three species), banner | 17 | No icon test until 100 daily users, which is when chapter 11 starts it anyway | Soft launch, Sprint 31 |
 | 12 | Codex screens and stone, small cove pieces, crests | 6 + interface work | Discoveries are recorded but not shown | Codex in Sprint 30; the rest in Sprint 44 |
 | 13 | Pipeline and placeholders for deferred rows | 14 | None | With their content |
-| | **Total** | **about 450** | | |
+| | **Total** | **about 447** | | |
 
 ### 3.4 The soft-launch top-up queue
 
@@ -378,7 +380,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | S0-C3 | Swim feel: drag-to-swim on `LinearVelocity` and `AlignOrientation` at all seven tier scales; `Model:ScaleTo` from 1.0 to 6.5 on an animated skinned rig | S2, S18 | L | S0-C2 | Agent + owner (device rows 1 and 3) |
 | S0-C4 | Two clients at 100 and 200 ms: smoothing of the other player; server `CFrame` write on a client-owned root; anchor after `SetNetworkOwner(nil)` | S3, S4 | M | S0-C3 | Owner (two-client test is manual until S15 is answered) |
 | S0-C5 | Streaming: persistent collision shell, `PauseOutsideLoadedArea`, `GameplayPaused` | S5 | M | S0-C2 | Agent + owner |
-| S0-C6 | Prey bench: 250 groups and 1,300 members on the server (server step 2.0 ms or less per 100 ms tick; 6 kB/s or less per player), 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
+| S0-C6 | Prey bench: 250 groups and 1,300 members on the server (server step 2.0 ms or less per 100 ms tick; 6 kB/s or less per player), and the same step budget at the Frenzy count of 09 §8.1 (about 2,620 members in 508 groups; 09 §8.4, §16.2), 24 bots, a 900-byte `buffer` through `UnreliableRemoteEvent`, 80 pooled prey moved with `BulkMoveTo` on the low phone | S6, S7 | L | S0-C1 | Agent + owner (device row 1) |
 | S0-C7 | Skinned rigs: `AnimationController` and `Animator` on a client-made rig, two MeshParts on one skeleton, 24 rigs on screen | S8 | M | S0-A2 | Agent + owner (device row 1) |
 | S0-C8 | One `src/shared` module in Roblox, Lune and luau-lsp; ProfileStore session start, autosave, end and refusal of a second session; clock agreement; one engine spec run through Open Cloud | S11, S13, S14, S17 | M | S0-C1 | Agent |
 | S0-C9 | Server Authority, time-boxed to 6 hours | S12 | L | S0-C3 | Agent + owner |
@@ -401,8 +403,8 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 | ID | Type | Task | Who |
 |---|---|---|---|
-| S0-D1 | Decision | Answer chapter 14 decisions D1 (hours), D2 (budget), D3 (the slice), D11 (who owns the game) and D12 (fee or Roblox Plus) | Owner |
-| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). If D11 chooses the community (chapter 14's recommendation), create the Roblox community GULP first (100 Robux, 11 F23): ownership is hard to change later (chapter 14, R46). It is not opened or promoted until `S−4` (task S19-M2). Then create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11; the production experience GULP is created later under the same owner. | Owner |
+| S0-D1 | Decision | Answer chapter 14 decisions D1 (hours), D2 (budget), D3 (the slice), D11 (who owns the game) and D12 (fee or Roblox Plus). D2, D3, D11 and D12 were answered on 14 Oct 2026 (12 §11, 13 §3.2, 12 §2.1); D1 is still open | Owner |
+| S0-M1 | Operations | Create the GitHub repository, labels and the first three milestones (section 10). D11 chose the community (14 Oct 2026, 12 §2.1 A6), so create the Roblox community GULP first (100 Robux, 11 F23): ownership is hard to change later (chapter 14, R46). It is not opened or promoted until `S−4` (task S19-M2). Then create the experiences GULP Dev, GULP CI and GULP Staging (09 §17.1) under the owner chosen in D11; the production experience GULP is created later under the same owner. | Owner |
 | S0-M2 | Operations | Account checks A1 to A3 of 12 §2.1: ID age check, 2-step verification, verified email | Owner |
 | S0-M3 | Operations | Have device row 1 (low Android phone, 4 GB) and device row 2 or 3 in hand. Buy a used phone if needed (12 §11, up to 120 US dollars). | Owner |
 | S0-T1 | Test | Every spike item is run on the Mac; S1, S2, S6, S8 and the phone spike also on device row 1; S2 also on device row 3 | Owner |
@@ -435,14 +437,16 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 | The agent art trial cannot reach a reviewer pass in three loops | **Change** | Creatures are modelled by hand by the owner (creature share 100%, about +60 OH to soft launch), or a contract artist is budgeted (decision D2). |
 | Two or more of S1, S2, S6 and S8 fail with no fallback that holds 30 fps on device row 1 | **Stop** | The no-Humanoid phone-first design does not work on this engine today. Stop condition 1 in chapter 14. |
 
+**The decision taken (14 Oct 2026):** **Change (provisional)**, signed by the owner by instruction to the agent (`docs/spike-report.md` §8). Overlays are a second shell per creature; the agent art trial row is ruled otherwise (agents keep making creatures; the creature share stays 45% and is measured again at G1). It becomes final when the phone halves, S13 and S17 have run; any fail re-opens it.
+
 **Acceptance criteria**
 
 - [ ] `docs/spike-report.md` has a pass or fail and a number for each of spike S1 to S18 and each of the six art spikes.
 - [ ] Every "U" row of 09 §21.2 that a spike settles is marked settled in chapter 14, section 2.
 - [ ] The report states the measured memory of Studio, a play test and Blender on this Mac.
 - [ ] The report states WH and OH for the agent art trial.
-- [ ] The owner has written "go", "change" (with the rows above that apply) or "stop".
-- [ ] Decisions D1, D2, D3, D11 and D12 are answered in chapter 14, and the three experiences exist under the owner D11 chose (the community, if chosen, was created first).
+- [x] The owner has written "go", "change" (with the rows above that apply) or "stop" (Change, provisional, 14 Oct 2026).
+- [ ] Decision D1 is answered (D2, D3, D11 and D12 were answered on 14 Oct 2026), and the three experiences exist under the GULP community, which was created first (D11).
 
 **Risks.** A phone is not in hand by Wednesday (then S2, S6 and S8 slip to Sprint 1 and the decision is provisional). Server Authority eats the week (hard stop at 6 hours). **Cut first:** S16, then S12.
 **Hours.** 30 OH, all owner-led.
@@ -552,7 +556,7 @@ All work is in one throwaway place and a `spike/` folder. Nothing from it is kep
 
 **Acceptance criteria**
 
-- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members (09 §15.2).
+- [ ] Server prey step is 2.0 ms or less per 100 ms tick with 250 groups and 1,300 members, and also at the Frenzy count of about 2,620 members in 508 groups (09 §8.4, §15.2, §16.2).
 - [ ] `prey_soak.sim` passes: bytes per player under 9,000 peak and 4,500 average; no packet over 900 bytes.
 - [ ] Device row 1 draws 80 prey meshes at 30 fps.
 - [ ] Krill scatter when the creature comes close; no prey Instance exists on the server.
@@ -1624,7 +1628,7 @@ Sprint 0 spikes ──go──► B01 scaffold ─► B03 ─► B04 data ─►
 | Day-7 retention of any cohort | 8 days | Every read |
 | Ad review | About 24 to 48 hours | Sprints 23, 28, 64 |
 | Featuring submission for an event | 7 days ahead | Sprint 64 |
-| Roblox Plus, if chosen instead of the fee | 2 consecutive months before `S` | Decide in Sprint 0 (D12) |
+| Roblox Plus, if chosen instead of the fee | 2 consecutive months before `S` | Not needed: D12 chose the fee (14 Oct 2026) |
 | Free badges | 5 a day | Sprints 22 and 23 (four [MVP] batches), Sprint 65 (two [L] batches) |
 | Video thumbnail uploads | 3 a month, rejections count | Sprints 31, 64 |
 | A staging soak before a release with a save migration | 24 hours | Any release that changes the schema |

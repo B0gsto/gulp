@@ -125,7 +125,7 @@ local SETTINGS = {
 	{ "Workspace", "SignalBehavior", Enum.SignalBehavior.Deferred },
 	{ "Workspace", "PhysicsSteppingMethod", Enum.PhysicsSteppingMethod.Adaptive },
 	{ "Workspace", "FallenPartsDestroyHeight", -5000 },
-	{ "Workspace", "Gravity", 196.2 },
+	{ "Workspace", "Gravity", 80 },
 	{ "Players", "CharacterAutoLoads", false },
 	{ "VoiceChatService", "EnableDefaultVoice", false },
 	{ "StarterGui", "ScreenOrientation", Enum.ScreenOrientation.LandscapeSensor },

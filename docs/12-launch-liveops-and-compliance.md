@@ -108,9 +108,9 @@ How it is applied:
 | A1 | Developer account age-checked with ID | Required for Kids and Select (L2), social links (L24), rewarded video (L20) and Audience Expansion rewards | V |
 | A2 | 2-step verification on | Required (L2, L20) | V |
 | A3 | Verified email | Required for Ads Manager | V |
-| A4 | Publishing requirement | Pay the one-time refundable fee for GULP (cheapest for a game that updates weekly), or hold Roblox Plus. Plus must have been active for 2 consecutive months, so if that route is chosen, subscribe by `S−9` weeks. | V (L2); confirm the price in Audience, Reach |
+| A4 | Publishing requirement | **Decided by the owner on 14 Oct 2026 (decision D12 (a), on the agent's recommendation): the one-time refundable fee**, paid in Sprint 22 (task S22-M1); it needs no lead time. The alternative was to hold Roblox Plus. Plus must have been active for 2 consecutive months, so if that route is chosen, subscribe by `S−9` weeks. | V (L2); confirm the price in Audience, Reach |
 | A5 | Roblox community "GULP" created | **In Sprint 0**, before the first experience is created, because it owns the game (A6) and ownership is hard to change later. 100 Robux (document 11, F23). It is opened and promoted to players four weeks before soft launch, at `S−4`, and not before (document 11, section 9.4). | S |
-| A6 | Owner of the game | **The GULP community owns the game** (tune). Events then show on the community page, and roles can be given to helpers later. Decide in Sprint 0 (chapter 14, decision D11), before the first experience is created: all four experiences in section 1.2 are created under the community. Whether a game can be moved between owners later is unverified. | U |
+| A6 | Owner of the game | **The GULP community owns the game.** Decided by the owner on 14 Oct 2026 (decision D11 (a), on the agent's recommendation). Events then show on the community page, and roles can be given to helpers later. The community is created before the first experience: all four experiences in section 1.2 are created under the community. Whether a game can be moved between owners later is unverified. | U |
 | A7 | Developer Exchange eligibility checked | Needed to cash out and for Audience Expansion rewards | R |
 | A8 | Open Cloud keys | One key for data store snapshots and one for the place publish script, each with the smallest scope that works. Stored outside the repository. | Our rule |
 
@@ -641,6 +641,8 @@ Not in the budget: expedited review (50,000 Robux or more, L4); a trademark fili
 To cover the high case at the rate in L28, the game must earn about 566,000 Earned Robux. To cover the low case it needs about 13,200, which is below the 30,000 minimum for a cash-out.
 
 Spending rule: the low case is committed. Each high-case item is bought only when its stage is reached and the stop rules in document 11, section 10.3 allow it. Music and sound are paid for only after the go/no-go is passed.
+
+**Budget decided by the owner on 14 Oct 2026** (decision D2 (a), on the agent's recommendation): the low case is committed now, plus a used low-end test phone of up to 120 US dollars (task S0-M3), about 170 US dollars in all. Paid tests are decided step by step by document 11, section 10.3. Money for music and sound is decided only after a "go" at the go/no-go. A contract artist is not budgeted.
 
 ## 12. What was verified and what was not
 
