@@ -142,6 +142,14 @@ local function measure(): string
 	size("DashTile", "GulpHUD", "Tile")
 	size("Ring", "GulpWorld", "UI_HUD_DragRing")
 	size("Knob", "GulpWorld", "UI_HUD_DragKnob")
+	local face = find("GulpHUD", "Face")
+	if face then
+		-- Not clipped: the face lies inside the screen (08 §1 safe area is checked by eye).
+		local view = workspace.CurrentCamera.ViewportSize
+		local a, b = face.AbsolutePosition, face.AbsolutePosition + face.AbsoluteSize
+		local inside = a.X >= 0 and a.Y >= -60 and b.X <= view.X and b.Y <= view.Y
+		table.insert(out, `Dash on screen {if inside then "yes" else "no"}`)
+	end
 	size("Home", "GulpWorld", "Disc")
 	text("homeDist", "GulpWorld", "Distance")
 	text("pop", "GulpWorld", "Pop")
