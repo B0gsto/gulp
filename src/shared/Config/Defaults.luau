@@ -76,7 +76,7 @@ Defaults.unknown = environment("development", false, true, false, true)
 local GAME_IDS: { [number]: EnvironmentName } = {
 	[10770882807] = "development", -- GULP Dev (place 93549306834616)
 	[10770882319] = "ci", -- GULP CI (place 86401799950889)
-	-- GULP Staging: its universe ID goes here as `"staging"` once the experience exists.
+	[10770883054] = "staging", -- GULP Staging (place 104247046146910)
 	-- GULP (production): its universe ID goes here as `"production"` at launch.
 }
 Defaults.GAME_IDS = table.freeze(GAME_IDS)
