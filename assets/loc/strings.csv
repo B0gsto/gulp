@@ -1,0 +1,424 @@
+key,context,en
+common.ok,Button,OK
+common.yes,Button; confirms an action,Yes
+common.no,Button,No
+common.cancel,Button,Cancel
+common.close,Label read out for the close cross; also a gamepad hint,Close
+common.back,Button,Back
+common.done,Button; finishes a mode,Done
+common.continue,Button; moves on after a summary,Continue
+common.buy,Button; spends Pearls,Buy
+common.claim,Button; collects a free reward,Claim
+common.claim_all,Button; collects the whole Pearl pile in the cove,Claim all
+common.owned,Tag on something the player already has,Owned
+common.locked,Tag,Locked
+common.new,Tag on something just found,New!
+common.free,Price tag for the starter species,Free
+common.max,Top tier reached; keep to 3 or 4 letters,MAX
+common.retry,Button,Try again
+common.no_thanks,Button; declines an offer. Keep it neutral.,No thanks
+common.you,Marks the player's own row in a list,You
+common.pearls,The currency; plural noun,Pearls
+common.mass,The size number in a run,Mass
+common.per_hour,"Pearls earned each hour, for example ""120 an hour""",{Amount} an hour
+common.thousand,"Short number: 12.4K means 12,400",{Value}K
+common.million,"Short number: 1.2M means 1,200,000",{Value}M
+common.hours_min,A length of time,{Hours} h {Minutes} min
+tier.1,Size tier 1 of 7: a baby fish,Fry
+tier.2,Tier 2: takes small bites,Nibbler
+tier.3,Tier 3: snaps at food. Not the fish species.,Snapper
+tier.4,Tier 4,Hunter
+tier.5,Tier 5: big and strong,Brute
+tier.6,Tier 6: huge,Titan
+tier.7,"Tier 7: a sea giant, the top size",Leviathan
+species.minnow,Playable creature,Minnow
+species.puffer,Playable creature,Pufferfish
+species.eel,Playable creature,Eel
+species.turtle,[L] Playable creature,Sea Turtle
+species.squid,[L] Playable creature,Squid
+species.shark,[L] Playable creature: a baby shark,Shark Pup
+species.minnow.feel,"How it plays, one short line",Good at everything
+species.puffer.feel,How it plays,Slow and safe
+species.eel.feel,How it plays,Fast and bendy
+species.turtle.feel,[L] How it plays,Slow and tough
+species.squid.feel,[L] How it plays,Quick bursts
+species.shark.feel,[L] How it plays,Always hungry
+ability.dart,Minnow's power,Dart
+ability.puff,Pufferfish's power: it blows up like a ball,Puff
+ability.slip,Eel's power: slips through narrow holes,Slip
+ability.shell,[L] Sea Turtle's power,Shell
+ability.jet,[L] Squid's power: shoots backwards,Jet
+ability.rampage,[L] Shark Pup's power: a hungry charge. Not the Feeding Frenzy event.,Rampage
+ability.dart.desc,Short effect line,Dash more often
+ability.puff.desc,Short effect line,Puff up. Hard to eat.
+ability.slip.desc,Short effect line,Fits through eel holes
+ability.shell.desc,[L] Short effect line,Hide in your shell
+ability.jet.desc,[L] Short effect line,Jet back. Leave ink.
+ability.rampage.desc,[L] Short effect line,Eat fast to speed up
+trait.glow,Trait name: a body feature gained by eating,Glow
+trait.stripes,Trait name,Stripes
+trait.spots,Trait name,Spots
+trait.plated,Trait name: armour plates,Plated
+trait.spiny,Trait name: covered in spines,Spiny
+trait.longfin,Trait name: long trailing fins,Longfin
+trait.ink,Trait name,Ink
+trait.crystal,Trait name,Crystal
+trait.moonlit,Trait name: silver glow,Moonlit
+trait.spark,[L] Trait name: electric,Spark
+trait.camo,[L] Trait name: camouflage,Camo
+trait.ember,[L] Trait name: glowing hot cracks,Ember
+trait.bonefed,"[L] Trait name: made-up word, ""fed on bones""",Bonefed
+trait.glow.fx,Effect line,Shows trait prey nearby
+trait.stripes.fx,Effect line,Swim faster
+trait.spots.fx,Effect line,More mass per bite
+trait.plated.fx,Effect line,Survive one bite
+trait.spiny.fx,Effect line,Harder to eat
+trait.longfin.fx,Effect line,Dash goes further
+trait.ink.fx,Effect line,Dash leaves ink
+trait.crystal.fx,Effect line,More Pearls at home
+trait.moonlit.fx,Effect line,Prey drifts to you
+trait.spark.fx,[L] Effect line,Dash stuns prey
+trait.camo.fx,[L] Effect line,Stay still to hide
+trait.ember.fx,[L] Effect line,Vents and jellies can't hurt
+trait.bonefed.fx,[L] Effect line,More mass from everything
+rarity.common,"How rare a trait is, lowest",Common
+rarity.uncommon,Rarity,Uncommon
+rarity.rare,Rarity,Rare
+rarity.epic,Rarity,Epic
+rarity.mythic,"Rarity, highest",Mythic
+prey.plankton,Food,Plankton
+prey.krill,Food,Krill
+prey.shrimp,Food,Tiny Shrimp
+prey.sardine,"Food. Used after a number (""Eat 30 Sardine""); pick a form that reads well there.",Sardine
+prey.darter,Food: a quick little reef fish,Reef Darter
+prey.mackerel,Food,Mackerel
+prey.bonito,Food,Bonito
+prey.tuna,Food,Tuna
+prey.glowfry,Trait prey; made-up name: a glowing baby fish,Glowfry
+prey.zebra_darter,Trait prey: striped,Zebra Darter
+prey.dotted_goby,Trait prey: spotted,Dotted Goby
+prey.armor_shrimp,Trait prey: armoured,Armor Shrimp
+prey.urchin_puff,Trait prey: spiny ball,Urchin Puff
+prey.ribbonfish,Trait prey: long and thin,Ribbonfish
+prey.inklet,Trait prey; made-up name: a tiny ink squid,Inklet
+prey.crystal_jelly,Trait prey: a jellyfish like a gem,Crystal Jelly
+prey.lunar_fry,Trait prey: baby fish seen only in the Moon Tide,Lunar Fry
+prey.spark_eel,[L] Trait prey: electric,Spark Eel
+prey.leaf_drifter,[L] Trait prey: looks like a leaf,Leaf Drifter
+prey.vent_snail,[L] Trait prey: lives on hot vents,Vent Snail
+prey.marrow,[L] Trait prey: a chunk from whale bones,Marrow
+pred.gull,Predator: a sea bird,Gull
+pred.moray,Predator: an eel that hides in holes,Moray
+pred.barracuda,Predator,Barracuda
+pred.old_scar,Predator: the name of one huge shark,Old Scar
+pred.grouper,[L] Predator,Grouper
+hazard.jelly_bloom,[L] Codex Dangers entry: a cloud of stinging jellyfish,Jelly bloom
+hazard.hook,[L] Codex Dangers entry: a baited hook,Fishing hook
+hazard.anemone,[L] Codex Dangers entry: it slows whoever touches it,Anemone
+hazard.vent,[L] Codex Dangers entry: hot water from the sea floor,Thermal vent
+zone.nursery,Place: the safe starting pool,Nursery Lagoon
+zone.reef,Place,Sunlit Reef
+zone.kelp,Place,Kelp Forest
+zone.dropoff,Place: where the sea floor falls away,The Drop-off
+zone.trench,[P2] Place: the deepest water,The Trench
+event.frenzy,Timed event: food everywhere,Feeding Frenzy
+event.moon_tide,Timed event: the sea goes dark and glows,Moon Tide
+event.whale_fall,[L] Timed event: a clean whale skeleton sinks to the sea floor,Whale Fall
+event.frenzy.line,One line under the event name,Food everywhere!
+event.moon_tide.line,One line under the event name,Find the Lunar Fry
+event.whale_fall.line,[L] One line under the event name,Big food. Big danger.
+hud.next_tier,"Mass still needed for the next tier: ""114 to Brute""",{Mass} to {Tier}
+hud.plus_mass,Number that pops up on a bite,+{Mass}
+hud.traits_full,All three trait slots are taken,Traits full
+hud.trait_progress,"Trait prey eaten so far: ""3 of 5""",{Count} of {Total}
+hud.shed,Button: drop a trait to free its slot,Shed
+hud.shed_hold,Hint under the Shed button,Hold to shed
+hud.home_dist,Distance to home in metres,{Dist} m
+hud.safe,Nobody can eat the player in this water,Safe here
+hud.biggest,Title of the list of the biggest creatures on the server,Biggest now
+hud.wild,"[L] Name tag on a computer-controlled creature, so nobody takes it for a player: ""Wild Eel""",Wild {Species}
+tide.title,Title of the tide popover,Tides
+tide.now,Marks the event that is running,Now
+tide.board,[L] Header above the next three tides; a Tide Watcher benefit,Tide board
+tide.board_locked,"[L] ""Tide Watcher"" is a game pass name",See 3 tides with Tide Watcher
+tide.go_home,[L] Shown when a purchase can only be made in safe water,Go home first
+tide.will_wait,"[L] On the Call the Tide button before buying, when the tide cannot start at once",Starts after this tide
+tide.called,[L] Under the tide clock: the player's bought tide is waiting to start,Tide called
+tide.called_wait,[L] A bought tide never interrupts the tide that is running,Your tide starts after this one
+tide.called_soon,[L] The 10 seconds before a bought tide,Your tide starts in {Time}
+moment.tier_up,Shown above the new tier's name,You grew!
+moment.new_food,Followed by pictures of prey the player can now eat,New food:
+moment.trait_gained,Shown above the trait's name,New trait!
+event.in,"Warning before an event: ""Moon Tide in 0:45""",{Event} in {Time}
+event.over,Banner when an event ends,{Event} is over
+event.next,Names the event that comes next,Next: {Event}
+event.called,[L] A player started a Feeding Frenzy for everyone,{Name} called the tide!
+toast.goal_done,A daily goal was completed,Goal done!
+toast.afford,The player has enough Pearls for a new creature,You can get {Species}!
+toast.codex,Something was found for the first time,New in Codex
+toast.leviathan,A player reached the top size,{Name} is a Leviathan!
+toast.error,General error,Something went wrong
+toast.buy_failed,A purchase did not go through,That did not work. Try again.
+toast.bubble,[L] Another player liked your cove,{Name} left a Bubble!
+toast.rank_up,[L] The player's account level went up,Reef Rank {Level}!
+toast.tide_held,[L] The player bought a tide while another was running,Tide called! It waits its turn.
+gulped.title,"You were eaten. Playful, not scary. Capitals in English.",GULPED!
+gulped.by,Who ate the player; follows the title,by {Name}
+gulped.lost,Header above the lost creature,You lost
+gulped.scraps,The small Pearl payout after being eaten,Scraps
+gulped.beginner,Extra scraps for a new player's first three losses,Beginner bonus
+gulped.again,Button: start a new run,Swim again
+gulped.keep_going,Header above the revive choices,Keep going
+gulped.revive,Button: come back to life in this run,Revive
+gulped.revive_note,Second line on the Revive button,Keep your traits
+gulped.revive_video,[L] Button: watch a video to come back,Watch to revive
+gulped.keep_traits,"[L] Button: buy a Trait Lock, so the next run starts with these traits",Keep traits
+gulped.traits_kept,[L] Shown after a Trait Lock is bought,Traits kept for your next run!
+bank.title,The player got home and keeps everything,Home safe!
+bank.best,This run beat the player's record,New best!
+bank.new_specimen,The creature now lives in the cove,New specimen!
+bank.too_small,"Creatures below tier 2 are not kept. ""Nibbler"" is the tier 2 name.",Reach Nibbler to keep it
+bank.codex,Header before pictures of things found this run,New in Codex
+bank.pass_row,"Greyed row; ""Deep Pockets"" is a game pass name",×2 with Deep Pockets
+full.title,Every cove slot is taken,Cove is full
+full.pick,Instruction: choose a creature to let go,Pick one to release
+full.new,Label on the creature just brought home,New
+full.release_new,Button: let the new creature go,Release new one
+full.release_picked,Button: let the chosen old creature go,Release picked
+full.more_slots,Button: buy room instead,More slots
+dock.species,Dock button and menu title: choose what to play as,Creatures
+dock.codex,Dock button and menu title: the collection book,Codex
+dock.daily,Dock button and menu title: daily goals and gifts,Daily
+dock.shop,Dock button and menu title,Shop
+dock.ranks,[L] Dock button and menu title: leaderboards,Ranks
+dock.deco,[L] Dock button and mode title,Decorate
+cove.pile_full,On the Pearl pile when it has stopped growing,Full
+cove.boost,[L] Button: 2 hours of cove Pearls at once,Cove Boost: +{Pearls}
+cove.boost_video,[L] Button: watch a video for today's Cove Boost,Watch: +{Pearls} Pearls
+cove.boost_buy,[L] Button beside a Robux price: buy today's Cove Boost,Get +{Pearls} Pearls
+spec.title,Menu title: creatures kept in the cove,Specimens
+spec.sort_income,Sort button,Top earners
+spec.sort_new,Sort button,Newest
+spec.sort_tier,Sort button,Biggest
+spec.banked,The day the creature was brought home,Banked {Date}
+spec.traits,Header,Traits
+spec.no_traits,This creature has no traits,No traits
+spec.best,Tag on the top-earning specimen,Your best
+spec.release,Button: let a creature go for a small refund,Release
+spec.release_ask,Confirm question,Release {Species}?
+spec.release_note,Warning under the question,It swims away for good.
+spec.owner,[L] Title when looking at another player's creature,{Name}'s specimen
+slot.add,Card that opens the slot shop,Add a slot
+slot.title,Dialog title: one more place for a creature,More room
+slot.max,Nothing more to buy,All slots open
+offline.title,Dialog title,While you were away
+offline.away,"{Time} is a length such as ""3 h 20 min""",Away for {Time}
+offline.cap,The cove stops earning after this long,Full after {Hours} hours
+offline.pass_row,"[L] ""Tide Watcher"" is a game pass name",24 hours with Tide Watcher
+deco.cant,[L] A decoration cannot be placed here,Can't go there
+deco.rank,[L] Account level needed for this decoration,Reef Rank {Level}
+deco.move,[L] Tool label,Move
+deco.turn,[L] Tool label: rotate,Turn
+deco.store,[L] Tool label: back to the tray,Put away
+deco.starter,[L] On a decoration that comes only with the Starter Pack,In the Starter Pack
+deco.desc,[L] Line on a decoration card in the shop: it changes nothing but the look of the cove,For your cove. Just for looks.
+visit.title,[L] Banner on entering another player's cove,{Name}'s cove
+visit.look,[L] Visitors cannot take anything,Just looking
+visit.bubble,[L] Button label: like this cove,Leave a Bubble
+visit.bubble_done,[L],Bubble left!
+visit.tomorrow,[L] The player already left a Bubble here today,One a day. Back tomorrow!
+visit.leave,[L] Button: leave the cove,Swim out
+visit.fry_only,"[L] A bigger creature cannot enter another player's cove. ""Fry"" is the tier 1 name.",Only a Fry fits in here
+species.pick,Button: play as this creature,Pick
+species.picked,Tag: this is the creature in use,Picked
+species.unlock,Button: spend Pearls to get this creature,Unlock
+species.need,Pearls still needed,{Pearls} more
+species.best,Highest tier reached with this creature,Best: {Tier}
+species.unlocked,Shown when a creature is bought with Pearls,{Species} unlocked!
+species.patterns,[L] Header: colour patterns for a creature,Patterns
+species.pass,[L] Button beside a Robux price,Get it now
+codex.tab_species,Tab,Creatures
+codex.tab_tiers,Tab: the seven sizes reached with each creature,Tiers
+codex.tab_traits,Tab,Traits
+codex.tab_prey,Tab: everything that can be eaten,Prey
+codex.tab_dangers,[L] Tab: predators and hazards,Dangers
+codex.tab_places,[L] Tab: landmarks,Places
+codex.tab_tides,[L] Tab: tide events,Tides
+codex.found,Progress,{Found} of {Total} found
+codex.unknown,Not found yet,???
+codex.sizes,Header above the seven tier badges,Sizes reached
+codex.page_reward,Reward for reaching all seven tiers with one creature,Fill the page: {Pearls} Pearls
+codex.banked,How many times this creature was brought home,Banked {Count} times
+codex.best_mass,Highest mass reached with this creature,Best mass {Mass}
+codex.from,Which prey gives this trait,From {Prey}
+codex.gives,Which trait this prey gives,Gives {Trait}
+codex.gained,How many times the player got this trait,Gained {Count} times
+codex.eaten,How many of this prey the player has eaten,Eaten {Count}
+codex.where,Header above zone pictures,Where
+codex.event_only,This prey appears only during one event,Only in {Event}
+codex.bonus,How much a trait raises a specimen's earnings,+{Percent}% cove Pearls
+codex.met,[L] How often the player came close to this danger,Met {Count} times
+codex.visited,[L] The day the player first found this place,Visited {Date}
+codex.tide_when,"[L] When this tide runs: ""Every hour at :00 and :30""",Every hour at {Times}
+goals.tab,Tab,Goals
+goals.reset,Countdown to the daily reset,New goals in {Time}
+goals.easy,Difficulty tag on a goal,Easy
+goals.medium,Difficulty tag on a goal,Medium
+goals.hard,Difficulty tag on a goal,Hard
+goals.swap,Label read out for the swap button on a goal; title of the swap dialog,Swap
+goals.swap_free,Every player may change one goal a day for free,{Count} free swap left today
+goals.swap_video,[L] Button: watch a video for one more swap (Goal Reroll),Watch to swap
+goals.swap_buy,[L] Button beside a Robux price (Goal Reroll),Swap now
+goals.milestone,[L] Progress toward a free decoration: days on which all three goals were finished,All 3 done on {Count} of {Total} days
+goal.eat,"Goal template: ""Eat 30 Sardine""",Eat {Count} {Prey}
+goal.eat_any,Goal template,Eat {Count} things
+goal.tier,"Goal template: ""Reach Hunter""",Reach {Tier}
+goal.bank,Goal template; to bank is to get home safely,Bank {Count} times
+goal.pearls,Goal template,Bank {Pearls} Pearls
+goal.trait,"Goal template: ""Get Glow""",Get {Trait}
+goal.trait_any,Goal template,Get {Count} traits
+goal.event,"Goal template: ""Join a Moon Tide""",Join a {Event}
+goal.zone,Goal template,Visit {Zone}
+goal.bubble,[L] Goal template,Leave a Bubble
+streak.tab,[L] Tab: the seven-day login calendar,Gifts
+streak.day,[L],Day {Day}
+streak.today,[L],Today
+streak.count,[L] Which box of the seven-day calendar opens next,Gift {Day} of 7
+streak.rule,[L] A missed day never sends the player back to day 1,Miss a day? Your next gift waits.
+ranks.tab_here,[L] Tab: players on this server,Here now
+ranks.tab_week,[L] Tab: world list for the week,This week
+ranks.tab_bubbles,[L] Tab,Most Bubbles
+ranks.show_way,[L] Button: point me to this player's cove,Show the way
+ranks.new_week,[L] Time left before the weekly list starts again,New week in {Time}
+ranks.empty,[L],Nobody yet. Be first!
+rank.title,[L] The player's account level,Reef Rank
+rank.level,[L],Rank {Level}
+rank.next,[L] Pearls still to bank,{Pearls} to next rank
+rank.reward_title,[L] Reward type: a name shown with the player,Title
+rank.reward_deco,[L] Reward type,Decoration
+shop.tab_passes,Tab: things bought once and kept,Passes
+shop.tab_pearls,Tab,Pearls
+shop.tab_boosts,[L] Tab: things that are used up,Boosts
+shop.tab_patterns,[L] Tab,Patterns
+shop.tab_decorations,[L] Tab: cove decorations sold for Robux,Decorations
+shop.thanks,After a purchase,Thank you!
+shop.tomorrow,[L] The daily limit for this item is reached,Back tomorrow
+shop.unavailable,The price could not be loaded,Not for sale now
+shop.cost,In the Pearl confirm dialog,Costs {Pearls}
+shop.after,Balance after buying,You will have {Pearls}
+shop.need_more,Pearls still missing for a purchase,You need {Pearls} more
+shop.get_pearls,Button: opens the Pearl packs,Get Pearls
+shop.forever,Under a game pass,Yours forever
+shop.one_use,[L] Under a use-once item,One use
+pass.deep_pockets,Game pass name,Deep Pockets
+pass.deep_pockets.desc,To bank is to get home safely,2× Pearls when you bank
+pass.bigger_cove,Game pass name,Bigger Cove
+pass.bigger_cove.desc,Ten more places for creatures,+10 cove slots
+pass.tide_watcher,[L] Game pass name,Tide Watcher
+pass.tide_watcher.desc,[L] The cove keeps earning for 24 hours unclaimed; a tide board shows the next three tides and points to them,24-hour Pearl pile. See 3 tides ahead.
+pass.keen_nose,[L] Game pass name: good at sniffing out traits,Keen Nose
+pass.keen_nose.desc,[L],"Traits need 4, not 5"
+pass.shark_pup,[L] Game pass name; the same as the species name,Shark Pup
+pass.shark_pup.desc,[L],Unlock Shark Pup now
+product.revive,"Product name, shown on the purchase result",Revive
+product.trait_lock,"[L] Product name, shown on the purchase result",Trait Lock
+product.trait_lock.desc,[L],Start your next run with these traits
+product.call_tide,[L] Product name,Call the Tide
+product.call_tide.desc,"[L] ""Feeding Frenzy"" is the tide event",Feeding Frenzy for everyone
+product.cove_boost,[L] Product name,Cove Boost
+product.cove_boost.desc,[L] Once a day,"2 hours of cove Pearls, right now"
+product.goal_reroll,[L] Product name,Goal Reroll
+product.goal_reroll.desc,[L],Swap one daily goal
+product.pearls_s,Smallest pack,Small Pearl pack
+product.pearls_m,Second pack,Medium Pearl pack
+product.pearls_l,Third pack,Large Pearl pack
+product.pearls_xl,Largest pack,Extra-large Pearl pack
+product.pearls_amount,How many Pearls a pack gives,{Pearls} Pearls
+product.starter_pack,[L] Product name,Starter Pack
+starter.what,[L] What is inside,"{Pearls} Pearls, a pattern, a decoration"
+starter.once,[L] It can be bought once. Not a time limit.,One time only
+guide.drag,Touch,Drag to swim
+guide.mouse,Desktop,Move the mouse to aim
+guide.swim_key,Desktop; {Button} is a key picture,Hold {Button} to swim
+guide.arrows,Desktop; for players without a mouse,Arrow keys steer too
+guide.stick,[L] Gamepad,Push the stick to swim
+guide.eat,Things with a green outline are food,Eat the green ones
+guide.avoid,Things with a red outline are dangerous,Red ones eat you!
+guide.grow,Eating makes the creature bigger,Eat to grow
+guide.dash,Touch,Tap to dash
+guide.dash_press,Desktop and gamepad; {Button} is a picture,Press {Button} to dash
+guide.ability,Touch; the species ability,Tap for your power
+guide.ability_press,Desktop and gamepad,Press {Button} for power
+guide.trait,Five of the same special prey,Eat 5 to get a trait
+guide.follow,A glowing trail leads the way,Follow the lights
+guide.home,Getting home keeps the creature and its Pearls,Swim home to keep it
+guide.safe,Said inside the cove,You're safe here
+guide.cove,Creatures in the cove earn Pearls over time,Your cove earns Pearls
+guide.claim,Touch; collect the Pearls,Tap to claim
+guide.pick,Points at the Creatures button,Pick a new creature
+guide.out,Leave the cove to start a new run,Swim out for more
+settings.title,Panel title,Settings
+settings.controls,[L] Header for the control choices,Controls
+settings.scheme_drag,[L] One thumb steers,Drag to swim
+settings.scheme_two,"[L] One thumb moves, the other looks",Two thumbs
+settings.left_hand,[L] Buttons move to the left side,Left-handed
+settings.drag_speed,Touch: how far the thumb must move to swim at full speed,Drag sensitivity
+settings.mouse_speed,Desktop: how fast the view turns,Mouse look speed
+settings.two_thumb_speed,"[L] Touch, two-thumb scheme: how fast the view turns",Look speed
+settings.pad_speed,[L] Gamepad: how fast the view turns,Stick look speed
+settings.swap_sticks,"[L] Gamepad: swim with the right stick, look with the left",Swap sticks
+settings.interface_size,[L] Makes every button and text bigger or smaller,Interface size
+settings.flip,Invert the vertical direction,Flip up and down
+settings.sound,Volume of sound effects,Sounds
+settings.music,Volume of music,Music
+settings.graphics,How many visual effects to draw,Graphics
+settings.g_auto,Graphics choice: the game decides,Auto
+settings.g_low,"Graphics choice: fewer effects, runs best",Smooth
+settings.g_mid,Graphics choice,Balanced
+settings.g_high,Graphics choice: most effects,Pretty
+settings.outline,Changes the food and danger outline colours,Colour-blind outlines
+settings.motion,Fewer moving effects,Less motion
+settings.vibration,Phone or gamepad vibration,Vibration
+settings.hold_tap,Replace press-and-hold actions with two taps,Tap instead of hold
+settings.text_size,[L],Bigger text
+settings.hide_emotes,[L] Toggle: stop showing other players' emote bubbles,Hide emotes
+settings.language,[L],Language
+settings.lang_auto,[L] Use the language of the player's Roblox account,Same as Roblox
+settings.private,[L],Private reef
+settings.reset,Button: put every setting back to its default,Reset settings
+settings.reset_ask,Confirm question,Reset all settings?
+settings.version,Build number of the game,Version {Version}
+private.title,[L] A private server,Private reef
+private.desc,[L],A reef just for friends
+private.owner,[L],Owner: {Name}
+private.players,[L],{Count} of 24 here
+private.events,[L],Tide events run here too
+private.invite,[L],Invite friends
+private.where,[L] Bought on the game's Roblox page,Get one on the GULP page
+load.tip1,Loading tip,Green means food.
+load.tip2,Loading tip,Red means run!
+load.tip3,Loading tip,Swim home to keep your Pearls.
+load.tip4,Loading tip,Eat 5 of a kind for a trait.
+load.tip5,Loading tip,A new tide comes every 15 minutes.
+load.tip6,Loading tip,Small creatures turn faster.
+load.slow,After 10 s,Still loading. Hang on!
+reconnect.save_title,The player's save is still loading,Finding your cove
+reconnect.save_body,"Second line under ""Finding your cove""",This is taking a while…
+reconnect.update_title,The server is restarting for an update,New tide coming!
+reconnect.update_body,"Second line under ""New tide coming!""",Moving you to a fresh reef…
+reconnect.lost_title,Connection lost,Lost the reef
+reconnect.saved,Shown only when the save was confirmed,Your cove is safe.
+reconnect.weak,The connection is slow but still working,Weak connection
+resume.title,Card title: the player left during a run and came back in time,Your run is waiting
+resume.continue,Button: go back into the saved run,Continue your run
+resume.fresh,Button: give up the saved run and begin a new one. A Pearl amount follows.,Start fresh
+resume.fresh_note,Warning beside the two buttons,Starting fresh ends this run.
+emote.hi,"[L] Emote label for hints, focus and screen readers (labels from chapter 03)",Hi!
+emote.this_way,[L],This way!
+emote.look_out,[L],Look out!
+emote.thanks,[L],Thanks!
+emote.ha_ha,[L],Ha ha!
+emote.oops,[L],Oops!
+pad.select,[L] Gamepad hint bar,Select
+pad.back,[L] Gamepad hint bar,Back
+pad.tab,[L] Gamepad hint bar,Switch tab
