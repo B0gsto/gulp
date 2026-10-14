@@ -24,6 +24,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local CameraController = require(script.Parent.Controllers.CameraController)
 local Client = require(script.Parent.Net.Client)
+local CreatureController = require(script.Parent.Controllers.CreatureController)
 local InputController = require(script.Parent.Controllers.InputController)
 local MovementController = require(script.Parent.Controllers.MovementController)
 
@@ -38,6 +39,7 @@ local loaded: { Controller } = {
 	-- CreatureController, MovementController, ... Each is added here by the task that writes it.
 	InputController,
 	CameraController,
+	CreatureController,
 	MovementController,
 }
 
