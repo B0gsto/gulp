@@ -174,6 +174,38 @@ def build(job):
     return job["out"]
 
 
+def grid(job):
+    """A plain grid of titled cells: {"out", "cols", "cells": [{"title", "image" or "uv", "caption"}], "footer"}.
+    Used for the distance-version and shell sheet and for placeholder previews."""
+    import tempfile
+
+    import texgen
+    cell, title_h, cap_h, foot_h = 384, 26, 40, 56
+    cols = job.get("cols", 4)
+    rows = (len(job["cells"]) + cols - 1) // cols
+    ink = rgb(common.colour("ui.ink"))
+    sheet = Image.new("RGB", (cols * cell, rows * (cell + title_h + cap_h) + foot_h), rgb(common.colour("ui.panel")))
+    draw = ImageDraw.Draw(sheet)
+    for i, c in enumerate(job["cells"]):
+        x, y = (i % cols) * cell, (i // cols) * (cell + title_h + cap_h)
+        if "uv" in c:
+            path = texgen.uv_map(c["uv"], os.path.join(tempfile.mkdtemp(), "uv.png"), size=cell)
+        else:
+            path = c["image"]
+        sheet.paste(fitted(Image.open(path).convert("RGB"), cell, cell), (x, y + title_h))
+        draw.text((x + 8, y + 5), c["title"], font=font(16), fill=ink)
+        for n, line in enumerate(c.get("caption", [])[:2]):
+            draw.text((x + 8, y + title_h + cell + 3 + n * 17), line, font=font(13), fill=ink)
+        draw.rectangle((x, y, x + cell - 1, y + cell + title_h + cap_h - 1), outline=ink)
+    top = rows * (cell + title_h + cap_h)
+    for n, line in enumerate(job.get("footer", [])[:3]):
+        draw.text((10, top + 6 + n * 17), line, font=font(14), fill=ink)
+    os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
+    sheet.save(job["out"])
+    return job["out"]
+
+
 if __name__ == "__main__":
     with open(sys.argv[1], "r", encoding="utf-8") as fh:
-        print(build(json.load(fh)))
+        data = json.load(fh)
+    print(grid(data) if data.get("grid") else build(data))

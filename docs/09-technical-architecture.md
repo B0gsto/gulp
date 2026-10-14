@@ -148,6 +148,7 @@ Rules:
 gulp/
 ├── default.project.json        Rojo: code into the world place (partial sync)
 ├── ci.project.json             Rojo: complete code-only place for CI
+├── world.project.json          Rojo: one-time build of the world place with the 15.4 settings
 ├── rokit.toml  wally.toml  wally.lock  .luaurc  selene.toml  stylua.toml  .mcp.json
 ├── .github/workflows/ci.yml
 ├── docs/                       design bible (this file is docs/09-technical-architecture.md)
@@ -192,6 +193,7 @@ gulp/
 │   └── fixtures/profiles/      v1.json, ... one saved profile per schema version
 ├── tools/
 │   ├── check.luau              the headless gate
+│   ├── check_place_file.luau   15.4 settings read from a saved place file (Lune)
 │   ├── test/runner.luau        the spec runner (describe, it, expect)
 │   ├── gen/content.luau        docs tables → src/shared/Data/Generated
 │   ├── gen/strings.luau        assets/loc/strings.csv → Strings.luau
@@ -1645,7 +1647,7 @@ Asset ceilings are owned by chapter 06, section 6.3 and are not repeated here be
 
 ### 15.4 Place settings
 
-Set by hand in Studio, because most are not scriptable (**V4**, **V29**). `tools/studio/check_place.luau` checks the scriptable ones through MCP; the rest are on the release checklist.
+Set by hand in Studio, because most are not scriptable (**V4**, **V29**). `tools/studio/check_place.luau` checks the scriptable ones through MCP; the rest are on the release checklist. The world place was first built by `rojo build world.project.json -o assets/place/gulp-world.rbxl`, which sets every row below except the experience setting; the spike found that Studio code cannot read the streaming properties, `AuthorityMode`, `SignalBehavior` or `PhysicsSteppingMethod`, nor write `TextChatService.ChatVersion` (which must be `TextChatService` for `DisplayBubble`), so `lune run tools/check_place_file` reads them from a saved copy.
 
 | Property | Value | Note |
 |---|---|---|
@@ -1663,6 +1665,7 @@ Set by hand in Studio, because most are not scriptable (**V4**, **V29**). `tools
 | `Players.CharacterAutoLoads` | false | Also set in code |
 | `VoiceChatService.EnableDefaultVoice` | false | |
 | `StarterGui.ScreenOrientation` | LandscapeSensor | Phones are landscape only (canon 15). The client sets the same value on `PlayerGui` at start (chapter 15) |
+| `TextChatService.ChatVersion` | TextChatService | A Rojo-built place defaults to legacy chat, and code cannot write this; `DisplayBubble` needs it (spike tech-a, S16) |
 | Playable devices (experience setting) | Phone, Tablet, Computer on; Console and VR off | Console goes on in [P1] after the hardware checks of chapter 15 |
 | `Workspace.Collision` model | `ModelStreamingMode = Persistent` | |
 

@@ -1,0 +1,66 @@
+// Rojo: the one-time build of the Studio-owned world place (docs/09-technical-architecture.md,
+// sections 3.1 and 15.4; task S1-C8). `rojo build world.project.json -o assets/place/gulp-world.rbxl`
+// makes the place; from then on Studio owns it and default.project.json only syncs code into it.
+// Same code mappings as default.project.json, plus every 15.4 place setting and the empty
+// Studio-owned containers of 3.1. The settings live here because several cannot be written (or
+// even read) by scripts or plugins: the streaming properties, AuthorityMode (V4, spike tech-a/b)
+// and TextChatService.ChatVersion (spike tech-a surprise 1: a Rojo-built place defaults to legacy
+// chat, which breaks DisplayBubble). `tools/studio/check_place.luau` checks the result through MCP.
+{
+  "name": "gulp-world",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedFirst": { "$ignoreUnknownInstances": true, "Boot": { "$path": "src/first" } },
+    "ReplicatedStorage": {
+      "$ignoreUnknownInstances": true,
+      "Shared": { "$path": "src/shared" },
+      // "Packages": { "$path": "Packages" } // add with the first Wally dependency
+      // Studio-owned: one folder per canon section 16 category plus Fx, Ui and Audio (09 section 3.1)
+      "Assets": {
+        "$className": "Folder",
+        "Species": { "$className": "Folder" },
+        "Prey": { "$className": "Folder" },
+        "Pred": { "$className": "Folder" },
+        "Hazard": { "$className": "Folder" },
+        "Env": { "$className": "Folder" },
+        "Cove": { "$className": "Folder" },
+        "Prop": { "$className": "Folder" },
+        "Trait": { "$className": "Folder" },
+        "Fx": { "$className": "Folder" },
+        "Ui": { "$className": "Folder" },
+        "Audio": { "$className": "Folder" }
+      }
+    },
+    "ServerScriptService": { "$ignoreUnknownInstances": true, "Server": { "$path": "src/server" } },
+    "StarterPlayer": {
+      "$ignoreUnknownInstances": true,
+      "StarterPlayerScripts": { "$ignoreUnknownInstances": true, "Client": { "$path": "src/client" } }
+    },
+    "Players": { "$properties": { "CharacterAutoLoads": false } },
+    "StarterGui": { "$properties": { "ScreenOrientation": "LandscapeSensor" } }, // 15 section 1, PF21
+    "TextChatService": { "$properties": { "ChatVersion": "TextChatService" } },
+    "VoiceChatService": { "$properties": { "EnableDefaultVoice": false } }, // 09 section 6.10
+    "Lighting": {},
+    "SoundService": {},
+    "MaterialService": {},
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true,
+        "ModelStreamingBehavior": "Improved",
+        "StreamingIntegrityMode": "PauseOutsideLoadedArea",
+        "StreamingMinRadius": 128,
+        "StreamingTargetRadius": 512,
+        "StreamOutBehavior": "Opportunistic",
+        "AuthorityMode": "Automatic",
+        "SignalBehavior": "Deferred",
+        "PhysicsSteppingMethod": "Adaptive",
+        "FallenPartsDestroyHeight": -5000,
+        "Gravity": 196.2
+      },
+      // Studio-owned containers, empty until zones are built (09 sections 3.1, 6.6 and 9.1)
+      "World": { "$className": "Folder" },
+      "Collision": { "$className": "Model", "$properties": { "ModelStreamingMode": "Persistent" } },
+      "Volumes": { "$className": "Folder" }
+    }
+  }
+}

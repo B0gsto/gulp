@@ -6,9 +6,12 @@
 Folders follow docs/07-asset-list.md section 1.3; contact sheets and reports go to
 assets/review/<asset>/ (06 section 15.2; chapter 07 names no review folder).
 
-Steps in this first version: build, validate, export, preview. The steps palette, shell,
-lod and bake are named by the bible but are not separate steps yet (generated assets make
-their shell and LOD inside build); asking for one prints a note and carries on.
+Steps: build, lod, shell, validate, export, preview, clips (versions.py makes the distance versions
+and outline shells of any body mesh; uvlayout.py checks the family UV layout and texel
+density inside validate; clips.py checks every clip inside validate, and the clips step renders
+each clip's strip of key poses and 2-second preview). Steps always run in that order, whatever order they are listed in:
+validate runs after lod and shell so it checks what they made. The bible's palette and bake
+are not separate steps yet; asking for one prints a note and carries on.
 Nothing in assets/export/ is written when validation fails. Exit status 1 on any failure.
 """
 import argparse
@@ -25,15 +28,17 @@ if LIB_DIR not in sys.path:
 
 import bpy  # noqa: E402
 
+import clips  # noqa: E402
 import common  # noqa: E402
 import export  # noqa: E402
 import preview  # noqa: E402
 import template  # noqa: E402
 import validate  # noqa: E402
+import versions  # noqa: E402
 
-STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview")
-IMPLEMENTED = ("build", "validate", "export", "preview")
-DEFAULT_STEPS = "build,validate,export,preview"
+STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview", "clips")
+IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview", "clips")
+DEFAULT_STEPS = "build,lod,shell,validate,export,preview,clips"
 
 
 def parse_args(build_file):
@@ -60,17 +65,24 @@ def load_build(build_file):
     return module
 
 
-def run(build_file, steps):
-    asset_dir = os.path.dirname(build_file)
-    asset_id = os.path.basename(asset_dir)
+def run(build_file, steps, builder=None):
+    """`builder` (a function returning the spec) replaces the build file's build(); the
+    placeholder generator uses it. Then no .blend is saved."""
+    asset_dir = os.path.dirname(build_file) if build_file else None
+    asset_id = os.path.basename(asset_dir) if asset_dir else None
     for step in steps:
         if step not in IMPLEMENTED:
             print("[run] step '%s' is not in this first version of the tool: skipped" % step)
 
     template.open_template()
-    spec = load_build(build_file).build()
+    spec = builder() if builder else load_build(build_file).build()
     name = spec["name"]
-    print("[run] built %s (%s)" % (name, asset_id))
+    spec.setdefault("id", asset_id or name)
+    print("[run] built %s (%s)" % (name, spec["id"]))
+    if "lod" in steps:
+        versions.run_lod(spec)
+    if "shell" in steps:
+        versions.run_shell(spec)
 
     report = validate.Report()
     result = {"asset": name, "id": asset_id, "date": common.today(), "commit": common.git_commit(),
@@ -90,7 +102,11 @@ def run(build_file, steps):
             print("[run] validation failed: nothing exported")
     if "preview" in steps:
         result["preview"] = preview.run(spec, report, ok)
-    if "build" in steps:
+        if True:   # every asset: its versions, or the 07 1.2 reason it has none
+            result["preview"]["versions_sheet"] = versions.review_sheet(spec, report, ok)
+    if "clips" in steps and spec.get("actions"):
+        result["clips"] = clips.preview(spec, report, ok)
+    if "build" in steps and asset_dir:
         blend = os.path.join(asset_dir, asset_id + ".blend")
         bpy.ops.wm.save_as_mainfile(filepath=blend, check_existing=False, copy=True)
         result["blend"] = os.path.relpath(blend, common.REPO_DIR)
@@ -98,7 +114,9 @@ def run(build_file, steps):
     result["ok"] = ok
     result["checks"] = report.rows
     result["meshes"] = [{"name": e["object"].name, "role": e["role"], "triangles": e.get("tris"),
-                         "budget": e.get("tri_budget")} for e in spec["meshes"]]
+                         "budget": e.get("tri_budget"), "lod": e.get("lod"), "thickness": e.get("thickness"),
+                         "self_intersections": e.get("self_intersections"), "texel_density": e.get("texel_density"), "width": e.get("width")}
+                        for e in spec["meshes"]]
     result["bones"] = spec.get("bone_counts")
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     result["peak_rss_mb"] = round(peak / (1024.0 * 1024.0) if sys.platform == "darwin" else peak / 1024.0, 1)
