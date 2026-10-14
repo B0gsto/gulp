@@ -23,7 +23,7 @@
     "shrimp": {"light": "#FFE6D1", "mid": "#FFB48A", "dark": "#C2693D"},
     "sardine": {"light": "#F2F8FC", "mid": "#BFD9E8", "dark": "#5C9AD9"},
     "darter": {"light": "#FFF6C9", "mid": "#FFD23D", "dark": "#2F7F8C", "accent": "#FF7A5C"},
-    "glowfry": {"light": "#FFE98A", "mid": "#D6B222", "dark": "#1B5662"},
+    "glowfry": {"light": "#FFE98A", "mid": "#D6B222", "dark": "#6B3A0E"},
     "mackerel": {"light": "#E8F2F0", "mid": "#2FA89A", "dark": "#16574F"},
     "bonito": {"light": "#E6EEF5", "mid": "#6F8FD9", "dark": "#23366B"},
     "tuna": {"light": "#F0F4F8", "mid": "#4F6FD0", "dark": "#162657", "accent": "#FFD23D"},

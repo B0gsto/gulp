@@ -9,11 +9,14 @@ home zone the lateral line, nose to tail; fallback zone the tail tip and fin edg
 second Light trait takes the home zone, 06 8.3 rule 1). 07 3.1: two files, the home zone and the
 fallback zone, 256 x 256 glow masks:
 
-    T_Trait_Glow_Fish_Emi            home: a glowing band along the lateral line from the nose to
-                                     the tail, a string of brighter lights (photophores) along it,
-                                     passing under the eye and fading out along the tail fin
-    T_Trait_Glow_Fish_Fallback_Emi   fallback: the tail fin's far edge and the rims of the back fin
-                                     and both pectorals
+    T_Trait_Glow_Fish_Emi            home: one continuous glowing band along the lateral line from
+                                     the nose to the tail, a full-strength core inside a wide soft
+                                     halo; on the head it runs into the eye at the eye's height
+                                     (clear of the mouth below), then sweeps down the flank to the
+                                     middle of the tail root and fades out along the tail fin
+    T_Trait_Glow_Fish_Fallback_Emi   fallback: the outer half of the tail fin and the outer part of
+                                     the back fin and both pectorals, lit as strongly as the home
+                                     band, so the same light reads on a second Light trait's body
 
 `master()` below is the one scripted master the other families bake from (07 3: the Eel, Turtle
 and Squid rows are bakes from it with touch-ups). It is written in body coordinates (t along the
@@ -52,33 +55,35 @@ LAYOUT = "Fish"
 GLOW = common.colour("traits.glow.signature")
 FIT_MATCH = 0.85            # the family texture against a bake on the species' own mesh, 2-texel tolerance (tune)
 MID_LEFT = 0.40             # 06 8.3 rule 7: the species' mid colour still shows over 40% of the body
-SEEN = 0.3                  # mask level counted as "glowing" for placement and fit (the band between lights is 0.4)
+SEEN = 0.3                  # mask level counted as "glowing" for placement and fit (inside the band's soft halo)
 
 
 # ---------------------------------------------------------------- the scripted master
 
-BAND = 0.165                # half-width of the band in h (share of the local half-depth) at full width
-BEAD_STEP = 0.105           # photophores along the band, as a share of the body length
-BEAD_FIRST = 0.13
-BASE = 0.40                 # the band's glow between the lights; the lights are full
+BAND = 0.115                # half-width in h (share of the local half-depth) where the band is still 0.5 or more
+CORE = 0.055                # half-width of the full-strength core
+HALO = 0.13                 # the soft glow outside the band, to 0 (under 0.5, so outside the 15% cap's count)
+BODY_LEVEL = 0.80           # the band's level between core and edge; the core is 1
 TAIL_FADE = (0.0, 0.75)    # the band fades out along the tail fin
 
 
 def centre_line(t, frame):
-    """h of the lateral line at t: under the eye on the head, up to just above mid-flank behind it,
-    back to the middle at the tail root, where it runs onto the tail fin."""
+    """h of the lateral line at t: from the snout into the eye at the eye's own height (the eye
+    covers it there), out behind the eye and down the flank to the middle of the tail root, where
+    it runs onto the tail fin. It stays above the middle of the head, clear of the mouth and smile
+    below (06 3.4); passing under the eye put the band's edge along the smile, which then read
+    as a dark whisker inside the light."""
     eyes = frame.eyes or [{"t": 0.2, "h": 0.3, "r_h": 0.3, "r_t": 0.05, "area": 1.0}]
     eye = max(eyes, key=lambda e: e["area"])
-    low = min(e["h"] - e["r_h"] for e in eyes)          # the lowest point of the eyes and lids
-    under = min(-0.02, low - BAND - 0.06)
-    ts = [0.0, eye["t"] - 1.2 * eye["r_t"], eye["t"] + 1.6 * eye["r_t"], 0.55, 0.80, 1.0]
-    hs = [under * 0.5, under, under, 0.22, 0.12, 0.0]
+    eh = min(eye["h"], 0.35)        # at or under the eye's middle: on the Minnow the band runs into its eye
+    ts = [0.0, eye["t"] - 1.4 * eye["r_t"], eye["t"], eye["t"] + 1.8 * eye["r_t"], 0.55, 0.80, 1.0]
+    hs = [0.30, 0.85 * eh + 0.05, eh, 0.85 * eh, 0.22, 0.10, 0.0]
     return np.interp(t, ts, hs)
 
 
 def band_width(t):
-    """Thin at the nose, full along the flank; the local depth narrows it toward the tail by itself."""
-    return BAND * (0.25 + 0.75 * texbake.smoothstep(0.0, 0.16, t))
+    """Narrower on the snout, full along the flank; the local depth narrows it toward the tail by itself."""
+    return 0.55 + 0.45 * texbake.smoothstep(0.0, 0.16, t)
 
 
 def master(zone, S, frame):
@@ -87,25 +92,22 @@ def master(zone, S, frame):
     if zone == "home":
         b = role == "body"
         tb, hb = t[b], h[b]
-        hc, hw = centre_line(tb, frame), band_width(tb)
-        band = traitbake.smooth_band(hb - hc, 0.6 * hw, 0.5 * hw)
-        # Photophores: round lights along the band, sized in studs so they stay round.
-        L = frame.length()
-        half = np.maximum(frame.depth(tb) / 2.0, 1e-6)
-        k = np.clip(np.rint((tb - BEAD_FIRST) / BEAD_STEP), 0, int((0.92 - BEAD_FIRST) / BEAD_STEP))
-        tk = BEAD_FIRST + k * BEAD_STEP
-        rad = np.minimum(0.36 * BEAD_STEP * L, 1.9 * hw * half) * np.where(k == 0, 1.25, 1.0)   # the first, under the eye, is the biggest
-        d = np.hypot((tb - tk) * L, (hb - hc) * half)
-        bead = 1.0 - texbake.smoothstep(0.55 * rad, 1.12 * rad, d)          # a soft edge: the light's halo
-        m[b] = np.maximum(BASE * band, bead) * texbake.smoothstep(0.0, 0.035, tb)
+        d = np.abs(hb - centre_line(tb, frame))
+        w = band_width(tb)
+        # One continuous lit band, no beads: a full core, the band at BODY_LEVEL out to its edge
+        # (still 0.5 there), then a soft halo to nothing.
+        core = traitbake.smooth_band(d, CORE * w, 0.6 * CORE * w)
+        band = 1.0 - texbake.smoothstep(0.55 * BAND * w, (BAND + HALO) * w, d)
+        m[b] = np.maximum(core, BODY_LEVEL * band ** 0.8) * texbake.smoothstep(0.0, 0.035, tb)
         tl = role == "tail"
         fade = 1.0 - texbake.smoothstep(TAIL_FADE[0], TAIL_FADE[1], t[tl])
-        m[tl] = 0.62 * traitbake.smooth_band(h[tl], 0.07, 0.08) * fade      # carries on from the body's band, then fades
+        m[tl] = 0.85 * traitbake.smooth_band(h[tl], 0.07, 0.10) * fade      # carries on from the body's band, then fades
     else:
+        # Fallback: as strong as the home band, a full rim, a lit outer part and a soft inner edge.
         tl = role == "tail"
-        m[tl] = 0.92 * texbake.smoothstep(0.62, 0.78, rim[tl])
+        m[tl] = np.maximum(BODY_LEVEL * texbake.smoothstep(0.38, 0.55, rim[tl]), texbake.smoothstep(0.80, 0.92, rim[tl]))
         f = role == "fin"
-        m[f] = 0.92 * texbake.smoothstep(0.55, 0.72, rim[f])
+        m[f] = np.maximum(BODY_LEVEL * texbake.smoothstep(0.32, 0.50, rim[f]), texbake.smoothstep(0.76, 0.90, rim[f]))
     return m
 
 

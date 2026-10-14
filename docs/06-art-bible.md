@@ -265,7 +265,7 @@ Light / mid / dark / accent. All **(tune)** in the first review round.
 | `shrimp` | [MVP] | `#FFE6D1` | `#FFB48A` | `#C2693D` | — | |
 | `sardine` | [MVP] | `#F2F8FC` | `#BFD9E8` | `#5C9AD9` | — | |
 | `darter` | [MVP] | `#FFF6C9` | `#FFD23D` | `#2F7F8C` | `#FF7A5C` | |
-| `glowfry` | [MVP] | `#FFE98A` | `#E6C029` | `#1B5662` | — | Trait prey on the darter's palette (below). Light is the Glow signature colour, the lantern belly and eye rings; mid is the darter's yellow two degrees further from lantern amber (hue 48°) and inside the mid block's L\* 80 (L\* 79); dark is the darter's teal at L\* 33 (task S6-A1) |
+| `glowfry` | [MVP] | `#FFE98A` | `#D6B222` | `#6B3A0E` | — | Trait prey on the darter's palette (below). Light is the Glow signature colour, the lantern belly and eye rings; mid is the darter's yellow two degrees further from lantern amber (hue 48°) and deepened to L\* 74, so the lantern stands about 17 L\* above it; dark is a warm umber at L\* 30 for the fin bands and tail saddle, in place of the darter's teal, which read as stray black marks on the yellow (pupils and smile in `ui.ink`, as the Minnow's) (task S6-A1) |
 | `mackerel` | [MVP] | `#E8F2F0` | `#2FA89A` | `#16574F` | — | Dark tiger marks on the back |
 | `bonito` | [MVP] | `#E6EEF5` | `#6F8FD9` | `#23366B` | — | |
 | `tuna` | [MVP] | `#F0F4F8` | `#4F6FD0` | `#162657` | `#FFD23D` | Yellow finlets |

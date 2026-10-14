@@ -10,16 +10,20 @@ warm yellow, with a glowing belly like a lantern, "the only light inside a dark 
 the creature that teaches the first trait (04 B5), so it must read as special at a glance and
 never as an ordinary prey: a round body with a big round head, very large eyes with a golden
 ring, a flared fan tail with a shallow fork and stubby fins (06 3.4: food is circles, huge eyes, short round fins),
-and under it the lantern, a lit near-white disc on the belly and lower flanks, set off by a
-slightly deeper yellow around it, whose core glows (T_TraitPrey_Emi). No plain prey has that
+and the lantern, a saturated lemon block with a paler core that wraps the belly and climbs both
+flanks to above their middle (so it reads from the side and the game camera), set off by a
+slightly deeper yellow around it, and glows (T_TraitPrey_Emi). No plain prey has that
 silhouette or that light. Rigid, no bones
 (06 7.6 data:PreyMotion: drawn `rigid`, the client wobbles it and pulses the glow at 0.8 Hz).
 
 Colour (06 4.3 glowfry row, built from the darter's palette as 06 4.3 asks of trait prey): mid
-#E6C029 back and flank (the darter's yellow, two degrees further from lantern amber and inside
-the mid block's L* 45 to 80), light #FFE98A the lantern belly and the eye rings (the Glow
-signature colour, 06 8.2), dark #1B5662 the pupils, the tail's edge, the back fin's crest,
-the pectoral tips and a saddle at the tail root (the darter's teal at L* 33). No accent. Painted by script (06 5.2): every texel
+#D6B222 back and flank (the darter's yellow, two degrees further from lantern amber and deepened
+to L* 74, so the lantern stands well above it), light #FFE98A the lantern and the eye rings (the
+Glow signature colour, 06 8.2), dark #6B3A0E, a warm umber, for the band inside the tail's edge,
+the band under the back fin's crest, the pectoral tips and a saddle at the tail root; pupils and
+smile in ui.ink, as the Minnow's (dark block). The fins' free edges keep a pale fringe: a slab's
+rim faces carry its edge colour and are what the top view and the game camera see of a fin, which
+read as dark bars when the edge itself was dark (review loop 1). No accent. Painted by script (06 5.2): every texel
 of its cell traced back to the mesh, large soft gradients, head lightest and most saturated,
 shadows toward violet, lights toward yellow, wet highlight and eye glints, then Cycles occlusion
 (06 5.5, baked from a subdivided copy so the low-poly body shows no facets) multiplied in at 30%
@@ -55,8 +59,9 @@ LENGTH = 0.9                      # 03 3.2 (radius 0.45 in 03 3.1)
 ZONES = ("nursery", "reef", "kelp")   # 03 3.2: Reef caves and Kelp; five scripted in the Nursery
 LIGHT, MID, DARK = (common.colour("creatures.glowfry." + k) for k in ("light", "mid", "dark"))
 GLOW = common.colour("traits.glow.signature")
+PUPIL = common.colour("ui.ink")    # pupils and the smile, in the ink the Minnow's eyes use (dark block)
 PAINT = 2                         # painted at twice the atlas size, then filtered down
-BLOCKS = ("mid", "light", "dark", "accent")
+BLOCKS = ("mid", "light", "dark", "dark")   # block map keys: 0 mid, 1 light, 2 dark, 3 the ink of pupils and smile (dark block)
 
 # ---------------------------------------------------------------- shape (studs; nose on -Y, 06 6.1)
 
@@ -345,9 +350,18 @@ def shade(base_hex, sv, fade=0.0):
     return texbake.lab_to_srgb(lab)
 
 
+LANTERN_T = (0.49, 0.235)          # centre and half-length along the body
+LANTERN_S = (0.40, 0.70)           # its top edge on the flank, and where it reaches full length below
+LANTERN_P = 2.6                    # superellipse power: a round-cornered block, not an ellipse
+
+
 def lantern(t, s):
-    """The lantern on the belly: r 0 at its core, 1 at its edge (t along, s around, 1 on the belly line)."""
-    return np.hypot((t - 0.47) / 0.27, (s - 1.0) / 0.60)
+    """The lantern: r 0 at its core, 1 at its edge (t along, s around, 1 on the belly line). A
+    round-cornered block that wraps the belly and climbs both flanks to above their middle, at full
+    length from s 0.70 down, so it reads from the side and the game camera, not only from below."""
+    dt = np.abs(t - LANTERN_T[0]) / LANTERN_T[1]
+    ds = np.clip(LANTERN_S[1] - s, 0.0, None) / (LANTERN_S[1] - LANTERN_S[0])
+    return (dt ** LANTERN_P + ds ** LANTERN_P) ** (1.0 / LANTERN_P)
 
 
 FIT = {"k": 1.0, "c": (0.0, 0.0, 0.0)}     # the fit's scale and offset, so paint can work in build units
@@ -370,7 +384,7 @@ def body_ts(P, t_attr, s_attr):
     return t, np.where(near_pole, s_attr, s)
 
 
-GLOW_CORE = 0.70                   # the glow mask is full inside this share of the lantern, then falls to its edge
+GLOW_CORE = 0.55                   # the glow mask is full inside this share of the lantern, then falls to its edge
 
 
 def paint(kind, a, b, P, N):
@@ -390,55 +404,63 @@ def paint(kind, a, b, P, N):
     sv = np.minimum(sv, 0.5) + 0.5 * np.exp(-(((t - 0.17) / 0.10) ** 2 + ((s - 0.20) / 0.10) ** 2))   # wet highlight on the brow
     c = shade(MID, sv, texbake.smoothstep(0.3, 1.0, t))
     k = np.zeros(len(t), dtype=int)
-    # The lantern: light block, a near-white core over most of the Glow colour's disc with a
-    # short falloff to its edge, so it reads as one bright lit shape at any size.
+    # The lantern: light block, one saturated lemon shape (not a pale disc): rich Glow yellow to its
+    # edge, a little paler and brighter at the core (the lamp), so it reads as a lit block at 20 px.
     lit = r <= 1.0
-    lv = 0.95 * (1.0 - texbake.smoothstep(0.68, 0.98, r)) - 0.2 * texbake.smoothstep(0.92, 1.0, r)
+    lv = 0.55 + 0.4 * (1.0 - texbake.smoothstep(0.2, 0.75, r)) - 0.25 * texbake.smoothstep(0.85, 1.0, r)
     c = np.where(lit[:, None], shade(LIGHT, lv), c)
-    # the core goes toward white (the lamp itself): chroma falls to a third, inside the block's 12 L*
-    core_w = (1.0 - texbake.smoothstep(0.45, 0.88, r)) * lit
+    core_w = 1.0 - texbake.smoothstep(0.15, 0.6, r)
     lab = texbake.srgb_to_lab(c)
-    lab[:, 1:] *= (1.0 - 0.6 * core_w)[:, None]
+    lab[:, 1:] *= (1.45 - 0.55 * core_w)[:, None]      # chroma: 1.45 x the Glow colour's at the rim, 0.9 x at the core
+    lab[:, 1] -= 2.0 * (1.0 - core_w)                  # and a touch toward lemon, away from lantern amber (06 4.5)
     c = np.where(lit[:, None], texbake.lab_to_srgb(lab), c)
     k = np.where(lit, 1, k)
-    g = np.where(r < GLOW_CORE, 1.0 - 0.15 * (r / GLOW_CORE) ** 2, 0.85 * (1.0 - texbake.smoothstep(GLOW_CORE, 0.86, r)))
+    g = np.where(r < GLOW_CORE, 1.0 - 0.1 * (r / GLOW_CORE) ** 2, 0.9 * (1.0 - texbake.smoothstep(GLOW_CORE, 0.82, r)))
     g = np.where(lit, g, 0.0)
     # Around it, the body's yellow deepens a little (inside the mid block's 12 L*), so the lit
     # shape stands out by value at 20 px without a drawn line.
     ring = (r > 1.0) & (r < 1.28)
     deep = (1.0 - texbake.smoothstep(1.0, 1.28, r)) * ring
     c = np.where(ring[:, None], shade(MID, np.clip(sv, -1, 1) * (1 - deep) - 1.5 * deep, texbake.smoothstep(0.3, 1.0, t)), c)
-    # The tail root: a dark saddle over the back, so the tail end reads from the game camera.
+    # The tail root: a dark saddle over the back, so the tail end reads from the game camera. No
+    # line along the back: from above it read as a stray dark bar.
     line = (t > 0.865 + 0.05 * (s / 0.52) ** 2) & (s < 0.52)
-    c = np.where(line[:, None], shade(DARK, -1.4 - 0.4 * texbake.smoothstep(0.875, 1.0, t)), c)
+    c = np.where(line[:, None], shade(DARK, -0.6 - 0.6 * texbake.smoothstep(0.875, 1.0, t) + 0.4 * up[m]), c)
     k = np.where(line, 2, k)
-    # The mouth: a small dark smile at the nose (06 3.4: a dot or a small smile).
+    # The mouth: a small ink smile at the nose (06 3.4: a dot or a small smile).
     smile = (t < 0.055) & (np.abs(s - (0.62 - 1.2 * t)) < 0.032) & (t > 0.004)
-    c = np.where(smile[:, None], shade(DARK, -1.6), c)
-    k = np.where(smile, 2, k)
+    c = np.where(smile[:, None], shade(PUPIL, -0.2), c)
+    k = np.where(smile, 3, k)
     blk[m], col[m], glow[m] = k, c, g
 
-    # Tail: mid at the root, lighter and paler out along the paddle, a dark edge, three soft rays.
+    # Fins, the family's way (the Minnow's): mid with soft rays, lighter out toward the edge, and a
+    # thin dark rim only on the free edge, so no fin reads as a dark block from above.
+    # Tail: a dark band just inside the trailing edge and along the lower lobe, with a pale fringe
+    # on the edge itself. The slab's rim faces carry the edge's colour and are what the game camera
+    # (from behind) and the top view see of the tail, so the fringe and the top edge stay mid.
     m = kind == KIND["tail"]
     fu, fv = a[m], b[m]
     zc = (fv - 0.48) * 2.0
-    edge = (fu > 0.78) | ((np.abs(zc) > 0.80) & (fu > 0.45))
+    trail = 0.70 - 0.10 * np.clip(np.abs(zc), 0.0, 1.0) ** 2            # the band follows the shallow fork
+    fringe = fu > 0.88
+    edge = ((fu > trail) | ((zc < -0.80) & (fu > 0.40))) & ~fringe
     ray = sum(np.exp(-((zc - z0) / 0.07) ** 2) for z0 in (-0.42, 0.0, 0.42)) * texbake.smoothstep(0.2, 0.6, fu)
     c = shade(MID, 0.15 + 0.45 * texbake.smoothstep(0.1, 0.8, fu) - 0.35 * np.clip(ray, 0, 1), 0.6)
-    c = np.where(edge[:, None], shade(DARK, -1.5 - 0.3 * fu), c)
+    c = np.where(edge[:, None], shade(DARK, -0.3 - 0.6 * texbake.smoothstep(0.7, 1.0, fu)), c)
     blk[m], col[m] = np.where(edge, 2, 0), c
 
-    # Back fin: mid, a dark crest.
+    # Back fin: mid, lighter up the fin, a thin dark band under the crest; the crest itself (its
+    # rim faces are what the top view sees) stays mid.
     m = kind == KIND["dorsal"]
-    crest = b[m] > 0.50
+    crest = (b[m] > 0.70) & (b[m] < 0.90)
     blk[m] = np.where(crest, 2, 0)
-    col[m] = np.where(crest[:, None], shade(DARK, -1.6), shade(MID, 0.25 + 0.3 * b[m], 0.4))
+    col[m] = np.where(crest[:, None], shade(DARK, -0.4), shade(MID, 0.2 + 0.5 * texbake.smoothstep(0.0, 0.8, b[m]), 0.4))
 
-    # Pectorals: mid, lighter at the tip.
+    # Pectorals: mid, lighter toward the tip, a thin dark rim at the tip.
     m = kind == KIND["pec"]
-    tip = a[m] > 0.74
+    tip = a[m] > 0.88
     blk[m] = np.where(tip, 2, 0)
-    col[m] = np.where(tip[:, None], shade(DARK, -1.5), shade(MID, 0.1 + 0.5 * texbake.smoothstep(0.2, 1.0, a[m]), 0.3))
+    col[m] = np.where(tip[:, None], shade(DARK, -0.4), shade(MID, 0.1 + 0.6 * texbake.smoothstep(0.2, 0.9, a[m]), 0.3))
 
     # Eyes, by their place on the eye's disc (the same on both eyes): a big dark pupil (06 3.3 prey:
     # 65% of the eye), a golden ring of the Glow colour around it, two glints.
@@ -446,9 +468,9 @@ def paint(kind, a, b, P, N):
     du, dv = (a[m] - 0.5) * 2.0, (b[m] - 0.5) * 2.0
     rho = np.hypot(du, dv)
     pupil = rho < 0.65
-    c = np.where(pupil[:, None], shade(DARK, -1.7 + 0.9 * texbake.smoothstep(-0.05, -0.45, dv) * (rho > 0.3)),
+    c = np.where(pupil[:, None], shade(PUPIL, -0.2 + 0.9 * texbake.smoothstep(-0.05, -0.45, dv) * (rho > 0.3)),
                  shade(LIGHT, 0.2 - 0.9 * texbake.smoothstep(0.7, 1.0, rho)))
-    k = np.where(pupil, 2, 1)
+    k = np.where(pupil, 3, 1)
     glint = (np.hypot(du + 0.20, dv - 0.28) < 0.25) | (np.hypot(du - 0.24, dv + 0.22) < 0.10)
     c = np.where(glint[:, None], texbake.hex_rgb("#FFFFFF"), c)
     k = np.where(glint, 1, k)
@@ -495,7 +517,8 @@ def paint_cell(body, attrs):
     whole = (sub == sub[..., :1]).all(-1) & (sub[..., 0] >= 0)
     keys = sub[..., 0]
     lab = texbake.srgb_to_lab(small)
-    bands = {0: (common.lstar(MID) - 9.0, common.lstar(MID) + 3.0), 1: (86.5, 98.5), 2: (21.5, 33.5)}
+    bands = {0: (common.lstar(MID) - 9.0, common.lstar(MID) + 3.0), 1: (86.5, 98.5),
+             2: (common.lstar(DARK) - 9.0, min(35.0, common.lstar(DARK) + 3.0)), 3: (common.lstar(PUPIL) - 2.0, common.lstar(PUPIL) + 10.0)}
     for kb, (lo, hi) in bands.items():
         sel = whole & (keys == kb)
         lab[sel, 0] = np.clip(lab[sel, 0], lo, hi)
@@ -514,9 +537,10 @@ def paint_cell(body, attrs):
 
 # ---------------------------------------------------------------- preview helpers
 
-def textured(name, albedo, glow, strength=1.5):
-    """Matte as in game (06 5.1: colour map and 85% roughness) with the glow mask as emission in
-    the lantern's light colour, so the preview shows what the emissive mask does."""
+def textured(name, albedo, glow, strength=1.2):
+    """Matte as in game (06 5.1: colour map and 85% roughness) with the glow mask as emission. As a
+    SurfaceAppearance does, the emission is the colour map's own colour (tinted with the Glow
+    signature colour) under the mask, so the lantern glows lemon, not a clipped cream."""
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
@@ -536,7 +560,13 @@ def textured(name, albedo, glow, strength=1.5):
         mul.operation = 'MULTIPLY'
         mul.inputs[1].default_value = strength
         nt.links.new(gt.outputs["Color"], mul.inputs[0])
-        bsdf.inputs["Emission Color"].default_value = (*common.hex_to_linear(GLOW), 1.0)
+        tint = nt.nodes.new("ShaderNodeMix")
+        tint.data_type = 'RGBA'
+        tint.blend_type = 'MULTIPLY'
+        tint.inputs["Factor"].default_value = 1.0
+        nt.links.new(tex.outputs["Color"], tint.inputs["A"])
+        tint.inputs["B"].default_value = (*common.hex_to_linear(GLOW), 1.0)
+        nt.links.new(tint.outputs["Result"], bsdf.inputs["Emission Color"])
         nt.links.new(mul.outputs[0], bsdf.inputs["Emission Strength"])
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     return mat
@@ -605,7 +635,7 @@ def build():
         cells = paint_cell(body, attrs)
         state.update(cells)
         body.data.materials[0] = textured("MAT_" + NAME, cells["atlas_rgb"], tpa.compose({PREY: cells["glow"]}, "emi"))
-        dark_mat = textured("MAT_%s_Dark" % NAME, cells["atlas_rgb"], tpa.compose({PREY: cells["glow"]}, "emi"), strength=4.0)
+        dark_mat = textured("MAT_%s_Dark" % NAME, cells["atlas_rgb"], tpa.compose({PREY: cells["glow"]}, "emi"), strength=3.0)
         state["dark_mat"] = dark_mat
         texbake.save_png(lit_path, lantern_glow_sheet({"alb": {PREY: cells["albedo"]}, "emi": {PREY: cells["glow"]}}))
         em = traitbake.coverage(body, tpa.compose({PREY: cells["glow"]}, "emi"))
@@ -696,8 +726,8 @@ def build():
             "extras": [
                 {"title": "Front", "view": "Front", "objects": [body], "caption": ["eyes stand out past the head; lantern underneath"]},
                 {"title": "In a dark hole: deep Drop-off fog", "view": "ThreeQuarter", "objects": [dark_copy], "backdrop": "dropoff_deep",
-                 "light_scale": 0.12,
-                 "caption": ["03: the only light inside a dark hole; preview lights at 12%",
+                 "light_scale": 0.18,
+                 "caption": ["03: the only light inside a dark hole; preview lights at 18%",
                              "glow mask at full pulse (06 7.6: 0.8 Hz, +-0.3); no bloom"]},
                 {"title": "Textures: atlas cell and glow mask", "picture": lit_path,
                  "caption": ["%s (Glowfry top-left; other cells later rows) and %s, 256 x 256 each" % (ALBEDO, EMI)]},
