@@ -13,7 +13,14 @@
 --   Reconcile `result` (a `BiteResult`: seq, acceptedMask) settles a pending claim: accepted
 --             members are handed back to be marked eaten in the mirror, rejected ones are shown
 --             again (02 §4.3: the prey fades back in over 0.15 s; 8.9: a "miss" puff).
---             A claim with no answer after TIMEOUT seconds is treated as rejected.
+--             The reason byte covers every rejected target of the claim: `gone` (someone else
+--             ate it first) is not a miss, so those members stay gone with no puff and the
+--             caller clears their alive bits; every other reason (range, tier, time, rate,
+--             state, safe zone, protected) shows them again with the fade and puff.
+--   Time-out  a claim the server's Net guard dropped (flooding) gets no `BiteResult` at all, so
+--             every claim has a deadline: `timeout(rtt)` = clamp(2 × rtt + 0.25 s, 0.5 s, 2 s)
+--             (tune), rtt the measured round trip. Past it the claim counts as rejected (shown
+--             again with the fade and puff) and a late result for it is ignored.
 --   Hidden    a member stays hidden while its claim is pending. A hide is for one `gen`: when the
 --             group ID is reused for a new group, the old hide does not apply.
 --
@@ -23,7 +30,7 @@ local RateLimit = require("../Net/RateLimit")
 
 export type Target = { groupId: number, member: number, gen: number }
 
-type Pending = { targets: { Target }, sentAt: number }
+type Pending = { targets: { Target }, deadline: number }
 
 export type Claims = {
 	seq: number, -- the next claim's seq, u16
@@ -39,10 +46,26 @@ export type Claims = {
 
 local BiteClaims = {}
 
---- 02 §4.3 and 8.9: a claim with no `BiteResult` after this long is treated as rejected (tune).
-BiteClaims.TIMEOUT = 2.0 -- seconds
+--- 8.9: a claim with no `BiteResult` after `timeout(rtt)` is treated as rejected (tune).
+BiteClaims.TIMEOUT_MIN = 0.5 -- seconds
+BiteClaims.TIMEOUT_MAX = 2.0 -- seconds; also the deadline when no round trip is known
+BiteClaims.TIMEOUT_MARGIN = 0.25 -- seconds over twice the round trip (server tick, frame)
+--- `BiteResult` reason 1 (Codec/BiteResult).
+BiteClaims.REASON_GONE = 1
 --- 02 §4.3: a rejected member fades back in over this long.
 BiteClaims.FADE_IN = 0.15 -- seconds
+
+--- The time-out for a claim when the measured round trip is `rtt` seconds (nil: unknown).
+function BiteClaims.timeout(rtt: number?): number
+	if rtt == nil or not (rtt >= 0) then
+		return BiteClaims.TIMEOUT_MAX
+	end
+	return math.clamp(
+		2 * rtt + BiteClaims.TIMEOUT_MARGIN,
+		BiteClaims.TIMEOUT_MIN,
+		BiteClaims.TIMEOUT_MAX
+	)
+end
 
 local function keyOf(groupId: number, member: number): number
 	return groupId * 32 + member
@@ -112,9 +135,15 @@ function BiteClaims.add(
 end
 
 --- Packs this frame's targets into one `Bite` payload stamped `claimTimeMs` (the client's
---- server-time estimate at contact, 8.7) and records it as pending at `now`. Returns the payload
+--- server-time estimate at contact, 8.7) and records it as pending at `now`, for `timeout`
+--- seconds (`BiteClaims.timeout`; TIMEOUT_MAX when nil). Returns the payload
 --- and its seq, or nil when nothing was added.
-function BiteClaims.flush(c: Claims, claimTimeMs: number, now: number): (buffer?, number)
+function BiteClaims.flush(
+	c: Claims,
+	claimTimeMs: number,
+	now: number,
+	timeout: number?
+): (buffer?, number)
 	local open = c.open
 	local n = #open
 	if n == 0 then
@@ -126,7 +155,7 @@ function BiteClaims.flush(c: Claims, claimTimeMs: number, now: number): (buffer?
 	for k, t in open do
 		Bite.writePrey(b, k - 1, t.groupId, t.member, t.gen)
 	end
-	c.pending[seq] = { targets = open, sentAt = now }
+	c.pending[seq] = { targets = open, deadline = now + (timeout or BiteClaims.TIMEOUT_MAX) }
 	c.open = {}
 	return b, seq
 end
@@ -141,15 +170,19 @@ end
 
 --- Settles pending claim `seq` with a `BiteResult`'s `acceptedMask` (bit k = target k accepted)
 --- at `now`. Accepted targets are appended to `accepted` (the caller clears their alive bits)
---- and stop being hidden; rejected ones are appended to `rejected` and shown again. False when
+--- and stop being hidden; rejected ones are appended to `gone` when `reason` is REASON_GONE
+--- (eaten by someone else: the caller clears them too, no puff), else to `rejected` and shown
+--- again with the fade. False when
 --- `seq` is not pending (a late or duplicate result).
 function BiteClaims.result(
 	c: Claims,
 	seq: number,
 	mask: number,
+	reason: number,
 	now: number,
 	accepted: { Target },
-	rejected: { Target }
+	rejected: { Target },
+	gone: { Target }
 ): boolean
 	local p = c.pending[seq]
 	if p == nil then
@@ -160,6 +193,9 @@ function BiteClaims.result(
 		if bit32.btest(mask, bit32.lshift(1, k - 1)) then
 			c.hidden[keyOf(t.groupId, t.member)] = nil
 			table.insert(accepted, t)
+		elseif reason == BiteClaims.REASON_GONE then
+			c.hidden[keyOf(t.groupId, t.member)] = nil
+			table.insert(gone, t)
 		else
 			show(c, t, now)
 			table.insert(rejected, t)
@@ -184,12 +220,12 @@ function BiteClaims.unsent(c: Claims, seq: number)
 	end
 end
 
---- Treats every claim pending for longer than TIMEOUT at `now` as rejected; appends their
+--- Treats every claim past its deadline at `now` as rejected; appends their
 --- targets to `rejected`. Returns how many claims expired.
 function BiteClaims.expire(c: Claims, now: number, rejected: { Target }): number
 	local n = 0
 	for seq, p in c.pending do
-		if now - p.sentAt > BiteClaims.TIMEOUT then
+		if now > p.deadline then
 			c.pending[seq] = nil
 			n += 1
 			for _, t in p.targets do

@@ -61,8 +61,9 @@ describe("BiteClaims (09 §8.9, 02 §4.3)", function()
 		BiteClaims.add(c, 5, 1, 2, 0)
 		BiteClaims.add(c, 6, 4, 9, 0)
 		local _, seq = BiteClaims.flush(c, 0, 0)
-		local accepted, rejected = {}, {}
-		expect(BiteClaims.result(c, seq, 0b101, 0.2, accepted, rejected)).toBe(true)
+		local accepted, rejected, gone = {}, {}, {}
+		expect(BiteClaims.result(c, seq, 0b101, 2, 0.2, accepted, rejected, gone)).toBe(true)
+		expect(#gone).toBe(0)
 		expect(#accepted).toBe(2)
 		expect(accepted[2].groupId).toBe(6)
 		expect(#rejected).toBe(1)
@@ -72,9 +73,50 @@ describe("BiteClaims (09 §8.9, 02 §4.3)", function()
 		expect(BiteClaims.fadeIn(c, 5, 1, 0.2)).toBe(0)
 		expect(BiteClaims.fadeIn(c, 5, 1, 0.275)).toBeCloseTo(0.5, 1e-9)
 		expect(BiteClaims.fadeIn(c, 5, 0, 0.2)).toBe(1)
-		expect(BiteClaims.result(c, seq, 0, 0.3, accepted, rejected)).toBe(false) -- duplicate
+		expect(BiteClaims.result(c, seq, 0, 2, 0.3, accepted, rejected, gone)).toBe(false) -- duplicate
 		BiteClaims.expire(c, 1, rejected)
 		expect(BiteClaims.fading(c)).toBe(false)
+	end)
+
+	it("treats rejects for `gone` as eaten elsewhere: no fade, nothing shown again", function()
+		for _, reason in { 2, 3, 4, 5, 6, 7, 8 } do
+			local c = BiteClaims.new(0)
+			BiteClaims.add(c, 5, 0, 2, 0)
+			local _, seq = BiteClaims.flush(c, 0, 0)
+			local accepted, rejected, gone = {}, {}, {}
+			BiteClaims.result(c, seq, 0, reason, 0.1, accepted, rejected, gone)
+			expect(#rejected).toBe(1) -- range, tier, time, rate, state, safe zone, protected
+			expect(BiteClaims.fadeIn(c, 5, 0, 0.1)).toBe(0)
+		end
+		local c = BiteClaims.new(0)
+		BiteClaims.add(c, 5, 0, 2, 0)
+		BiteClaims.add(c, 5, 1, 2, 0)
+		local _, seq = BiteClaims.flush(c, 0, 0)
+		local accepted, rejected, gone = {}, {}, {}
+		BiteClaims.result(c, seq, 0b10, BiteClaims.REASON_GONE, 0.1, accepted, rejected, gone)
+		expect(#accepted).toBe(1)
+		expect(#rejected).toBe(0)
+		expect(#gone).toBe(1)
+		expect(gone[1].member).toBe(0)
+		expect(BiteClaims.isHidden(c, 5, 0, 2)).toBe(false)
+		expect(BiteClaims.fading(c)).toBe(false)
+	end)
+
+	it("times a claim out at clamp(2 × rtt + 0.25 s, 0.5 s, 2 s) (tune)", function()
+		expect(BiteClaims.timeout(nil)).toBe(2)
+		expect(BiteClaims.timeout(0)).toBe(0.5)
+		expect(BiteClaims.timeout(0.2)).toBeCloseTo(0.65, 1e-9)
+		expect(BiteClaims.timeout(5)).toBe(2)
+		local c = BiteClaims.new(0)
+		BiteClaims.add(c, 1, 1, 1, 0)
+		local _, seq = BiteClaims.flush(c, 0, 0, BiteClaims.timeout(0.2))
+		local rejected = {}
+		expect(BiteClaims.expire(c, 0.6, rejected)).toBe(0)
+		expect(BiteClaims.expire(c, 0.7, rejected)).toBe(1)
+		expect(BiteClaims.isHidden(c, 1, 1, 1)).toBe(false)
+		expect(BiteClaims.fadeIn(c, 1, 1, 0.7)).toBe(0) -- shown again with the fade
+		-- A result after the time-out is ignored.
+		expect(BiteClaims.result(c, seq, 1, 0, 0.8, {}, {}, {})).toBe(false)
 	end)
 
 	it(

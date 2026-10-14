@@ -163,6 +163,7 @@ local claims = BiteClaims.new(os.clock())
 local detect = BiteDetect.new()
 local accepted: { BiteClaims.Target } = {}
 local missed: { BiteClaims.Target } = {}
+local gone: { BiteClaims.Target } = {}
 local mouthX, mouthY, mouthZ = 0, 0, 0
 local pulling = false -- some member is being pulled by the assist this frame
 local puffAttachment: Attachment? = nil
@@ -205,6 +206,7 @@ local stats = {
 	claimed = 0,
 	accepted = 0,
 	missed = 0, -- members: rejected by the server or timed out
+	gone = 0, -- members: rejected as eaten by someone else
 	hidden = 0,
 	pending = 0,
 	lastSeq = -1, -- the seq of the last claim sent
@@ -607,7 +609,8 @@ local function biteStep(now: number, dt: number, t: number)
 			end
 		end
 	end
-	local payload, seq = BiteClaims.flush(claims, Client.timeMs(), now)
+	local rtt = if player then player:GetNetworkPing() else nil
+	local payload, seq = BiteClaims.flush(claims, Client.timeMs(), now, BiteClaims.timeout(rtt))
 	if payload then
 		if Client.send("Bite", payload) then
 			stats.claims += 1
@@ -621,8 +624,9 @@ local function biteStep(now: number, dt: number, t: number)
 	stats.biteMs = (os.clock() - started) * 1000
 end
 
---- Applies one `BiteResult` payload (8.9): accepted members are eaten in the mirror; rejected
---- ones come back with a puff.
+--- Applies one `BiteResult` payload (8.9): accepted members, and those rejected as `gone`, are
+--- eaten in the mirror; members rejected for any other reason (range, tier, time, rate, state,
+--- safe zone, protected) fade back in with a puff.
 function PreyRenderer.onBiteResult(payload: buffer)
 	if not BiteResult.valid(payload) then
 		Log.once("warn", TAG, "dropped a malformed BiteResult")
@@ -632,12 +636,18 @@ function PreyRenderer.onBiteResult(payload: buffer)
 	stats.lastReason, stats.lastMass, stats.lastTier = reason, mass, newTier
 	table.clear(accepted)
 	table.clear(missed)
-	if not BiteClaims.result(claims, seq, mask, os.clock(), accepted, missed) then
+	table.clear(gone)
+	if not BiteClaims.result(claims, seq, mask, reason, os.clock(), accepted, missed, gone) then
 		return
 	end
 	for _, target in accepted do
 		PreyMirror.applyEvent(mirror, PreyEvent.OP_EATEN, target.groupId, target.gen, target.member)
 		stats.accepted += 1
+	end
+	-- `gone`: someone else ate it first; it stays gone and nothing plays (8.9).
+	for _, target in gone do
+		PreyMirror.applyEvent(mirror, PreyEvent.OP_EATEN, target.groupId, target.gen, target.member)
+		stats.gone += 1
 	end
 	for _, target in missed do
 		missPuff(target)

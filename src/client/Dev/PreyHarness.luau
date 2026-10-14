@@ -224,10 +224,24 @@ function PreyHarness.start(options: Options?): string
 			local nowMs = Client.timeMs()
 			local t = os.clock() - started
 			local fullCount, deltaCount = 0, 0
+			-- One packet stays within 900 bytes (8.6); more groups go out in more packets.
+			local function send()
+				if fullCount + deltaCount > 0 then
+					PreyRenderer.feed(
+						PreyState.finish(scratch, seq, nowMs, fullCount, deltaCount),
+						FEED
+					)
+					seq = (seq + 1) % 65536
+				end
+				fullCount, deltaCount = 0, 0
+			end
 			-- Full records first (new groups twice, then staggered keyframes), deltas after.
 			for _, g in groups do
 				place(g, centre, t)
 				if tick < 2 or (g.record.groupId % 20) == (tick % 20) then
+					if not PreyState.fits(fullCount + 1, deltaCount) then
+						send()
+					end
 					PreyState.writeFull(scratch, fullCount, g.record)
 					fullCount += 1
 				end
@@ -238,12 +252,14 @@ function PreyHarness.start(options: Options?): string
 					delta.groupId, delta.qx, delta.qy, delta.qz = r.groupId, r.qx, r.qy, r.qz
 					delta.qvx, delta.qvy, delta.qvz = r.qvx, r.qvy, r.qvz
 					delta.scatter, delta.flags = r.scatter, r.flags
+					if not PreyState.fits(fullCount, deltaCount + 1) then
+						send()
+					end
 					PreyState.writeDelta(scratch, fullCount, deltaCount, delta)
 					deltaCount += 1
 				end
 			end
-			PreyRenderer.feed(PreyState.finish(scratch, seq, nowMs, fullCount, deltaCount), FEED)
-			seq = (seq + 1) % 65536
+			send()
 			tick += 1
 			task.wait(0.1)
 		end
