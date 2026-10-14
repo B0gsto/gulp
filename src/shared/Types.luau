@@ -134,6 +134,20 @@ export type ZoneDef = {
 	lightingPreset: string, -- chapter 06, section 10.2; the Drop-off's "upper" blends to "deep" by depth (10.3)
 }
 
+-- One prey in one zone (docs/09, section 3.2): 03 §2.3's weight and cap, 02 §9.6's base count
+-- at 24 players on the real map, and the zone's plan area for scaling to a smaller spawn area.
+-- Logic/PreySpawnMath turns these into live targets.
+export type PreySpawnDef = {
+	zone: string, -- data:Zones ID
+	prey: string, -- data:Prey ID
+	weight: number, -- share of the zone's spawn rolls; each zone's weights add to 100
+	cap: number, -- most groups alive in the zone at once; doubled in a Frenzy
+	base: number, -- target at 24 players on the real map, in baseUnit
+	baseUnit: "groups" | "members", -- plankton motes and tuna are counted as individuals
+	perPlayerInside: number?, -- Nursery only: groups added per player inside (no playerScale)
+	zoneArea: number, -- the zone's plan area in studs² (03 §6.1, data:ZoneAreas)
+}
+
 export type TideDef = {
 	id: string,
 	wire: number,
