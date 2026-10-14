@@ -4,10 +4,11 @@
 -- records for a new group, then deltas, keyframes every 2 s staggered by group ID; 09 §8.5) and
 -- feeds them to `PreyRenderer.feed`, the same entry point the remote uses. Groups of krill and
 -- plankton circle a point in front of the camera; the frame time and PreyRenderer's draw step are
--- sampled every frame. Nothing requires this module: tools/studio/prey_bench.py drives it with
--- execute_luau on the client:
---   require(LocalPlayer.PlayerScripts.Client.Dev.PreyHarness).start({ seconds = 10 })
---   ... then poll .result() until it does not start with "running".
+-- sampled every frame. In Studio the loader calls `bind`, which puts a BindableFunction named
+-- `PreyHarness` next to it; tools/studio/prey_bench.py invokes it with execute_luau on the client
+-- (a module required from execute_luau would be a second copy, not the running renderer):
+--   LocalPlayer.PlayerScripts.Client.PreyHarness:Invoke("start", { seconds = 10 })
+--   ... then Invoke("result") until it does not start with "running".
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -42,6 +43,8 @@ local finished = ""
 local frames: { number } = {}
 local draws: { number } = {}
 local drawnMax, outlinedMax = 0, 0
+-- Kept across runs: PreyRenderer drops a packet whose seq is not newer than the newest seen.
+local seq = 0
 
 local function percentile(sorted: { number }, p: number): number
 	if #sorted == 0 then
@@ -153,7 +156,7 @@ function PreyHarness.start(options: Options?): string
 	end)
 
 	task.spawn(function()
-		local seq, tick = 0, 0
+		local tick = 0
 		while running and os.clock() - started < WARMUP + seconds do
 			local nowMs = Client.timeMs()
 			local t = os.clock() - started
@@ -199,6 +202,26 @@ end
 --- Stops early; the summary covers the frames so far.
 function PreyHarness.stop()
 	running = false
+end
+
+--- Studio only: exposes `start`, `result` and `stop` to execute_luau through a BindableFunction
+--- named `PreyHarness` under `parent`.
+function PreyHarness.bind(parent: Instance)
+	if not RunService:IsStudio() then
+		return
+	end
+	local f = Instance.new("BindableFunction")
+	f.Name = "PreyHarness"
+	f.OnInvoke = function(command: string, options: Options?): string
+		if command == "start" then
+			return PreyHarness.start(options)
+		elseif command == "stop" then
+			PreyHarness.stop()
+			return "stopped"
+		end
+		return PreyHarness.result()
+	end
+	f.Parent = parent
 end
 
 return PreyHarness

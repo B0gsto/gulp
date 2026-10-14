@@ -52,6 +52,11 @@ for _, controller in loaded do
 	controller.start()
 end
 
+-- Studio only: the PreyRenderer bench (tools/studio/prey_bench.py; task S3-C4).
+if game:GetService("RunService"):IsStudio() then
+	require(script.Parent.Dev.PreyHarness).bind(script.Parent)
+end
+
 do
 	local waitedFrom = os.clock()
 	local function ready(): boolean

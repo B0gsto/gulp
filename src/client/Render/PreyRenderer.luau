@@ -355,6 +355,7 @@ function PreyRenderer.render(dt: number)
 						if outline then
 							if not item.outlined then
 								item.outlined = true
+								shell.Color = Outlines.colour("edible")
 								shell.Transparency = 0
 							end
 							local ax, ay, az = x - ex, y - ey, z - ez
