@@ -409,12 +409,18 @@ HudLayout.COVE = table.freeze({
 	plus = 44, -- the plus disc at the Pearls chip's right end; its hit area is the touch minimum
 	claimAll = { right = 40, bottom = 196, width = 260, height = 88 },
 	dock = { offset = -60, bottom = 28, size = 88, gap = 16, icon = 56 },
-	text = table.freeze({ balance = 28, income = 24, slots = 28, claim = 28, dock = 22 }),
+	-- Income and dock labels sit over the 3D world: Fredoka at 26 and 24 (UI review 1: Nunito 24
+	-- and Small 22 read under the floor on the phone).
+	text = table.freeze({ balance = 28, income = 26, slots = 28, claim = 28, dock = 24 }),
 	-- 08 §5.1 world: the Pearl pile bubble over the clam.
 	bubble = 72,
 })
 -- 08 §1.4 tablet switch: thumb elements sit 24 rpx further from the edges.
 local TABLET_SHIFT = 24
+-- What a pill button draws under its face (06 §12.2): the 4 rpx lip, the 5.3 rpx hard shadow and
+-- half the panel stroke, rounded up. Claim all keeps 16 rpx plus this above the dash hit area,
+-- so both the hit areas and the drawn shapes stay 16 rpx apart (08 §1.5).
+HudLayout.BUTTON_DROP = 12
 
 export type CoveRects = {
 	pearls: Rect,
@@ -454,9 +460,18 @@ function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: numb
 	local slots = chip(c.slots)
 	local shift = if classKey(screenClass) == "Tablet" then TABLET_SHIFT else 0
 	local a = c.claimAll
+	local dash = HudLayout.dash(screenClass, content)
+	local dashHit = HudLayout.hitRect(dash, min)
+	-- 08 §5.1 puts it at {1, -196}; it rises further when the dash hit area would come within
+	-- 16 rpx of its hit area or of its lip and shadow (on the phone: 208 above the bottom).
+	local claimHitGrow = math.max(0, min - a.height) / 2
+	local bottom = math.min(
+		content.height - a.bottom - shift,
+		dashHit.y - HudLayout.GAP_MIN - math.max(HudLayout.BUTTON_DROP, claimHitGrow)
+	)
 	local claimAll = {
 		x = content.width - a.right - shift - a.width,
-		y = content.height - a.bottom - shift - a.height,
+		y = bottom - a.height,
 		width = a.width,
 		height = a.height,
 	}
@@ -471,7 +486,6 @@ function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: numb
 			height = d.size,
 		})
 	end
-	local dash = HudLayout.dash(screenClass, content)
 	return {
 		pearls = pearls,
 		plus = plus,
@@ -483,7 +497,7 @@ function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: numb
 		claimAllHit = HudLayout.hitRect(claimAll, min),
 		dock = dock,
 		dash = dash,
-		dashHit = HudLayout.hitRect(dash, min),
+		dashHit = dashHit,
 	}
 end
 

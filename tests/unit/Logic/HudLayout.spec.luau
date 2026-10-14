@@ -367,7 +367,8 @@ describe("HudLayout S14 cove HUD (docs/08 sections 1.3 to 1.5 and 5.1)", functio
 		expect(r.slots.x + r.slots.width / 2).toBe(cx + 270)
 		expect(r.pearls.y).toBe(12)
 		expect(r.claimAll.x + r.claimAll.width).toBe(content.width - 40)
-		expect(r.claimAll.y + r.claimAll.height).toBe(content.height - 196)
+		-- 196 in the table; 208 so it clears the dash hit area by 16 rpx below its lip and shadow.
+		expect(r.claimAll.y + r.claimAll.height).toBe(content.height - 208)
 		expect(r.claimAll.width == 260 and r.claimAll.height == 88).toBe(true)
 		-- The dock row is centred 60 rpx left of the middle; 4 buttons of 88 with 16 gaps.
 		local d = r.dock
@@ -375,6 +376,16 @@ describe("HudLayout S14 cove HUD (docs/08 sections 1.3 to 1.5 and 5.1)", functio
 		expect(d[2].x - (d[1].x + d[1].width)).toBe(16)
 		expect(d[1].y + d[1].height).toBe(content.height - 28)
 	end)
+
+	for name, layout in SCREENS do
+		it(`{name}: Claim all and Dash keep 16 rpx between hit areas and drawn shapes`, function()
+			local r = HudLayout.cove(layout.screenClass, layout.contentSize, 4)
+			local gapHit = r.dashHit.y - (r.claimAllHit.y + r.claimAllHit.height)
+			local gapDrawn = r.dash.y - (r.claimAll.y + r.claimAll.height + HudLayout.BUTTON_DROP)
+			expect(gapHit >= HudLayout.GAP_MIN).toBe(true)
+			expect(gapDrawn >= HudLayout.GAP_MIN).toBe(true)
+		end)
+	end
 
 	it("keeps every cove text at or above the 22 rpx floor", function()
 		for _, size in HudLayout.COVE.text do

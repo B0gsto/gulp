@@ -211,7 +211,31 @@ local function measure(): string
 	if dockLabel and dockLabel:IsA("TextLabel") then
 		table.insert(
 			out,
-			`dock label text {dockLabel:GetAttribute("TextRpx")}->{dockLabel.TextSize}`
+			`dock label text {dockLabel:GetAttribute("TextRpx")}->{dockLabel.TextSize} drawn {string.format(
+				"%.1f",
+				dockLabel.TextBounds.Y / scale
+			)}`
+		)
+	end
+	-- Claim all and Dash: the gap between their hit areas (08 §1.5), in rpx.
+	local claimRoot = find("GulpHUD", "Cove.ClaimAll")
+	local claimHit = claimRoot and claimRoot:FindFirstChild("Hit")
+	local dashRoot = find("GulpHUD", "HUD.Dash")
+	local dashHit = dashRoot and dashRoot:FindFirstChild("Hit", true)
+	if claimHit and claimHit:IsA("GuiObject") and dashHit and dashHit:IsA("GuiObject") then
+		local bottom = claimHit.AbsolutePosition.Y + claimHit.AbsoluteSize.Y
+		table.insert(
+			out,
+			`claim-dash hit gap {math.round((dashHit.AbsolutePosition.Y - bottom) / scale)}`
+		)
+	end
+	local perHour = find("GulpHUD", "PerHour")
+	if perHour and perHour:IsA("TextLabel") then
+		table.insert(
+			out,
+			`income fit {math.round(perHour.TextBounds.X / scale)}/{math.round(
+				perHour.AbsoluteSize.X / scale
+			)}`
 		)
 	end
 	local pile = gui:FindFirstChild("Cove.PearlPile")

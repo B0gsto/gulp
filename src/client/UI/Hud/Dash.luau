@@ -133,11 +133,39 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(1, -2 * GROUP_PAD, 1, -2 * GROUP_PAD),
 		Visible = false,
-		BackgroundColor3 = Theme.DIM,
-		BackgroundTransparency = 0.45,
+		BackgroundColor3 = Theme.PANEL,
+		BackgroundTransparency = 0,
+		ZIndex = 2,
 		Parent = group,
-	}, { Draw.corner(14), Draw.stroke(Theme.STROKE_CHIP) }) :: Frame
+	}, { Draw.corner(18), Draw.stroke(Theme.STROKE_PANEL) }) :: Frame
+	-- The tile is cut-out paper like every panel (06 §12.2): a darker lip and the hard shadow.
+	local tileLip = Draw.new("Frame", {
+		Name = "TileLip",
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, Theme.LIP),
+		BackgroundColor3 = Theme.PANEL_SHADE,
+		BackgroundTransparency = 0,
+		ZIndex = 1,
+		Parent = tile,
+	}, { Draw.corner(18), Draw.stroke(Theme.STROKE_PANEL) }) :: Frame
+	Draw.new("Frame", {
+		Name = "TileShadow",
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, Theme.LIP + Theme.SHADOW_OFFSET),
+		BackgroundColor3 = Theme.DIM,
+		BackgroundTransparency = Theme.SHADOW_TRANSPARENCY,
+		ZIndex = 0,
+		Parent = tileLip,
+	}, { Draw.corner(18) })
 	Draw.slot("UI_HUD_HintTile", tile, 2)
+	-- The icon is the touch button in small: sun-yellow face over its lip, shine and highlight.
+	local iconLip = Draw.disc(
+		64,
+		Theme.PRIMARY_SHADE,
+		UDim2.new(0.5, 0, 0, 40 + Theme.LIP),
+		{ Name = "IconLip", ZIndex = 3, Parent = tile }
+	)
+	Draw.stroke(Theme.STROKE_ICON).Parent = iconLip
 	local icon = Draw.disc(
 		64,
 		Theme.PRIMARY,
@@ -145,6 +173,17 @@ function Dash.new(parent: Instance, press: (down: boolean) -> ()): Dash
 		{ Name = "Icon", ZIndex = 3, Parent = tile }
 	)
 	Draw.stroke(Theme.STROKE_ICON).Parent = icon
+	Draw.new("UIGradient", {
+		Color = ColorSequence.new(Theme.PRIMARY:Lerp(Theme.WHITE, 0.25), Theme.PRIMARY),
+		Rotation = 90,
+		Parent = icon,
+	})
+	Draw.disc(
+		64 * 0.3,
+		Theme.WHITE,
+		UDim2.fromScale(0.3, 0.26),
+		{ Name = "Highlight", BackgroundTransparency = 0.45, ZIndex = 4, Parent = icon }
+	)
 	local setTileWedge = Draw.wedge(icon, 64, Theme.INK, WEDGE_TRANSPARENCY, 3)
 	chevrons(icon, 40, 4)
 

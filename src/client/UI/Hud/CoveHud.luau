@@ -260,17 +260,17 @@ function CoveHud.build(parent: Frame, callbacks: Callbacks)
 	local plusHit = hitButton("PlusHit", plus, callbacks.plus)
 
 	local income = chip("Cove.Income", root)
-	perHourIcon(40, income)
+	perHourIcon(38, income)
 	local incomeText = Draw.text({
 		Name = "PerHour",
-		Position = UDim2.fromOffset(56, 0),
-		Size = UDim2.new(1, -64, 1, 0),
+		Position = UDim2.fromOffset(52, 0),
+		Size = UDim2.new(1, -60, 1, 0),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",
 		TextColor3 = Theme.INK,
 		ZIndex = 4,
 		Parent = income,
-	}, C.text.income, "body")
+	}, C.text.income, "display")
 
 	local slots = chip("Cove.Slots", root)
 	local slotsText = Draw.text({
@@ -327,7 +327,7 @@ function CoveHud.build(parent: Frame, callbacks: Callbacks)
 			Name = "Label",
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, 2),
-			Size = UDim2.new(1, 40, 0, 28),
+			Size = UDim2.new(1, 40, 0, 30),
 			Text = Loc.t(d.key),
 			TextColor3 = Theme.TEXT_ON_DARK,
 			ZIndex = 4,
