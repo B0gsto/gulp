@@ -21,6 +21,21 @@ export type Signal<T...> = Signal.Signal<T...>
 -- Section 5.2: `UserInputService.PreferredInput`, re-read on every change.
 export type InputMode = "Touch" | "Keys" | "Pad"
 
+-- Section 5.2: InputController turns raw input into one SwimInput; Sim/SwimModel consumes it.
+-- Fields from chapter 02: section 1.1 (the four model values), 2.3 and 2.4 (brake), 2.1 and 2.5
+-- (dash). Angles in degrees. The caller owns the table and may reuse it every frame.
+export type SwimInput = {
+	throttle: number, -- 0 to 1, forward thrust
+	strafe: number, -- −1 to 1, sideways thrust, positive to the right (Keys and two-thumb only)
+	brake: boolean, -- S or LT: forward speed relaxes to 0 at the tier's brake constant
+	-- Heading: a target yaw (Keys: the camera look direction), or nil to steer by rate.
+	-- Yaw uses the Roblox convention (CFrame.fromEulerAnglesYXZ): 0 faces −Z, positive turns left.
+	yawTarget: number?,
+	yawRate: number, -- °/s, positive turns right (02 §2.1: screen right is positive); used when yawTarget is nil
+	pitchTarget: number, -- −70 to +70, positive points the nose up
+	dash: boolean, -- a dash press this frame; true every frame while a held dash is held (02 §2.1)
+}
+
 -- Section 3.2: content data. `wire` is the row's 1-based position in the canon table.
 export type Scope = "MVP" | "L" | "P1" | "P2"
 export type Rarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Mythic"

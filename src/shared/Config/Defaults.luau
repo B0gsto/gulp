@@ -115,4 +115,40 @@ local live: { [string]: LiveValue } = {
 }
 Defaults.live = table.freeze(live)
 
+-- The swim model's numbers that are not in the generated data tables (Sim/SwimModel). Every
+-- value is chapter 02's or the canon's, marked (tune) there; the section is on the line. Tier
+-- speed and turn rate come from Data/Generated/Tiers, species multipliers from Species.
+export type SwimTierTuning = { accel: number, coast: number, brake: number, grip: number }
+
+Defaults.swim = table.freeze({
+	-- 02 §1.3: forward and lateral relaxation constants (1/s) by tier, index = tier.
+	byTier = table.freeze({
+		table.freeze({ accel = 9.0, coast = 2.6, brake = 7.8, grip = 12 }),
+		table.freeze({ accel = 8.5, coast = 2.5, brake = 7.5, grip = 11 }),
+		table.freeze({ accel = 8.0, coast = 2.4, brake = 7.2, grip = 10 }),
+		table.freeze({ accel = 7.0, coast = 2.2, brake = 6.6, grip = 9 }),
+		table.freeze({ accel = 6.0, coast = 2.0, brake = 6.0, grip = 8 }),
+		table.freeze({ accel = 5.0, coast = 1.8, brake = 5.4, grip = 7 }),
+		table.freeze({ accel = 4.0, coast = 1.6, brake = 4.8, grip = 6 }),
+	} :: { SwimTierTuning }),
+	strafeMult = 0.6, -- 02 §1.3: strafeTarget = topSpeed × 0.6 × strafe
+	stopSpeed = 0.5, -- 02 §1.3: below this with no thrust input, speed = 0
+	turnGain = 10, -- 02 §1.4: angular speed = clamp(error × 10, ±turnRate)
+	pitchLimit = 70, -- 02 §1.4: degrees, every control scheme
+	dashMult = 2.2, -- canon 5.3; 02 §1.2 (Turtle 2.0 and Squid 2.6 are [L], not in Species data)
+	dashDuration = 0.35, -- canon 5.3; 02 §7.1: 0.35 × (dashDurationMult + 0.3 per Longfin)
+	dashLongfinAdd = 0.3, -- 02 §7.1
+	dashAccel = 30, -- 02 §7.1: forward relaxation constant (1/s) while Dashing
+	dashTurnMult = 0.5, -- 02 §1.4 and §7.1
+	inputBuffer = 0.25, -- 02 §2.5: a blocked dash press fires if the block ends within this
+	currentMult = 0.6, -- 02 §1.2: a current adds 0.6 × tierSpeed along the stream
+	breachSpeed = 8, -- 02 §1.7: upward speed needed to breach; below it the creature skims
+	skimDepth = 0.5, -- 02 §1.7: skim at Y = −0.5 × collision radius
+	collisionRadius = 0.9, -- 02 §0.2: collision radius = 0.9 × bodyScale × radiusMult
+	gravity = 80, -- 02 §1.7: studs/s² in the air (09 §6.5 says Workspace.Gravity; see SwimModel)
+	airTurnMult = 0.3, -- 02 §1.4 and §1.7
+	minAirTime = 0.2, -- 02 §1.7
+	reentryMult = 0.8, -- 02 §1.7: velocity × 0.8 on re-entry
+})
+
 return Defaults
