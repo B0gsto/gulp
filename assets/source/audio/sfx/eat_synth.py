@@ -9,7 +9,7 @@ recordings, no library clips, so the licence is `original` (07 section 12, rule 
                                                             assets/review/_audio/eat_loudness.csv
 
 Then the audio batch levels and encodes them (peak -3 dBFS, mono intent, OGG; 07 section 12 rule 7):
-    python3 assets/source/_shared/pipeline/audio_batch.py SFX_Bite_Small_01 ...
+    python3 assets/source/_shared/pipeline/audio_batch.py SFX_Bite_Small01 ...
 
 Every sound is layered: an attack transient, a body, and a bubble tail. Every layer starts with a
 raised-cosine ramp or at a zero crossing and the file ends on a raised-cosine fade, so nothing clicks
@@ -227,10 +227,18 @@ def write_wav(path, x, peak_db=-1.0):
         w.writeframes(q.tobytes())
 
 
+def take_name(name, k):
+    """A take's file name: the 07 row name with the two-digit take number appended to its last word
+    (SFX_Bite_Small01, SFX_EatPlankton03). 07 section 1.2 has no rule for takes; this form keeps every
+    row name whole and stays within its "two inner underscores at most" rule, which `_01` would break
+    for a sized row such as SFX_Bite_Small. Code finds a row's takes by stripping the two digits."""
+    return "%s%02d" % (name, k)
+
+
 def take_names():
     for name, (takes, _) in SOUNDS.items():
         for k in range(1, takes + 1):
-            yield name, k, "%s_%02d" % (name, k)
+            yield name, k, take_name(name, k)
 
 
 def synth():
@@ -271,7 +279,7 @@ def measure():
         if not os.path.isfile(path):
             raise SystemExit("missing %s: run the audio batch first" % path)
         data, ch = decode(path)
-        mono = data[:, 0]                              # the batch writes identical channels (see audio_batch.encoder)
+        mono = data[:, 0]                              # mono since the batch encodes with oggenc; else two identical channels
         kw = k_weight(mono)
         ms = float(np.mean(kw ** 2))
         win = int(0.4 * SR)                            # BS.1770 momentary window; a clip shorter than it is zero-padded
