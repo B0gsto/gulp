@@ -130,6 +130,14 @@ local SETTINGS = {
 	{ "VoiceChatService", "EnableDefaultVoice", false },
 	{ "StarterGui", "ScreenOrientation", Enum.ScreenOrientation.LandscapeSensor },
 	{ "TextChatService", "ChatVersion", Enum.ChatVersion.TextChatService },
+	-- 06 section 10.1 (task S3-A2). Technology itself is unreadable here (F22); tools/check_place_file
+	-- reads it from the saved file: Studio derives these two from it on load.
+	{ "Lighting", "LightingStyle", Enum.LightingStyle.Realistic },
+	{ "Lighting", "PrioritizeLightingQuality", true },
+	{ "Lighting", "GlobalShadows", true },
+	{ "Lighting", "ShadowSoftness", 0.8 },
+	{ "Lighting", "EnvironmentDiffuseScale", 0 },
+	{ "Lighting", "EnvironmentSpecularScale", 0 },
 }
 
 local function same(actual: any, expected: any): boolean

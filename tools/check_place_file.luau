@@ -27,6 +27,11 @@ local SETTINGS: { { any } } = {
 	{ "VoiceChatService", "EnableDefaultVoice", false },
 	{ "StarterGui", "ScreenOrientation", "LandscapeSensor" },
 	{ "TextChatService", "ChatVersion", "TextChatService" },
+	-- 06 section 10.1 (task S3-A2): Studio derives LightingStyle and PrioritizeLightingQuality from
+	-- Technology when it loads the file, so all three must agree (Future = Realistic + prioritise on).
+	{ "Lighting", "Technology", "Future" },
+	{ "Lighting", "LightingStyle", "Realistic" },
+	{ "Lighting", "PrioritizeLightingQuality", true },
 }
 
 local function same(actual: any, expected: any): boolean
