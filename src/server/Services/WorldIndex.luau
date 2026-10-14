@@ -4,6 +4,8 @@
 -- reads (then destroys) the tagged volume parts, so every other service can query volumes from
 -- its own `start`. `start` builds the height field over the first 2 s; until it is ready,
 -- `floorY` casts one ray instead. The arithmetic is Shared/Logic/VolumeMath and HeightFieldMath.
+-- It also sends each client the volume table once, in `WorldInfo` after ClientReady (sections 5.3
+-- and 9.1; Shared/Net/Codec/WorldInfo), with NET_VERSION and ServerEpoch (8.7, 17.3).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HeightFieldMath = require(ReplicatedStorage.Shared.Logic.HeightFieldMath)
@@ -11,9 +13,11 @@ local Index = require(ReplicatedStorage.Shared.Data.Index)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
+local WorldInfo = require(ReplicatedStorage.Shared.Net.Codec.WorldInfo)
 
 local CollisionGroups = require("../World/CollisionGroups")
 local HeightField = require("../World/HeightField")
+local Server = require("../Net/Server")
 local VolumeReader = require("../World/VolumeReader")
 
 type Volume = Types.Volume
@@ -34,6 +38,8 @@ local points: { RevivePoint } = {}
 local field: HeightField.Field
 local rayParams: RaycastParams
 local fallbackZone: ZoneId = Index.Zones.list[1].id
+-- The WorldInfo arguments (Codec/WorldInfo.encode), built on the first send.
+local infoVersion, infoEpoch, infoVolumes = 0, 0, nil :: { Volume }?
 
 function WorldIndex.init()
 	byKind, safeVolumes, zones, points = {}, {}, {}, {} -- a second init starts clean
@@ -66,6 +72,7 @@ function WorldIndex.init()
 		byKind[kind] = table.freeze(list)
 	end
 	points = table.freeze(result.revivePoints)
+	infoVolumes = nil
 	if #zones == 0 then
 		Log.warn(TAG, `no Zone volumes: every point reads as {fallbackZone}`)
 	end
@@ -76,6 +83,25 @@ function WorldIndex.start()
 	HeightField.buildOverTime(field, function()
 		Log.info(TAG, "height field built")
 	end)
+end
+
+--- Sends `player` the WorldInfo remote: NET_VERSION, ServerEpoch and every volume but the revive
+--- points, which clients never get (9.1). PlayerLifecycle calls it once per player after
+--- ClientReady, before the creature spawns. (PlayerLifecycle calls in rather than WorldIndex
+--- listening to `onReady`, because PlayerLifecycle requires CreatureService, which requires
+--- WorldIndex.)
+function WorldIndex.sendWorldInfo(player: Player)
+	if infoVolumes == nil then
+		local sent: { Volume } = {}
+		for _, kind in VolumeMath.KINDS do
+			if kind ~= "RevivePoint" then
+				local list = WorldIndex.volumesOf(kind)
+				table.move(list, 1, #list, #sent + 1, sent)
+			end
+		end
+		infoVersion, infoEpoch, infoVolumes = WorldInfo.encode(Server.EPOCH, sent)
+	end
+	Server.send(player, "WorldInfo", infoVersion, infoEpoch, infoVolumes)
 end
 
 --- The zone at a point: the smallest zone volume holding it, else the nearest zone volume.

@@ -89,17 +89,29 @@ describe("Net/Remotes", function()
 	)
 
 	it(
-		"every payload is a buffer except State and the *Action remotes; ClientReady has none",
+		"encodings follow 09 §5.3: eight buffers, ClientReady empty, every other remote plain",
 		function()
+			local buffers = {
+				Bite = true,
+				Ability = true,
+				Telemetry = true,
+				BiteResult = true,
+				PreyEvent = true,
+				PredatorEvent = true,
+				PreyState = true,
+				PredatorState = true,
+			}
 			for _, def in Remotes.list do
-				local expected = "buffer"
+				local expected = "scalars"
 				if def.name == "ClientReady" then
 					expected = "none"
-				elseif def.name == "State" or string.match(def.name, "Action$") then
-					expected = "scalars"
+				elseif buffers[def.name] then
+					expected = "buffer"
 				end
 				expect(def.encoding).toBe(expected)
 			end
+			expect(Remotes.byName.SettingsSet.maxString).toBe(32)
+			expect(Remotes.byName.ShopAction.maxString).toBe(32)
 		end
 	)
 

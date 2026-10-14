@@ -19,6 +19,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
 local Server = require("../Net/Server")
+local WorldIndex = require("./WorldIndex")
 
 type Slot = Types.Slot
 type Policy = PolicyRules.Policy
@@ -62,6 +63,7 @@ end
 local function spawnCreature(player: Player)
 	local slot = slotOf[player]
 	stageOf[player] = "spawned"
+	WorldIndex.sendWorldInfo(player) -- once, after ClientReady (09 §5.3, §9.1)
 	CreatureService.spawn(player)
 	-- TODO(B20, S4-C6): the first state push (DataService) goes here, before onReady.
 	PlayerLifecycle.onReady:fire(player, slot)
