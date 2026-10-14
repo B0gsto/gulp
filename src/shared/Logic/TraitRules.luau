@@ -25,9 +25,26 @@ TraitRules.BONEFED_MASS = T.bonefedMass
 TraitRules.CRYSTAL_BANK = T.crystalBank
 TraitRules.LONGFIN_DASH = T.longfinDash -- adds with the species' own (02 §8.5)
 TraitRules.SPINY_DEFENCE = T.spinyDefence
+TraitRules.ACTIVATE_DELAY = T.activateDelay
+TraitRules.GLOW_RADIUS = T.glowRadius
+TraitRules.GLOW_MARKERS = T.glowMarkers
+TraitRules.GLOW_LIGHT = T.glowLight
 
 export type MassSource = "prey" | "player" | "predator"
 export type PipResult = "gained" | "pip" | "held" | "full" | "unknown"
+
+--- One trait slot as `HUD.Traits` draws it (08 §3.6): "owned" (a held trait), "progress" (the
+--- in-progress trait shown in a free slot, with its pips) or "empty".
+export type SlotView = {
+	state: "owned" | "progress" | "empty",
+	traitId: string?,
+	pips: number, -- pips lit (progress only; 0 otherwise)
+	needed: number, -- pips on the arc: 5, or 4 with Keen Nose
+}
+
+--- A trait prey Glow may mark (02 §8.4): its trait, distance from the creature's centre, and any
+--- fields the caller needs to draw it (they are kept).
+export type MarkerCandidate = { traitId: string, distance: number }
 
 -- 02 §8.3: base states in which a trait cannot be shed.
 local NO_SHED: { [string]: boolean } = table.freeze({
@@ -174,6 +191,101 @@ function TraitRules.grantReady(traits: { string }, pips: { [string]: number }): 
 		end
 	end
 	return granted
+end
+
+--- Whether a trait gained at `gainedAt` is active at `now` (02 §8.2: the effect becomes active
+--- 0.5 s after the last pip). Both on the same clock.
+function TraitRules.isActive(gainedAt: number, now: number): boolean
+	return now - gainedAt >= TraitRules.ACTIVATE_DELAY
+end
+
+--- The `Traits` player attribute (09 §5.3): the held IDs comma-joined, "" for none.
+function TraitRules.joinIds(traits: { string }): string
+	return table.concat(traits, ",")
+end
+
+--- The trait list of a `Traits` attribute value: known trait IDs only, in order, at most three.
+--- Anything that is not a string gives an empty list.
+function TraitRules.splitIds(value: unknown): { string }
+	local traits: { string } = {}
+	if type(value) ~= "string" then
+		return traits
+	end
+	for id in string.gmatch(value, "[^,]+") do
+		if Index.Traits.byId[id] and not TraitRules.has(traits, id) then
+			table.insert(traits, id)
+			if #traits >= TraitRules.SLOTS then
+				break
+			end
+		end
+	end
+	return traits
+end
+
+local function canonOrder(id: string): number
+	local def = Index.Traits.byId[id]
+	return if def then def.wire else math.huge
+end
+
+--- What the three slots of `HUD.Traits` show (08 §3.6): held traits fill slots from the left in
+--- the order gained; each free slot then shows the in-progress trait with the most pips (ties:
+--- the most recent, by `recency`, a trait ID → a number that grows with each new pip; then canon
+--- order). Traits already held and traits with no pips are not shown as in progress. Pips are
+--- capped at the count needed.
+function TraitRules.slotView(
+	traits: { string },
+	pips: { [string]: number },
+	recency: { [string]: number },
+	keenNose: boolean
+): { SlotView }
+	local needed = TraitRules.pipsNeeded(keenNose)
+	local views: { SlotView } = {}
+	for i = 1, math.min(#traits, TraitRules.SLOTS) do
+		table.insert(views, { state = "owned", traitId = traits[i], pips = 0, needed = needed })
+	end
+	local waiting: { string } = {}
+	for id, count in pips do
+		if count > 0 and Index.Traits.byId[id] and not TraitRules.has(traits, id) then
+			table.insert(waiting, id)
+		end
+	end
+	table.sort(waiting, function(a: string, b: string): boolean
+		if pips[a] ~= pips[b] then
+			return pips[a] > pips[b]
+		end
+		local ra, rb = recency[a] or 0, recency[b] or 0
+		if ra ~= rb then
+			return ra > rb
+		end
+		return canonOrder(a) < canonOrder(b)
+	end)
+	local next = 1
+	while #views < TraitRules.SLOTS do
+		local id = waiting[next]
+		if id then
+			table.insert(views, {
+				state = "progress",
+				traitId = id,
+				pips = math.min(pips[id], needed),
+				needed = needed,
+			})
+			next += 1
+		else
+			table.insert(views, { state = "empty", traitId = nil, pips = 0, needed = needed })
+		end
+	end
+	return views
+end
+
+local function nearerFirst(a: MarkerCandidate, b: MarkerCandidate): boolean
+	return a.distance < b.distance
+end
+
+--- Glow's markers (02 §8.4): sorts `candidates` (trait prey already within the Glow radius)
+--- nearest first, in place, and returns how many to draw: at most `limit` (six by default).
+function TraitRules.pickMarkers(candidates: { MarkerCandidate }, limit: number?): number
+	table.sort(candidates, nearerFirst)
+	return math.min(#candidates, limit or TraitRules.GLOW_MARKERS)
 end
 
 return table.freeze(TraitRules)

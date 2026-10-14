@@ -218,6 +218,10 @@ Defaults.traits = table.freeze({
 	crystalBank = 1.5, -- canon 9, 02 §8.4, 05 §3.1: bank Pearls ×1.5
 	longfinDash = 0.30, -- canon 9, 02 §8.4: dash length +30%
 	spinyDefence = 1, -- canon 9, 02 §0.4: the eat gap is 2 instead of 1
+	activateDelay = 0.5, -- 02 §8.2: s from the last pip to the effect becoming active
+	glowRadius = 60, -- canon 9, 02 §8.4: studs from the centre within which trait prey get a marker
+	glowMarkers = 6, -- 02 §8.4: at most this many markers, nearest first
+	glowLight = 20, -- 02 §8.4: the body light's radius, studs
 })
 
 -- Logic/BankMath: 02 §0.7, §11.4; 05 §3.1. The mass bands and rates (canon 5.4 data:BankRates)

@@ -40,6 +40,7 @@ local CreatureService = require("./CreatureService")
 local PreyService = require("./PreyService")
 local RunLoopService = require("./RunLoopService")
 local Server = require("../Net/Server")
+local TraitService = require("./TraitService")
 local WorldIndex = require("./WorldIndex")
 
 type Slot = Types.Slot
@@ -154,8 +155,7 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 	local firstRun = 1
 	-- TODO(B19): species.mouthMult and species.lengthMult once the species data carries them.
 	local mouthMult, lengthMult = 1, 1
-	-- TODO(B19, S6-C3): TraitService.massMult(slot) (Spots, Bonefed).
-	local massMult = 1
+	local massMult = TraitService.massMult(state.slot) -- Spots, Bonefed (02 §4.4, §8.5)
 	local mask, firstReason = 0, BiteResult.REASON_NONE
 	local clock = os.clock()
 	for k = 0, count - 1 do
@@ -205,8 +205,10 @@ function BiteService.claim(player: Player, payload: buffer, now: number?): buffe
 					CreatureService.addMass(state.slot, BiteMath.gain(def.mass, massMult, nursery))
 					mask = bit32.bor(mask, bit32.lshift(1, k))
 					counters.accepted += 1
-					-- TODO(B19, S6-C3): TraitService.onTraitPreyEaten for trait prey; TODO(B19):
-					-- CodexService.discover and GoalsService.progress; the run's chain and accepted
+					if def.givesTrait then
+						TraitService.onTraitPreyEaten(state.slot, def.givesTrait) -- 02 §8.1
+					end
+					-- TODO(B19): CodexService.discover and GoalsService.progress; the run's chain and accepted
 					-- and rejected counts for the run-end events (8.9). TODO(B32): the Shark Pup's
 					-- rampage, 3 prey within 4 s (7.1).
 				end
