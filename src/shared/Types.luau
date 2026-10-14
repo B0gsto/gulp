@@ -109,7 +109,7 @@ export type ZoneDef = {
 	preyTierMin: number,
 	preyTierMax: number,
 	safe: boolean,
-	lightingPreset: string,
+	lightingPreset: string, -- chapter 06, section 10.2; the Drop-off's "upper" blends to "deep" by depth (10.3)
 }
 
 export type TideDef = {
@@ -123,8 +123,7 @@ export type TideDef = {
 
 export type ProductDef = {
 	id: string, -- chapter 05 purchase ID: pass_<name>, prod_<name>, pat_<species>_<name>, deco_buy_<name>
-	kind: "pass" | "product",
-	robloxId: number,
+	kind: "pass" | "product", -- the Roblox ID is Config/Defaults' (per environment), never generated
 	scope: Scope,
 	grant: string, -- "pearls", "token", "pattern", "decoration", "flag" or "bundle"
 	amount: number?,
@@ -185,6 +184,17 @@ export type EmoteDef = {
 }
 
 export type RankRewardDef = { rank: number, title: string?, decoration: string?, shelf: number? } -- chapter 03, section 11
+
+export type GoalDef = {
+	id: string, -- dg_<name> (chapter 03, section 9)
+	wire: number,
+	scope: Scope,
+	text: string,
+	target: number,
+	difficulty: "Easy" | "Medium" | "Hard",
+	reward: string, -- R1 to R5: chapter 05's Pearl reward step
+	needs: string?, -- the condition for offering it; nil when it needs nothing
+}
 
 export type LandmarkDef = {
 	id: string, -- lm_<name>: chapter 03's landmark IDs (sections 6.2 to 6.6)
