@@ -164,7 +164,8 @@ gulp/
 │   │   └── Loading.client.luau     custom loading screen, removes the default one
 │   ├── shared/                 → ReplicatedStorage.Shared
 │   │   ├── Types.luau              every exported type used across modules
-│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
+│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau,
+│   │   │                           FtueConfig.luau (every tunable of chapter 04, section 3.1)
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
 │   │   │   │                       Zones, Tides, PreySpawns, TraitPreySpawns, PreyMotion, Products,
@@ -173,7 +174,7 @@ gulp/
 │   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
 │   │   ├── Logic/                  pure rules: BiteRules, TierMath, TraitRules, BankMath,
-│   │   │                           CoveIncome, TideClock, GoalRules, Migrations
+│   │   │                           CoveIncome, TideClock, GoalRules, Migrations, FtueRules
 │   │   ├── Sim/                    pure simulation: SwimModel, PreySim, Formation, SpatialGrid,
 │   │   │                           Quantize, PredatorSim
 │   │   ├── Net/
@@ -1402,7 +1403,8 @@ export type ProfileData = {
 	offers: { [string]: number },                -- offer ID → UTC day last dismissed (chapter 05, section 9)
 	social: { bubbleDay: number, bubbledUserIds: { number } },   -- [L] coves given a Bubble today, by owner
 	board: { week: number, weekBest: number },                   -- [L] avoids reads before writes
-	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04)
+	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04); stage: S0_LOADING = 0
+		                                         -- to S10_RUN2 = 10, DONE = 11 (chapter 04, section 3.1)
 		version: number,                         -- tutorial version the account saw, currently 1 (chapter 04, section 9)
 		attempts: number },                      -- +1 each time the tutorial restarts after a disconnect before the first bank
 	ab: { [string]: string },                    -- experiment key → arm, copied at first exposure (chapter 10, section 8.1)
