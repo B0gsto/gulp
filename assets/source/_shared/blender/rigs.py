@@ -17,10 +17,10 @@ from fishbody import SPINE_NODES
 SPINE_ORDER = ("Spine1", "Spine2", "Spine3", "Spine4", "TailFin")
 CANON_NOSE, CANON_ROOT = -1.5, 0.95       # the family base body at scale 1 (fishshape.py): k = 1
 CANON_LENGTH = CANON_ROOT - CANON_NOSE
-SPINE_EASE = 0.28       # 0: linear hand-over (even stretch); 1: smoothstep (zero slope at the nodes)
-ONSET = 0.95            # share of the mean strain the span out of the rigid head takes (the stretch fades in)
+SPINE_EASE = 0.12       # 0: linear hand-over (even stretch); 1: smoothstep (zero slope at the nodes)
+ONSET = 0.58            # share of the mean strain the span out of the rigid head takes (the stretch fades in)
 PIVOTS = {"Spine1": 0.37, "Spine2": 0.59, "Spine3": 0.63, "Spine4": 0.80, "TailFin": 0.95}   # bone heads, body fractions
-GIRTH_T, GIRTH_REACH, GIRTH_PEAK = 0.50, 0.30, 0.29  # soft over the middle 60% of the body (06 7.5): 0.2 to 0.8
+GIRTH_T, GIRTH_REACH, GIRTH_PEAK = 0.50, 0.30, 0.235  # soft over the middle 60% of the body (06 7.5): 0.2 to 0.8
 JAW_T, LIP_Z = 0.22, -0.03    # the mouth corner (body fraction) and the lip line's height at k = 1
 GIRTH = ("Girth_Top", "Girth_Bot", "Girth_L", "Girth_R")
 
@@ -162,7 +162,9 @@ class FishFit:
 
     def girth(self, y):
         x = (y - self.girth_y) / self.girth_reach
-        return GIRTH_PEAK * (1.0 - x * x) ** 2 if abs(x) < 1.0 else 0.0
+        if abs(x) >= 1.0:
+            return 0.0
+        return GIRTH_PEAK * (1.0 - x * x) ** 2
 
     def jaw(self, y, z):
         return smooth((self.jaw_y - y) / (0.2 * self.k)) * smooth((self.lip_z - z) / (0.04 * self.k))
@@ -444,12 +446,17 @@ DASH_STRETCH = [(0, 1.0), (2, 0.85, "in"), (4, 1.25, "snap"), (8, 1.23, "io"), (
 # The bend of a C-start: the body curls into a C during the squash, whips through to the other
 # side on the power stroke and swings out in shrinking beats. +1 curls head and tail to the left.
 DASH_BEND = [(0, 0.0), (2, 1.0, "in"), (4, -0.75, "snap"), (6, 0.32, "io"), (8, -0.12, "io"), (10, 0.0, "io")]
-# The C at full bend: (bone, degrees about Z, pivot as a body fraction, lag in frames). 40 degrees
-# from head to tail, 13 in the head and 30 in the back half, spread over the joints by their span
-# and turned about the pivots that skin best (S1-A3: solved against weightcheck.py on the base and
-# the Minnow; Spine2 stays straight, the head turns on Spine1 alone).
-DASH_C = (("Spine1", 13.0, 0.40, 0.0), ("Spine3", -11.0, 0.63, 0.5), ("Spine4", -10.0, 0.79, 1.2),
-          ("TailFin", -9.0, 0.93, 2.0))
+# The C at full bend: (bone, degrees about Z, pivot as a body fraction, lag in frames). 43 degrees
+# from head to tail, 13 in the head and 30 in the back half, spread over the joints and turned
+# about the pivots that skin best (S1-A3: solved against weightcheck.py on the base and the
+# Minnow, with the crouch below and the forehead behind the rigid head kept smooth).
+DASH_C = (("Spine2", 2.5, 0.54, 0.0), ("Spine1", 10.5, 0.78, 0.0), ("Spine3", -10.5, 0.79, 0.5),
+          ("Spine4", -8.5, 0.94, 1.2), ("TailFin", -10.5, 1.03, 2.0))
+# The crouch of the squash, seen from the side: the head dips and the tail drops a little into
+# the 85% squash (a ventral curl under the C), then the head lifts on the snap. (bone, degrees
+# about X, pivot as a body fraction); +X on Spine1 dips the head, -X on Spine4 drops the tail.
+DASH_DIP = [(0, 0.0), (2, 1.0, "in"), (4, -0.35, "snap"), (7, 0.0, "io")]
+DASH_DIP_BONES = (("Spine1", 7.0, 0.55), ("Spine4", -5.0, 0.79))
 # Fins pinned back from the snap (fast out), flaring past rest on the overshoot (follow-through).
 DASH_FINS = [(0, 0.0), (2, 0.25, "in"), (4, 1.0, "snap"), (8, 1.0), (11, -0.3, "io"), (13, 0.0, "io")]
 
@@ -465,6 +472,9 @@ def fish_dash_pose(frame, k=1.0):
     fins = ease_keys(frame - 1.0, DASH_FINS)
     for bone, angle, pivot, lag in DASH_C:
         rotate_about(pose, bone, (0.0, 0.0, angle * bend(lag)), pivot, k)
+    dip = ease_keys(frame, DASH_DIP)
+    for bone, angle, pivot in DASH_DIP_BONES:
+        rotate_about(pose, bone, (angle * dip, 0.0, 0.0), pivot, k)
     _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), 0.0))
     pose["Pec_L"] = {"rot": (0.0, -6.0 * min(fins, 0.0), 26.0 * fins)}
     pose["Pec_R"] = {"rot": (0.0, 6.0 * min(fins, 0.0), -26.0 * fins)}
@@ -478,9 +488,9 @@ BITE_FLICK = [(0, 0.0), (1, 1.0, "snap"), (2.5, -0.45, "io"), (4, 0.12, "io"), (
 # The bite's cheeks (06 7.2: "cheeks bulge on frame 2"). RIG_Fish has no cheek bone (06 6.3 lists
 # the 18), so the Girth bones make them: Girth_L and Girth_R turn about Z and Girth_Bot about X,
 # about a pivot behind the head (CHEEK_PIVOT, a body fraction), so their weight's front half, just
-# behind the jaw, swells out and down while the middle of the body stays (the back half narrows a
-# little, under the bite's stretch). Degrees at full bulge.
-CHEEK_SIDE, CHEEK_THROAT, CHEEK_PIVOT = 30.0, 16.0, 0.55
+# behind the jaw, swells out and down (+25% on the S1-A3 review, to read on a phone) while the middle
+# of the body stays. Degrees at full bulge.
+CHEEK_SIDE, CHEEK_THROAT, CHEEK_PIVOT = 45.0, 24.0, 0.63
 
 
 def cheeks(pose, amount, k=1.0):
