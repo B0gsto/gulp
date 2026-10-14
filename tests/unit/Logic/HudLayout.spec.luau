@@ -250,3 +250,135 @@ describe("HudLayout screens S11 and S12 (docs/08 sections 4.4 and 4.5)", functio
 		end)
 	end
 end)
+
+describe("HudLayout S12 specimen card (docs/08 sections 4.5 and 5.2)", function()
+	for name, layout in SCREENS do
+		local content = layout.contentSize
+		local box = { x = 0, y = 0, width = content.width, height = content.height }
+		it(`{name}: table, card and Continue fit without overlap`, function()
+			local p = HudLayout.pearls(content, 2, true)
+			local card = p.card :: Rect
+			expect(card ~= nil).toBe(true)
+			expect(inside(p.panel, box) and inside(card, box) and inside(p.title, box)).toBe(true)
+			expect(HudLayout.overlaps(p.panel, card)).toBe(false)
+			expect(HudLayout.overlaps(card, p.continue)).toBe(false)
+			expect(HudLayout.overlaps(p.panel, p.continue)).toBe(false)
+			expect(card.x - (p.panel.x + p.panel.width) >= HudLayout.GAP_MIN).toBe(true)
+			expect(card.y).toBe(p.panel.y)
+		end)
+	end
+	it("stacks the card's contents inside its height", function()
+		local c = HudLayout.SPECIMEN_CARD
+		local used = 2 * c.padding
+			+ c.renderHeight
+			+ c.tierHeight
+			+ c.traitSize
+			+ c.incomeHeight
+			+ c.ribbonHeight
+			+ 4 * c.rowGap
+		expect(used <= c.height).toBe(true)
+		-- Three 32 rpx trait icons with 8 rpx gaps fit the inner width.
+		expect(3 * c.traitSize + 2 * c.rowGap <= c.width - 2 * c.padding).toBe(true)
+	end)
+	it("keeps the stage 1 table centred without a card", function()
+		local content = SCREENS["small phone 667 x 375"].contentSize
+		local p = HudLayout.pearls(content, 2)
+		expect(p.card).toBe(nil)
+		expect(math.abs(p.panel.x + p.panel.width / 2 - content.width / 2) < 1e-6).toBe(true)
+	end)
+end)
+
+describe("HudLayout S14 cove HUD (docs/08 sections 1.3 to 1.5 and 5.1)", function()
+	for name, layout in SCREENS do
+		local content = layout.contentSize
+		local box = { x = 0, y = 0, width = content.width, height = content.height }
+		local min = HudLayout.minTarget(layout.screenClass)
+		for _, count in { 1, 4 } do
+			local r = HudLayout.cove(layout.screenClass, content, count)
+			local visible = { r.pearls, r.income, r.slots, r.claimAll, r.dash }
+			local hits = { r.plusHit, r.slotsHit, r.claimAllHit, r.dashHit }
+			for _, d in r.dock do
+				table.insert(visible, d)
+				table.insert(hits, d)
+			end
+
+			it(`{name}, {count} dock: every element is inside the content box`, function()
+				for _, rect in visible do
+					expect(inside(rect, box)).toBe(true)
+				end
+				expect(inside(r.plus, r.pearls)).toBe(true)
+			end)
+
+			it(`{name}, {count} dock: no two elements overlap`, function()
+				for i = 1, #visible do
+					for j = i + 1, #visible do
+						expect(HudLayout.overlaps(visible[i], visible[j])).toBe(false)
+					end
+				end
+			end)
+
+			it(`{name}, {count} dock: hit areas meet the minimum and keep 16 rpx apart`, function()
+				for _, h in hits do
+					expect(h.width >= min and h.height >= min).toBe(true)
+				end
+				for i = 1, #hits do
+					for j = i + 1, #hits do
+						local grown = HudLayout.grow(hits[i], HudLayout.GAP_MIN / 2)
+						expect(
+							HudLayout.overlaps(
+								grown,
+								HudLayout.grow(hits[j], HudLayout.GAP_MIN / 2)
+							)
+						).toBe(false)
+					end
+				end
+			end)
+
+			it(`{name}, {count} dock: nothing enters the keep-clear box or the keep-out`, function()
+				local clear = HudLayout.keepClear(content)
+				for _, rect in visible do
+					expect(HudLayout.overlaps(rect, clear)).toBe(false)
+				end
+				for _, k in layout.keepOut do
+					for _, rect in { r.pearls, r.income, r.slots, r.plusHit, r.slotsHit } do
+						expect(
+							HudLayout.overlaps(HudLayout.grow(rect, HudLayout.KEEP_OUT_CLEAR), k)
+						).toBe(false)
+					end
+				end
+			end)
+
+			it(`{name}, {count} dock: dock and Claim all clear the bottom tap margin`, function()
+				local floor = content.height + HudLayout.MARGIN_BOTTOM - HudLayout.BOTTOM_TAP_CLEAR
+				expect(r.claimAllHit.y + r.claimAllHit.height <= floor).toBe(true)
+				for _, d in r.dock do
+					expect(d.y + d.height <= floor).toBe(true)
+				end
+			end)
+		end
+	end
+
+	it("puts the phone chips and Claim all where the element table says", function()
+		local content = SCREENS["large phone 932 x 430"].contentSize
+		local r = HudLayout.cove("Phone", content, 4)
+		local cx = content.width / 2
+		expect(r.pearls.x + r.pearls.width / 2).toBe(cx - 150)
+		expect(r.income.x + r.income.width / 2).toBe(cx + 90)
+		expect(r.slots.x + r.slots.width / 2).toBe(cx + 270)
+		expect(r.pearls.y).toBe(12)
+		expect(r.claimAll.x + r.claimAll.width).toBe(content.width - 40)
+		expect(r.claimAll.y + r.claimAll.height).toBe(content.height - 196)
+		expect(r.claimAll.width == 260 and r.claimAll.height == 88).toBe(true)
+		-- The dock row is centred 60 rpx left of the middle; 4 buttons of 88 with 16 gaps.
+		local d = r.dock
+		expect((d[1].x + d[4].x + d[4].width) / 2).toBe(cx - 60)
+		expect(d[2].x - (d[1].x + d[1].width)).toBe(16)
+		expect(d[1].y + d[1].height).toBe(content.height - 28)
+	end)
+
+	it("keeps every cove text at or above the 22 rpx floor", function()
+		for _, size in HudLayout.COVE.text do
+			expect(size >= 22).toBe(true)
+		end
+	end)
+end)

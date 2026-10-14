@@ -41,6 +41,14 @@ function HudMath.short(n: number): (string, ShortKind)
 	return oneDecimal(whole / 1e6), "million"
 end
 
+--- A whole number with its thousands grouped (08 §5.1 wireframe: "12,480"), rounded down. The
+--- cove balance shows every Pearl, so a price can be compared with it digit for digit.
+function HudMath.grouped(n: number): string
+	local digits = tostring(math.max(0, math.floor(n)))
+	local out = string.reverse((string.gsub(string.reverse(digits), "(%d%d%d)", "%1,")))
+	return (string.gsub(out, "^,", ""))
+end
+
 export type MassBar = {
 	tier: number,
 	nextTier: number?, -- nil at the top tier

@@ -1,14 +1,19 @@
 --!strict
--- S12 Bank summary, build stage 1 (docs/08 sections 4.5 and 15): the title and the Pearls table
--- only (mass row, one row per multiplier, the counted-up total and "New best!"), with Continue,
--- which is active from the start (the panel has no close control, 08 §2.2). The specimen card,
--- Codex row, Reef Rank and goals come in later stages.
+-- S12 Bank summary, build stage 2 (docs/08 sections 4.5 and 15): the title, the Pearls table
+-- (mass row, one row per multiplier, the counted-up total and "New best!") and the specimen card
+-- (stage 2: a static 3D render, tier, traits, Pearls an hour and "New specimen!", or the tier 2
+-- badge with "Reach Nibbler to keep it" after a tier 1 run), with Continue, which is active from
+-- the start (the panel has no close control, 08 §2.2). The bottom row (Codex finds, Reef Rank,
+-- goals) and the cove-full choice (S13) come with their screens in stage 3 and launch.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 local HudMath = require(ReplicatedStorage.Shared.Logic.HudMath)
+local Index = require(ReplicatedStorage.Shared.Data.Index)
 
+local CreatureRig = require("../../Render/CreatureRig")
 local Draw = require("../Kit/Draw")
+local Icons = require("../Kit/Icons")
 local Loc = require("../Loc")
 local Screen = require("../Kit/Screen")
 local Scrim = require("./Scrim")
@@ -17,30 +22,30 @@ local Theme = require("../Kit/Theme")
 local BankSummary = {}
 
 export type Row = { nameKey: string, value: number, icon: ("trait" | "pass")? }
-export type Data = { mass: number, multipliers: { Row }, total: number, best: boolean }
+--- The specimen the bank added (08 §4.5 step 5): species, tier, traits and Pearls an hour.
+export type Specimen = { sp: string, tier: number, traits: { string }, perHour: number }
+--- `specimen` when the run kept one; `tooSmall` after a tier 1 run (no specimen, 08 §4.5).
+export type Data = {
+	mass: number,
+	multipliers: { Row },
+	total: number,
+	best: boolean,
+	specimen: Specimen?,
+	tooSmall: boolean?,
+}
 
 -- 08 §4.5 timeline.
-local T_MASS, T_MULT, T_MULT_STEP, COUNT = 0.3, 0.6, 0.3, 1.0
+local T_MASS, T_MULT, T_MULT_STEP, COUNT, T_CARD = 0.3, 0.6, 0.3, 1.0, 0.2
+local CARD_IN = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local RARITY_ORDER = { "Mythic", "Epic", "Rare", "Uncommon", "Common" }
 
 local token = 0
 local current: Frame? = nil
+local currentTotal: GuiObject? = nil
+local currentRig: CreatureRig.Rig? = nil
 
 local function pearlIcon(size: number, parent: Instance): Frame
-	-- `UI_Common_Pearl` stand-in: a cream-pink pearl with one glint (06 §12.4).
-	local pearl = Draw.disc(
-		size,
-		Theme.PEARL,
-		UDim2.fromScale(0.5, 0.5),
-		{ Name = "Pearl", ZIndex = 4, Parent = parent }
-	)
-	Draw.new(
-		"UIGradient",
-		{ Color = ColorSequence.new(Theme.PEARL, Theme.PEARL_SHADE), Rotation = 60, Parent = pearl }
-	)
-	Draw.stroke(Theme.STROKE_ICON).Parent = pearl
-	Draw.disc(size * 0.26, Theme.WHITE, UDim2.fromScale(0.34, 0.3), { ZIndex = 5, Parent = pearl })
-	Draw.slot("UI_Common_Pearl", pearl, 6)
-	return pearl
+	return Icons.pearl(size, parent, nil, 4)
 end
 
 local function shortText(n: number): string
@@ -105,6 +110,211 @@ local function row(
 	return r
 end
 
+-- The highest rarity among `traits` (06 §4.4), or nil for none: it picks the card frame (08 §5.2).
+local function topRarity(traits: { string }): string?
+	local have: { [string]: boolean } = {}
+	for _, id in traits do
+		local def = Index.Traits.byId[id]
+		if def then
+			have[def.rarity] = true
+		end
+	end
+	for _, r in RARITY_ORDER do
+		if have[r] then
+			return r
+		end
+	end
+	return nil
+end
+
+-- A static ViewportFrame of the creature (08 §5.2: drawn once), seen from the side.
+local function render(holder: Frame, sp: string): CreatureRig.Rig?
+	local ok, rig = pcall(function()
+		local def = Index.Species.byId[sp]
+		return CreatureRig.new(sp, if def then def.radiusMult else 1)
+	end)
+	if not ok or rig == nil then
+		return nil
+	end
+	local view = Draw.new("ViewportFrame", {
+		Name = "Render",
+		Size = UDim2.fromScale(1, 1),
+		Ambient = Color3.fromRGB(190, 200, 215),
+		LightColor = Color3.fromRGB(255, 244, 225),
+		LightDirection = Vector3.new(-0.4, -1, -0.5),
+		ZIndex = 4,
+		Parent = holder,
+	}) :: ViewportFrame
+	local model = rig.model
+	model.Parent = view
+	model:PivotTo(CFrame.new())
+	local cf, size = model:GetBoundingBox()
+	local reach = math.max(size.X, size.Y, size.Z)
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 30
+	local eye = cf.Position + Vector3.new(reach * 1.55, reach * 0.42, reach * 1.25)
+	camera.CFrame = CFrame.lookAt(eye, cf.Position)
+	camera.Parent = view
+	view.CurrentCamera = camera
+	return rig
+end
+
+-- 08 §4.5 step 5: the specimen card, or the tier 2 badge and `bank.too_small` (no specimen).
+local function card(parent: Instance, rect: HudLayout.Rect, data: Data): Frame
+	local c = HudLayout.SPECIMEN_CARD
+	local s = data.specimen
+	local rarity = if s then topRarity(s.traits) else nil
+	local frameColour = if rarity then (Theme.RARITY :: any)[rarity] else Theme.INK
+	local root = Draw.new("Frame", {
+		Name = "Specimen",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(rect.x + rect.width / 2, rect.y + rect.height / 2),
+		Size = UDim2.fromOffset(rect.width, rect.height),
+		ZIndex = 2,
+		Parent = parent,
+	}) :: Frame
+	local face = Draw.panel({
+		Name = "Face",
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
+		Parent = root,
+	}, `UI_Cove_Card{rarity or "Plain"}`)
+	Draw.shadow(face, Theme.PANEL_RADIUS)
+	local stroke = face:FindFirstChildOfClass("UIStroke")
+	if stroke and rarity then
+		stroke.Color = frameColour
+		stroke.Thickness = Theme.STROKE_PANEL * 1.6
+	end
+	local inner = rect.width - 2 * c.padding
+	local y = c.padding
+	-- The render well: a deep-water vignette behind the creature.
+	local well = Draw.new("Frame", {
+		Name = "Well",
+		Position = UDim2.fromOffset(c.padding, y),
+		Size = UDim2.fromOffset(inner, c.renderHeight),
+		BackgroundColor3 = Theme.SECONDARY_SHADE,
+		BackgroundTransparency = 0,
+		ClipsDescendants = true,
+		ZIndex = 3,
+		Parent = face,
+	}, { Draw.corner(14), Draw.stroke(Theme.STROKE_CHIP) }) :: Frame
+	Draw.new("UIGradient", {
+		Color = ColorSequence.new(Theme.SECONDARY, Theme.INK:Lerp(Theme.SECONDARY_SHADE, 0.5)),
+		Rotation = 90,
+		Parent = well,
+	})
+	y += c.renderHeight + c.rowGap
+	if s then
+		currentRig = render(well, s.sp)
+		local tierRow = Draw.new("Frame", {
+			Name = "TierRow",
+			Position = UDim2.fromOffset(c.padding, y),
+			Size = UDim2.fromOffset(inner, c.tierHeight),
+			ZIndex = 3,
+			Parent = face,
+		}) :: Frame
+		Icons.tier(s.tier, c.tierHeight, tierRow, UDim2.new(0, c.tierHeight / 2, 0.5, 0), 4)
+		Draw.text({
+			Name = "TierName",
+			Position = UDim2.fromOffset(c.tierHeight + 10, 0),
+			Size = UDim2.new(1, -(c.tierHeight + 10), 1, 0),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = Loc.t(`tier.{s.tier}`),
+			TextColor3 = Theme.INK,
+			ZIndex = 4,
+			Parent = tierRow,
+		}, Theme.TEXT.number, "display")
+		y += c.tierHeight + c.rowGap
+		local count = math.min(#s.traits, 3)
+		local span = count * c.traitSize + math.max(0, count - 1) * c.rowGap
+		for i = 1, count do
+			local x = c.padding + (inner - span) / 2 + (i - 1) * (c.traitSize + c.rowGap)
+			Icons.trait(
+				s.traits[i],
+				c.traitSize,
+				face,
+				UDim2.fromOffset(x + c.traitSize / 2, y + c.traitSize / 2),
+				4
+			)
+		end
+		y += c.traitSize + c.rowGap
+		local income = Draw.new("Frame", {
+			Name = "Income",
+			Position = UDim2.fromOffset(c.padding, y),
+			Size = UDim2.fromOffset(inner, c.incomeHeight),
+			ZIndex = 3,
+			Parent = face,
+		}, {
+			Draw.new("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 8),
+			}),
+		}) :: Frame
+		local pearlHolder = Draw.new("Frame", {
+			Size = UDim2.fromOffset(28, 28),
+			LayoutOrder = 1,
+			ZIndex = 3,
+			Parent = income,
+		}) :: Frame
+		Icons.pearl(28, pearlHolder, nil, 4)
+		Draw.text({
+			Name = "PerHour",
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, c.incomeHeight),
+			LayoutOrder = 2,
+			Text = Loc.t("common.per_hour", { Amount = HudMath.grouped(s.perHour) }),
+			TextColor3 = Theme.INK,
+			ZIndex = 4,
+			Parent = income,
+		}, Theme.TEXT.body, "body")
+		y += c.incomeHeight + c.rowGap
+		local ribbon = Draw.new("Frame", {
+			Name = "NewSpecimen",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, y),
+			Size = UDim2.fromOffset(inner - 16, c.ribbonHeight),
+			Rotation = -2,
+			BackgroundColor3 = Theme.PRIMARY,
+			BackgroundTransparency = 0,
+			ZIndex = 4,
+			Parent = face,
+		}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) }) :: Frame
+		Draw.text({
+			Size = UDim2.fromScale(1, 1),
+			Text = Loc.t("bank.new_specimen"),
+			TextColor3 = Theme.INK,
+			ZIndex = 5,
+			Parent = ribbon,
+		}, Theme.TEXT.body, "display")
+	else
+		-- Tier 1 run: the tier 2 badge in the well and the note under it.
+		Icons.tier(2, 96, well, UDim2.fromScale(0.5, 0.5), 4)
+		local note = Draw.text({
+			Name = "TooSmall",
+			Position = UDim2.fromOffset(c.padding, y + 8),
+			Size = UDim2.fromOffset(inner, rect.height - y - c.padding - 8),
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Text = Loc.t("bank.too_small"),
+			TextColor3 = Theme.INK,
+			ZIndex = 4,
+			Parent = face,
+		}, Theme.TEXT.title * 0.8, "display")
+		note.TextWrapped = true
+	end
+	return root
+end
+
+--- Screen pixels of the counted Pearl total, for the flight to the cove HUD (08 §4.5 step 7).
+function BankSummary.totalPosition(): Vector2?
+	local total = currentTotal
+	if total == nil then
+		return nil
+	end
+	return total.AbsolutePosition + Vector2.new(32, total.AbsoluteSize.Y / 2)
+end
+
 --- Opens S12 with `data`; `continue` runs on the Continue button.
 function BankSummary.open(data: Data, continue: () -> ())
 	BankSummary.close(true)
@@ -112,7 +322,8 @@ function BankSummary.open(data: Data, continue: () -> ())
 	local my = token
 	local layout = Screen.layout()
 	local p = HudLayout.PEARLS
-	local rects = HudLayout.pearls(layout.contentSize, #data.multipliers)
+	local withCard = data.specimen ~= nil or data.tooSmall == true
+	local rects = HudLayout.pearls(layout.contentSize, #data.multipliers, withCard)
 	local _, layer = Screen.createLayer("GulpMoments")
 	local frame = Draw.new(
 		"Frame",
@@ -132,7 +343,7 @@ function BankSummary.open(data: Data, continue: () -> ())
 	local shell = Draw.disc(
 		72,
 		Theme.PEARL_SHADE,
-		UDim2.new(0.5, -150, 0.5, 0),
+		UDim2.new(0.5, -170, 0.5, 0),
 		{ Name = "UI_Moment_BankShell", ZIndex = 2, Parent = title }
 	)
 	Draw.stroke(Theme.STROKE_ICON).Parent = shell
@@ -240,6 +451,14 @@ function BankSummary.open(data: Data, continue: () -> ())
 		Parent = totalRow,
 	}, Theme.TEXT.hero * 0.85, "display")
 	local totalScale = Draw.new("UIScale", { Parent = total }) :: UIScale
+	currentTotal = iconHolder
+	local specimenCard = if rects.card then card(frame, rects.card, data) else nil
+	local cardScale = if specimenCard
+		then Draw.new("UIScale", { Parent = specimenCard, Scale = 1 }) :: UIScale
+		else nil
+	if specimenCard then
+		specimenCard.Visible = false
+	end
 	local best = Draw.new("Frame", {
 		Name = "Best",
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -290,6 +509,10 @@ function BankSummary.open(data: Data, continue: () -> ())
 		totalRow.Visible = true
 		total.Text = shortText(data.total)
 		best.Visible = data.best
+		if specimenCard then
+			specimenCard.Visible = true
+			specimenCard.Rotation = 0
+		end
 	end
 	local skip = Draw.new("TextButton", {
 		Name = "Skip",
@@ -339,7 +562,19 @@ function BankSummary.open(data: Data, continue: () -> ())
 		end
 		totalScale.Scale = 1.3
 		Draw.tween(totalScale, Theme.MOTION.release, { Scale = 1 })
+		total.Text = shortText(data.total)
+		best.Visible = data.best
+		-- Step 5: the card flips in 200 ms later (400 ms). TODO(B32): `SFX_UI_BankCard`.
+		if specimenCard and cardScale and not waitUntil(countFrom + COUNT + T_CARD) then
+			return
+		end
 		finish()
+		if specimenCard and cardScale then
+			specimenCard.Rotation = -10
+			cardScale.Scale = 0.4
+			Draw.tween(cardScale, CARD_IN, { Scale = 1 })
+			Draw.tween(specimenCard, CARD_IN, { Rotation = 0 })
+		end
 	end)
 end
 
@@ -347,6 +582,12 @@ function BankSummary.close(instant: boolean?)
 	token += 1
 	local frame = current
 	current = nil
+	currentTotal = nil
+	local rig = currentRig
+	currentRig = nil
+	if rig then
+		CreatureRig.destroy(rig)
+	end
 	if frame then
 		frame:Destroy()
 	end

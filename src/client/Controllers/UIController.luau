@@ -1,12 +1,17 @@
 --!strict
--- UIController (docs/09 section 5.2; module B23, task S4-C5): builds the interface in code from
--- `UI/Kit`, turns every core GUI off (09 §6.10) and runs the run HUD, build stage 1 of docs/08
--- section 15. API: `open(screen, data)`, `close(screen)`, `toast(key, args)` (09 §5.2).
+-- UIController (docs/09 section 5.2; module B23, tasks S4-C5 and S5-C4): builds the interface in
+-- code from `UI/Kit`, turns every core GUI off (09 §6.10) and runs the run HUD (build stage 1 of
+-- docs/08 section 15), the bank summary S12 and the cove HUD S14 (stage 2 parts). API:
+-- `open(screen, data)`, `close(screen)`, `toast(key, args)` (09 §5.2).
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 
+local BankMath = require(ReplicatedStorage.Shared.Logic.BankMath)
+local CoveIncome = require(ReplicatedStorage.Shared.Logic.CoveIncome)
+local CoveRules = require(ReplicatedStorage.Shared.Logic.CoveRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -15,12 +20,15 @@ local WorldInfo = require(ReplicatedStorage.Shared.Net.Codec.WorldInfo)
 
 local BankSummary = require("../UI/Screens/BankSummary")
 local Client = require("../Net/Client")
+local CoveHud = require("../UI/Hud/CoveHud")
 local CreatureController = require("./CreatureController")
 local Gulped = require("../UI/Screens/Gulped")
 local Hud = require("../UI/Hud/Hud")
 local InputController = require("./InputController")
 local MovementController = require("./MovementController")
 local Screen = require("../UI/Kit/Screen")
+local StateStore = require("./StateStore")
+local TierMath = require(ReplicatedStorage.Shared.Logic.TierMath)
 
 local TAG = "UI"
 
@@ -33,6 +41,10 @@ export type ScreenId = "S11" | "S12"
 UIController.onSwimAgain = Signal.new() :: Types.Signal<>
 --- Continue on S12 (08 §4.5). TODO(B19, S5): the bank's close and the Pearl flight to the cove HUD.
 UIController.onBankContinue = Signal.new() :: Types.Signal<>
+--- The cove HUD's menu buttons (08 §5.1): the plus on the Pearls chip ("pearls", the shop's
+--- Pearls tab), the slots chip ("slots", S16) and the dock ("species", S22). TODO(S22, S16, S27):
+--- the menus open from here once they are built.
+UIController.onCoveMenu = Signal.new() :: Types.Signal<string>
 --- `HUD.setVisible(id, bool)` for chapter 04 (08 §3.3).
 UIController.setVisible = Hud.setVisible
 
@@ -48,6 +60,72 @@ local player = Players.LocalPlayer
 local homePosition: Vector3? = nil
 local volumes: { Types.Volume } = {}
 local open: { [ScreenId]: boolean } = {}
+-- S14 state (08 §5.1): the capacity from the last own `CoveView` (server truth, Bigger Cove
+-- included), else from the save; the server's pile clock is os.time (09 §13.3).
+local viewCapacity: number? = nil
+local lastRunMass = 0
+local covePreview: CoveHud.State? = nil -- Studio only (`Dev/HudHarness`)
+
+local function inCove(): boolean
+	return covePreview ~= nil or player:GetAttribute("Phase") == "cove"
+end
+
+-- TODO(B23, S10-C2): read owned passes through ShopService's State once it writes `passes`.
+local function ownsPass(id: string): boolean
+	local passes = StateStore.get("passes")
+	return type(passes) == "table" and passes[id] == true
+end
+
+local function coveState(): CoveHud.State
+	if covePreview then
+		return covePreview
+	end
+	local cove = StateStore.get("cove")
+	local pearls = StateStore.get("pearls")
+	local s: CoveHud.State = {
+		pearls = if type(pearls) == "number" then pearls else 0,
+		rate = 0,
+		used = 0,
+		capacity = 0,
+		pile = 0,
+		pileFull = false,
+	}
+	if type(cove) ~= "table" or type(cove.specimens) ~= "table" then
+		return s
+	end
+	local c = cove :: CoveRules.Cove
+	local capHours = CoveIncome.capHours(ownsPass("pass_tide_watcher"))
+	local now = math.floor(workspace:GetServerTimeNow())
+	s.rate = CoveIncome.rate(c.specimens)
+	s.used = #c.specimens
+	s.capacity = viewCapacity or CoveRules.capacity(c.slots, ownsPass("pass_bigger_cove"))
+	s.pile = math.floor(CoveRules.pileAt(c, now, capHours))
+	-- The pile stops growing once the cap window since the last claim is over (05 §3.4).
+	local since = if c.lastClaim then c.lastClaim.at else c.accruedAt
+	s.pileFull = s.rate > 0 and now >= since + capHours * 3600
+	return s
+end
+
+local function refreshCove(instant: boolean?)
+	local here = inCove()
+	Hud.setCove(here)
+	CoveHud.setShown(here and next(open) == nil)
+	CoveHud.set(coveState(), instant)
+end
+
+-- The Pearl Clam of the player's own cove (08 §5.1: the one pile). TODO(S5-A4 or the cove props
+-- task): the world tags `M_Cove_PearlClam` "PearlClam" with a `CoveIndex` attribute; until then
+-- there is no clam and no bubble (Claim all still claims).
+local function refreshPileAnchor()
+	local slot = player:GetAttribute("Slot")
+	for _, part in CollectionService:GetTagged("PearlClam") do
+		if part:IsA("BasePart") and part:GetAttribute("CoveIndex") == slot then
+			CoveHud.setPileAnchor(part)
+			return
+		end
+	end
+	CoveHud.setPileAnchor(nil)
+end
 
 local function refreshHome()
 	homePosition = nil
@@ -76,10 +154,16 @@ function UIController.open(screen: ScreenId, data: unknown?)
 		end)
 	elseif screen == "S12" then
 		BankSummary.open(data :: BankSummary.Data, function()
+			-- 08 §4.5 step 7: Pearls fly to the cove HUD's Pearl chip as the panel goes.
+			local from = BankSummary.totalPosition()
 			UIController.close("S12")
+			if from then
+				CoveHud.flyPearls(from, 8)
+			end
 			UIController.onBankContinue:fire()
 		end)
 	end
+	refreshCove(true)
 end
 
 function UIController.close(screen: ScreenId)
@@ -92,11 +176,93 @@ function UIController.close(screen: ScreenId)
 	if next(open) == nil then
 		Hud.setShown(true)
 	end
+	refreshCove()
+end
+
+--- Shows S12 for a bank (08 §4.5). The bank event of RunLoopService (S5-C3) calls this.
+function UIController.showBank(data: BankSummary.Data)
+	UIController.open("S12", data)
+end
+
+-- TODO(B19, S5-C3): replace with the bank event once RunLoopService sends one. Until then S12 is
+-- built from what the client already sees when `stats.banks` goes up: the run's last mass, the
+-- Pearls the bank added and the specimen the cove gained. Traits are not mirrored yet, so the
+-- Crystal row is missing and "New best!" is not shown.
+local function bankAdapter()
+	local banks: number? = nil
+	local pearls = 0
+	local specimens: { [string]: boolean } = {}
+	local function snapshot()
+		local p = StateStore.get("pearls")
+		pearls = if type(p) == "number" then p else pearls
+		local cove = StateStore.get("cove")
+		table.clear(specimens)
+		if type(cove) == "table" and type(cove.specimens) == "table" then
+			for _, sp in cove.specimens do
+				specimens[sp.id] = true
+			end
+		end
+	end
+	StateStore.observe("stats.banks", function(value: any)
+		if type(value) ~= "number" then
+			return
+		end
+		if banks == nil or value <= banks then
+			banks = value
+			snapshot()
+			return
+		end
+		banks = value
+		task.wait() -- let the same bank's pearls and cove patches land
+		local p = StateStore.get("pearls")
+		local added = if type(p) == "number" then p - pearls else 0
+		local deep = ownsPass("pass_deep_pockets")
+		local cove = StateStore.get("cove")
+		local fresh: BankSummary.Specimen? = nil
+		if type(cove) == "table" and type(cove.specimens) == "table" then
+			for _, sp in cove.specimens do
+				if not specimens[sp.id] then
+					fresh = {
+						sp = sp.sp,
+						tier = sp.tier,
+						traits = sp.traits,
+						perHour = CoveIncome.specimenRate(sp.tier, sp.traits),
+					}
+				end
+			end
+		end
+		local multipliers: { BankSummary.Row } = {}
+		if deep then
+			table.insert(multipliers, { nameKey = "pass.deep_pockets", value = 2, icon = "pass" })
+		end
+		UIController.showBank({
+			mass = lastRunMass,
+			multipliers = multipliers,
+			total = if added > 0 then added else BankMath.bank(lastRunMass, false, deep),
+			best = false,
+			specimen = fresh,
+			tooSmall = fresh == nil and TierMath.tier(lastRunMass) < CoveRules.MIN_TIER,
+		})
+		snapshot()
+	end)
+	StateStore.observe("pearls", function()
+		if next(open) == nil then
+			snapshot()
+		end
+	end)
 end
 
 --- S10 toasts are build stage 2 (08 §15). TODO(S10, stage 2): the toast stack.
 function UIController.toast(key: string, _args: { [string]: string | number }?)
 	Log.once("info", TAG, `toast "{key}" dropped: toasts are build stage 2`)
+end
+
+--- Studio only: shows S14 with fixed values for screenshots, or nil for live values.
+function UIController.setCovePreview(p: CoveHud.State?)
+	if RunService:IsStudio() then
+		covePreview = p
+		refreshCove(true)
+	end
 end
 
 --- Studio only: fixed HUD values for screenshots, or nil for live values.
@@ -126,7 +292,76 @@ function UIController.start()
 		local mass = attrNumber("Mass") or 0
 		Hud.setMass(mass, lastMass)
 		lastMass = mass
+		if player:GetAttribute("Phase") == "run" then
+			lastRunMass = mass
+		end
 	end)
+
+	-- S14, the cove HUD (08 §5.1).
+	local hudRoot = Hud.root()
+	if hudRoot then
+		CoveHud.build(hudRoot, {
+			claim = function()
+				local pile = coveState().pile
+				if pile < 1 then
+					return
+				end
+				-- 08 §5.4: the Pearls fly to the chip; the balance counts up when the State lands.
+				-- TODO(B32): `SFX_UI_Claim` and the light haptic.
+				if Client.send("CoveAction", CoveRules.Op.claim, 0) then
+					local from = CoveHud.claimFrom()
+					if from then
+						CoveHud.flyPearls(from, math.clamp(math.floor(pile / 10), 4, 10))
+					end
+					CoveHud.claimed()
+				end
+			end,
+			plus = function()
+				UIController.onCoveMenu:fire("pearls")
+			end,
+			slots = function()
+				UIController.onCoveMenu:fire("slots")
+			end,
+			dock = function(id: CoveHud.DockId)
+				UIController.onCoveMenu:fire(id)
+			end,
+		})
+	end
+	Client.on("CoveView", function(view: unknown)
+		local v = view :: any
+		if
+			type(v) == "table"
+			and v.slot == player:GetAttribute("Slot")
+			and type(v.slots) == "number"
+		then
+			viewCapacity = v.slots
+			refreshCove()
+		end
+	end)
+	for _, path in { "pearls", "cove", "passes" } do
+		StateStore.observe(path, function()
+			refreshCove()
+		end)
+	end
+	player:GetAttributeChangedSignal("Phase"):Connect(function()
+		refreshCove(true)
+	end)
+	player:GetAttributeChangedSignal("Slot"):Connect(function()
+		viewCapacity = nil
+		refreshPileAnchor()
+	end)
+	CollectionService:GetInstanceAddedSignal("PearlClam"):Connect(refreshPileAnchor)
+	refreshPileAnchor()
+	-- The pile grows every second (02 §13.2); its number and Claim all follow.
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if CoveHud.isShown() then
+				CoveHud.set(coveState())
+			end
+		end
+	end)
+	bankAdapter()
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)

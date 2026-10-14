@@ -1,6 +1,6 @@
 --!strict
--- HudLayout: the pure geometry of the run HUD stage 1 and of screens S11 and S12 (docs/08,
--- sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.4 and 4.5; docs/15, sections 3.1 to 3.3). Numbers and
+-- HudLayout: the pure geometry of the run HUD stage 1 and of screens S11, S12 and S14 (docs/08,
+-- sections 1.3 to 1.5, 3.3, 3.12, 3.16, 4.4, 4.5 and 5.1; docs/15, sections 3.1 to 3.3). Numbers and
 -- tables only, so it runs in Lune; `client/UI` places instances where this module says.
 --
 -- Coordinates are rpx. A `content` rect is the safe frame less its margins (Kit/Screen's
@@ -57,8 +57,8 @@ HudLayout.SWIM_AGAIN = table.freeze({ width = 280, height = 96, right = 40, bott
 -- 08 §1.4: zone A reaches 340 rpx from a bottom corner.
 HudLayout.ZONE_A = 340
 
--- 08 §4.5, the Pearls table of S12 (stage 1: the specimen column is not built, so the table is
--- centred). Row heights follow the type sizes of 08 §1.5 on the 8 rpx grid.
+-- 08 §4.5, the Pearls table of S12 (centred alone at stage 1, beside the specimen card from
+-- stage 2). Row heights follow the type sizes of 08 §1.5 on the 8 rpx grid.
 HudLayout.PEARLS = table.freeze({
 	width = 560,
 	padding = 24,
@@ -333,12 +333,36 @@ function HudLayout.gulped(screenClass: ScreenClass, content: Size): GulpedRects
 	}
 end
 
-export type PearlsRects = { title: Rect, panel: Rect, continue: Rect, rowsTop: number }
+-- 08 §4.5 step 5 and §5.2: the specimen card of S12 (build stage 2), right of the Pearls table.
+-- Top to bottom inside 16 rpx padding: the 3D render, the tier row (badge and tier name), up to
+-- three 32 rpx trait icons, the Pearls an hour line and the `bank.new_specimen` ribbon.
+HudLayout.SPECIMEN_CARD = table.freeze({
+	width = 300,
+	height = 360,
+	gap = 32, -- between the Pearls table and the card
+	padding = 16,
+	renderHeight = 150,
+	tierHeight = 40,
+	traitSize = 32,
+	incomeHeight = 32,
+	ribbonHeight = 40,
+	rowGap = 8,
+})
 
---- S12 stage 1 (08 §4.5): the title, the Pearls table with `rows` multiplier rows (the mass row
---- comes first) and Continue bottom right.
-function HudLayout.pearls(content: Size, rows: number): PearlsRects
+export type PearlsRects = {
+	title: Rect,
+	panel: Rect,
+	continue: Rect,
+	rowsTop: number,
+	card: Rect?,
+}
+
+--- S12 (08 §4.5): the title, the Pearls table with `rows` multiplier rows (the mass row comes
+--- first), Continue bottom right and, with `card` (stage 2), the specimen card right of the table.
+--- The table and card are top-aligned and centred together; the title is centred over them.
+function HudLayout.pearls(content: Size, rows: number, card: boolean?): PearlsRects
 	local p = HudLayout.PEARLS
+	local c = HudLayout.SPECIMEN_CARD
 	local height = p.padding * 2
 		+ p.headerHeight
 		+ p.rowHeight * (1 + rows)
@@ -350,15 +374,116 @@ function HudLayout.pearls(content: Size, rows: number): PearlsRects
 		width = p.continueWidth,
 		height = p.continueHeight,
 	}
-	-- Centre the title and panel in the space above Continue's row, never above the top.
-	local block = p.titleHeight + 16 + height
+	local rowWidth = if card then p.width + c.gap + c.width else p.width
+	local rowHeight = if card then math.max(height, c.height) else height
+	-- Centre the title and the row in the space above Continue's row, never above the top.
+	local block = p.titleHeight + 16 + rowHeight
 	local top = math.max(0, (continue.y - 16 - block) / 2)
-	local x = (content.width - p.width) / 2
+	local x = (content.width - rowWidth) / 2
+	local y = top + p.titleHeight + 16
 	return {
-		title = { x = x, y = top, width = p.width, height = p.titleHeight },
-		panel = { x = x, y = top + p.titleHeight + 16, width = p.width, height = height },
+		title = {
+			x = (content.width - p.width) / 2,
+			y = top,
+			width = p.width,
+			height = p.titleHeight,
+		},
+		panel = { x = x, y = y, width = p.width, height = height },
 		continue = continue,
 		rowsTop = p.padding + p.headerHeight,
+		card = if card
+			then { x = x + p.width + c.gap, y = y, width = c.width, height = c.height }
+			else nil,
+	}
+end
+
+-- 08 §5.1, the cove HUD (S14) at build stage 2: the Pearls, income and slots chips top centre
+-- (`offset` is the chip centre's distance from the content centre), Claim all bottom right
+-- above the dash button, and the dock bottom centre. Text sizes are 08 §1.5's.
+HudLayout.COVE = table.freeze({
+	top = 12,
+	chipHeight = 56,
+	pearls = { offset = -150, width = 240 },
+	income = { offset = 90, width = 200 },
+	slots = { offset = 270, width = 120 },
+	plus = 44, -- the plus disc at the Pearls chip's right end; its hit area is the touch minimum
+	claimAll = { right = 40, bottom = 196, width = 260, height = 88 },
+	dock = { offset = -60, bottom = 28, size = 88, gap = 16, icon = 56 },
+	text = table.freeze({ balance = 28, income = 24, slots = 28, claim = 28, dock = 22 }),
+	-- 08 §5.1 world: the Pearl pile bubble over the clam.
+	bubble = 72,
+})
+-- 08 §1.4 tablet switch: thumb elements sit 24 rpx further from the edges.
+local TABLET_SHIFT = 24
+
+export type CoveRects = {
+	pearls: Rect,
+	plus: Rect,
+	plusHit: Rect,
+	income: Rect,
+	slots: Rect,
+	slotsHit: Rect,
+	claimAll: Rect,
+	claimAllHit: Rect,
+	dock: { Rect },
+	dash: Rect,
+	dashHit: Rect,
+}
+
+--- S14 (08 §5.1): every rect of the cove HUD for one screen, with `dockCount` dock buttons
+--- (stage 2 builds Creatures only; the MVP dock has four). The dash button is the run HUD's.
+function HudLayout.cove(screenClass: ScreenClass, content: Size, dockCount: number): CoveRects
+	local c = HudLayout.COVE
+	local min = HudLayout.minTarget(screenClass)
+	local function chip(spec: { offset: number, width: number }): Rect
+		return {
+			x = content.width / 2 + spec.offset - spec.width / 2,
+			y = c.top,
+			width = spec.width,
+			height = c.chipHeight,
+		}
+	end
+	local pearls = chip(c.pearls)
+	local inset = (c.chipHeight - c.plus) / 2
+	local plus = {
+		x = pearls.x + pearls.width - inset - c.plus,
+		y = pearls.y + inset,
+		width = c.plus,
+		height = c.plus,
+	}
+	local slots = chip(c.slots)
+	local shift = if classKey(screenClass) == "Tablet" then TABLET_SHIFT else 0
+	local a = c.claimAll
+	local claimAll = {
+		x = content.width - a.right - shift - a.width,
+		y = content.height - a.bottom - shift - a.height,
+		width = a.width,
+		height = a.height,
+	}
+	local d = c.dock
+	local rowWidth = dockCount * d.size + math.max(0, dockCount - 1) * d.gap
+	local dock: { Rect } = {}
+	for i = 1, dockCount do
+		table.insert(dock, {
+			x = content.width / 2 + d.offset - rowWidth / 2 + (i - 1) * (d.size + d.gap),
+			y = content.height - d.bottom - d.size,
+			width = d.size,
+			height = d.size,
+		})
+	end
+	local dash = HudLayout.dash(screenClass, content)
+	return {
+		pearls = pearls,
+		plus = plus,
+		plusHit = HudLayout.hitRect(plus, min),
+		income = chip(c.income),
+		slots = slots,
+		slotsHit = HudLayout.hitRect(slots, min),
+		claimAll = claimAll,
+		claimAllHit = HudLayout.hitRect(claimAll, min),
+		dock = dock,
+		dash = dash,
+		dashHit = HudLayout.hitRect(dash, min),
 	}
 end
 

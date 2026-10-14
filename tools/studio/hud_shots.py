@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """HUD stage 1 screenshots in Studio (task S4-C5; docs/08 sections 1, 3, 4.4, 4.5 and 15).
 
-usage: python3 tools/studio/hud_shots.py [--tag NAME]
+usage: python3 tools/studio/hud_shots.py [--tag NAME] [--set hud|cove]
 
 Under the machine-wide `studio` lock and one `heavy` slot, like tools/studio/light_bench.py: build build/ci.rbxl,
 open it, start play and wait for the local creature. On the client, Dev/HudHarness lays the interface out for a
 simulated phone (844 x 390 px, 47 px notch insets, drawn at the top left of the viewport and cropped) and for the
 real Studio viewport (a desktop), poses the HUD (drag ring, dash cooldown, mass pops, off-screen home) and opens
 S11 and S12. Writes build/hud/: each capture downscaled to 768 px and hud-grid.png (one contact sheet).
+`--set cove` (task S5-C4) shoots S12 after a bank (specimen card; a tier 1 run on the phone) and S14 (Pearls,
+income, slots, Claim all, the Pearl pile) on both devices into build/hud/cove-grid.png.
 The place is closed without saving; Studio is left stopped in Edit mode.
 """
 import base64, io, os, subprocess, sys, time
@@ -89,11 +91,58 @@ def run(sm):
     return shots
 
 
-def grid(shots):
+def run_cove(sm):
+    """S12 with the specimen card and S14 on the phone and the desktop (08 sections 4.5 and 5.1)."""
+    if not start(sm):
+        return []
+    shots = []
+    for device, crop in (("phone", PHONE), ("real", None)):
+        _, info = sm.lua("Client", H + 'return H:Invoke("device", "%s")' % device)
+        sm.add("INFO", device, info.strip())
+        variants = ("S12card", "S12small") if device == "phone" else ("S12card",)
+        for v in variants:
+            sm.lua("Client", H + 'return H:Invoke("open", "%s")' % v)
+            time.sleep(4.2)
+            _, info = sm.lua("Client", H + 'return H:Invoke("measure")')
+            sm.add("INFO", "%s %s" % (device, v), info.strip())
+            shots.append(("%s %s" % (device, v), capture(sm, "%s-%s" % (device, v.lower()), crop)))
+            sm.lua("Client", H + 'return H:Invoke("close", "S12")')
+        sm.lua("Client", H + 'return H:Invoke("cove")')
+        time.sleep(1.2)
+        _, info = sm.lua("Client", H + 'return H:Invoke("measure")')
+        sm.add("INFO", device + " S14", info.strip())
+        shots.append((device + " S14", capture(sm, device + "-s14", crop)))
+        sm.lua("Client", H + 'return H:Invoke("reset")')
+    console_check(sm)
+    return shots
+
+
+def start(sm):
+    mode, _ = sm.mode()
+    if mode.lower() != "edit":
+        sm.call("start_stop_play", {"is_start": False}, 120)
+        sm.wait_mode("edit", 60)
+    sm.call("start_stop_play", {"is_start": True}, 120)
+    in_play, _ = sm.wait_mode("play", 60)
+    ready, text = sm.poll_lua("Client", 'local p = game:GetService("Players").LocalPlayer '
+                              'local c = p and p.Character return if c and c.PrimaryPart then "ready" else "wait"',
+                              lambda x: "ready" in x, 60)
+    sm.add("PASS" if in_play and ready else "FAIL", "play", "client has its creature" if ready else text[:200])
+    if ready:
+        time.sleep(2.0)
+    return ready
+
+
+def console_check(sm):
+    _, out = sm.call("get_console_output", {}, 30)[:2]
+    errors = [l for l in "\n".join(out).splitlines() if "error" in l.lower() and ("UI" in l or "Hud" in l)]
+    sm.add("FAIL" if errors else "PASS", "console", "; ".join(errors)[:400] or "no UI errors")
+
+
+def grid(shots, name="hud-grid.png", cols=3):
     cells = [Image.open(p) for _, p in shots]
     w = max(c.width for c in cells)
     h = max(c.height for c in cells)
-    cols = 3
     rows = (len(cells) + cols - 1) // cols
     sheet = Image.new("RGB", (cols * w, rows * (h + 24)), (20, 20, 28))
     d = ImageDraw.Draw(sheet)
@@ -101,7 +150,7 @@ def grid(shots):
         x, y = (i % cols) * w, (i // cols) * (h + 24)
         sheet.paste(cells[i], (x, y + 24))
         d.text((x + 8, y + 6), label, fill=(255, 255, 255))
-    path = os.path.join(OUT, "hud-grid.png")
+    path = os.path.join(OUT, name)
     sheet.save(path)
     return path
 
@@ -109,6 +158,7 @@ def grid(shots):
 def main():
     args = sys.argv[1:]
     tag = opt(args, "--tag", "gulp-hud")
+    shot_set = opt(args, "--set", "hud")
     os.makedirs(OUT, exist_ok=True)
     rows, shots = [], []
     with studio_lock(owner="gulp hud shots", timeout=2400):
@@ -127,7 +177,7 @@ def main():
                     if pid:
                         bring_to_front(pid)
                     try:
-                        shots = run(sm)
+                        shots = run_cove(sm) if shot_set == "cove" else run(sm)
                     finally:
                         sm.call("start_stop_play", {"is_start": False}, 120)
                         edit, _ = sm.wait_mode("edit", 60)
@@ -139,7 +189,7 @@ def main():
                 sw.restore(previous)
     lines = ["%s %s: %s" % r for r in rows]
     if shots:
-        lines.append("grid: " + grid(shots))
+        lines.append("grid: " + (grid(shots, "cove-grid.png", 3) if shot_set == "cove" else grid(shots)))
     print("\n".join(lines))
     sys.exit(1 if any(r[0] == "FAIL" for r in rows) or not shots else 0)
 
