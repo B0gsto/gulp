@@ -19,8 +19,10 @@ require(script.Parent.Net.Server)
 -- Section 4.5's order, listing only the services written so far; each task adds its own.
 local loaded: { Service } = {
 	require(script.Parent.Services.LiveConfig),
+	require(script.Parent.Services.Analytics),
 	require(script.Parent.Services.DataService),
 	require(script.Parent.Services.WorldIndex),
+	require(script.Parent.Services.EconomyService),
 	require(script.Parent.Services.CreatureService),
 	require(script.Parent.Services.PreyService),
 	require(script.Parent.Services.BiteService),
