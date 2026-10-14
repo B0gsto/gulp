@@ -991,11 +991,11 @@ He cannot fit through gaps under 14 studs. Counterplay: turn hard, use gaps, lea
 ```
 target(zone, type) = base(zone, type) × playerScale(n) × eventScale × areaScale
 playerScale(n)     = clamp(0.6 + 0.4 × n / 24, 0.6, 1.0)
-eventScale         = 2.0 for normal prey during a Feeding Frenzy, else 1.0
+eventScale         = 2.0 for normal prey while the Feeding Frenzy tide (`frenzy`) runs, else 1.0
 areaScale          = 1 on the real map; see "Smaller spawn areas" below
 ```
 
-Base counts at 24 players (tune; documents 03 and 05 may rebalance). Plankton and tuna are counted as individuals; every other ordinary prey is counted in the groups document 03 uses (section 2.3). A target is never above document 03's live cap for that zone; if the two ever differ, the cap wins. Trait prey rows copy document 03's "alive per server" (section 3.1).
+Base counts at 24 players (tune; documents 03 and 05 may rebalance). Plankton and tuna are counted as individuals; every other ordinary prey is counted in the groups document 03 uses (section 2.3). A target is never above document 03's live cap for that zone; if the two ever differ, the cap wins. Trait prey rows copy document 03's "alive per server" (section 3.1) and are generated to `TraitPreySpawns` (chapter 09, section 3.2).
 
 <!-- data:PreyTargets -->
 Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`, `glowfry`, `dotted_goby`, `zebra_darter`, `urchin_puff`, `armor_shrimp`.
@@ -1361,8 +1361,9 @@ Tide Watcher **[L]** adds an in-game tide board that shows the next three tides,
 | Rule | Value |
 |---|---|
 | Density target | ×2.0 for normal prey in every zone, including the Nursery |
-| Refill | Three spawns per pass instead of one; slot refill time 8 s → 2.7 s |
+| Refill | Three spawns per pass instead of one; slot refill time 8 s → 2.7 s. Both come from the tide's prey spawn rate, ×3 (canon section 10, data:Tides): each respawn delay of normal prey is divided by it |
 | Trait prey | Unchanged. The Crystal Jelly timer is unchanged. |
+| Which tide | Only the `frenzy` tide doubles the density target and the caps. The spawn rate and the density are two rules: a tide's prey spawn rate (canon data:Tides) divides respawn delays and sets spawns per pass for any tide, and a future tide with a rate above ×1 does not double the density unless this chapter says so for that tide |
 | Predators and hazards | Unchanged |
 | Look | Warm water tint, faster music, spawn regions bubble visibly |
 | End | No prey is removed at T+240. The surplus is eaten or trimmed by the 150% rule (section 9.5). |

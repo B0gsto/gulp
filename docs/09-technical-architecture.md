@@ -167,7 +167,8 @@ gulp/
 │   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
-│   │   │   │                       Zones, Tides, Products, Goals, Codex, RevivePoints, Strings; at [L]
+│   │   │   │                       Zones, Tides, PreySpawns, TraitPreySpawns, PreyMotion, Products,
+│   │   │   │                       Goals, Codex, RevivePoints, Strings; at [L]
 │   │   │   │                       also Patterns, Decorations, Emotes, RankRewards, Landmarks
 │   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
@@ -253,7 +254,7 @@ Studio-owned containers, never touched by Rojo:
 
 ### 3.2 Content data
 
-All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance), plus the prey density targets of `02-mechanics.md` (section 9.6, data:PreyTargets), and writes one module per table (`PreySpawns` joins 02's targets with 03's spawn weights, caps and zone plan areas). The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
+All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance), plus the prey density targets of `02-mechanics.md` (section 9.6, data:PreyTargets) and the prey motion table of `06-art-bible.md` (section 7.6, data:PreyMotion), and writes one module per table (`PreySpawns` joins 02's targets with 03's spawn weights, caps and zone plan areas; `TraitPreySpawns` is 02's trait prey rows, alive per zone, with the zone plan areas; `PreyMotion` is checked against the prey IDs of 03). The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
 
 Each row gets a stable **wire index** (its 1-based position in the canon table) used in packets; rows are only ever appended. Each table numbers its own rows from 1, so where two tables share one byte the packet adds an offset: the prey `kind` byte (8.2, 8.7) is the `data:Prey` wire index (1 to 127) for ordinary prey and 128 + the `data:TraitPrey` wire index for trait prey (`Formation.TRAIT_BASE`, `Formation.kindOf` and `Formation.defOf` in `shared/Sim/Formation.luau` are the only places that mapping lives).
 
@@ -277,7 +278,11 @@ export type PreyDef = { id: string, wire: number, scope: Scope, tier: number, ma
 	turnRate: number,               -- °/s; 0 = turns in any direction (hops, drifts) (03 §2.1, §3.1)
 	fleeBurst: number,              -- s; 0 = does not flee (03 §2.1, §3.1)
 	fleeRadius: number, scatterGain: number,
-	radius: number, wobble: number, eventOnly: string? }
+	radius: number, wobble: number, eventOnly: string?,
+	respawn: number?,               -- s (03 §2.1, §3.1 "Respawn (s)"); nil for event prey
+	lifetime: number?,              -- crystal_jelly: s a drift stays (240)
+	alive: number?,                 -- trait prey: most alive per server (03 §3.1)
+	eventTotal: number? }           -- event prey: released per event (lunar_fry 40, marrow 60)
 	-- Acceleration is not a column: PreySim derives it (8.4, step 3)
 
 export type TraitDef = { id: string, wire: number, scope: Scope, rarity: Rarity,
@@ -299,6 +304,19 @@ export type PreySpawnDef = { zone: string, prey: string, weight: number, cap: nu
 	base: number, baseUnit: "groups" | "members",   -- 02 §9.6 counts plankton and tuna as individuals
 	perPlayerInside: number?,       -- Nursery only (02 §9.6)
 	zoneArea: number }              -- studs² from above (03 §6.1); Logic/PreySpawnMath scales by it
+
+export type TraitPreySpawnDef = { zone: string, prey: string, alive: number,
+	zoneArea: number }              -- 02 §9.6 trait prey rows; no playerScale or eventScale
+
+export type PreyMotionDef = { id: string, scope: Scope, draw: string,   -- 06 §7.6, client looks only
+	wobble: { hz: number, yawDeg: number, rollDeg: number, bobStuds: number }?,
+	sway: { hz: number, ampDeg: number, hzPerStudPerS: number, tailLagS: number? }?,
+	hop: { height: number, length: number, timeS: number, restS: number, count: number? }?,
+	pulse: { kind: "twinkle" | "glow" | "shimmer" | "squash" | "crawl", hz: number, amount: number? }?,
+	driftSpeed: number?,
+	flee: { style: string, burstWobbleMult: number?, burstSwayMult: number?, hopMult: number?,
+		regroupS: number?, bankDeg: number?, turns: number?, pauseS: number?, rollStuds: number?,
+		uncurlS: number?, deeperStuds: number?, jetStuds: number?, inkS: number? } }
 
 export type TideDef = { id: string, wire: number, scope: Scope, fallback: string?,
 	spawnRateMult: number, eventPrey: { string } }
@@ -501,7 +519,7 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
 | **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
-| **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setSpawnRate(mult)`, `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)` |
+| **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setTide(tideId?)` (respawn delays ÷ the tide's `spawnRateMult`; targets and caps ×2 only for `frenzy`, chapter 02, section 14.4), `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)` |
 | **PredatorService** | MVP | Predator state machines, telegraphs, strikes; hazard volume checks; wild creatures [L] (section 9.3) | Predator buffers (32 slots) | `list(): {PredatorView}`, `gather(x,y,z)` (Whale Fall), `tryEat(slot, predatorId, t): boolean`, `onGulp: Signal<Slot, string>` |
 | **BiteService** | MVP | Validates bite claims on prey, players and edible predators; applies results | Bite sequence and rate state | Remote handler only, plus `onPlayerEaten: Signal<Slot, Slot>` |
 | **RunLoopService** | MVP | Run lifecycle: start, bank, gulp, revive, suspend, resume, settle (sections 12.5 and 13.4) | `RunState` per slot | `start(player)`, `bank(player)`, `gulp(slot, by: string)`, `offerRevive(player)`, `suspendOnLeave(player)`, `resume(player): boolean`, `settleExpired(player)`, `state(slot): RunPhase` |
@@ -837,7 +855,7 @@ Population. Chapter 02 owns the live targets (section 9.6, data:PreyTargets) and
 | Trait prey ([MVP] rows of 02 §9.6; a roaming `crystal_jelly` drift adds one group of 5) | 52 | 1 to 5 | 56 |
 | **Total** | **299** | | **≈ 1,390** |
 
-Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
+Limits: `MAX_GROUPS = 640` **(tune)**, `MAX_MEMBERS = 24` per group. A Feeding Frenzy triples the respawn rate (normal prey respawn delays are divided by the tide's `spawnRateMult`, 3, and the spawner makes three spawns per row per pass instead of one) and raises the live target of normal prey to 2 times normal (chapter 02, section 14.4; chapter 03, section 2.3 doubles the zone caps); trait prey are unchanged. Only the `frenzy` tide doubles targets and caps; a spawn rate above 1 on its own does not (chapter 02, section 14.4). That is the **Frenzy count**: about 2,710 members in 545 groups (493 of normal prey, 52 of trait prey), inside the limit with room for event prey. The Frenzy spawns no event prey, and tides never overlap (canon section 10), so the worst case the soak checks adds Moon Tide's 12 `lunar_fry` groups at once (4 members each, chapter 03, section 3.1) to the Frenzy count: 557 groups and about 2,760 members, still inside `MAX_GROUPS`. Every budget in this section must hold at that count, trait prey included, and `prey_soak.sim` proves it (16.2). `MAX_GROUPS` was 512 until task S3-D1 found that 02's targets exceed it in a Frenzy (chapter 14, section 4, entry 29).
 
 ### 8.2 Server data layout
 
@@ -882,7 +900,7 @@ Two-dimensional on X and Z, 64-stud cells, 32 × 32 = 1,024 cells. `cellHead` is
 |---|---|
 | 0 | Threat pass, then simulate all active groups, write history |
 | 0 to 5 | Interest and send for the players whose `slot % 6` equals the frame number (4 players per frame) |
-| 3 | Spawner: respawns, event prey, the roaming `crystal_jelly` drift (one group of five members, about one drift per server every 300 s, canon 8.2) |
+| 3 | Spawner: once a second (chapter 02, section 9.5) each spawn row (zone and prey) below its target whose respawn delay has run spawns one whole group, three in a pass while the Feeding Frenzy runs (chapter 02, section 14.4); event prey; the roaming `crystal_jelly` drift (one group of five members, about one drift per server every 300 s, canon 8.2). Respawn delays, trait prey counts and event prey counts come from the generated data (`PreyDef.respawn`, `PreyDef.lifetime`, `PreyDef.alive`, `PreyDef.eventTotal`, `TraitPreySpawns`), never from constants in the code |
 
 A group is **active** if any player is within 700 studs. Dormant groups are stepped once a second with `dt = 1`, as a single group point. 700 studs is beyond the 600-stud interest radius (8.5), so every group any client draws moves at the full 10 Hz and the dormant rate only touches groups nobody can see; chapter 02, section 9.1 copies this rule. The budget does not depend on it: the S3-C2 build measured the simulation at 0.12 ms per tick at the Frenzy count, against the 2.0 ms budget below.
 
@@ -917,7 +935,7 @@ A group new to a player is sent as a **full record** in two consecutive packets;
 
 - Only groups in the **Near and Mid** bands get a keyframe: their full record again every 2 s.
 - Keyframes are **staggered**: a group's keyframe for a player falls on the ticks where `(groupId + slot) % 20` equals `tick % 20`, so each tick carries about a twentieth of them instead of all at once.
-- A **Far** group gets no keyframe. If nothing else was sent to that player for it in the last 2 s, it gets one delta record on its staggered tick, which keeps the client from dropping it (the 3 s rule above).
+- A **Far** group gets no keyframe. On its staggered tick (every 2 s), if nothing else was sent to that player for it in the last 0.5 s (`KEEPALIVE_QUIET`, 5 ticks), it gets one delta record, which keeps the client from dropping it (the 3 s rule above). The longest silence is therefore 2.4 s: a record sent 0.4 s before a staggered tick skips that tick, and the next staggered tick is 2.0 s later; anything sent in between only shortens it. (A 2 s quiet window would allow 3.5 s, past the 3 s drop.) Near and Mid keyframes fall on the same staggered tick, so a group that moves out into the Far band keeps the same bound.
 
 ### 8.6 Byte budget
 
@@ -931,7 +949,7 @@ A group new to a player is sent as a **full record** in two consecutive packets;
 | Engine replication of other creatures | not ours to cap | estimate 5 to 14 kB/s (**U2**) |
 | **Total received** | | **target ≤ 30 kB/s average, ≤ 50 kB/s peak** |
 
-Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 60 Near and Mid groups every 2 s (30 × 22 B = 0.66 kB/s), keep-alive deltas for 60 quiet Far groups every 2 s (30 × 13 B = 0.4 kB/s), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.4 kB/s. In a Frenzy the group counts double and so, roughly, does the stream: about 5 kB/s here, under the 9.0 kB/s cap.
+Worked example for a busy reef: 40 near groups of which half change course each second (20 × 13 B × ~3 sends = 0.8 kB/s), keyframes for 60 Near and Mid groups every 2 s (30 × 22 B = 0.66 kB/s), keep-alive deltas for 60 quiet Far groups every 2 s (30 × 13 B = 0.4 kB/s; a group gets at most one keep-alive per 2 s stagger period whatever the quiet window, so the 0.5 s window of 8.5 does not raise this), headers (80 B/s), mid and far corrections (0.5 kB/s): about 2.4 kB/s. In a Frenzy the group counts double and so, roughly, does the stream: about 5 kB/s here, under the 9.0 kB/s cap.
 
 ### 8.7 Packet formats
 
@@ -1016,12 +1034,12 @@ Every codec has an encode and a decode function in `shared/Net/Codec/` and a rou
 ### 8.8 Client drawing
 
 - **State.** `PreyRenderer` mirrors known groups in its own buffers. Each frame the target is `lastPos + lastVel × (now − lastTime)`; the drawn position eases toward it with a 0.1 s time constant, so a new packet never causes a pop.
-- **Pools.** One pool of anchored MeshParts per prey kind, created on the client, `CollisionGroup = "Visual"`, `CanCollide`, `CanTouch`, `CanQuery` and `CastShadow` all false. Pool sizes by graphics tier (Smooth, Balanced, Pretty): 80, 150, 250 members drawn as meshes, out of 250, 400, 800 prey visible in total once particle clusters and glints are counted (section 15.1). Members are assigned nearest first; the rest of a group falls back to particles.
+- **Pools.** One pool of anchored MeshParts per prey kind, created on the client, `CollisionGroup = "Visual"`, `CanCollide`, `CanTouch`, `CanQuery` and `CastShadow` all false. Pool sizes by graphics tier (Smooth, Balanced, Pretty): 80, 150, 250 members drawn as meshes, within 150, 250, 350 studs, out of 250, 400, 800 prey visible in total once particle clusters and glints are counted (section 15.1; the code reads them from `tune.quality.*`, 17.4). Members are assigned nearest first; the rest of a group falls back to particles.
 - **Moving them.** One `workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)` per frame for everything that moved (**V25**).
-- **Animation.** Prey of tier 0 to 2 (`plankton`, `krill`, `shrimp`, `sardine`) are rigid meshes wiggled in code (yaw ± 12° and a roll, phase from `seed + i`). Tier 3 and above (`darter`, `mackerel`, `bonito`, `tuna`) are skinned to `RIG_Prey3` (three sway bones; the Tuna adds a fourth) and moved by the players' sway code at LOD0; their `_LOD2` is rigid and wiggled like the small prey (chapter 06, sections 6.3, 6.4 and 7.6; chapter 07, section 4.0). Trait prey use the rig their chapter 07 row names. No prey has a clip; the motion settings are the prey motion table (chapter 07, section 4.0).
-- **Far groups.** One `ParticleEmitter` on a pooled Attachment per far group, emitting `count` glints coloured by kind. Limit 60 emitters.
+- **Animation.** Prey of tier 0 to 2 (`plankton`, `krill`, `shrimp`, `sardine`) are rigid meshes wiggled in code (yaw, roll and bob from the prey motion table, phase from `seed + i`). Tier 3 and above (`darter`, `mackerel`, `bonito`, `tuna`) are skinned to `RIG_Prey3` (three sway bones; the Tuna adds a fourth) and moved by the players' sway code at LOD0; their `_LOD2` is rigid and wiggled like the small prey (chapter 06, sections 6.3, 6.4 and 7.6; chapter 07, section 4.0). Trait prey use the rig their chapter 07 row names. No prey has a clip; the motion settings are the prey motion table (chapter 06, section 7.6, data:PreyMotion), read from the generated `PreyMotion` module (`Index.PreyMotion.byId`); the renderer copies no motion number.
+- **Far groups.** One `ParticleEmitter` on a pooled Attachment per far group, emitting `count` glints coloured by kind. Limit by graphics tier: 30, 60, 60 emitters (section 15.1).
 - **Reuse.** Identical MeshId and texture across a pool lets the engine instance the draw (**V32**).
-- **Outlines.** Green, red or none (canon 5.2) is decided on the client from `BiteRules` and the local tier, and applied only to the nearest 20 edible and 10 dangerous things (8 and 4 on Smooth). An outline is a **mesh shell**, an inverted hull authored with the asset (chapter 06, section 13.2), in the built-in Neon material, pooled and moved with its owner. `Render/Outlines` picks the mesh by colour (chapter 07, section 1.2): green "can eat" uses the asset's `_Shell`; red "can eat you" uses the 1.5 times thicker `_ShellThick`. `gull`, `moray` and `old_scar` have only `_ShellThick`, because they are never edible; `barracuda` and `grouper` have both, because a player one tier higher can eat them; playable species have both for the juvenile and the adult mesh. Roblox's `Highlight` instance is not used anywhere; it is unreliable on phones. The red shell pulses. `plankton` and hook bait never get a shell, nor does a `Protected` or Camo-hidden creature. Amber is kept for the home marker. The colour-blind setting swaps green and red for yellow and hot pink in `Render/Outlines`, with no other change.
+- **Outlines.** Green, red or none (canon 5.2) is decided on the client from `BiteRules` and the local tier, and applied only to the nearest 20 edible and 10 dangerous things (8 and 4 on Smooth). A prey group counts as one thing, and each of its members drawn as a mesh gets the shell (chapter 06, section 13.2). Prey shells are 10% of body height with no minimum thickness (chapter 06, section 13.2), placeholders included. An outline is a **mesh shell**, an inverted hull authored with the asset (chapter 06, section 13.2), in the built-in Neon material, pooled and moved with its owner. `Render/Outlines` picks the mesh by colour (chapter 07, section 1.2): green "can eat" uses the asset's `_Shell`; red "can eat you" uses the 1.5 times thicker `_ShellThick`. `gull`, `moray` and `old_scar` have only `_ShellThick`, because they are never edible; `barracuda` and `grouper` have both, because a player one tier higher can eat them; playable species have both for the juvenile and the adult mesh. Roblox's `Highlight` instance is not used anywhere; it is unreliable on phones. The red shell pulses. `plankton` and hook bait never get a shell, nor does a `Protected` or Camo-hidden creature. Amber is kept for the home marker. The colour-blind setting swaps green and red for yellow and hot pink in `Render/Outlines`, with no other change.
 
 ### 8.9 The bite handshake
 
@@ -1662,7 +1680,9 @@ There is **one** client budget table for the project, and chapter 15, section 3.
 | Triangles in view | 150,000 | 300,000 | 600,000 |
 | Draw calls | 250 | 400 | 700 |
 | Prey drawn as meshes (pool size) | 80 | 150 | 250 |
+| Prey mesh distance (the near band drawn as meshes) | 150 studs | 250 studs | 350 studs |
 | Prey visible in total, with particle clusters and glints | 250 | 400 | 800 |
+| Far prey particle emitters | 30 | 60 | 60 |
 | Creature rigs fully animated | 8 | 16 | 24 |
 | Skinned creatures drawn at LOD0 or LOD1 | 30 | 50 | 120 |
 | Active particle emitters | 40 | 80 | 150 |
@@ -1754,7 +1774,7 @@ Never cut on any device: edible and danger outline shells on the nearest 6 objec
 | Test | What it runs | Fails when |
 |---|---|---|
 | `tests/sim/economy.sim.luau` | 2,000 scripted players through 30 days using the data tables: bites per minute by tier, bank and death rates, cove income | Time to each tier is more than 25% off canon 5.1; any species unlock day is more than 30% off canon section 7; Pearls per hour grows without bound |
-| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the Frenzy count of 8.1 (about 2,710 members in 545 groups, trait prey included), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
+| `tests/sim/prey_soak.sim.luau` | `PreySim` plus the interest code for 10 simulated minutes with 24 scripted swimmers, one Frenzy. The Frenzy runs at the Frenzy count of 8.1 (about 2,710 members in 545 groups, trait prey included), and the soak must prove the byte and step budgets there, not only at the normal count | Live members leave 60% to 160% of target, except for 60 s after a target step (a Feeding Frenzy start or end, chapter 02, section 14.4: the target doubles at once and the surplus is kept at the end), when the check passes if the count is within the band of either the old or the new target; any group leaves its leash; bytes per player per second exceed 9,000 peak or 4,500 average; a packet exceeds 900 bytes; simulation time per tick exceeds 2.0 ms, or interest and send exceed 0.25 ms per player per tick (8.4, 15.2). Times are `os.clock` in Lune, a proxy; the 24-bot server soak of 15.5 confirms them in the engine |
 | `tests/sim/movement_fuzz.sim.luau` | `SwimModel` driven by random honest input with injected jitter, 0 to 300 ms latency and 0.4 s stalls, checked by the validator's pure rules | Either of: any honest trace reaches suspicion 10, or a trace at 1.3 × speed is not flagged within 5 s (it passes when no honest trace reaches 10 and the 1.3 × trace is flagged within 5 s, 13 Sprint 8) |
 
 Command: `lune run tools/test/runner -- sim`.
@@ -1867,7 +1887,7 @@ local value = snapshot:GetValue("tune.bite.baseTolerance") -- nil → Defaults
 | `tune.bite.*` | number | base tolerance, time window, rate |
 | `tune.prey.*` | number | population targets, band distances, send thresholds |
 | `tune.econ.*` | number | scraps rates, income cap hours, suspended-run lifetimes |
-| `tune.quality.*` | JSON | the per-tier numbers of 15.1 and the cut steps of 15.6 |
+| `tune.quality.*` | JSON | the per-tier numbers of 15.1 and the cut steps of 15.6. Each key holds `{ Smooth, Balanced, Pretty }`; the prey and outline keys are `tune.quality.preyMeshes` (80, 150, 250), `tune.quality.preyMeshDistance` (150, 250, 350), `tune.quality.preyVisible` (250, 400, 800), `tune.quality.farPreyEmitters` (30, 60, 60), `tune.quality.particleEmitters` (40, 80, 150), `tune.quality.outlinesEdible` (8, 20, 20) and `tune.quality.outlinesDangerous` (4, 10, 10) |
 
 Every key has a default in `Config/Defaults.luau`; a missing or wrongly typed value falls back to it and logs once. Content tables (species, prey, prices) are **not** live config; they change with a release so the documents stay true.
 

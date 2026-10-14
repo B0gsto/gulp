@@ -25,6 +25,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.45,
 		wobble = 0.23,
+		respawn = 30,
+		alive = 10,
 	},
 	{
 		id = "zebra_darter",
@@ -45,6 +47,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1,
 		wobble = 0.5,
+		respawn = 30,
+		alive = 8,
 	},
 	{
 		id = "dotted_goby",
@@ -65,6 +69,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.55,
 		wobble = 0.28,
+		respawn = 25,
+		alive = 10,
 	},
 	{
 		id = "armor_shrimp",
@@ -85,6 +91,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.8,
 		wobble = 0.4,
+		respawn = 60,
+		alive = 6,
 	},
 	{
 		id = "urchin_puff",
@@ -105,6 +113,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 0.7,
 		wobble = 0.35,
+		respawn = 60,
+		alive = 6,
 	},
 	{
 		id = "ribbonfish",
@@ -125,6 +135,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.6,
 		wobble = 0.8,
+		respawn = 60,
+		alive = 6,
 	},
 	{
 		id = "inklet",
@@ -145,6 +157,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.1,
 		wobble = 0.55,
+		respawn = 120,
+		alive = 5,
 	},
 	{
 		id = "spark_eel",
@@ -165,6 +179,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 2,
 		wobble = 1,
+		respawn = 120,
+		alive = 5,
 	},
 	{
 		id = "leaf_drifter",
@@ -185,6 +201,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.3,
 		wobble = 0.65,
+		respawn = 120,
+		alive = 5,
 	},
 	{
 		id = "crystal_jelly",
@@ -205,6 +223,9 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.4,
 		wobble = 0.7,
+		respawn = 300,
+		lifetime = 240,
+		alive = 5,
 	},
 	{
 		id = "vent_snail",
@@ -225,6 +246,8 @@ local TraitPrey: { Types.PreyDef } = {
 		scatterGain = 0,
 		radius = 1.2,
 		wobble = 0.6,
+		respawn = 180,
+		alive = 4,
 	},
 	{
 		id = "lunar_fry",
@@ -246,6 +269,8 @@ local TraitPrey: { Types.PreyDef } = {
 		radius = 0.75,
 		wobble = 0.38,
 		eventOnly = "moon_tide",
+		alive = 12,
+		eventTotal = 40,
 	},
 	{
 		id = "marrow",
@@ -267,6 +292,7 @@ local TraitPrey: { Types.PreyDef } = {
 		radius = 1,
 		wobble = 0.5,
 		eventOnly = "whale_fall",
+		eventTotal = 60,
 	},
 }
 

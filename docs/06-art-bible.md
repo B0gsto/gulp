@@ -672,6 +672,47 @@ Bones are not replicated [V], so each client computes sway locally; nothing is s
 
 Prey of tiers 3 to 6 use the same sway code on 3 or 4 bones. Smaller prey are rigid; the school's shared motion sells them.
 
+**Prey motion table.** No prey has a clip (chapter 07, section 4). Each prey and trait prey moves by its row below, on the client only (chapter 09, section 8.8); the code reads it from the generated `PreyMotion` module. Every number is **(tune)**, tuned in the game. This is only how prey looks: speeds, flee distances, bursts, scatter, radius and the largest wobble in studs are gameplay and stay in chapter 03 (sections 2.1 and 3.1). Columns:
+
+- **Drawn as:** `billboard` (a camera-facing dot), `rigid` (one mesh moved whole, no bones), or the rig it is skinned to (chapter 07, section 4.0).
+- **Wobble:** the whole-body wiggle of rigid prey, and of the rigid `_LOD2` of prey that have one: frequency in Hz, half the yaw swing and half the roll swing in degrees, and an up-and-down bob in studs. Its phase comes from `seed + i`, so the members of a group never move in step.
+- **Sway:** the bone sway of section 7.6 at LOD0: base frequency in Hz, half the swing in degrees, and the Hz added per stud/s of speed (frequency follows speed). Long bodies add the lag of the tail behind the head in seconds.
+- **Hop:** arc height and length in studs, time in the air and rest between hops in seconds, and for a prey that hops in short runs, the hops in a row.
+- **Pulse:** a repeating change that is not a wobble: `twinkle` (size, ± share), `glow` (emissive, ± share), `shimmer` (sheen speed only), `squash` (rim bones, ± share of the body), `crawl` (stretch and pull, ± share of the body). Frequency in Hz.
+- **Drift:** a slow free drift in studs/s for prey that do not swim.
+- **Flee look:** how a flee looks, then its settings: "wobble ×" or "sway ×" multiplies the wobble or sway during a flee burst, "hop ×" multiplies the hop, and the rest are times in seconds, distances in studs or angles in degrees.
+
+<!-- data:PreyMotion -->
+Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`, `glowfry`, `zebra_darter`, `dotted_goby`, `armor_shrimp`, `urchin_puff`.
+
+| ID | Tag | Drawn as | Wobble (Hz, yaw °, roll °, bob studs) | Sway (Hz, swing °, Hz per stud/s; tail lag s) | Hop (height, length studs; time, rest s; hops in a row) | Pulse (Hz, size) | Drift (studs/s) | Flee look |
+|---|---|---|---|---|---|---|---|---|
+| `plankton` | [MVP] | `billboard` | — | — | — | `twinkle` 0.6 Hz, ±0.25 | 0.3 | `none` |
+| `krill` | [MVP] | `rigid` | 3, 12°, 10°, 0.03 | — | — | — | — | `scatter` · wobble ×2.5 · regroup 3 s |
+| `shrimp` | [MVP] | `rigid` | 1.2, 6°, 4°, 0 | — | 0.8, 3; 0.45, 0.6 | — | — | `hops` · hop ×1.6 |
+| `sardine` | [MVP] | `rigid` | 4, 12°, 8°, 0 | — | — | — | — | `flash` · wobble ×1.8 · bank 35° |
+| `darter` | [MVP] | `RIG_Prey3` | 2.5, 12°, 6°, 0 | 2.2, 14°, 0.12 | — | — | — | `quick_turns` · sway ×2 |
+| `mackerel` | [MVP] | `RIG_Prey3` | 1.6, 6°, 4°, 0 | 1.8, 12°, 0.08 | — | — | — | `straight_run` · sway ×1.8 |
+| `bonito` | [MVP] | `RIG_Prey3` | 1.4, 5°, 3°, 0 | 1.5, 10°, 0.06 | — | — | — | `pack_burst` · sway ×1.7 |
+| `tuna` | [MVP] | `RIG_Prey3` with a fourth sway bone | 1, 4°, 2°, 0 | 1.2, 9°, 0.04 | — | — | — | `power_run` · sway ×1.6 |
+| `glowfry` | [MVP] | `rigid` | 3, 12°, 8°, 0 | — | — | `glow` 0.8 Hz, ±0.3 | — | `dart_into_hole` |
+| `zebra_darter` | [MVP] | `RIG_Prey3` | 2.5, 12°, 6°, 0 | 2.4, 14°, 0.12 | — | — | — | `zig_zag` · turns 3 · pause 0.5 s |
+| `dotted_goby` | [MVP] | `rigid` | 0.8, 4°, 0°, 0 | — | 0.6, 2; 0.35, 2; 3 | — | — | `three_hops` |
+| `lunar_fry` | [MVP] | `rigid` | 2.5, 10°, 8°, 0 | — | — | `shimmer` 1.2 Hz | — | `circle_the_beam` |
+| `armor_shrimp` | [MVP] | `rigid` | 0.8, 4°, 2°, 0 | — | 0.3, 1; 0.5, 0.8 | — | — | `curl_and_roll` · roll 10 studs · uncurl 2 s |
+| `urchin_puff` | [MVP] | `RIG_PreyBlob4` | — | — | — | `squash` 0.7 Hz, ±0.08 | — | `shuffle_deeper` · deeper 2 studs |
+| `ribbonfish` | [MVP] | `RIG_PreyRibbon4` | — | 1.4, 18°, 0.06; 0.25 | — | — | — | `flee_upward` · sway ×1.6 |
+| `inklet` | [MVP] | `RIG_PreyBlob4` | — | — | — | `squash` 1 Hz, ±0.12 | — | `ink_and_jet` · jet 20 studs · ink 2 s |
+| `crystal_jelly` | [MVP] | `RIG_PreyBlob4` | — | — | — | `squash` 0.5 Hz, ±0.15 | 6 | `none` |
+| `spark_eel` | [L] | `RIG_PreyRibbon4` | — | 2, 20°, 0.08 | — | — | — | `loop_through_wreck` |
+| `leaf_drifter` | [L] | `RIG_Prey3` | 0.4, 8°, 6°, 0 | 0.5, 6°, 0.04 | — | — | — | `weak_flee` |
+| `vent_snail` | [L] | Two bones (no shared rig) | — | — | — | `crawl` 0.6 Hz, ±0.12 | — | `none` |
+| `marrow` | [L] | `rigid` | 0.3, 10°, 10°, 0 | — | — | — | 3 | `none` |
+
+<!-- /data -->
+
+The two drift speeds of trait prey (`crystal_jelly` 6, `marrow` 3) copy chapter 03, section 3.1, which wins if they differ. The file `assets/source/prey/prey_motion.json` (task S3-A1) was the first draft of this table, with the same values; the table wins, and the file is deleted with the code change that reads `PreyMotion`.
+
 ### 7.7 Faces: expression through the eyes
 
 There are no mouth shapes for speech and no eyebrows. The eyes and lids do the acting; the mouth has three states (closed smile, open, full gape).
@@ -1121,14 +1162,14 @@ Outlines are **our own meshes**, not Roblox `Highlight`: a `Highlight`'s thickne
 | Rule | Value |
 |---|---|
 | Method | An **outline shell**: a copy of the mesh, pushed out along its normals, with its faces flipped so only the back faces show around the edge. Skinned to the same bones. One colour, set per viewer on the client. Hidden when the creature has no outline. |
-| Shell thickness, players and predators | 6% of body height **(tune)**; at least 0.12 studs |
-| Shell thickness, prey | 10% of body height (small things need a fatter line) |
+| Shell thickness, players and predators | 6% of body height **(tune)**; at least 0.12 studs. The 0.12-stud floor is for players and predators only |
+| Shell thickness, prey | 10% of body height (small things need a fatter line), with **no minimum**: the tier-1 shells are as thin as that makes them (`krill` 0.033 studs, the 80-triangle shell of section 6.3), so a tiny prey keeps its shape and never reads as a ring. Placeholder shells follow the same rule. When a prey is too small on screen for its line to show, the "Far away" row below swaps the shell for a glint; the shell is never thickened |
 | "Can eat you" | 1.5× thicker and pulsing to white. The thicker shell is a second export, `_ShellThick`, made for predators and for both forms of every player species, juvenile and adult: a tier 3 juvenile can eat a tier 2 player (canon sections 5.2 and 16) |
 | Target on screen | 2 to 3 points wide at normal play distance; never under 1.5 |
 | Material | The built-in `Neon`, so fog and darkness do not dim it **(tune)**. This is one of the two uses of `Neon` that canon section 13 allows (section 5.1). Fallback: a matte shell with `CastShadow` off and the colour brightened. |
 | Shell triangles | About 40% of the body's; tier-1 prey shells and prey LOD2 shells get more so the line stays even (section 6.3) |
 | Who gets a shell | Every creature with a tier of 1 or more. `plankton` has no shell and no outline, and neither does `hook` bait (canon section 5.2); the other hazards have none either (section 6.3). |
-| How many at once | Capped per graphics tier, nearest first: 12 on Smooth (8 edible, 4 dangerous). Chapter 15, section 3.0 owns the counts. |
+| How many at once | Capped per graphics tier, nearest first: 12 on Smooth (8 edible, 4 dangerous). Chapter 15, section 3.0 owns the counts. The cap counts **things**, not meshes: a prey group (a krill swarm, a sardine school) counts as one, and every member of it drawn as a mesh gets the shell; a player or a predator counts as one. Reason: the outline says "this school is food", and half a swarm outlined would read as two kinds of krill; counted per member, one swarm of 20 would use the whole cap. The shells' cost stays bounded because a shell only rides on a member drawn as a mesh, so prey shells never outnumber the prey mesh pool (chapter 15, section 3.0). |
 | Far away | Under 8 points the shell is replaced by a glint in the outline colour |
 | The player's own creature | No outline. It is found by position: always at the centre. |
 

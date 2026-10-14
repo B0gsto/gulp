@@ -183,7 +183,7 @@ These three tables apply to every platform section below.
 | Creature rigs fully animated | 8 | 16 | 24 |
 | Skinned creatures drawn at LOD0 or LOD1 | 30 | 50 | 120 |
 | Best level of detail for other players | LOD1 (LOD0 for your own creature only) | LOD0 for the 4 nearest | Document 06, section 6.4 as written |
-| Outlined objects | 12 (8 edible, 4 dangerous) | 30 (20, 10) | 30 (20, 10) |
+| Outlined objects (a prey group counts as one; document 06, section 13.2) | 12 (8 edible, 4 dangerous) | 30 (20, 10) | 30 (20, 10) |
 | Live particles | 400 | 600 | 1,200 |
 | Active particle emitters | 40 | 80 | 150 |
 | Trails visible | 12 | 20 | 30 |

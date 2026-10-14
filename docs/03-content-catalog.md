@@ -198,7 +198,7 @@ Notes (all tune):
 - **Flee distance** is how close a creature that can eat it must come before it flees.
 - **Cruise speed** when calm is 40% of flee speed.
 - After a flee burst, prey is **tired** for 2 s and moves at cruise speed. This is the catch window for prey that is as fast as the player.
-- **Respawn** is the delay between a group being eaten and a new group appearing at a spawn point at least 60 studs from every player. During a Feeding Frenzy it is divided by 3.
+- **Respawn** is the delay between a group being eaten and a new group appearing at a spawn point at least 60 studs from every player. During a Feeding Frenzy it is divided by 3 (the tide's prey spawn rate, canon data:Tides). The generated `PreyDef.respawn` carries this column.
 - Canon speed design holds: small prey is slow and turns well; large prey is fast and turns badly, so it is caught by cutting corners, by dashing, or from a current.
 
 ### 2.2 Appearance and behaviour
