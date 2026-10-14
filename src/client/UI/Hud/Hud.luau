@@ -57,16 +57,17 @@ local visible: { [string]: boolean } = {
 	["HUD.Home"] = true,
 }
 local shown = true -- false while a post-run screen covers the HUD
+local inCove = false -- 08 §5.1: in the cove the mass bar and its pops are hidden
 
 local function apply()
 	local b = built
 	if not b then
 		return
 	end
-	b.massBar.root.Visible = shown and visible["HUD.MassBar"]
+	b.massBar.root.Visible = shown and visible["HUD.MassBar"] and not inCove
 	b.dash.root.Visible = shown and visible["HUD.Dash"]
 	b.dragRing.root.Visible = shown and visible["HUD.DragRing"]
-	b.pops.root.Visible = shown and visible["HUD.MassPops"]
+	b.pops.root.Visible = shown and visible["HUD.MassPops"] and not inCove
 	b.home.root.Visible = shown and visible["HUD.Home"]
 	Outlines.setVisible(visible["HUD.Outlines"])
 end
@@ -120,6 +121,19 @@ end
 function Hud.setShown(on: boolean)
 	shown = on
 	apply()
+end
+
+--- In the cove (08 §5.1) the run HUD keeps only the dash button and the drag ring; the cove HUD
+--- (S14) takes the top of the screen.
+function Hud.setCove(on: boolean)
+	inCove = on
+	apply()
+end
+
+--- The GulpHUD layer's root, for the cove HUD (S14); nil before `build`.
+function Hud.root(): Frame?
+	local b = built
+	return if b then b.hudRoot else nil
 end
 
 --- The mass to show (the `Mass` attribute). Rises add a pop at the mouth.

@@ -33,6 +33,24 @@ Theme.PEARL_SHADE = hex("#FFB8D9")
 -- 06 §4.4 / §4.5: rarity gold, the mass bar fill at tier 7 (08 §3.4 "full and gold").
 Theme.GOLD = hex("#FFB01F")
 Theme.WHITE = Color3.new(1, 1, 1)
+-- 06 §12.4 tier badge rings, tier 1 to 7.
+Theme.TIER_RING = table.freeze({
+	hex("#9FE7FF"),
+	hex("#3DD6D0"),
+	hex("#5FD08A"),
+	hex("#4C8DFF"),
+	hex("#9A6BFF"),
+	hex("#FF7AB8"),
+	Theme.GOLD,
+})
+-- 06 §4.4 rarity frames.
+Theme.RARITY = table.freeze({
+	Common = hex("#C9D6DF"),
+	Uncommon = hex("#2ED3C6"),
+	Rare = hex("#4D8DFF"),
+	Epic = hex("#A862FF"),
+	Mythic = hex("#FFB01F"),
+})
 
 -- 06 §12.3 type.
 Theme.FONT_DISPLAY = Font.fromEnum(Enum.Font.FredokaOne) -- titles, buttons, numbers

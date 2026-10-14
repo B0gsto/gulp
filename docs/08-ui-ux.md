@@ -731,7 +731,7 @@ In the cove the player is a Fry and can still swim and dash. The run HUD's mass 
 | `Cove.Slots` | [MVP] | 0.5, 0 | `{0.5, 270},{0, 12}` | 120 × 56 | Slots used and total. Opens S16. |
 | `Cove.Rank` | [L] | 0.5, 0 | `{0.5, -330},{0, 8}` | 72 × 72 | `UI_Rank_Badge` with the Reef Rank number. Opens S30. |
 | `Cove.Dock` | [MVP] | 0.5, 1 | `{0.5, -60},{1, -28}` | 88 each, 16 gap | Buttons: Creatures, Codex, Daily, Shop [MVP]; Ranks, Decorate [L]. Icon 56 with a one-word label under it (Small 22). |
-| `Cove.ClaimAll` | [MVP] | 1, 1 | `{1, -40},{1, -196}` | 260 × 88 | Shown when at least 1 Pearl is in the pile. `common.claim_all` and the amount. A thumb-reach shortcut for tapping the pile. |
+| `Cove.ClaimAll` | [MVP] | 1, 1 | `{1, -40},{1, -208}` | 260 × 88 | Shown when at least 1 Pearl is in the pile. Sits 208 rpx above the bottom so its hit area clears `HUD.Dash`'s by at least 16 rpx (section 1.5) on every screen class (task S5-C4). `common.claim_all` and the amount. A thumb-reach shortcut for tapping the pile. |
 | `HUD.Dash`, `HUD.TideClock`, `HUD.Settings`, `HUD.Toasts`, `HUD.SafeBadge` | [MVP] | | As in the run HUD | | Unchanged |
 
 **Badges.** A red dot (`UI_Common_Badge`) with a count sits on a dock button only when something free is waiting: Daily (goal reward or gift to claim), Creatures (a species became affordable), Codex (new entries). The Shop button never carries a badge.

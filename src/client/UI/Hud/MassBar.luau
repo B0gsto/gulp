@@ -22,15 +22,7 @@ export type MassBar = {
 local BADGE, NEXT_BADGE, BAR_H, GAP = 64, 44, 28, 8
 -- Tier badge stand-in: a cream disc with the tier number, tinted ring per tier (rarity-free:
 -- the colour is decoration, the number carries the meaning, 08 §12).
-local TIER_RING = {
-	Color3.fromHex("#9FE7FF"),
-	Color3.fromHex("#3DD6D0"),
-	Color3.fromHex("#5FD08A"),
-	Color3.fromHex("#4C8DFF"),
-	Color3.fromHex("#9A6BFF"),
-	Color3.fromHex("#FF7AB8"),
-	Theme.GOLD,
-}
+local TIER_RING = Theme.TIER_RING
 
 local function shortText(n: number): string
 	local digits, kind = HudMath.short(n)

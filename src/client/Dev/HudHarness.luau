@@ -5,12 +5,15 @@
 --   HudHarness:Invoke("device", "phone" | "desktop" | "real")  lays out for a simulated device
 --   HudHarness:Invoke("pose")       drag ring, a dash cooldown, mass pops and an off-screen home
 --   HudHarness:Invoke("open", "S11" | "S12")   and   HudHarness:Invoke("close", "S11" | "S12")
+--   HudHarness:Invoke("open", "S12card" | "S12small")   S12 with a specimen card, or a tier 1 run
+--   HudHarness:Invoke("cove")       S14 with fixed values and a Pearl pile in front of the camera
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 
+local CoveHud = require("../UI/Hud/CoveHud")
 local CreatureRig = require("../Render/CreatureRig")
 local Outlines = require("../Render/Outlines")
 local Screen = require("../UI/Kit/Screen")
@@ -180,6 +183,84 @@ local function measure(): string
 		table.insert(out, `home-ring gap {math.round(math.max(gx, gy))}`)
 	end
 	text("homeDist", "GulpWorld", "Distance")
+	-- S14 (08 §5.1) and the S12 specimen card (08 §4.5).
+	size("Cove.Pearls", "GulpHUD", "Cove.Pearls")
+	size("Cove.Income", "GulpHUD", "Cove.Income")
+	size("Cove.Slots", "GulpHUD", "Cove.Slots")
+	size("PlusHit", "GulpHUD", "PlusHit")
+	size("Dock", "GulpHUD", "Dock.species")
+	for _, n in { "Balance", "PerHour", "Count" } do
+		text("cove " .. n, "GulpHUD", n)
+	end
+	local claim = find("GulpHUD", "Cove.ClaimAll")
+	if claim then
+		bottomGap("ClaimAll", "GulpHUD", "Cove.ClaimAll")
+		for _, d in claim:GetDescendants() do
+			if d:IsA("TextLabel") then
+				table.insert(
+					out,
+					`claim {d.Name} text {d:GetAttribute("TextRpx")}->{d.TextSize} bounds {math.round(
+						d.TextBounds.X / scale
+					)}/{math.round(d.AbsoluteSize.X / scale)}`
+				)
+			end
+		end
+	end
+	local dock = find("GulpHUD", "Dock.species")
+	local dockLabel = dock and dock:FindFirstChild("Label")
+	if dockLabel and dockLabel:IsA("TextLabel") then
+		table.insert(
+			out,
+			`dock label text {dockLabel:GetAttribute("TextRpx")}->{dockLabel.TextSize} drawn {string.format(
+				"%.1f",
+				dockLabel.TextBounds.Y / scale
+			)}`
+		)
+	end
+	-- Claim all and Dash: the gap between their hit areas (08 §1.5), in rpx.
+	local claimRoot = find("GulpHUD", "Cove.ClaimAll")
+	local claimHit = claimRoot and claimRoot:FindFirstChild("Hit")
+	local dashRoot = find("GulpHUD", "HUD.Dash")
+	local dashHit = dashRoot and dashRoot:FindFirstChild("Hit", true)
+	if claimHit and claimHit:IsA("GuiObject") and dashHit and dashHit:IsA("GuiObject") then
+		local bottom = claimHit.AbsolutePosition.Y + claimHit.AbsoluteSize.Y
+		table.insert(
+			out,
+			`claim-dash hit gap {math.round((dashHit.AbsolutePosition.Y - bottom) / scale)}`
+		)
+	end
+	local perHour = find("GulpHUD", "PerHour")
+	if perHour and perHour:IsA("TextLabel") then
+		table.insert(
+			out,
+			`income fit {math.round(perHour.TextBounds.X / scale)}/{math.round(
+				perHour.AbsoluteSize.X / scale
+			)}`
+		)
+	end
+	local pile = gui:FindFirstChild("Cove.PearlPile")
+	if pile and pile:IsA("BillboardGui") then
+		local adornee = pile.Adornee
+		if adornee and adornee:IsA("BasePart") then
+			local v, on = workspace.CurrentCamera:WorldToViewportPoint(adornee.Position)
+			table.insert(
+				out,
+				`pile world {math.round(v.X)},{math.round(v.Y)} z {math.round(v.Z)} on {on} parent {pile.Parent and pile.Parent.Name} kids {#pile:GetDescendants()}`
+			)
+		end
+		table.insert(
+			out,
+			`pile enabled {pile.Enabled} adornee {if adornee then adornee.Name else "none"} size {math.round(
+				pile.AbsoluteSize.X / scale
+			)}x{math.round(pile.AbsoluteSize.Y / scale)} at {math.round(pile.AbsolutePosition.X)},{math.round(
+				pile.AbsolutePosition.Y
+			)}`
+		)
+	end
+	size("Card", "GulpMoments", "Specimen")
+	text("card tier", "GulpMoments", "TierName")
+	text("card perHour", "GulpMoments", "PerHour")
+	text("card tooSmall", "GulpMoments", "TooSmall")
 	text("pop", "GulpWorld", "Pop")
 	bottomGap("SwimAgain", "GulpMoments", "SwimAgain")
 	bottomGap("Continue", "GulpMoments", "Continue")
@@ -202,6 +283,46 @@ local function measure(): string
 		table.insert(out, `knob offset {math.round(d.Magnitude / scale)}`)
 	end
 	return table.concat(out, "; ")
+end
+
+-- S14 (08 §5.1 wireframe values): 12,480 Pearls, 340 an hour, 7 of 12 slots, 412 in the pile;
+-- the pile bubble floats over a stand-in clam in front of the camera.
+local clam: BasePart? = nil
+local function cove(on: boolean): string
+	if clam then
+		clam:Destroy()
+		clam = nil
+	end
+	if not on then
+		CoveHud.setPileAnchor(nil)
+		UIController.setCovePreview(nil)
+		return "cove off"
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		local layout = Screen.layout()
+		local w, h = layout.fullSize.width * layout.scale, layout.fullSize.height * layout.scale
+		local ray = camera:ViewportPointToRay(w * 0.42, h * 0.62)
+		local part = Instance.new("Part")
+		part.Name = "PearlClamDemo"
+		part.Anchored = true
+		part.CanCollide = false
+		part.Transparency = 1
+		part.Size = Vector3.new(1, 1, 1)
+		part.Position = ray.Origin + ray.Direction * 30
+		part.Parent = workspace
+		clam = part
+		CoveHud.setPileAnchor(part)
+	end
+	UIController.setCovePreview({
+		pearls = 12480,
+		rate = 340,
+		used = 7,
+		capacity = 12,
+		pile = 412,
+		pileFull = false,
+	})
+	return "cove on"
 end
 
 local function pose(): string
@@ -275,12 +396,38 @@ function HudHarness.bind(parent: Instance)
 				best = true,
 			})
 			return "S12"
+		elseif command == "open" and (arg == "S12card" or arg == "S12small") then
+			local small = arg == "S12small"
+			UIController.open("S12", {
+				mass = if small then 9 else 86,
+				multipliers = if small
+					then {}
+					else {
+						{ nameKey = "trait.crystal", value = 1.5, icon = "trait" },
+						{ nameKey = "pass.deep_pockets", value = 2, icon = "pass" },
+					},
+				total = if small then 27 else 774,
+				best = not small,
+				specimen = if small
+					then nil
+					else {
+						sp = "minnow",
+						tier = 4,
+						traits = { "crystal", "glow", "stripes" },
+						perHour = 32,
+					},
+				tooSmall = small,
+			})
+			return arg
+		elseif command == "cove" then
+			return cove(arg ~= "off")
 		elseif command == "close" and (arg == "S11" or arg == "S12") then
 			UIController.close(arg)
 			return "closed"
 		end
 		UIController.setPreview(nil)
 		outlineDemo(false)
+		cove(false)
 		return "reset"
 	end
 	f.Parent = parent
