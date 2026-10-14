@@ -225,7 +225,24 @@ return function()
 					)
 				).toBe(false)
 				expect(lastSaved("ftue.completed", w.saves)).toBe(true)
+				expect(lastSaved("ftue.stage", w.saves)).toBe(nil) -- no stage for a DONE join
 				expect(ownersOf()[SLOT]).toBe(nil)
+			end)
+		end)
+
+		it("keeps S10 for a finished account that rejoins mid run 2, saving nothing", function()
+			run(function(w)
+				expect(
+					T.begin(
+						SLOT,
+						{ stage = S.S10_RUN2, completed = true, attempts = 0, banked = true }
+					)
+				).toBe(true)
+				expect(stage()).toBe(S.S10_RUN2)
+				ticks(1)
+				expect(stage()).toBe(S.S10_RUN2)
+				expect(#w.saves).toBe(0)
+				expect(cued(w.cues, "hatch")).toBe(false)
 			end)
 		end)
 
@@ -262,18 +279,33 @@ return function()
 				expect((PreyService.peek(OTHER, part.g, 0, part.gen))).toBe(nil)
 				expect((PreyService.peek(SLOT, part.g, 0, part.gen)) ~= nil).toBe(true)
 
-				-- S2 at the end of the hatch; Swarm A drifts toward the Fry.
+				-- S2 at the end of the hatch; Swarm A stays where it is (04 §3.6 B2) ...
 				ticks(FtueConfig.hatch.seconds + 0.1)
 				expect(stage()).toBe(S.S2_FIRST_BITE)
 				expect(cued(w.cues, "giveControl")).toBe(true)
 				expect(lastSaved("ftue.stage", w.saves)).toBe(S.S2_FIRST_BITE)
 				expect(logged("step", 3)).toBe(true)
-				local start = ((centre :: Vector3) - w.body.root.Position).Magnitude
+				for _ = 1, 12 do
+					PreyService.frame()
+				end
+				local _, still = PreyService.scriptedAlive(SLOT, swarmA[1])
+				expect(((still :: Vector3) - (centre :: Vector3)).Magnitude < 0.01).toBe(true)
+				-- ... until the Fry swims away from it: then it follows.
+				local hatch = w.body.root.Position
+				local back = hatch - ((centre :: Vector3) - hatch).Unit * 20
+				w.body.root.Position = back
+				local start = ((centre :: Vector3) - back).Magnitude
+				T.tick(SLOT, 0.1)
 				for _ = 1, 12 do
 					PreyService.frame()
 				end
 				local _, moved = PreyService.scriptedAlive(SLOT, swarmA[1])
-				expect(((moved :: Vector3) - w.body.root.Position).Magnitude < start).toBe(true)
+				expect(((moved :: Vector3) - back).Magnitude < start).toBe(true)
+				w.body.root.Position = hatch
+				-- A mass rise that is no bite (a cheat, a pickup) does not end S2.
+				w.body.mass = 1
+				T.tick(SLOT, 0.1)
+				expect(stage()).toBe(S.S2_FIRST_BITE)
 
 				-- S3 on the first bite: the trail and Swarm B.
 				T.signal(SLOT, C.STEER)
@@ -291,6 +323,10 @@ return function()
 				-- S4 at tier 2: five Glowfry 1.0 s after.
 				w.body.mass, w.body.tier = 10, 2
 				CreatureService.onTierChanged:fire(SLOT, 2)
+				task.wait()
+				expect(stage()).toBe(S.S4_TRAIT)
+				-- Another trait first (a wild Dotted Goby) does not end S4 (04 §3.6 B5).
+				TraitService.onGained:fire(SLOT, "spots", 1)
 				task.wait()
 				expect(stage()).toBe(S.S4_TRAIT)
 				expect(lastSaved("ftue.stage", w.saves)).toBe(S.S4_TRAIT)
@@ -315,6 +351,64 @@ return function()
 				ticks(FtueConfig.callHome.curtainDelay + 0.2)
 				expect(cued(w.cues, "openCurtain")).toBe(true)
 				expect(ownersOf()[OTHER] == (before[OTHER] or nil)).toBe(true)
+
+				-- TODO(S7-C1) CHASE_PASS_THROUGH: across the Gap, S6 passes straight into S7.
+				table.clear(w.cues)
+				T.feed(SLOT, { kind = "crossedGap" })
+				expect(stage()).toBe(S.S7_CURRENT)
+				expect(lastSaved("ftue.stage", w.saves)).toBe(S.S7_CURRENT)
+				expect(cued(w.cues, "startChase")).toBe(false)
+				expect(cued(w.cues, "startCurrent")).toBe(true)
+				expect(logged("step", 10) and logged("step", 11)).toBe(true)
+			end)
+		end)
+
+		it("counts a wild bite as the first bite, and only a bite", function()
+			run(function(_w)
+				T.begin(SLOT, { stage = 0, completed = false, attempts = 0, banked = false })
+				T.signal(SLOT, C.LOADED)
+				ticks(FtueConfig.hatch.seconds + 0.1)
+				expect(stage()).toBe(S.S2_FIRST_BITE)
+				PreyService.onWildEaten:fire(OTHER, "krill") -- another slot's bite
+				task.wait()
+				expect(stage()).toBe(S.S2_FIRST_BITE)
+				PreyService.onWildEaten:fire(SLOT, "krill")
+				task.wait()
+				expect(stage()).toBe(S.S3_GROW)
+			end)
+		end)
+
+		it("keeps seq rising across sessions and opens a reset with a `reset` cue", function()
+			run(function(w)
+				local seqs: { number } = {}
+				local firsts: { string } = {}
+				T.stub(function(slot: number): any
+					return if slot == SLOT then w.body else CreatureService.get(slot)
+				end, function(kind: string, _path: string, value: any)
+					if kind == "cue" then
+						table.insert(seqs, value.seq)
+						table.insert(firsts, value.actions[1].kind)
+					end
+				end)
+				T.begin(SLOT, { stage = 0, completed = false, attempts = 0, banked = false })
+				T.signal(SLOT, C.LOADED)
+				local before = #seqs
+				expect(before > 0).toBe(true)
+				T.begin(SLOT, { stage = 0, completed = false, attempts = 0, banked = false }, true)
+				T.signal(SLOT, C.LOADED)
+				expect(#seqs > before).toBe(true)
+				for k = 2, #seqs do
+					expect(seqs[k]).toBe(seqs[k - 1] + 1)
+				end
+				expect(firsts[before + 1]).toBe("reset")
+			end)
+		end)
+
+		it("spawns as many Glowfry as TraitService needs pips", function()
+			run(function(_w)
+				T.begin(SLOT, { stage = 0, completed = false, attempts = 0, banked = false })
+				local config = T.config(SLOT) :: FtueRules.Config
+				expect(config.arms.traitCount).toBe(TraitService.pipsNeeded(SLOT))
 			end)
 		end)
 

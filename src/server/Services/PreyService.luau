@@ -94,6 +94,9 @@ PreyService.name = "PreyService"
 
 --- (slot, scripted ID, prey ID): a member of a scripted group was eaten by its owner.
 PreyService.onScriptedEaten = Signal.new() :: Types.Signal<Slot, number, string>
+--- (slot, prey ID): a member of a wild (not scripted) group was eaten, deferred like
+--- `onScriptedEaten`. TutorialService's first bite (04 §3.1: any first prey).
+PreyService.onWildEaten = Signal.new() :: Types.Signal<Slot, string>
 
 local sim: PreySim.Sim
 local interest: PreyInterest.State
@@ -219,6 +222,10 @@ end
 
 local function fireScriptedEaten(slot: Slot, id: number, preyId: string)
 	PreyService.onScriptedEaten:fire(slot, id, preyId)
+end
+
+local function fireWildEaten(slot: Slot, preyId: string)
+	PreyService.onWildEaten:fire(slot, preyId)
 end
 
 --- Removes every scripted group of `slot`; each one's knowers get a PreyEvent. Also run for a slot
@@ -436,6 +443,8 @@ function PreyService.tryEat(
 		-- Deferred: a listener runs after the bite claim, so one that throws or calls back into
 		-- PreyService cannot break BiteService's loop over the claim's targets.
 		task.defer(fireScriptedEaten, slot, run.id, run.prey)
+	elseif owner == 0 then
+		task.defer(fireWildEaten, slot, def.id)
 	end
 	return true, def
 end

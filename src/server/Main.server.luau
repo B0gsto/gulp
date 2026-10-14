@@ -6,6 +6,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -44,9 +45,9 @@ end
 -- execution run in their own VM, where requiring Tests/RunAll would load fresh copies of every
 -- module instead of the running services. This BindableFunction runs RunAll inside this VM:
 --   return game.ServerScriptService.Server.RunTests:Invoke()
--- Only in development places (dev cheats on) and the CI place; ServerScriptService never
--- replicates, so no client can reach it.
-local environment = Defaults.forGame(game.GameId)
+-- Only in development places (dev cheats on: GULP Dev, and an unlisted GameId in Studio only) and
+-- the CI place; ServerScriptService never replicates, so no client can reach it.
+local environment = Defaults.forGame(game.GameId, RunService:IsStudio())
 if environment.devCheats or environment.name == "ci" then
 	local hook = Instance.new("BindableFunction")
 	hook.Name = "RunTests"
@@ -103,7 +104,7 @@ if environment.devCheats or environment.name == "ci" then
 	end
 	liveSet.Parent = script.Parent
 	-- Developer commands (Dev/Cheats; 04 §9 `/ftue reset`), dev cheats only, never CI:
-	-- `DevCommand:Invoke(userId, "/ftue reset")`.
+	-- `DevCommand:Invoke(userId, "/ftue reset")`. TutorialService.reset checks again itself.
 	if environment.devCheats then
 		local Cheats = require(script.Parent.Dev.Cheats)
 		local command = Instance.new("BindableFunction")

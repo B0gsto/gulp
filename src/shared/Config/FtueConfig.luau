@@ -327,11 +327,19 @@ local FtueConfig = freeze({
 		playSeconds = 360, -- 04 §3.8: second bank or 6 minutes of account play time (tune) ...
 		notBeforeT = 120, -- 04 §3.8, §10 item 1: ... never before T = 120
 	},
+	-- The server's tutorial director (Services/TutorialService). Chapter 04 gives no rate; these
+	-- are 14 §5.1's readings for task S6-C2.
+	director = {
+		tick = 0.1, -- s: the stage machine's tick (its timers are 0.4 s and longer)
+		every = 1.0, -- s: the `keepKrill` top-up and the `moved` report toward the Gap (B3, B6)
+	},
 	-- 04 §11: the control arm of each A/B test. The director passes a copy with the player's arm.
 	arms = {
 		chaseMode = "chase", -- 04 §11 test 1 `ftue_chase_mode`: "chase" or "escort"
 		homeMode = "current", -- 04 §11 test 2 `ftue_home_mode`: "current" or "swim"
 		cliffhanger = "species_tide", -- 04 §11 test 3 `ftue_cliffhanger`
+		-- The director spawns as many Glowfry as TraitService needs pips for the player (5, or 4
+		-- with Keen Nose), so the script cannot stall; this value is checked against it.
 		traitCount = 5, -- 04 §3.6 B5, §11 test 4 `ftue_trait_count`: Glowfry to eat, 5 or 3
 		firstTrait = "glow", -- 04 §3.6 B5, §11 test 5 `ftue_first_trait`: "glow" or "spots"
 		promptWords = "one_word", -- 04 §11 test 6 `ftue_prompt_words`: or "icons_only"

@@ -8,7 +8,8 @@
 --   game.ServerScriptService.Server.DevCommand:Invoke(userId, "/ftue reset")
 -- Commands:
 --   /ftue reset   04 §9: clears the player's `ftue` fields and starts the first-time script again
---                 from the hatch (TutorialService.reset)
+--                 from the hatch (TutorialService.reset, which checks Config/Defaults' dev cheats
+--                 again itself)
 --   TODO(S6-C6 or later): /ftue overlay (04 §9: T, J and the stage on screen) is a client command.
 local Players = game:GetService("Players")
 
@@ -29,8 +30,11 @@ end
 function Cheats.run(player: Player, text: string): (boolean, string)
 	local w = words(text)
 	if w[1] == "/ftue" and w[2] == "reset" and #w == 2 then
-		if TutorialService.reset(player) then
+		local ok, reason = TutorialService.reset(player)
+		if ok then
 			return true, `ftue reset for {player.UserId}: the script starts again from the hatch`
+		elseif reason == "devCheats" then
+			return false, `ftue reset for {player.UserId}: refused, dev cheats are off here`
 		end
 		return false, `ftue reset for {player.UserId}: no profile or creature yet`
 	end

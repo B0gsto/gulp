@@ -147,6 +147,13 @@ function TraitService.shed(slot: Slot, index: number): (boolean, string?)
 	return true, nil
 end
 
+--- The pips that gain a trait for `slot` (02 §8.1): 5, or 4 with `pass_keen_nose`; 5 with no
+--- creature. TutorialService spawns that many of the first trait's prey (04 §3.6 B5).
+function TraitService.pipsNeeded(slot: Slot): number
+	local state = lookup(slot)
+	return TraitRules.pipsNeeded(state ~= nil and keenNose(state.player))
+end
+
 --- Whether `slot` holds `traitId` with its effect active (02 §8.2: 0.5 s after the last pip).
 function TraitService.has(slot: Slot, traitId: string): boolean
 	local active = activeTraits(slot)

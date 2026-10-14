@@ -6,23 +6,34 @@
 -- `TutorialStep` values are Logic/FtuePlan, and every number is Config/FtueConfig's.
 --
 -- Join     on PlayerLifecycle.onReady, FtueRules.new from the profile's `ftue` and `stats.banks`.
---          An account with `ftue.completed` (or a bank) never gets a session. A saved stage past
---          S0 with no run to resume restarts the script in the fast or short form (04 §9).
+--          An account with `ftue.completed` (or a bank) gets no session and no stage save, unless
+--          its saved stage is S9 or S10: it keeps that stage (04 §4: the run 2 assists read it)
+--          in a session that replays nothing. A saved stage past S0 with no run to resume restarts
+--          the script in the fast or short form (04 §9).
 --          TODO(B19, S12-C4): pass the resumed run (`RunLoopService.resume`) so a rejoin carries on
 --          from the saved stage instead.
+-- Control  `giveControl` (the end of the hatch, T = 0) calls PlayerLifecycle.controlGranted, which
+--          sends `sys_load_time` (PlayerLifecycle does it itself for a finished account).
 -- Feeding  FtueRules hears: the client's `TutorialStep` reports (FtuePlan.Code: loading done, tap,
 --          steering, background; 2 is onboarding step 02 and goes to `onStep`), held until the
 --          session exists; `controlGained` right after its own `giveControl`; PreyService's
---          `onScriptedEaten` (the group's FtueRules name) and, for wild prey, a rise in the
---          creature's mass; `massChanged`; CreatureService.onTierChanged; TraitService.onGained;
---          from S5, `moved` (towards the Gap, once a second) and `crossedGap` (a `NurseryPath`
---          place past the Gap); and a `tick` ten times a second with whether any input came.
+--          `onScriptedEaten` (the group's FtueRules name) and `onWildEaten` (group nil): only bites
+--          BiteService accepted; `massChanged`; CreatureService.onTierChanged;
+--          TraitService.onGained for `arms.firstTrait` only (04 §3.6 B5); from S5, `moved`
+--          (towards the Gap, every `director.every`) and `crossedGap` (a `NurseryPath` place past
+--          the Gap); and a `tick` every `director.tick` with whether any input came.
+-- Trait    the session's `arms.traitCount` is TraitService.pipsNeeded for the slot (5, or 4 with
+--          Keen Nose), so the Glowfry spawned always gain the trait. TODO(S6-C6): the 3-Glowfry
+--          arm of `ftue_trait_count` needs TraitService to gain the FTUE's trait at 3 pips.
 -- Prey     every scripted group is PreyService.spawnScripted for the player's slot alone, `calm`
 --          (04 §4: FTUE krill never scatter), at FtueConfig's distances along the route (FtuePlan).
 --          Each tick it is steered (PreyService.steerScripted) toward the player's root:
 --            homing    a `homePrey`, `feedNearest` or `spawnBurst` group, at that speed;
 --            glowfry   at the trait speed, its leash the circle radius (04 §3.6 B5);
---            swarmA    toward the player held within the follow limit of the hatch point (B2);
+--            swarmA    in S1 and S2 still until it homes (B2: the T = 2.5 assist), except that once
+--                      the player is farther from it than the Hatch Bed is, by more than its
+--                      radius (swimming away), it follows,
+--                      held within the follow limit of the hatch point; from S3 as any krill;
 --            krill     any other krill within the drift radius, at the drift speed (B3, §4);
 --            plankton  never.
 --          A hold (04 §3.7) stops all of it where it is. `keepKrill` tops the scripted krill within
@@ -31,14 +42,21 @@
 --          say, through DataService.patch, which also sends them to the owner as `State`.
 -- Client   one `State` per batch of actions, path `ftue.cue` (not saved, as TraitService sends
 --          `run.traits`), value { seq = n, actions = { Action, ... } }: the presentation actions
---          of FtueRules (its header lists their fields), in order, seq rising by one per batch.
---          Kinds: hatch, giveControl, hold, prompt, hud, pulse, music, openFog, openCurtain,
---          predatorShadow, startChase, autoDash, startCurrent, reformCurrent, pull, bankSequence,
---          coveItem, exitTrail, feedNearest.
+--          of FtueRules (its header lists their fields), in order. `seq` rises by one per batch
+--          for as long as the player is on the server, across sessions (a `/ftue reset` does not
+--          start it again), so the client drops any batch whose seq is not above the last one it
+--          played. Kinds: reset (first in the batch after `/ftue reset`: drop every prompt, HUD
+--          reveal and effect being presented, then play the rest), hatch, giveControl, hold,
+--          prompt, hud, pulse, music, openFog, openCurtain, predatorShadow, startChase, autoDash,
+--          startCurrent, reformCurrent, pull, bankSequence, coveItem, exitTrail, feedNearest.
 -- Hooks    `onStep(player, step, ctx)` and `onFailsafe(player, kind)` for every onboarding step
 --          and `ftue_failsafe` the rules emit. TODO(S6-C6): Analytics (10 §3.1, §4.2), with
 --          `ftue_milestone`, `ftue_bite_assist` and `ftue_chase_result`.
--- Later    TODO(S7-C1): the chase (`startChase`, `autoDash`, `dashed`, `retreated`, `chaseEnded`).
+-- Later    TODO(S7-C1, S7-C2) CHASE_PASS_THROUGH: until the chase exists, S6 ends at once with
+--          `chaseSkipped` into S7 (a warn each time; the batch carries no `startChase`), so a
+--          player past the Gap is never left in it. S7 needs none: the player swims freely, and
+--          its exit is the bank (S7-C3).
+--          TODO(S7-C1): the chase (`startChase`, `autoDash`, `dashed`, `retreated`, `chaseEnded`).
 --          TODO(S7-C2): the Home Current (`startCurrent`, `reformCurrent`, `moved` inCurrent and
 --          coveDistance). TODO(S7-C3): the bank (`enteredCoveMouth`, `bankSequence`, `fryHatched`,
 --          `leftCoveMouth`, `runEnded`, the cove's `spawnLure` and `denseKrill`). TODO(S7-C6): the
@@ -47,10 +65,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Defaults = require(ReplicatedStorage.Shared.Config.Defaults)
 local FtueConfig = require(ReplicatedStorage.Shared.Config.FtueConfig)
 local FtuePlan = require(ReplicatedStorage.Shared.Logic.FtuePlan)
 local FtueRules = require(ReplicatedStorage.Shared.Logic.FtueRules)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
+local PreySim = require(ReplicatedStorage.Shared.Sim.PreySim)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
@@ -66,17 +86,17 @@ type CreatureState = CreatureService.CreatureState
 type Action = FtueRules.Action
 type Event = FtueRules.Event
 type State = FtueRules.State
+type Config = FtueRules.Config
 
 local TAG = "Tutorial"
-local TICK = 0.1 -- s: the stage machine's tick (its timers are 0.4 s and longer)
-local EVERY = 1.0 -- s: the `keepKrill` check and the `moved` report
-local MAX_BALL = 24 -- members in one scripted ball (PreySim.MAX_MEMBERS)
+local MAX_BALL = PreySim.MAX_MEMBERS -- members in one scripted ball
 
 local S = FtueRules.Stage
 local C = FtuePlan.Code
 
 -- The actions the client presents (see the header); the rest are the server's.
 local PRESENT: { [string]: boolean } = table.freeze({
+	reset = true,
 	hatch = true,
 	giveControl = true,
 	hold = true,
@@ -105,21 +125,21 @@ type Group = {
 	homing: number?, -- studs/s toward the mouth while set
 	followSpeed: number?, -- Swarm A only
 	followLimit: number?,
+	awayBeyond: number?, -- Swarm A: studs from it past which the player is swimming away
 }
 
 type Session = {
 	slot: Slot,
 	player: Player?, -- nil for the engine spec's stand-in
+	cfg: Config, -- FtueConfig with the slot's `arms.traitCount` (see the header)
 	state: State,
 	saved: number, -- the stage last saved
 	groups: { [number]: Group }, -- by scripted ID
 	keep: { count: number, radius: number }?,
 	every: number, -- seconds since the last keep check and moved report
 	input: boolean, -- a tap or steering report since the last tick
-	scripted: boolean, -- a scripted bite since the last tick
 	mass: number, -- the creature's mass at the last tick
 	gapDistance: number?, -- at the last moved report
-	seq: number,
 	shown: boolean, -- onboarding step 02 sent
 	fresh: boolean, -- the account's first start (attempts 0): steps 01 and 02 count
 	manual: boolean, -- the engine spec ticks it by hand
@@ -136,6 +156,8 @@ local cfg = FtueConfig
 local sessionOf: { [Player]: Session } = {}
 local bySlot: { [Slot]: Session } = {}
 local early: { [Player]: Early } = {}
+-- The last `ftue.cue` seq sent, by player (the stand-in: by slot); kept across sessions.
+local seqOf: { [any]: number } = {}
 local running = false
 local acc = 0
 -- Where creatures come from and where the stand-in's saves and cues go (`_test.stub`).
@@ -171,9 +193,37 @@ function TutorialService.onFailsafe(player: Player?, kind: string)
 	end
 end
 
--- Control comes at the end of the hatch (04 §2.1 phase E): `sys_load_time`.
--- TODO(S6-C1, PR #164): call PlayerLifecycle.controlGranted(player) here once it is on main.
-local function grantControl(_session: Session) end
+-- Control comes at the end of the hatch (04 §2.1 phase E, T = 0): `sys_load_time`.
+local function grantControl(session: Session)
+	local player = session.player
+	if player then
+		PlayerLifecycle.controlGranted(player)
+	end
+end
+
+-- Dev cheats here (Config/Defaults; 09 §3: server/Dev is for dev places only).
+local function devCheats(): boolean
+	return Defaults.forGame(game.GameId, RunService:IsStudio()).devCheats
+end
+
+-- The config the slot's session runs on: FtueConfig with `arms.traitCount` set to the pips
+-- TraitService needs (see the header).
+local function configFor(slot: Slot): Config
+	local pips = TraitService.pipsNeeded(slot)
+	if pips == cfg.arms.traitCount then
+		return cfg
+	end
+	Log.once(
+		"info",
+		TAG,
+		`arms.traitCount {cfg.arms.traitCount} is not TraitService's {pips} pips: the script spawns {pips}`
+	)
+	local arms = table.clone(cfg.arms)
+	arms.traitCount = pips
+	local c = table.clone(cfg)
+	c.arms = arms
+	return c
+end
 
 -- Saves and cues -----------------------------------------------------------------------------
 
@@ -190,8 +240,10 @@ local function sendCues(session: Session, cues: { Action })
 	if #cues == 0 then
 		return
 	end
-	session.seq += 1
-	local value = { seq = session.seq, actions = cues }
+	local key: any = session.player or session.slot
+	local seq = (seqOf[key] or 0) + 1
+	seqOf[key] = seq
+	local value = { seq = seq, actions = cues }
 	local player = session.player
 	if player then
 		Server.send(player, "State", "ftue.cue", value)
@@ -295,17 +347,16 @@ local function perform(session: Session, a: Action, queue: { Event }, cues: { Ac
 			stopAll(session)
 		end
 	elseif kind == "spawnSwarmA" then
-		spawn(
-			session,
-			"swarmA",
-			ball(FtuePlan.KRILL, a.count or 1, routeVector(a.distance or 0), (a.width or 0) / 2),
-			{
-				name = "swarmA",
-				krill = true,
-				followSpeed = a.speed,
-				followLimit = a.limit,
-			}
-		)
+		local at = routeVector(a.distance or 0)
+		local spread = (a.width or 0) / 2
+		spawn(session, "swarmA", ball(FtuePlan.KRILL, a.count or 1, at, spread), {
+			name = "swarmA",
+			krill = true,
+			followSpeed = a.speed,
+			followLimit = a.limit,
+			-- B2 "swimming away": farther from it than the Hatch Bed is, by more than its radius.
+			awayBeyond = (at - HATCH).Magnitude + spread,
+		})
 	elseif kind == "spawnTrail" then
 		local positions = {}
 		for _, p in FtuePlan.trailPoints(a.distance or 0, a.count or 0, a.spacing or 0) do
@@ -413,6 +464,17 @@ local function perform(session: Session, a: Action, queue: { Event }, cues: { Ac
 	-- TODO(S7-C3, S7-C6): spawnLure and denseKrill (see the header).
 end
 
+local function drain(session: Session, queue: { Event }, cues: { Action })
+	while #queue > 0 do
+		local event = table.remove(queue, 1) :: Event
+		local state, more = FtueRules.handle(session.cfg, session.state, event)
+		session.state = state
+		for _, a in more do
+			perform(session, a, queue, cues)
+		end
+	end
+end
+
 -- Runs the actions, then every event they queued (`controlGained`), then saves the stage and sends
 -- the batch.
 local function run(session: Session, actions: { Action }, queue: { Event })
@@ -420,13 +482,20 @@ local function run(session: Session, actions: { Action }, queue: { Event })
 	for _, a in actions do
 		perform(session, a, queue, cues)
 	end
-	while #queue > 0 do
-		local event = table.remove(queue, 1) :: Event
-		local state, more = FtueRules.handle(cfg, session.state, event)
-		session.state = state
-		for _, a in more do
-			perform(session, a, queue, cues)
+	drain(session, queue, cues)
+	if session.state.stage == S.S6_CHASE then
+		-- TODO(S7-C1, S7-C2) CHASE_PASS_THROUGH: no chase to run yet (see the header). Remove this
+		-- block when S7-C1 feeds `chaseEnded` and `retreated`.
+		local who = if session.player then session.player.UserId else `slot {session.slot}`
+		Log.warn(TAG, `S6 has no chase yet (S7-C1): {who} passes straight into S7`)
+		for k = #cues, 1, -1 do
+			local kind = cues[k].kind
+			if kind == "startChase" or kind == "autoDash" then
+				table.remove(cues, k)
+			end
 		end
+		table.insert(queue, { kind = "chaseSkipped" })
+		drain(session, queue, cues)
 	end
 	if session.state.stage ~= session.saved then
 		session.saved = session.state.stage
@@ -453,27 +522,39 @@ local function endSession(session: Session)
 	PreyService.clearScripted(session.slot)
 end
 
--- Starts the script for `slot` from `join`; nil when the account never enters it.
-local function begin(slot: Slot, player: Player?, join: FtueRules.Join, manual: boolean): Session?
+-- Starts the script for `slot` from `join`; nil when the account never enters it. `again`: a
+-- developer reset, whose first cue is `reset`.
+local function begin(
+	slot: Slot,
+	player: Player?,
+	join: FtueRules.Join,
+	manual: boolean,
+	again: boolean?
+): Session?
 	local old = bySlot[slot]
 	if old then
 		endSession(old)
 	end
-	local state, actions = FtueRules.new(cfg, join)
+	local sessionCfg = configFor(slot)
+	local state, actions = FtueRules.new(sessionCfg, join)
+	if again then
+		local first: Action = { kind = "reset" }
+		table.insert(actions, 1, first)
+	end
 	local creature = lookup(slot)
 	local session: Session = {
 		slot = slot,
 		player = player,
+		cfg = sessionCfg,
 		state = state,
-		saved = join.stage,
+		-- A DONE at join saves no stage (the profile keeps what it has).
+		saved = if state.stage == S.DONE then S.DONE else join.stage,
 		groups = {},
 		keep = nil,
 		every = 0,
 		input = false,
-		scripted = false,
 		mass = if creature then creature.mass else 0,
 		gapDistance = nil,
-		seq = 0,
 		shown = false,
 		fresh = join.attempts == 0 and join.stage == S.S0_LOADING,
 		manual = manual,
@@ -500,14 +581,9 @@ local function tickSession(session: Session, dt: number)
 	end
 	local mass = creature.mass
 	if mass ~= session.mass then
-		local rose = mass > session.mass
 		session.mass = mass
-		if rose and not session.scripted then
-			feed(session, { kind = "preyEaten" }) -- a wild bite (04 §3.1: any first prey)
-		end
 		feed(session, { kind = "massChanged", mass = mass })
 	end
-	session.scripted = false
 	local hadInput = session.input
 	session.input = false
 	feed(session, { kind = "tick", dt = dt, hadInput = hadInput })
@@ -528,7 +604,7 @@ local function tickSession(session: Session, dt: number)
 	end
 
 	session.every += dt
-	local everySecond = session.every >= EVERY
+	local everySecond = session.every >= cfg.director.every
 	if everySecond then
 		session.every = 0
 		if session.state.stage == S.S5_CALL_HOME then
@@ -547,6 +623,7 @@ local function tickSession(session: Session, dt: number)
 		keepUp(session, creature)
 	end
 	-- Steering (see the header).
+	local state = session.state
 	for id, group in session.groups do
 		local alive, centre = PreyService.scriptedAlive(session.slot, id)
 		if alive == 0 or centre == nil then
@@ -558,9 +635,20 @@ local function tickSession(session: Session, dt: number)
 			target, speed = p, group.homing
 		elseif group.name == "glowfry" then
 			target, speed = p, cfg.trait.speed
-		elseif group.followSpeed and group.followLimit then
-			local x, y, z = FtuePlan.followTarget(p.X, p.Y, p.Z, hx, hy, hz, group.followLimit)
-			target, speed = Vector3.new(x, y, z), group.followSpeed
+		elseif group.name == "swarmA" and state.stage <= S.S2_FIRST_BITE then
+			-- 04 §3.6 B2: still until the T = 2.5 assist homes it (or the player swims away).
+			-- 04 §4's drift inside 25 studs is B3's, from S3 (14 §4 row 34).
+			local away = (centre - p).Magnitude > (group.awayBeyond or math.huge)
+			local limit = group.followLimit
+			if
+				state.stage == S.S2_FIRST_BITE
+				and group.followSpeed
+				and limit
+				and (state.fired.biteAssist or away)
+			then
+				local x, y, z = FtuePlan.followTarget(p.X, p.Y, p.Z, hx, hy, hz, limit)
+				target, speed = Vector3.new(x, y, z), group.followSpeed
+			end
 		elseif group.krill and (centre - p).Magnitude <= cfg.feed.driftRadius then
 			target, speed = p, cfg.feed.driftSpeed
 		end
@@ -570,7 +658,7 @@ end
 
 local function onHeartbeat(dt: number)
 	acc += dt
-	if acc < TICK then
+	if acc < cfg.director.tick then
 		return
 	end
 	local step = acc
@@ -652,8 +740,15 @@ local function onScriptedEaten(slot: Slot, scriptedId: number, _preyId: string)
 		return
 	end
 	local group = session.groups[scriptedId]
-	session.scripted = true
 	feed(session, { kind = "preyEaten", group = if group then group.name else nil })
+end
+
+-- A wild bite BiteService accepted (04 §3.1: S2 ends on any first prey).
+local function onWildEaten(slot: Slot, _preyId: string)
+	local session = bySlot[slot]
+	if session then
+		feed(session, { kind = "preyEaten" })
+	end
 end
 
 -- Signals reach the session deferred, so a caller (a bite, a mass change) is never broken by the
@@ -675,16 +770,22 @@ function TutorialService.stage(player: Player): number?
 	return if session then session.state.stage else nil
 end
 
---- Developer reset (04 §9, `/ftue reset`; Dev/Cheats calls it, dev places only): clears the
---- player's `ftue` fields, puts the creature back on the Hatch Bed as a new Fry with no traits, and
---- starts the script again from the hatch, as for a new account (a bank on the account does not
---- skip it). False when the player has no profile or creature.
-function TutorialService.reset(player: Player): boolean
+--- Developer reset (04 §9, `/ftue reset`; Dev/Cheats calls it): clears the player's `ftue`
+--- fields, puts the creature back on the Hatch Bed as a new Fry with no traits, and starts the
+--- script again from the hatch, as for a new account (a bank on the account does not skip it).
+--- The first cue is `reset`. Refused, with the reason "devCheats", where Config/Defaults has dev
+--- cheats off (checked here too, whoever calls it); "noCreature" when the player has no profile
+--- or creature.
+function TutorialService.reset(player: Player): (boolean, string?)
+	if not devCheats() then
+		Log.warn(TAG, `/ftue reset refused for {player.UserId}: dev cheats are off here`)
+		return false, "devCheats"
+	end
 	local data = DataService.get(player)
 	local slot = PlayerLifecycle.getSlot(player)
 	local creature = if slot then lookup(slot) else nil
 	if data == nil or slot == nil or creature == nil then
-		return false
+		return false, "noCreature"
 	end
 	local old = sessionOf[player]
 	if old then
@@ -705,11 +806,11 @@ function TutorialService.reset(player: Player): boolean
 		attempts = 0,
 		banked = false,
 		run = nil,
-	}, false)
+	}, false, true)
 	if session then
 		signal(session, C.LOADED) -- the loading screen is long gone
 	end
-	return session ~= nil
+	return session ~= nil, if session then nil else "noCreature"
 end
 
 --- Whether `start` has run (the engine spec starts the service itself on Open Cloud).
@@ -718,7 +819,7 @@ function TutorialService.isRunning(): boolean
 end
 
 function TutorialService.init()
-	sessionOf, bySlot, early, acc = {}, {}, {}, 0
+	sessionOf, bySlot, early, seqOf, acc = {}, {}, {}, {}, 0
 end
 
 function TutorialService.start()
@@ -731,14 +832,20 @@ function TutorialService.start()
 	PlayerLifecycle.onReady:connect(onReady)
 	PlayerLifecycle.onLeaving:connect(onLeaving)
 	PreyService.onScriptedEaten:connect(onScriptedEaten)
+	PreyService.onWildEaten:connect(onWildEaten)
 	CreatureService.onTierChanged:connect(function(slot: Slot, tier: number)
 		later(slot, { kind = "tierReached", tier = tier })
 	end)
 	TraitService.onGained:connect(function(slot: Slot, traitId: string, _index: number)
-		later(slot, { kind = "traitGained", trait = traitId })
+		-- 04 §3.6 B5: only the FTUE's first trait ends S4.
+		local session = bySlot[slot]
+		if session and traitId == session.cfg.arms.firstTrait then
+			later(slot, { kind = "traitGained", trait = traitId })
+		end
 	end)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		early[player] = nil
+		seqOf[player] = nil
 	end)
 	RunService.Heartbeat:Connect(onHeartbeat)
 end
@@ -753,8 +860,21 @@ TutorialService._test = table.freeze({
 		sink = out
 	end,
 	--- Starts a stand-in session in `slot` from `join`; false when the account never enters it.
-	begin = function(slot: Slot, join: FtueRules.Join): boolean
-		return begin(slot, nil, join, true) ~= nil
+	--- `again`: as after `/ftue reset` (the first cue is `reset`).
+	begin = function(slot: Slot, join: FtueRules.Join, again: boolean?): boolean
+		return begin(slot, nil, join, true, again) ~= nil
+	end,
+	--- Feeds one FtueRules event to the stand-in in `slot` (events the spec cannot cause).
+	feed = function(slot: Slot, event: Event)
+		local session = bySlot[slot]
+		if session then
+			feed(session, event)
+		end
+	end,
+	--- The session config of `slot` (its `arms.traitCount`), nil for none.
+	config = function(slot: Slot): Config?
+		local session = bySlot[slot]
+		return if session then session.cfg else nil
 	end,
 	--- A `TutorialStep` value for the stand-in in `slot`.
 	signal = function(slot: Slot, code: number)

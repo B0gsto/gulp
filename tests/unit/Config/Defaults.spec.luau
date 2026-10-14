@@ -59,9 +59,22 @@ describe("Defaults.forGame", function()
 		expect(Defaults.unknown.mockData).toBe(true)
 	end)
 
-	it("gives an unknown GameId Mock data and the dev cheats", function()
+	it("gives an unknown GameId Mock data, and the dev cheats only in Studio", function()
 		expect(Defaults.forGame(0).mockData).toBe(true)
-		expect(Defaults.forGame(0).devCheats).toBe(true)
+		expect(Defaults.forGame(0).devCheats).toBe(false)
+		expect(Defaults.forGame(123456789, false).devCheats).toBe(false)
+		expect(Defaults.forGame(0, true)).toBe(Defaults.studio)
+		expect(Defaults.forGame(0, true).devCheats).toBe(true)
+		expect(Defaults.forGame(0, true).mockData).toBe(true)
+		expect(Defaults.forGame(0, true).purchases).toBe(false)
+		expect(Defaults.forGame(0, true).analytics).toBe(false)
+	end)
+
+	it("never gives a listed GameId the Studio table", function()
+		for gameId, name in Defaults.GAME_IDS do
+			expect(Defaults.forGame(gameId, true)).toBe(Defaults.environments[name])
+		end
+		expect(Defaults.forGame(10770882319, true).devCheats).toBe(false) -- CI
 	end)
 
 	it("knows GULP CI: Mock data, analytics off, no purchases, no dev cheats", function()
