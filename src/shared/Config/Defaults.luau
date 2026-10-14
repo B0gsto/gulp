@@ -135,7 +135,6 @@ Defaults.swim = table.freeze({
 	stopSpeed = 0.5, -- 02 §1.3: below this with no thrust input, speed = 0
 	turnGain = 10, -- 02 §1.4: angular speed = clamp(error × 10, ±turnRate)
 	pitchLimit = 70, -- 02 §1.4: degrees, every control scheme
-	dashMult = 2.2, -- canon 5.3; 02 §1.2 (Turtle 2.0 and Squid 2.6 are [L], not in Species data)
 	dashDuration = 0.35, -- canon 5.3; 02 §7.1: 0.35 × (dashDurationMult + 0.3 per Longfin)
 	dashLongfinAdd = 0.3, -- 02 §7.1
 	dashAccel = 30, -- 02 §7.1: forward relaxation constant (1/s) while Dashing
@@ -152,11 +151,12 @@ Defaults.swim = table.freeze({
 })
 
 -- The control schemes' numbers (Logic/InputMath, client InputController). Chapter 02 section 2
--- and chapter 15 sections 3.1, 3.3 and 5.1. Pixels are Roblox offset pixels (02 §2).
+-- and chapter 15 sections 3.1, 3.3 and 5.1. Drag lengths are rpx (02 §2, 08 §1.2): reference-canvas
+-- pixels, converted from device px with the interface scale; mouse look is in device px (02 §2.3).
 Defaults.input = table.freeze({
-	dragDeadZone = 14, -- 02 §2.1: px radius; inside it throttle 0 and no turn
-	dragFull = 80, -- 02 §2.1: px from the origin for full deflection, at sensitivity 1
-	dragClamp = 100, -- 02 §2.1: px; past it the origin trails the finger
+	dragDeadZone = 14, -- 02 §2.1: rpx radius; inside it throttle 0 and no turn
+	dragFull = 80, -- 02 §2.1: rpx from the origin for full deflection, at sensitivity 1
+	dragClamp = 100, -- 02 §2.1: rpx; past it the origin trails the finger
 	dragSensitivity = 1.0, -- 02 §2.1, 08 §6.7: default; divides dragFull
 	dragSensitivityMin = 0.5,
 	dragSensitivityMax = 1.5,

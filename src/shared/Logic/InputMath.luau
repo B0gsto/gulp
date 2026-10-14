@@ -8,8 +8,13 @@
 -- 15 §3.3). The gamepad, the two-thumb scheme and the left-handed layout are [L].
 --
 -- Angles in degrees. Yaw follows SwimModel: 0 faces −Z, positive yaw turns left. `yawRate` in a
--- SwimInput is positive to the right (02 §2.1: screen right is positive). Screen pixels grow to
--- the right and down, as in `InputObject.Position`.
+-- SwimInput is positive to the right (02 §2.1: screen right is positive). Screen coordinates grow
+-- to the right and down, as in `InputObject.Position`.
+--
+-- Units: the drag numbers are rpx (02 §2, 08 §1.2: a pixel of the 1280 × 720 reference canvas,
+-- scaled with the interface). InputController converts touch positions with `toRpx` and the
+-- interface scale of Kit/Screen before calling the drag functions. Mouse look stays in device
+-- px (02 §2.3).
 local Defaults = require("../Config/Defaults")
 local Types = require("../Types")
 
@@ -70,13 +75,23 @@ function InputMath.sensitivity(value: number): number
 	return clamp(value, INPUT.dragSensitivityMin, INPUT.dragSensitivityMax)
 end
 
---- Full deflection, px: 80 divided by the sensitivity (02 §2.1).
+--- A screen length or position in device px as rpx, the drag scheme's unit (02 §2, 08 §1.2):
+--- px ÷ the interface scale (Kit/Screen `scale()`, rpx to px). A scale that is not positive or
+--- not finite counts as 1.
+function InputMath.toRpx(px: number, scale: number): number
+	if not (scale > 0 and scale < math.huge) then
+		return px
+	end
+	return px / scale
+end
+
+--- Full deflection, rpx: 80 divided by the sensitivity (02 §2.1).
 function InputMath.dragFull(sensitivity: number): number
 	return FULL / InputMath.sensitivity(sensitivity)
 end
 
---- The trailing clamp, px. 02 §2.1 gives 100 px for the default 80 px full deflection, but a
---- sensitivity under 0.8 puts full deflection past 100 px, where the drag could never reach it.
+--- The trailing clamp, rpx. 02 §2.1 gives 100 rpx for the default 80 rpx full deflection, but a
+--- sensitivity under 0.8 puts full deflection past 100 rpx, where the drag could never reach it.
 --- NOT FROM THE BIBLE: the clamp keeps the 100 : 80 ratio to full deflection when that happens.
 function InputMath.dragClamp(sensitivity: number): number
 	return math.max(CLAMP, InputMath.dragFull(sensitivity) * CLAMP / FULL)
@@ -106,7 +121,7 @@ function InputMath.curve(v: number): number
 	return sign(v) * abs(v) ^ EXPONENT
 end
 
---- The drag vector (finger minus origin, px) as magnitude m (0 to 1, dead zone and full
+--- The drag vector (finger minus origin, rpx) as magnitude m (0 to 1, dead zone and full
 --- deflection applied) and the unit axes x (right +) and y (up +) scaled by m (02 §2.1).
 function InputMath.dragAxes(dx: number, dy: number, sensitivity: number): (number, number, number)
 	local length = sqrt(dx * dx + dy * dy)

@@ -305,6 +305,143 @@ describe("SwimModel dash", function()
 	end)
 end)
 
+describe("SwimModel per-species dash and acceleration", function()
+	it(
+		"dashes at topSpeed × species.dashMult: 2.2, Sea Turtle 2.0, Squid 2.6 (03 §1.1)",
+		function()
+			for _, case in
+				{
+					{ id = "minnow", mult = 2.2 },
+					{ id = "turtle", mult = 2.0 },
+					{ id = "squid", mult = 2.6 },
+				}
+			do
+				local species = Index.Species.byId[case.id]
+				expect(species.dashMult).toBe(case.mult)
+				expect(SwimModel.dashMult(species)).toBe(case.mult)
+				local state = deep(case.id, 3)
+				expect(state.dashMult).toBe(case.mult)
+				local input = newInput()
+				input.dash = true
+				run(state, input, 0.3)
+				local top = 30 * species.speedMult
+				expect(SwimModel.speed(state)).toBeCloseTo(top * case.mult, 0.01)
+				expect(SwimModel.dashSpeed(3, species, 1)).toBeCloseTo(top * case.mult, 1e-9)
+			end
+		end
+	)
+
+	it("multiplies accel, coast, brake and grip by species.accelMult (02 §1.3)", function()
+		for _, species in Index.Species.list do
+			expect(species.accelMult).toBe(1)
+		end
+		local state = SwimModel.new("minnow", 2)
+		expect(state.accel).toBe(8.5)
+		expect(SwimModel.accel(2, Index.Species.byId.minnow)).toBe(8.5)
+		state.accelMult = 1.5
+		SwimModel.setTier(state, 2)
+		expect(state.accel).toBeCloseTo(8.5 * 1.5, 1e-9)
+		expect(state.coast).toBeCloseTo(2.5 * 1.5, 1e-9)
+		expect(state.brake).toBeCloseTo(7.5 * 1.5, 1e-9)
+		expect(state.grip).toBeCloseTo(11 * 1.5, 1e-9)
+	end)
+end)
+
+describe("SwimModel allowed-speed rules (09 §7.1)", function()
+	it("adds a current as 0.6 × tierSpeed, unscaled by species or dash", function()
+		expect(SwimModel.currentSpeed(1)).toBeCloseTo(0.6 * 26, 1e-9)
+		local vF, vA = SwimModel.allowedSpeed(1, 10, true)
+		expect(vF).toBeCloseTo(10 + 15.6, 1e-9)
+		expect(vA).toBeCloseTo(10 * 1.17 + 15.6, 1e-9)
+		vF, vA = SwimModel.allowedSpeed(1, 10, false)
+		expect(vF).toBe(10)
+		expect(vA).toBeCloseTo(11.7, 1e-9)
+	end)
+
+	it("covers a full strafe at full throttle with slideMult 1.17", function()
+		local state = deep("minnow", 1)
+		local input = newInput()
+		input.throttle = 1
+		input.strafe = 1
+		run(state, input, 3)
+		local _, vA =
+			SwimModel.allowedSpeed(1, SwimModel.topSpeed(1, Index.Species.byId.minnow, 1), false)
+		expect(SwimModel.speed(state) <= vA).toBe(true)
+		expect(SwimModel.speed(state)).toBeCloseTo(26 * math.sqrt(1 + 0.36), 0.01)
+	end)
+
+	it(
+		"opens the dash window 0.10 s before the start and closes it 0.25 s after the dash",
+		function()
+			local squid = Index.Species.byId.squid
+			expect(SwimModel.dashFactor(3, squid, 0, -0.2)).toBe(1)
+			expect(SwimModel.dashFactor(3, squid, 0, -0.1)).toBe(2.6)
+			expect(SwimModel.dashFactor(3, squid, 0, 0.35 + 0.25)).toBe(2.6)
+			local after = SwimModel.dashFactor(3, squid, 0, 0.35 + 0.25 + 0.1)
+			expect(after).toBeCloseTo(SwimModel.dashTail(3, squid, 0.1), 1e-9)
+			expect(after < 2.6 and after > 1).toBe(true)
+			-- A Longfin keeps the window open 0.105 s longer.
+			expect(SwimModel.dashFactor(3, squid, 1, 0.455 + 0.24)).toBe(2.6)
+		end
+	)
+
+	it(
+		"accepts a dash only after the cooldown, with 0.15 s slack and the claim held to ping",
+		function()
+			local minnow = Index.Species.byId.minnow -- cooldown 2.0
+			expect(SwimModel.acceptDash(minnow, -math.huge, 10, 10, 0.1)).toBe(10)
+			expect(SwimModel.acceptDash(minnow, 10, 11.9, 11.9, 0.1)).toBe(11.9)
+			expect(SwimModel.acceptDash(minnow, 10, 11.8, 11.8, 0.1)).toBe(nil)
+			-- A claim in the future is held to now; one older than the ping (cap 0.3 s) to now − ping.
+			expect(SwimModel.acceptDash(minnow, -math.huge, 50, 20, 0.1)).toBe(20)
+			expect(SwimModel.acceptDash(minnow, -math.huge, 0, 20, 0.1)).toBeCloseTo(19.9, 1e-9)
+			expect(SwimModel.acceptDash(minnow, -math.huge, 0, 20, 5)).toBeCloseTo(19.7, 1e-9)
+			expect(SwimModel.acceptDash(minnow, -math.huge, 0 / 0, 20, 0)).toBe(20)
+			-- Backdating cannot dodge the cooldown: the claim is clamped before the check.
+			expect(SwimModel.acceptDash(minnow, 10, 0, 11.9, 0.3)).toBe(nil)
+			expect(SwimModel.acceptDash(Index.Species.byId.puffer, 10, 12.36, 12.36, 0)).toBe(12.36)
+		end
+	)
+
+	it("matches the dash tail to the model's own slow-down after a dash", function()
+		for _, case in
+			{ { id = "squid", tier = 7 }, { id = "turtle", tier = 1 }, { id = "minnow", tier = 4 } }
+		do
+			local species = Index.Species.byId[case.id]
+			local state = deep(case.id, case.tier)
+			local input = newInput()
+			input.throttle = 1
+			input.dash = true
+			SwimModel.step(state, input, DT)
+			input.dash = false
+			while state.dashing do
+				SwimModel.step(state, input, DT)
+			end
+			-- From the dash end, forward speed relaxes to topSpeed at the tier's accel.
+			local top = SwimModel.topSpeed(case.tier, species, 1)
+			local factor0 = SwimModel.speed(state) / top
+			local since = state.dashAge - state.dashLength
+			local since0 = since
+			for _ = 1, 30 do
+				SwimModel.step(state, input, DT)
+				since += DT
+				local accel = SwimModel.accel(case.tier, species)
+				local expected = 1 + (factor0 - 1) * math.exp(-accel * (since - since0))
+				expect(SwimModel.speed(state) / top).toBeCloseTo(expected, 1e-3)
+				expect(
+					SwimModel.speed(state) / top
+						<= SwimModel.dashTail(case.tier, species, since) + 1e-6
+				).toBe(true)
+			end
+		end
+		expect(SwimModel.dashTail(7, Index.Species.byId.minnow, 0)).toBeCloseTo(2.2, 1e-9)
+		expect(SwimModel.dashTail(7, Index.Species.byId.minnow, math.log(12) / 4)).toBeCloseTo(
+			1.1,
+			1e-9
+		)
+	end)
+end)
+
 describe("SwimModel thrust, coast and brake", function()
 	it("reaches 90% of top speed in the tier's time (02 §1.3)", function()
 		for _, case in { { tier = 1, t = 0.26 }, { tier = 4, t = 0.33 }, { tier = 7, t = 0.58 } } do

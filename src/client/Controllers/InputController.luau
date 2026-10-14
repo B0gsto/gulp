@@ -19,6 +19,8 @@ local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local SwimModel = require(ReplicatedStorage.Shared.Sim.SwimModel)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local Screen = require("../UI/Kit/Screen")
+
 type InputMode = Types.InputMode
 type SwimInput = Types.SwimInput
 
@@ -52,7 +54,13 @@ local lastRead = os.clock()
 
 -- Touch: the swim touch is the first touch that does not start on a button (02 §2.1).
 local swimTouch: InputObject? = nil
+-- The swim drag, in rpx (02 §2, 08 §1.2): device px ÷ Kit/Screen's interface scale.
 local originX, originY, touchX, touchY = 0, 0, 0, 0
+
+local function toRpx(position: Vector3): (number, number)
+	local scale = Screen.scale()
+	return InputMath.toRpx(position.X, scale), InputMath.toRpx(position.Y, scale)
+end
 local releasedAt = -math.huge
 
 -- Keys.
@@ -119,7 +127,7 @@ local function onInputBegan(object: InputObject, gameProcessed: boolean)
 	if kind == Enum.UserInputType.Touch then
 		if not gameProcessed and swimTouch == nil then
 			swimTouch = object
-			originX, originY = object.Position.X, object.Position.Y
+			originX, originY = toRpx(object.Position)
 			touchX, touchY = originX, originY
 		end
 		return
@@ -169,7 +177,7 @@ local function onInputChanged(object: InputObject, _gameProcessed: boolean)
 		mouseDX += object.Delta.X
 		mouseDY += object.Delta.Y
 	elseif kind == Enum.UserInputType.Touch and object == swimTouch then
-		touchX, touchY = object.Position.X, object.Position.Y
+		touchX, touchY = toRpx(object.Position)
 		originX, originY = InputMath.trailOrigin(originX, originY, touchX, touchY, sensitivity)
 	end
 end
@@ -284,6 +292,7 @@ end
 function InputController.init() end
 
 function InputController.start()
+	Screen.start() -- the interface scale the drag reads (idempotent)
 	refreshTurnRate()
 	player:GetAttributeChangedSignal("Tier"):Connect(refreshTurnRate)
 	player:GetAttributeChangedSignal("Species"):Connect(refreshTurnRate)
