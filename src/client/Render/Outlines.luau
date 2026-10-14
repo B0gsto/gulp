@@ -23,6 +23,9 @@ local colourBlind = {
 	dangerous = Color3.fromHex(OutlineRules.COLOURS_COLOURBLIND.dangerous),
 }
 local palette = normal
+-- `HUD.Outlines` (docs/08 sections 3.3 and 3.11): chapter 04 shows and hides every outline at
+-- once through `HUD.setVisible("HUD.Outlines", on)`. The renderers read it when they pick shells.
+local visible = true
 
 --- The shell material: 06 §13.2's matte fallback. Measured in Studio for S3-C6, `Neon` clips the
 --- lime #A6FF3D to about (254, 255, 26), which reads as the colour-blind yellow, and pushes the red
@@ -32,6 +35,16 @@ Outlines.MATERIAL = Enum.Material.SmoothPlastic
 
 function Outlines.setColourBlind(on: boolean)
 	palette = if on then colourBlind else normal
+end
+
+--- `HUD.Outlines`: false hides every edible and danger outline until it is shown again.
+function Outlines.setVisible(on: boolean)
+	visible = on
+end
+
+--- True unless `HUD.Outlines` is hidden.
+function Outlines.visible(): boolean
+	return visible
 end
 
 --- The steady colour of `kind` ("none" reads as white and is never drawn).

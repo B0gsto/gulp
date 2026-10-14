@@ -686,7 +686,9 @@ function PreyRenderer.render(dt: number)
 	for k = 1, front do
 		local i = order[k] + 1
 		local look = lookOf(kinds[i])
-		outlineKinds[k] = if look and look.hasShell
+		outlineKinds[k] = if look
+				and look.hasShell
+				and Outlines.visible() -- HUD.Outlines
 			then OutlineRules.prey(viewerTier, look.def.tier, false)
 			else "none"
 		outlineDistances[k] = mirror.dist[i]

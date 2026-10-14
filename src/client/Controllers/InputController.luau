@@ -289,6 +289,13 @@ function InputController.press(action: "Dash" | "Ability", down: boolean)
 	end
 end
 
+--- The swim touch for `HUD.DragRing` (08 §3.16): whether one is down, its floating origin and the
+--- thumb, in rpx of the device-independent screen (`InputObject.Position` ÷ the interface scale,
+--- so below the GUI inset, like the touch positions). Display only.
+function InputController.drag(): (boolean, number, number, number, number)
+	return swimTouch ~= nil, originX, originY, touchX, touchY
+end
+
 function InputController.init() end
 
 function InputController.start()
