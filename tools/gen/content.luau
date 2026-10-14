@@ -301,6 +301,39 @@ local function buildRevivePoints(canon: Tables, catalog: Tables, slice: boolean)
 	}
 end
 
+-- Chapter 03, section 6.7: the 24 cove mouths; the row's position is the cove number (= slot).
+local function buildCoveMouths(catalog: Tables, slice: boolean): Module
+	local t = get(catalog, CATALOG, "CoveMouths")
+	local rows = {}
+	for _, row in rowsFor(t, slice) do
+		if row.key ~= string.format("C%02d", row.position) then
+			fail(
+				`data:CoveMouths, row {row.key}: cove {row.position} must be C{string.format(
+					"%02d",
+					row.position
+				)}`
+			)
+		end
+		local mouth = string.gsub(cell(t, row, "Mouth (X, Z)"), "\u{2212}", "-")
+		local x, z = string.match(mouth, "^%(%s*(%-?[%d%.]+)%s*,%s*(%-?[%d%.]+)%s*%)$")
+		if x == nil or z == nil then
+			fail(`data:CoveMouths, row {row.key}: cannot read the mouth {mouth}`)
+		end
+		table.insert(rows, {
+			field("id", row.key),
+			field("wire", row.position),
+			field("x", tonumber(x) :: number),
+			field("z", tonumber(z) :: number),
+		})
+	end
+	return {
+		name = "CoveMouths",
+		typeName = "CoveMouthDef",
+		sources = { `{CATALOG} data:CoveMouths` },
+		rows = rows,
+	}
+end
+
 local BASE_DASH_TIME = 0.35 -- seconds; chapter 02, Dashing state: `0.35 × (1 + ...)`
 local CRUISE_SHARE = 0.4 -- chapter 03, section 2.1 notes: cruise speed is 40% of flee speed
 
@@ -1055,6 +1088,7 @@ local modules = {
 	buildCodex(catalog, slice),
 	buildGoals(catalog, slice),
 	buildRevivePoints(canon, catalog, slice),
+	buildCoveMouths(catalog, slice),
 	buildPreySpawns(canon, mechanics, catalog, slice),
 	buildTraitPreySpawns(canon, mechanics, catalog, slice),
 	buildPreyMotion(art, catalog, slice),

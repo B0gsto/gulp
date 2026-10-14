@@ -731,20 +731,37 @@ The rule players learn: **out by north and east, home by west and south.**
 
 **Cove mouths.** Each mouth is on the inner face at r 400, centred at depth 30. Coves are numbered clockwise from north.
 
-| Cove | Bearing | Mouth (X, Z) | Nearest opening · distance | Cove | Bearing | Mouth (X, Z) | Nearest opening · distance |
-|---|---|---|---|---|---|---|---|
-| C01 | B012 | (83, −391) | North Pass · 84 | C13 | B157 | (156, 368) | South Pass · 161 |
-| C02 | B023 | (156, −368) | North Pass · 161 | C14 | B168 | (83, 391) | South Pass · 84 |
-| C03 | B034 | (224, −332) | North Pass · 237 | C15 | B194 | (−97, 388) | South Pass · 98 |
-| C04 | B045 | (283, −283) | North or East Pass · 314 | C16 | B205 | (−169, 363) | Little Arch · 140 |
-| C05 | B056 | (332, −224) | East Pass · 237 | C17 | B245 | (−363, 169) | Little Arch · 140 |
-| C06 | B067 | (368, −156) | East Pass · 161 | C18 | B256 | (−388, 97) | West Pass · 98 |
-| C07 | B078 | (391, −83) | East Pass · 84 | C19 | B285 | (−386, −104) | West Pass · 105 |
-| C08 | B102 | (391, 83) | East Pass · 84 | C20 | B297 | (−356, −182) | West Pass · 188 |
-| C09 | B113 | (368, 156) | East Pass · 161 | C21 | B309 | (−311, −252) | West Pass · 272 |
-| C10 | B124 | (332, 224) | East Pass · 237 | C22 | B321 | (−252, −311) | North Pass · 272 |
-| C11 | B135 | (283, 283) | East or South Pass · 314 | C23 | B333 | (−182, −356) | North Pass · 188 |
-| C12 | B146 | (224, 332) | South Pass · 237 | C24 | B345 | (−104, −386) | North Pass · 105 |
+<!-- data:CoveMouths -->
+Soft-launch slice (chapter 13, section 3.2): every row.
+
+| Cove | Bearing | Mouth (X, Z) | Nearest opening · distance |
+|---|---|---|---|
+| C01 | B012 | (83, −391) | North Pass · 84 |
+| C02 | B023 | (156, −368) | North Pass · 161 |
+| C03 | B034 | (224, −332) | North Pass · 237 |
+| C04 | B045 | (283, −283) | North or East Pass · 314 |
+| C05 | B056 | (332, −224) | East Pass · 237 |
+| C06 | B067 | (368, −156) | East Pass · 161 |
+| C07 | B078 | (391, −83) | East Pass · 84 |
+| C08 | B102 | (391, 83) | East Pass · 84 |
+| C09 | B113 | (368, 156) | East Pass · 161 |
+| C10 | B124 | (332, 224) | East Pass · 237 |
+| C11 | B135 | (283, 283) | East or South Pass · 314 |
+| C12 | B146 | (224, 332) | South Pass · 237 |
+| C13 | B157 | (156, 368) | South Pass · 161 |
+| C14 | B168 | (83, 391) | South Pass · 84 |
+| C15 | B194 | (−97, 388) | South Pass · 98 |
+| C16 | B205 | (−169, 363) | Little Arch · 140 |
+| C17 | B245 | (−363, 169) | Little Arch · 140 |
+| C18 | B256 | (−388, 97) | West Pass · 98 |
+| C19 | B285 | (−386, −104) | West Pass · 105 |
+| C20 | B297 | (−356, −182) | West Pass · 188 |
+| C21 | B309 | (−311, −252) | West Pass · 272 |
+| C22 | B321 | (−252, −311) | North Pass · 272 |
+| C23 | B333 | (−182, −356) | North Pass · 188 |
+| C24 | B345 | (−104, −386) | North Pass · 105 |
+
+<!-- /data -->
 
 Coves are spaced 11° apart (12° in the north-west arc), which is 77 to 84 studs between mouths.
 

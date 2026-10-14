@@ -231,6 +231,8 @@ Defaults.cove = table.freeze({
 	awayMinPearls = 10, -- 02 §13.3: and 10 Pearls earned
 	maxSlots = 30, -- 05 §4.2: slots bought with Pearls stop at 30
 	biggerCoveSlots = 10, -- 05 §4.2: Bigger Cove adds 10 on top, at read time (09 §12.2)
+	gap = table.freeze({ -290, 290 }), -- 03 §6.2: Little Arch, "the Gap" (X, Z); 04 §5.5 measures from it
+	returningPool = 20, -- 04 §5.5, 09 §13.1: a returning player's cove is among the 20 nearest the Gap
 	-- 05 §4.2: the price of each slot after the six free ones, by slot number. The table has no
 	-- data: block in chapter 05, so it is copied here until one is added (then generated).
 	slotPrices = table.freeze({

@@ -9,6 +9,7 @@
 -- that change a cove change the table they are given; CoveService hands them a copy and writes the
 -- copy back through DataService.
 local CoveIncome = require("./CoveIncome")
+local CoveMouths = require("../Data/Generated/CoveMouths")
 local Defaults = require("../Config/Defaults")
 local Types = require("../Types")
 
@@ -289,44 +290,17 @@ function CoveRules.view(slot: number, owner: string, cove: Cove, capacity: numbe
 	return { slot = slot, owner = owner, slots = capacity, specimens = list, bubbles = cove.bubbles }
 end
 
--- Cove assignment (09 §13.1; 04 §5.5 owns the rule; 03 §6.7 places the mouths). Mouth centres
--- (X, Z) of C01 to C24 and Little Arch, "the Gap" (03 §6.2).
-CoveRules.MOUTHS = table.freeze({
-	{ 83, -391 },
-	{ 156, -368 },
-	{ 224, -332 },
-	{ 283, -283 },
-	{ 332, -224 },
-	{ 368, -156 },
-	{ 391, -83 },
-	{ 391, 83 },
-	{ 368, 156 },
-	{ 332, 224 },
-	{ 283, 283 },
-	{ 224, 332 },
-	{ 156, 368 },
-	{ 83, 391 },
-	{ -97, 388 },
-	{ -169, 363 },
-	{ -363, 169 },
-	{ -388, 97 },
-	{ -386, -104 },
-	{ -356, -182 },
-	{ -311, -252 },
-	{ -252, -311 },
-	{ -182, -356 },
-	{ -104, -386 },
-})
-CoveRules.GAP = table.freeze({ -290, 290 })
-CoveRules.RETURNING_POOL = 20 -- 04 §5.5 (tune): a returning player's cove is among the 20 nearest
+-- Cove assignment (09 §13.1; 04 §5.5 owns the rule). The mouths come from 03 §6.7
+-- (data:CoveMouths); the Gap and the size of the returning pool from Config/Defaults.
+CoveRules.RETURNING_POOL = C.returningPool
 
 local function byGap(): { number }
-	local gx, gz = CoveRules.GAP[1], CoveRules.GAP[2]
-	local d: { number } = {}
+	local gx, gz = C.gap[1], C.gap[2]
+	local d: { [number]: number } = {}
 	local order: { number } = {}
-	for i, m in CoveRules.MOUTHS do
-		d[i] = math.sqrt((m[1] - gx) ^ 2 + (m[2] - gz) ^ 2)
-		order[i] = i
+	for _, m in CoveMouths do
+		d[m.wire] = math.sqrt((m.x - gx) ^ 2 + (m.z - gz) ^ 2)
+		table.insert(order, m.wire)
 	end
 	table.sort(order, function(a, b)
 		local da, db = math.round(d[a]), math.round(d[b])
