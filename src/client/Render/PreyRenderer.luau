@@ -866,6 +866,44 @@ function PreyRenderer.nearest(kindFilter: { [number]: boolean }?): (number?, Vec
 	return id, Vector3.new(mirror.dx[i], mirror.dy[i], mirror.dz[i]), d
 end
 
+--- One live trait prey group for Glow's markers (02 §8.4): its trait, distance from the local
+--- creature's centre and drawn position. The records are reused frame to frame.
+export type TraitPreyNear = { traitId: string, distance: number, position: Vector3 }
+
+--- Fills `out` with the live trait prey groups within `radius` studs of the local creature's
+--- centre (any number; TraitRules.pickMarkers keeps the nearest six) and returns the count.
+--- Records past the count are stale. Called every frame only while the player holds Glow.
+function PreyRenderer.traitPreyNear(radius: number, out: { TraitPreyNear }): number
+	local viewer = viewerPosition()
+	if viewer == nil then
+		return 0
+	end
+	local r2 = radius * radius
+	local n = 0
+	for _, id in mirror.ids do
+		local i = id + 1
+		local kind = mirror.kind[i]
+		if kind > Formation.TRAIT_BASE and mirror.alive[i] ~= 0 then
+			local ax, ay, az =
+				mirror.dx[i] - viewer.X, mirror.dy[i] - viewer.Y, mirror.dz[i] - viewer.Z
+			local d2 = ax * ax + ay * ay + az * az
+			local def = if d2 <= r2 then Formation.defOf(kind) else nil
+			if def and def.givesTrait then
+				n += 1
+				local record = out[n]
+				if record == nil then
+					record = { traitId = def.givesTrait, distance = 0, position = Vector3.zero }
+					out[n] = record
+				end
+				record.traitId = def.givesTrait
+				record.distance = math.sqrt(d2)
+				record.position = Vector3.new(mirror.dx[i], mirror.dy[i], mirror.dz[i])
+			end
+		end
+	end
+	return n
+end
+
 --- 5.2: the graphics tier (QualityController calls it): the tier's numbers from tune.quality.*
 --- (15.1: 80, 150 or 250 meshes within 150, 250 or 350 studs).
 function PreyRenderer.setQuality(newTier: GraphicsTier)

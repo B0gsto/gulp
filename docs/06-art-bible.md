@@ -752,7 +752,7 @@ A creature has three visual channels. Each trait owns one channel, so three trai
 
 | ID | Rarity | Scope | Channel | Method | Signature colour | Home zone on the body | Fallback zone | Pieces and cost |
 |---|---|---|---|---|---|---|---|---|
-| `glow` | Common | [MVP] | Light | Overlay (emissive) + light | `#FFE98A` | Lateral line, nose to tail | Tail tip and fin edges | 256 overlay; `PointLight` range 10 × scale, brightness 0.5 |
+| `glow` | Common | [MVP] | Light | Overlay (emissive) + light | `#FFE98A` | Lateral line, nose to tail | Tail tip and fin edges | 256 overlay; `PointLight` range 20 studs at every size (02 §8.4), brightness 0.5 |
 | `stripes` | Common | [MVP] | Pattern | Overlay | `#1E2A4A` on `#FFFFFF` | Flank: 4 bold bands | Rear third: 2 bands | 256 overlay |
 | `spots` | Common | [MVP] | Pattern | Overlay | `#FFF3D1` dots ringed `#3A2A4A` | Back and flank: 7 to 9 dots | Head and shoulders: 4 dots | 256 overlay. Smallest dot is 8% of body height. |
 | `plated` | Uncommon | [MVP] | Form | Kit pieces + thin overlay | `#B8C4CC`, edge `#6B7A85` | Back: 5 overlapping plates | Head: 1 helmet plate | 1 plate piece (60 triangles) used 5 times; a second "cracked" piece for after the saved bite |
