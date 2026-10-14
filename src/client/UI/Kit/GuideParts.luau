@@ -206,29 +206,41 @@ export type Gesture = "tap" | "hold" | "drag"
 export type Hand = {
 	root: Frame,
 	fade: (alpha: number) -> (),
-	-- Fingertip at (x, y); `down` presses it; `hold` (0 to 1) fills the ring; `trail` is the
-	-- drag's recent path, newest last; (ringX, ringY) the hold ring's centre (the target's; default
-	-- the fingertip).
+	-- Fingertip at (x, y); `down` presses it; `hold` (0 to 1) fills the ring round `ring`
+	-- (HudLayout.holdRing, `k` its band's factor), drawn over the hand while the hand shows at
+	-- `holdHandOpacity`; `trail` is the drag's recent path, newest last.
 	set: (
 		x: number,
 		y: number,
 		down: boolean,
 		hold: number?,
 		trail: { Vector2 }?,
-		ringX: number?,
-		ringY: number?
+		ring: Rect?,
+		k: number?
 	) -> (),
 }
 
+-- The hold ring's fill: this many lit segments round the circle (stand-in for a radial fill).
+local HOLD_SEGMENTS = 40
+
 local TRAIL_DOTS = 8
 
---- G3 `UI_Guide_Hand` with its up and down states, the hold ring and the drag trail.
+--- G3 `UI_Guide_Hand` with its up and down states, the hold ring and the drag trail. The hold
+--- ring is a layer of its own over the hand: a navy track round the target that fills sun yellow
+--- clockwise from 12 o'clock.
 function GuideParts.hand(parent: Instance, z: number): Hand
 	local root = Draw.new("Frame", {
 		Name = "G3.Hand",
 		Size = UDim2.fromScale(1, 1),
 		Visible = false,
 		ZIndex = z,
+		Parent = parent,
+	}) :: Frame
+	local ringRoot = Draw.new("Frame", {
+		Name = "G3.HoldRing",
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = z + 1,
 		Parent = parent,
 	}) :: Frame
 	local trail: { Frame } = {}
@@ -244,19 +256,61 @@ function GuideParts.hand(parent: Instance, z: number): Hand
 	local ring = Draw.new("Frame", {
 		Name = "HoldRing",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(G.holdRing, G.holdRing),
 		ZIndex = z + 1,
-		Parent = root,
+		Parent = ringRoot,
 	}) :: Frame
-	local ringBack = Draw.disc(
-		G.holdRing,
-		Theme.INK,
-		nil,
-		{ BackgroundTransparency = 0.7, ZIndex = z + 1, Parent = ring }
-	)
-	local fill = Draw.wedge(ring, G.holdRing, Theme.PRIMARY, 0.15, z + 2)
+	-- The track: a navy band (UIStroke draws outside its frame, so the frame is the band's hole).
+	local track = Draw.new("Frame", {
+		Name = "Track",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		ZIndex = z + 1,
+		Parent = ring,
+	}, { Draw.corner() }) :: Frame
+	local trackStroke = Draw.stroke(G.holdRingWidth + 6, Theme.INK)
+	trackStroke.Transparency = 0.25
+	trackStroke.Parent = track
+	local segments: { Frame } = {}
+	for i = 1, HOLD_SEGMENTS do
+		segments[i] = Draw.new("Frame", {
+			Name = "Fill",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Theme.PRIMARY,
+			BackgroundTransparency = 0,
+			Rotation = (i - 0.5) / HOLD_SEGMENTS * 360,
+			Visible = false,
+			ZIndex = z + 2,
+			Parent = ring,
+		}, { Draw.corner(3) }) :: Frame
+	end
+	local ringSide, ringBand = -1, -1
+	local function shapeRing(side: number, k: number)
+		local band = G.holdRingWidth * k
+		if side == ringSide and band == ringBand then
+			return
+		end
+		ringSide, ringBand = side, band
+		ring.Size = UDim2.fromOffset(side, side)
+		local edge = band + 6 * k
+		trackStroke.Thickness = edge
+		track.Size = UDim2.fromOffset(side - 2 * edge, side - 2 * edge)
+		-- Segments on the band's middle circle, each a tangent bar with a small gap.
+		local r = side / 2 - edge / 2
+		local length = 2 * math.pi * r / HOLD_SEGMENTS * 0.8
+		for i, seg in segments do
+			local a = (i - 0.5) / HOLD_SEGMENTS * 2 * math.pi - math.pi / 2
+			seg.Position = UDim2.new(0.5, math.cos(a) * r, 0.5, math.sin(a) * r)
+			seg.Size = UDim2.fromOffset(length, band)
+		end
+	end
+	local function fill(share: number)
+		local lit = math.floor(math.clamp(share, 0, 1) * HOLD_SEGMENTS + 0.5)
+		for i, seg in segments do
+			seg.Visible = i <= lit
+		end
+	end
 	local ripple = Draw.disc(
-		G.holdRing * 0.6,
+		G.holdRingWidth * 4,
 		Theme.WHITE,
 		nil,
 		{ Name = "Press", BackgroundTransparency = 0.45, ZIndex = z + 1, Parent = root }
@@ -264,27 +318,35 @@ function GuideParts.hand(parent: Instance, z: number): Hand
 	Draw.stroke(Theme.STROKE_CHIP, Theme.WHITE).Parent = ripple
 	local hand = GuideHints.hand(root, G.hand, z + 3)
 	local handScale = Draw.new("UIScale", { Parent = hand }) :: UIScale
+	local handFade = GuideParts.fader(root)
+	local ringFade = GuideParts.fader(ringRoot)
+	local handAlpha = 1
+	local ringOn = false
 	return {
 		root = root,
-		fade = GuideParts.fader(root),
+		fade = function(alpha: number)
+			handFade(alpha * handAlpha)
+			ringFade(if ringOn then alpha else 0)
+		end,
 		set = function(
 			x: number,
 			y: number,
 			down: boolean,
 			hold: number?,
 			path: { Vector2 }?,
-			ringX: number?,
-			ringY: number?
+			ringRect: Rect?,
+			k: number?
 		)
 			-- The down sprite: pressed in and 4 rpx lower.
 			place(hand, x, y + (if down then 4 else 0))
 			handScale.Scale = if down then 0.9 else 1
 			place(ripple, x, y)
 			ripple.Visible = down and hold == nil
-			ring.Visible = hold ~= nil
-			ringBack.Visible = hold ~= nil
-			if hold then
-				place(ring, ringX or x, ringY or y)
+			ringOn = hold ~= nil and ringRect ~= nil
+			handAlpha = if hold ~= nil then G.holdHandOpacity else 1
+			if hold and ringRect then
+				shapeRing(ringRect.width, k or 1)
+				place(ring, ringRect.x + ringRect.width / 2, ringRect.y + ringRect.height / 2)
 				fill(hold)
 			end
 			local p = path or {}
@@ -425,14 +487,16 @@ export type Ring = {
 }
 
 --- G5 `UI_Guide_Ring` (9-slice): a sun-yellow ring with a navy edge round its rect; `colour`
---- white and `slotName` `UI_Common_RingPulse` for the dash pulse.
+--- white, `slotName` `UI_Common_RingPulse` and a `bandWidth` of 10 for the dash pulse.
 function GuideParts.ring(
 	parent: Instance,
 	z: number,
 	name: string?,
 	colour: Color3?,
-	slotName: string?
+	slotName: string?,
+	bandWidth: number?
 ): Ring
+	local width = bandWidth or 6
 	local root = Draw.new("Frame", {
 		Name = name or "UI_Guide_Ring",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -451,7 +515,7 @@ function GuideParts.ring(
 		ZIndex = z,
 		Parent = root,
 	}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) }) :: Frame
-	local band = Draw.stroke(6, colour or Theme.PRIMARY)
+	local band = Draw.stroke(width, colour or Theme.PRIMARY)
 	band.Parent = root
 	Draw.new("Frame", {
 		Name = "Inner",
@@ -470,8 +534,8 @@ function GuideParts.ring(
 			place(root, rect.x + rect.width / 2, rect.y + rect.height / 2)
 			root.Size = UDim2.fromOffset(rect.width, rect.height)
 			scale.Scale = pulse
-			band.Thickness = 6 * f
-			edge.Size = UDim2.new(1, 12 * f, 1, 12 * f)
+			band.Thickness = width * f
+			edge.Size = UDim2.new(1, 2 * width * f, 1, 2 * width * f)
 		end,
 	}
 end
@@ -571,9 +635,11 @@ export type Bubble = {
 	-- The G8 picture's holder at the bubble's left end; `setHint(nil)` empties it.
 	hintHolder: Frame,
 	setHint: (picture: GuideHints.Picture?) -> (),
-	-- The bubble's size in rpx at the last layout (0 until it has been drawn).
+	-- The bubble's size in rpx at the last layout (0 until it has been drawn), `setScale` included.
 	size: (scale: number) -> (number, number),
 	set: (rect: Rect, side: HudLayout.BubbleSide, tailX: number, tailY: number) -> (),
+	-- HudLayout.guideScale: the bubble, its picture and its text draw `k` times their size.
+	setScale: (k: number) -> (),
 }
 
 --- G7 `UI_Guide_Bubble` (9-slice) and its tail `UI_Common_BubbleTail`: a cream panel up to 420
@@ -593,7 +659,7 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		Size = UDim2.fromOffset(0, 0),
 		BackgroundColor3 = Theme.PANEL,
 		BackgroundTransparency = 0,
-		ZIndex = z + 1,
+		ZIndex = z + 2,
 		Parent = root,
 	}, {
 		Draw.corner(Theme.PANEL_RADIUS),
@@ -612,13 +678,24 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		}),
 		Draw.new("UISizeConstraint", { MinSize = Vector2.new(0, G.hint + G.bubblePad) }),
 	}) :: Frame
+	local panelScale = Draw.new("UIScale", { Parent = panel }) :: UIScale
 	local shadow = Draw.new("Frame", {
 		Name = "Shadow",
 		BackgroundColor3 = Theme.DIM,
 		BackgroundTransparency = G.bubbleShadowTransparency,
+		ZIndex = z - 1,
+		Parent = root,
+	}, { Draw.corner(Theme.PANEL_RADIUS + G.bubbleStroke + G.bubbleOutline + G.bubbleEdge) }) :: Frame
+	-- The outline (UI review 2): a white band outside the navy stroke, with a navy edge of its own,
+	-- so the bubble reads on dark water as well as on bright sand.
+	local outlineStroke = Draw.stroke(G.bubbleEdge)
+	local outline = Draw.new("Frame", {
+		Name = "Outline",
+		BackgroundColor3 = Theme.WHITE,
+		BackgroundTransparency = 0,
 		ZIndex = z,
 		Parent = root,
-	}, { Draw.corner(Theme.PANEL_RADIUS) }) :: Frame
+	}, { Draw.corner(Theme.PANEL_RADIUS + G.bubbleStroke + G.bubbleOutline), outlineStroke }) :: Frame
 	local hintHolder = Draw.new("Frame", {
 		Name = "Hint",
 		LayoutOrder = 1,
@@ -647,6 +724,9 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 	) :: UISizeConstraint
 	-- One line of the same text style, never shown: its drawn height is the line the bubble's
 	-- line count is measured in, at any scale (08 §1.5: Body 24 up to two lines).
+	-- The probe sits under the same scale as the text, so both are measured alike.
+	local probeHolder = Draw.new("Frame", { Name = "Probe", ZIndex = z, Parent = root }) :: Frame
+	local probeScale = Draw.new("UIScale", { Parent = probeHolder }) :: UIScale
 	local probe = Draw.text({
 		Name = "LineProbe",
 		Size = UDim2.fromOffset(textMax, 0),
@@ -654,23 +734,25 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 		Text = "Ag",
 		TextTransparency = 1,
 		ZIndex = z,
-		Parent = root,
+		Parent = probeHolder,
 	}, G.bubbleText, "body")
 	-- The 9-slice art sits in a frame that follows the panel (not in the panel: its list layout
 	-- would take the slot for a row).
-	local skin = Draw.new("Frame", { Name = "Skin", ZIndex = z + 1, Parent = root }) :: Frame
-	Draw.slot("UI_Guide_Bubble", skin, z + 1).ScaleType = Enum.ScaleType.Slice
-	-- The tail: a square turned 45 degrees under the panel, so only its lower point shows.
+	local skin = Draw.new("Frame", { Name = "Skin", ZIndex = z + 2, Parent = root }) :: Frame
+	Draw.slot("UI_Guide_Bubble", skin, z + 2).ScaleType = Enum.ScaleType.Slice
+	-- The tail: a white square turned 45 degrees over the outline and under the panel, so only
+	-- its point shows past the outline.
 	local tail = Draw.new("Frame", {
 		Name = "Tail",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(G.tailWidth * 0.72, G.tailWidth * 0.72),
+		Size = UDim2.fromOffset(G.tailWidth, G.tailWidth),
 		Rotation = 45,
-		BackgroundColor3 = Theme.PANEL,
+		BackgroundColor3 = Theme.WHITE,
 		BackgroundTransparency = 0,
-		ZIndex = z,
+		ZIndex = z + 1,
 		Parent = root,
 	}, { Draw.corner(3), Draw.stroke(G.bubbleStroke) }) :: Frame
+	local tailScale = Draw.new("UIScale", { Parent = tail }) :: UIScale
 	Draw.slot("UI_Common_BubbleTail", tail, z)
 	local hasHint = false
 	local function relimit()
@@ -715,16 +797,24 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 				label:SetAttribute(Screen.TEXT_RPX, HudLayout.TEXT_FLOOR)
 				label.TextSize = Screen.textSize(HudLayout.TEXT_FLOOR)
 			end
-			return s.X / scale, s.Y / scale
+			local out = 2 * HudLayout.bubbleFrame(panelScale.Scale)
+			return s.X / scale + out, s.Y / scale + out
 		end,
 		set = function(rect: Rect, side: HudLayout.BubbleSide, tailX: number, tailY: number)
-			place(panel, rect.x, rect.y)
-			place(shadow, rect.x, rect.y + Theme.SHADOW_OFFSET)
+			-- `rect` is the whole bubble, its outline included (HudLayout.bubbleFrame).
+			local k = panelScale.Scale
+			local edge = G.bubbleEdge * k
+			local out = HudLayout.bubbleFrame(k)
+			place(panel, rect.x + out, rect.y + out)
+			place(outline, rect.x + edge, rect.y + edge)
+			outline.Size = UDim2.fromOffset(rect.width - 2 * edge, rect.height - 2 * edge)
+			place(shadow, rect.x, rect.y + G.bubbleShadow * k)
 			shadow.Size = UDim2.fromOffset(rect.width, rect.height)
-			place(skin, rect.x, rect.y)
-			skin.Size = UDim2.fromOffset(rect.width, rect.height)
+			place(skin, rect.x + out, rect.y + out)
+			skin.Size = UDim2.fromOffset(rect.width - 2 * out, rect.height - 2 * out)
 			tail.Visible = side ~= "slot"
-			local inset = G.tailHeight * 0.25
+			-- Its centre just inside the outline's edge, so its point shows toward the target.
+			local inset = G.tailHeight * 0.25 * k
 			if side == "above" then
 				place(tail, tailX, tailY - inset)
 			elseif side == "below" then
@@ -734,6 +824,12 @@ function GuideParts.bubble(parent: Instance, z: number): Bubble
 			else
 				place(tail, tailX + inset, tailY)
 			end
+		end,
+		setScale = function(k: number)
+			panelScale.Scale = k
+			probeScale.Scale = k
+			tailScale.Scale = k
+			outlineStroke.Thickness = G.bubbleEdge * k
 		end,
 	}
 end
@@ -771,7 +867,8 @@ function GuideParts.tick(parent: Instance, z: number): Tick
 			local k = if t < 0.4
 				then 1.25 * math.sin(t / 0.4 * math.pi / 2)
 				else 1 + 0.25 * (1 - (t - 0.4) / 0.6) ^ 2
-			scale.Scale = math.max(0, k)
+			-- `rect` is HudLayout.guideTick's: the tick's own size times the desktop factor.
+			scale.Scale = math.max(0, k) * rect.width / G.tick
 		end,
 	}
 end
@@ -788,7 +885,8 @@ export type Ghost = {
 	-- The picture's size in rpx before `k` (the thumb, the key row or the stick).
 	size: () -> (number, number),
 	-- The thumb (or key row) at (x, y), `k` times its size; `press` 0 to 1 how far the press is
-	-- in; `nudge` the direction the mouse or stick leans; `cue` the drag's start and end on touch.
+	-- in; `nudge` the direction the mouse or stick leans; `cue` the drag cue's start and tip
+	-- (HudLayout.ghostCueTip) on touch.
 	set: (
 		x: number,
 		y: number,
@@ -800,9 +898,9 @@ export type Ghost = {
 	) -> (),
 }
 
---- 04 §3.2 ghost thumb: the thumbprint on touch, with its rim, soft shadow and the drag cue (dots
---- from the press point to a ring where the drag ends); the mouse, W and arrow keys row with keys;
---- the left stick on a pad.
+--- 04 §3.2 ghost thumb: the white thumbprint on touch, with its navy rim, soft shadow and the drag
+--- cue (an arrow from the press point past the drag's end); the mouse, W and arrow keys row with
+--- keys; the left stick on a pad.
 function GuideParts.ghost(parent: Instance, z: number): Ghost
 	local root = Draw.new("Frame", {
 		Name = "Guide.Ghost",
@@ -822,33 +920,33 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 	local under = layer("Under", z)
 	local rim = layer("RimLayer", z + 1)
 	local pictures = layer("Picture", z + 2)
-	-- The cue and the thumb's outline: a soft shadow (three wider, fainter pads), a navy rim.
-	local cueDots: { Frame } = {}
-	for i = 1, G.ghostCueDots do
-		local d = Draw.disc(
-			G.ghostCueDot,
-			Theme.WHITE,
-			nil,
-			{ Name = "CueDot", ZIndex = z, Parent = under }
-		)
-		Draw.stroke(Theme.STROKE_ICON).Parent = d
-		cueDots[i] = d
-	end
-	local cueRing = Draw.new("Frame", {
-		Name = "CueRing",
+	-- The drag cue: a white arrow with a navy edge from the press point past the drag's end, under
+	-- the thumb (turned along the drag, so drawn pointing right).
+	local cue = Draw.new("Frame", {
+		Name = "CueArrow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(G.ghostCueRing, G.ghostCueRing),
 		ZIndex = z,
 		Parent = under,
-	}, { Draw.corner(), Draw.stroke(5, Theme.WHITE) }) :: Frame
-	Draw.new("Frame", {
-		Name = "CueRingEdge",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, 10, 1, 10),
+	}) :: Frame
+	local shaft = Draw.new("Frame", {
+		Name = "Shaft",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		BackgroundColor3 = Theme.WHITE,
+		BackgroundTransparency = 0,
 		ZIndex = z,
-		Parent = cueRing,
-	}, { Draw.corner(), Draw.stroke(Theme.STROKE_CHIP) })
+		Parent = cue,
+	}, { Draw.corner(), Draw.stroke(Theme.STROKE_PANEL) }) :: Frame
+	local head = GuideHints.triangle(
+		cue,
+		G.ghostCueHead,
+		Theme.WHITE,
+		UDim2.fromScale(1, 0.5),
+		z + 1,
+		Theme.STROKE_PANEL
+	)
+	head.AnchorPoint = Vector2.new(1, 0.5)
+	-- The thumb's outline: a soft shadow (three wider, fainter pads) and a navy rim.
 	local outline = Draw.new("Frame", {
 		Name = "Outline",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -876,7 +974,7 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 		Size = UDim2.fromOffset(G.ghost * 0.7, G.ghost * 0.9),
 		ZIndex = z + 3,
 		Parent = outline,
-	}, { Draw.corner(), Draw.stroke(Theme.STROKE_PANEL + 1) })
+	}, { Draw.corner(), Draw.stroke(G.ghostRim) })
 	local underFade = GuideParts.fader(under)
 	local rimFade = GuideParts.fader(rim)
 	local pictureFade = GuideParts.fader(pictures)
@@ -941,7 +1039,7 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 			nx: number,
 			ny: number,
 			k: number?,
-			cue: { number }?
+			cueAt: { number }?
 		)
 			local it = item :: Frame
 			place(it, x, y)
@@ -950,17 +1048,17 @@ function GuideParts.ghost(parent: Instance, z: number): Ghost
 			sc.Scale = squash * (if mode == "Touch" then 1 else k or 1)
 			place(outline, x, y)
 			outlineScale.Scale = squash
-			showCue = cue ~= nil and mode == "Touch"
-			cueRing.Visible = showCue
-			for i, d in cueDots do
-				d.Visible = showCue
-				if cue and showCue then
-					local u = i / (#cueDots + 1)
-					place(d, cue[1] + (cue[3] - cue[1]) * u, cue[2] + (cue[4] - cue[2]) * u)
-				end
-			end
-			if cue and showCue then
-				place(cueRing, cue[3], cue[4])
+			local line = cueAt
+			showCue = line ~= nil and mode == "Touch"
+			cue.Visible = showCue
+			if line and showCue then
+				local dx, dy = line[3] - line[1], line[4] - line[2]
+				local length = math.sqrt(dx * dx + dy * dy)
+				place(cue, (line[1] + line[3]) / 2, (line[2] + line[4]) / 2)
+				cue.Size = UDim2.fromOffset(length, G.ghostCueHead * 2)
+				cue.Rotation = math.deg(math.atan2(dy, dx))
+				shaft.Size =
+					UDim2.fromOffset(math.max(0, length - G.ghostCueHead + 2), G.ghostCueWidth)
 			end
 			local f = face
 			if f then

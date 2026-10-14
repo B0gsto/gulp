@@ -146,7 +146,7 @@ Seven prompt types cover the whole FTUE. Each has a glyph set per input type. Ga
 
 | Prompt | Asset | What it looks like | Phone | PC | Gamepad [L] |
 |---|---|---|---|---|---|
-| Ghost thumb | `UI_Guide_GhostThumb` | A see-through thumbprint presses at lower centre and drags toward the target, looping every 1.6 s | Thumbprint | Mouse glyph plus a W key cap, with the arrow-key glyph `UI_Hint_KeyArrows` beside W: the arrow keys steer, for laptops with a trackpad and no mouse (chapter 15, section 3.3) | Left-stick glyph |
+| Ghost thumb | `UI_Guide_GhostThumb` | A white thumbprint presses at lower centre and drags toward the target, looping every 1.6 s | Thumbprint | Mouse glyph plus a W key cap, with the arrow-key glyph `UI_Hint_KeyArrows` beside W: the arrow keys steer, for laptops with a trackpad and no mouse (chapter 15, section 3.3) | Left-stick glyph |
 | Food outline | Canon green outline | Always on (canon 5.2). During the FTUE it is 30% thicker **(tune)**. | Same | Same | Same |
 | Food trail | Plankton motes | Edible motes every 4 studs. Following the trail is eating. | Same | Same | Same |
 | Pips | `UI_Hud_TraitPips` | Five empty dots around trait slot 1; each fills with a pop | Same | Same | Same |

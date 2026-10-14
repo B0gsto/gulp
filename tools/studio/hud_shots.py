@@ -7,7 +7,8 @@ Under the machine-wide `studio` lock and one `heavy` slot, like tools/studio/lig
 open it, start play and wait for the local creature. On the client, Dev/HudHarness lays the interface out for a
 simulated phone (844 x 390 px, 47 px notch insets, drawn at the top left of the viewport and cropped) and for the
 real Studio viewport (a desktop), poses the HUD (drag ring, dash cooldown, mass pops, off-screen home) and opens
-S11 and S12. Writes build/hud/: each capture downscaled to 768 px and hud-grid.png (one contact sheet).
+S11 and S12. Writes build/hud/: each capture downscaled to 768 px (and at full size as <name>-full.png) and
+hud-grid.png (one contact sheet).
 `--set cove` (task S5-C4) shoots S12 after a bank (specimen card; a tier 1 run on the phone) and S14 (Pearls,
 income, slots, Claim all, the Pearl pile) on both devices into build/hud/cove-grid.png.
 `--set guide` (task S6-C4) shoots the guide kit S33 (docs/08 section 7: all nine parts and chapter 04's ghost thumb,
@@ -44,6 +45,8 @@ def capture(sm, name, crop=None):
         vw = float(vp.split()[0])
         k = img.width / vw
         img = img.crop((0, 0, int(crop[0] * k), int(crop[1] * k)))
+    # The full-size capture too, for detail crops (build/hud/<name>-full.png).
+    img.save(os.path.join(OUT, name + "-full.png"))
     img.thumbnail((768, 768))
     path = os.path.join(OUT, name + ".png")
     img.save(path)

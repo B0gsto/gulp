@@ -169,6 +169,9 @@ local bubble: { key: TextKey?, args: { [any]: any }?, target: Target?, hint: Act
 local tickState: { started: number, stay: boolean }? = nil
 local trailState: { origin: Vector3, target: Vector3 }? = nil
 local ghostState: { target: Target, long: boolean, started: number }? = nil
+-- The dash button swelling with the dash pulse (Hud/Dash reads the attribute).
+local DASH_SWELL = "GuideSwell"
+local swollen: GuiObject? = nil
 local homeOn = false
 local dashOn = false
 local dangerAt: Vector3? = nil
@@ -406,7 +409,8 @@ local function build()
 			10,
 			"Guide.DashPulse",
 			Theme.WHITE,
-			"UI_Common_RingPulse"
+			"UI_Common_RingPulse",
+			G.dashRingBand
 		),
 		ghost = GuideParts.ghost(canvas, 20),
 		hand = GuideParts.hand(canvas, 30),
@@ -592,15 +596,27 @@ local function step(dt: number)
 	b.homeRing.fade(fh.alpha * glow)
 	b.homeTag.fade(fh.alpha)
 
-	-- Dash pulse (04 §3.2): swells to 1.3x and back twice a second; DASH! above.
+	-- Dash pulse (04 §3.2): the button and the ring swell to 1.3x and back twice a second; DASH!
+	-- above. The button swells itself on its `GuideSwell` attribute (Hud/Dash).
 	local dash = if dashOn then resolve(Guide.hud("HUD.Dash")) else nil
 	local fp = fade("dash")
 	fp.want = dash ~= nil
 	approach(fp, dt)
+	local dashObject = if dash then findHud("HUD.Dash") else nil
+	if swollen and swollen ~= dashObject then
+		swollen:SetAttribute(DASH_SWELL, nil)
+		swollen = nil
+	end
 	if dash then
 		local swell = if lessMotion
 			then 1
 			else 1 + (G.dashPulse - 1) * (0.5 - 0.5 * math.cos(2 * math.pi * G.dashPulseHz * t))
+		if dashObject and not suppressed then
+			dashObject:SetAttribute(DASH_SWELL, swell)
+			swollen = dashObject
+		elseif dashObject then
+			dashObject:SetAttribute(DASH_SWELL, nil)
+		end
 		b.dashRing.set(HudLayout.dashRing(dash.rect, zoom), swell, zoom)
 		b.dashTag.setScale(zoom)
 		local w = math.max(b.dashTag.size(scale), 48)
@@ -684,10 +700,11 @@ local function step(dt: number)
 		local tx, ty = centre(aim.rect)
 		local p = t - pointer.started
 		local gesture = pointer.gesture
-		-- Tap and hold press the target's lower right, so it and the hold ring stay in sight.
+		-- Tap and hold press the target's lower right (a hold further out), so it stays in sight;
+		-- the hold ring fills round the target, over the hand.
 		local fx, fy = tx, ty
 		if gesture ~= "drag" then
-			fx, fy = HudLayout.handPoint(aim.rect)
+			fx, fy = HudLayout.handPoint(aim.rect, gesture == "hold")
 		end
 		if gesture == "tap" then
 			local cycle = G.tapDown + G.tapUp + G.tapPause
@@ -702,7 +719,7 @@ local function step(dt: number)
 			local cycle = hold + G.tapUp + G.tapPause
 			local u = p % cycle
 			if u < hold then
-				b.hand.set(fx, fy, true, u / hold, nil, tx, ty)
+				b.hand.set(fx, fy, true, u / hold, nil, HudLayout.holdRing(aim.rect), 1)
 			else
 				local lift = 14 * math.min(1, (u - hold) / G.tapUp)
 				b.hand.set(fx, fy - lift, false, nil, nil)
@@ -777,6 +794,7 @@ local function step(dt: number)
 				else math.max(0, 1 - (u - 0.7) / 0.1)
 			local out = if u < 0.8 then 1 else math.max(0, 1 - (u - 0.8) / 0.12)
 			ghostAlpha = G.ghostOpacity * out
+			local tipX, tipY = HudLayout.ghostCueTip(content, sx, sy, ex, ey)
 			b.ghost.set(
 				sx + (ex - sx) * e,
 				sy + (ey - sy) * e,
@@ -784,7 +802,7 @@ local function step(dt: number)
 				nx,
 				ny,
 				1,
-				{ sx, sy, ex, ey }
+				{ sx, sy, tipX, tipY }
 			)
 			pointerRect = HudLayout.ghostRect(sx, sy)
 		else
@@ -874,6 +892,7 @@ local function step(dt: number)
 	local fcv = fade("curved")
 	local curvedAt: { number }? = nil
 	if bubble.key then
+		b.bubble.setScale(zoom)
 		local w, h = b.bubble.size(scale)
 		local size = { width = math.max(w, 1), height = math.max(h, 1) }
 		local at = resolve(bubble.target)
@@ -911,8 +930,14 @@ local function step(dt: number)
 	if tk then
 		local u = math.clamp((t - tk.started) / G.tickTime, 0, 1)
 		local on = bubbleRect
-			or HudLayout.momentSlot(content, { width = G.tick * 2, height = G.tick })
-		b.tick.set(HudLayout.guideTick(on), u)
+			or HudLayout.momentSlot(content, { width = G.tick * 2 * zoom, height = G.tick * zoom })
+		-- On a top corner of the bubble, off its text, the curved arrow, the HUD and the keep-clear box.
+		local away: { Rect } = table.clone(avoid)
+		table.insert(away, HudLayout.keepClear(content))
+		if curvedAt then
+			table.insert(away, HudLayout.curvedRect(curvedAt[1], curvedAt[2]))
+		end
+		b.tick.set(HudLayout.guideTick(on, zoom, content, away), u)
 		if u >= 1 and not tk.stay then
 			tickState = nil
 			Guide.clear()

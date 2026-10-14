@@ -52,8 +52,8 @@ local function centred(x: number, y: number, w: number, h: number): Rect
 end
 
 local g = HudLayout.GUIDE
--- The tallest bubble: two lines of Body 24 and its padding.
-local BUBBLE_MAX = g.bubbleLines * g.bubbleLine + 2 * g.bubblePad
+-- The tallest bubble: two lines of Body 24, its padding and its outline.
+local BUBBLE_MAX = g.bubbleLines * g.bubbleLine + g.bubblePad + 2 * HudLayout.bubbleFrame()
 
 describe("Guide kit layout on every screen class (docs/08 section 7)", function()
 	for name, layout in SCREENS do
@@ -103,10 +103,14 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 					local x, y = HudLayout.guideArrow(target, content, hud, k)
 					local avoid = table.clone(hud)
 					table.insert(avoid, HudLayout.arrowRect(x, y, k))
+					-- The bubble draws k times its size on desktop (08 §7).
 					for _, size in
 						{
-							{ width = 260, height = g.hint + 2 * g.bubblePad },
-							{ width = 420, height = BUBBLE_MAX },
+							{
+								width = 260 * k,
+								height = (g.hint + g.bubblePad) * k + 2 * HudLayout.bubbleFrame(k),
+							},
+							{ width = 420 * k, height = BUBBLE_MAX * k },
 						}
 					do
 						local place = HudLayout.guideBubble(size, target, content, avoid)
@@ -142,7 +146,7 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 		it(
 			`{name}: the creature's bubble uses the moment slot, above the keep-clear box`,
 			function()
-				local size = { width = g.bubbleMaxWidth, height = BUBBLE_MAX }
+				local size = { width = g.bubbleMaxWidth * k, height = BUBBLE_MAX * k }
 				local place = HudLayout.guideBubble(size, nil, content, hud)
 				expect(place.side).toBe("slot")
 				expect(place.curved).toBe(false)
@@ -152,8 +156,38 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 				for _, k in layout.keepOut do
 					expect(HudLayout.overlaps(place.rect, k)).toBe(false)
 				end
-				local tick = HudLayout.guideTick(place.rect)
+				local tick = HudLayout.guideTick(place.rect, k, content)
 				expect(HudLayout.overlaps(tick, rects.keepClear)).toBe(false)
+			end
+		)
+
+		it(
+			`{name}: the step tick sits on the bubble's edge, off its text, the curved arrow and the HUD`,
+			function()
+				local bubbleSize = { width = 260 * k, height = BUBBLE_MAX * k }
+				for _, target in targets do
+					local place = HudLayout.guideBubble(bubbleSize, target, content, hud)
+					local slot = HudLayout.momentSlot(content, bubbleSize)
+					for i, rect in { place.rect, slot } do
+						local away = table.clone(hud)
+						table.insert(away, rects.keepClear)
+						-- The curved arrow shows only for a bubble away from its target.
+						if i == 2 or place.curved then
+							local cx, cy = HudLayout.guideCurved(rect, target, content)
+							table.insert(away, HudLayout.curvedRect(cx, cy))
+						end
+						local tick = HudLayout.guideTick(rect, k, content, away)
+						expect(tick.width).toBeCloseTo(g.tick * k)
+						local text = HudLayout.bubbleTextRect(rect, k)
+						expect(HudLayout.overlaps(tick, text)).toBe(false)
+						for _, r in away do
+							expect(HudLayout.overlaps(tick, r)).toBe(false)
+						end
+						expect(inside(tick, area)).toBe(true)
+						-- On a corner: it still touches the bubble.
+						expect(HudLayout.overlaps(tick, rect)).toBe(true)
+					end
+				end
 			end
 		)
 
@@ -199,9 +233,9 @@ describe("Guide kit layout on every screen class (docs/08 section 7)", function(
 					width = traits.row.width,
 					height = traits.row.y + traits.row.height - pips.y,
 				})
-				local w, h = 232 * k, g.hint * k
+				local w, h = g.ghostKeysWidth * k, g.hint * k
 				local x, y = HudLayout.ghostKeys(content, w, h, avoid)
-				local rect = HudLayout.ghostRect(x, y, 232, k)
+				local rect = HudLayout.ghostRect(x, y, g.ghostKeysWidth, k)
 				expect(rect.height).toBe(g.hint * k)
 				expect(inside(rect, area)).toBe(true)
 				expect(HudLayout.overlaps(rect, rects.keepClear)).toBe(false)
@@ -370,7 +404,7 @@ describe("Guide kit sizes and rules (docs/08 sections 1.5 and 7)", function()
 		end
 	end)
 
-	it("draws the guide 1.4x on desktop only, the bubble text excepted", function()
+	it("draws the guide 1.4x on desktop only, the bubble and its text too", function()
 		expect(HudLayout.guideScale("Desktop")).toBe(1.4)
 		for _, class in { "Phone", "Tablet", "Handheld", "TV" } :: { HudLayout.ScreenClass } do
 			expect(HudLayout.guideScale(class)).toBe(1)
@@ -379,6 +413,47 @@ describe("Guide kit sizes and rules (docs/08 sections 1.5 and 7)", function()
 		expect(r.width).toBeCloseTo((g.arrow + 2 * g.bob) * 1.4)
 		local dash = { x = 0, y = 0, width = 80, height = 96 }
 		expect(HudLayout.dashRing(dash, 1.4).x).toBeCloseTo(-g.dashRingPad * 1.4)
+		local tick = HudLayout.guideTick({ x = 100, y = 100, width = 300, height = 100 }, 1.4)
+		expect(tick.width).toBeCloseTo(g.tick * 1.4)
+	end)
+
+	it("reaches 64 px hints, key caps and bubble text over 24 px on a 1080p desktop", function()
+		local layout = SCREENS["desktop 1920 x 1080"]
+		expect(layout.screenClass).toBe("Desktop")
+		expect(layout.scale).toBeCloseTo(0.9)
+		local k = HudLayout.guideScale(layout.screenClass)
+		-- G8: the 64 rpx hint (the key caps and the ghost key row) at the desktop factor.
+		expect(g.hint * k * layout.scale >= 64).toBe(true)
+		-- The bubble's Body 24 scales with it.
+		expect(g.bubbleText * k * layout.scale >= 24).toBe(true)
+		-- The ghost key row: every cap 56 of the 64, the four arrows in a row.
+		expect(g.ghostKeysWidth).toBe(64 + 8 + 56 + 8 + 4 * 56 + 3 * 4)
+	end)
+
+	it("fills the hold ring round the target, the hand pressing further out", function()
+		local dash = { x = 100, y = 100, width = 136, height = 136 }
+		local ring = HudLayout.holdRing(dash)
+		expect(ring.width).toBe(136 + 2 * g.holdRingPad)
+		expect(inside(dash, ring)).toBe(true)
+		local x, y = HudLayout.handPoint(dash, true)
+		expect(x).toBe(168 + g.holdOffset)
+		expect(y).toBe(168 + g.holdOffset)
+		-- The fingertip stays on the round button.
+		expect(math.sqrt(2) * g.holdOffset < 68).toBe(true)
+		expect(g.holdHandOpacity < 1).toBe(true)
+	end)
+
+	it("points the ghost thumb's drag cue past the thumb at the drag's end", function()
+		local content = { width = 1280, height = 720 }
+		local x, y = 640, 600
+		local ex, ey = HudLayout.ghostDrag(content, x, y, -math.pi / 2)
+		local tx, ty = HudLayout.ghostCueTip(content, x, y, ex, ey)
+		expect(tx).toBeCloseTo(640)
+		expect(ty).toBeCloseTo(600 - g.ghostDrag - g.ghost / 2 - g.ghostCueReach)
+		-- Clear of the thumb where the drag ends.
+		local thumb = HudLayout.ghostRect(ex, ey)
+		expect(ty < thumb.y).toBe(true)
+		expect(g.ghostOpacity >= 0.9 and g.ghost >= 144).toBe(true)
 	end)
 
 	it("presses a tap or hold target at its lower right, inside it", function()
@@ -386,8 +461,6 @@ describe("Guide kit sizes and rules (docs/08 sections 1.5 and 7)", function()
 		local x, y = HudLayout.handPoint(dash)
 		expect(x).toBe(168 + g.handOffset)
 		expect(y).toBe(168 + g.handOffset)
-		-- Off the hold ring's centre by more than its radius: the fill stays in sight.
-		expect(math.sqrt(2) * g.handOffset > g.holdRing / 2).toBe(true)
 		local bar = { x = 0, y = 0, width = 440, height = 40 }
 		local bx, by = HudLayout.handPoint(bar)
 		expect(bx).toBe(220 + g.handOffset)

@@ -483,7 +483,8 @@ local function guideCheck(): string
 		"GhostKeys",
 		"Chip",
 		"UI_HUD_DangerEdge",
-		"CueRing",
+		"CueArrow",
+		"HoldRing",
 		"Rim",
 	}
 	for _, d in canvas:GetDescendants() do

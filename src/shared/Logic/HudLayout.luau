@@ -518,14 +518,20 @@ HudLayout.GUIDE = table.freeze({
 	curved = 128,
 	-- G3 hand and its loops (seconds).
 	hand = 112,
-	-- The hand presses the lower right of a tap or hold target (UI review 1), so the button and
-	-- its hold ring stay in sight: its fingertip sits this far right and down of the centre.
+	-- The hand presses the lower right of a tap target (UI review 1), so the button stays in
+	-- sight: its fingertip sits this far right and down of the centre. A hold presses further out
+	-- (UI review 2) and the hand shows at 60% while it is down, so the button reads through it.
 	handOffset = 28,
+	holdOffset = 44,
+	holdHandOpacity = 0.6,
 	tapDown = 0.12,
 	tapUp = 0.38,
 	tapPause = 0.5,
 	dragTime = 0.8,
-	holdRing = 72,
+	-- The hold ring fills round the target, 20 rpx outside it and 12 thick, over the hand
+	-- (UI review 2: a ring under the fingertip was hidden by the hand).
+	holdRingPad = 20,
+	holdRingWidth = 12,
 	-- G4 trail: a dot every 12 studs, at most 12; chevrons flow at two dots a second, one per
 	-- four dots; a dot fades out over the 3 studs after the creature passes it.
 	trailDot = 48,
@@ -557,6 +563,10 @@ HudLayout.GUIDE = table.freeze({
 	-- The bubble reads on bright scenes (UI review 1): a 4.5 rpx navy outline and a hard shadow
 	-- 7 rpx down at 50%.
 	bubbleStroke = 4.5,
+	-- And outside it a 6 rpx white band with a 2 rpx navy edge (UI review 2), so it reads on dark
+	-- water too; the tail is white like the band.
+	bubbleOutline = 6,
+	bubbleEdge = 2,
 	bubbleShadow = 7,
 	bubbleShadowTransparency = 0.5,
 	bubbleGap = 16,
@@ -569,6 +579,9 @@ HudLayout.GUIDE = table.freeze({
 	hintGap = 8,
 	tick = 64,
 	tickTime = 0.4,
+	-- The tick sits on a top corner of the bubble, outside it but for this share of its size, so
+	-- it stays in the bubble's padding, off the text (UI review 2).
+	tickInset = 0.25,
 	-- 08 §7 rules: in within 200 ms, out within 100 ms, a replay after 6 s with no input, and a
 	-- 0.5 Hz fade instead of bobbing and pulsing with Less motion.
 	appear = 0.2,
@@ -576,23 +589,31 @@ HudLayout.GUIDE = table.freeze({
 	idle = 6,
 	bounce = 0.4,
 	lessMotionHz = 0.5,
-	-- 04 §3.2 ghost thumb (08 §7): 112 rpx at 45%, an 84 rpx drag (the drag ring's reach; 128 for
-	-- the replay), every 1.6 s.
-	ghost = 112,
-	ghostOpacity = 0.45,
+	-- 04 §3.2 ghost thumb (08 §7): a bright white thumbprint 144 rpx at 90% (UI review 2: 112 at
+	-- 45% went grey on the sand), an 84 rpx drag (the drag ring's reach; 128 for the replay),
+	-- every 1.6 s.
+	ghost = 144,
+	ghostOpacity = 0.9,
 	ghostDrag = 84,
 	ghostDragLong = 128,
 	ghostLoop = 1.6,
-	-- Its navy rim and soft shadow, and the drag cue (dots from the press point to a ring where
-	-- the drag ends), show at 80% so the see-through pad reads on sky and sand (UI review 1).
-	ghostRimOpacity = 0.8,
-	ghostCueDots = 5,
-	ghostCueDot = 14,
-	ghostCueRing = 48,
-	-- 04 §3.2 dash pulse: a white ring 8 rpx outside the button swells to 1.3x twice a second.
+	-- Its 5 rpx navy rim and soft shadow, and the drag cue: a white arrow with a navy edge from
+	-- the press point to 24 rpx past the thumb's far edge at the drag's end, a 16 rpx shaft and a
+	-- head 28 deep and 56 wide, so the direction reads while the thumb still sits on its start.
+	ghostRim = 5,
+	ghostRimOpacity = 0.9,
+	ghostCueWidth = 16,
+	ghostCueHead = 28,
+	ghostCueReach = 24,
+	-- The key row (04 §3.2): the mouse (64), the W cap and the four arrow caps (56 each, 4 apart)
+	-- in one row 64 tall, 8 between the groups (UI review 2: the arrows were too small to read).
+	ghostKeysWidth = 64 + 8 + 56 + 8 + 4 * 56 + 3 * 4,
+	-- 04 §3.2 dash pulse: the button and a white ring 8 rpx outside it (a 10 rpx band) swell to
+	-- 1.3x and back twice a second.
 	dashPulse = 1.3,
 	dashPulseHz = 2,
 	dashRingPad = 8,
+	dashRingBand = 10,
 	-- 04 §3.3 HOME and DASH! chips.
 	tagHeight = 32,
 	tagText = 22,
@@ -605,13 +626,13 @@ HudLayout.GUIDE = table.freeze({
 	dangerFade = 0.5,
 	-- The edge leaves a gap round the home marker (16 rpx clear), its ends fading over 48 rpx.
 	dangerSoftEnd = 48,
-	-- Desktop draws the pointer, rings, chips and the ghost key row 1.4x (tune): the desktop scale
-	-- (deviceFactor 0.6, 08 §1.2) left them small in a window (UI review 1). Bubble text stays
-	-- Body 24 on every screen.
+	-- Desktop draws the pointer, rings, chips, the ghost key row, and the bubble with its picture
+	-- and tick 1.4x (tune): the desktop scale (deviceFactor 0.6, 08 §1.2) left them small in a
+	-- window (UI reviews 1 and 2). The bubble's text is Body 24 inside the bubble's own size.
 	desktop = 1.4,
 })
 
---- The size factor of the guide's pointer, rings, chips and ghost key row on `screenClass`.
+--- The size factor of the guide's pointer, rings, chips, ghost key row and bubble on `screenClass`.
 function HudLayout.guideScale(screenClass: ScreenClass): number
 	return if screenClass == "Desktop" then HudLayout.GUIDE.desktop else 1
 end
@@ -927,10 +948,56 @@ function HudLayout.curvedRect(x: number, y: number): Rect
 	return centredRect(x, y, s, s)
 end
 
---- G9: the step tick on the bubble's top right corner.
-function HudLayout.guideTick(bubble: Rect): Rect
-	local s = HudLayout.GUIDE.tick
-	return centredRect(bubble.x + bubble.width - s / 4, bubble.y + s / 4, s, s)
+--- How far a bubble's outline reaches past its panel (`k` times on desktop): the navy stroke, the
+--- white band and its navy edge. A bubble's rect in this module is the whole of it.
+function HudLayout.bubbleFrame(k: number?): number
+	local g = HudLayout.GUIDE
+	return (g.bubbleStroke + g.bubbleOutline + g.bubbleEdge) * (k or 1)
+end
+
+--- The rect a bubble's text can take: inside its outline and padding (16 rpx at the sides, 8
+--- above and below, all `k` times on desktop).
+function HudLayout.bubbleTextRect(bubble: Rect, k: number?): Rect
+	local g = HudLayout.GUIDE
+	local f = k or 1
+	local side = HudLayout.bubbleFrame(f) + g.bubblePad * f
+	local top = HudLayout.bubbleFrame(f) + g.bubblePad / 2 * f
+	return {
+		x = bubble.x + side,
+		y = bubble.y + top,
+		width = math.max(0, bubble.width - 2 * side),
+		height = math.max(0, bubble.height - 2 * top),
+	}
+end
+
+--- G9: the step tick (`k` times its size) on the bubble's top right corner, outside it but for
+--- `tickInset` of its size, so it stays in the outline, off the text. The top left corner when the
+--- right one leaves the content box or comes within 8 rpx of an `avoid` rect (the curved arrow,
+--- the HUD, the keep-clear box), then the bottom corners, then the middle of either end.
+function HudLayout.guideTick(bubble: Rect, k: number?, content: Size?, avoid: { Rect }?): Rect
+	local g = HudLayout.GUIDE
+	local s = g.tick * (k or 1)
+	local inset = s * g.tickInset
+	local top = bubble.y + inset - s
+	local bottom = bubble.y + bubble.height - inset
+	local middle = bubble.y + (bubble.height - s) / 2
+	local right = bubble.x + bubble.width - inset
+	local left = bubble.x + inset - s
+	local candidates = {
+		{ x = right, y = top, width = s, height = s },
+		{ x = left, y = top, width = s, height = s },
+		{ x = right, y = bottom, width = s, height = s },
+		{ x = left, y = bottom, width = s, height = s },
+		{ x = right, y = middle, width = s, height = s },
+		{ x = left, y = middle, width = s, height = s },
+	}
+	for _, rect in candidates do
+		local fits = content == nil or within(rect, box(content :: Size))
+		if fits and clearOf(rect, avoid or {}, g.hintGap) then
+			return rect
+		end
+	end
+	return candidates[1]
 end
 
 --- 04 §3.2 ghost thumb: the press point at lower centre, halfway between the keep-clear box and
@@ -959,6 +1026,27 @@ function HudLayout.ghostDrag(
 	ex = math.clamp(ex, half, math.max(half, content.width - half))
 	ey = math.clamp(ey, half, math.max(half, content.height - half))
 	return ex, ey
+end
+
+--- 04 §3.2 the ghost thumb's drag cue: the tip of its arrow, from the press point (x, y) past the
+--- drag's end (ex, ey) by half the thumb and `ghostCueReach`, kept in the content box.
+function HudLayout.ghostCueTip(
+	content: Size,
+	x: number,
+	y: number,
+	ex: number,
+	ey: number
+): (number, number)
+	local g = HudLayout.GUIDE
+	local dx, dy = ex - x, ey - y
+	local length = math.sqrt(dx * dx + dy * dy)
+	if length < 1e-6 then
+		return ex, ey
+	end
+	local reach = g.ghost / 2 + g.ghostCueReach
+	local tx = ex + dx / length * reach
+	local ty = ey + dy / length * reach
+	return math.clamp(tx, 0, content.width), math.clamp(ty, 0, content.height)
 end
 
 --- The rect of the ghost thumb (touch) or of its key row (keys: `width` x 64, both `k` times)
@@ -1003,9 +1091,10 @@ function HudLayout.ghostKeys(
 end
 
 --- G3 tap and hold: where the fingertip presses `target`, right of and below its centre (by
---- `handOffset`, held inside the target), so the target and its hold ring stay in sight.
-function HudLayout.handPoint(target: Rect): (number, number)
-	local o = HudLayout.GUIDE.handOffset
+--- `handOffset`, `holdOffset` for a hold; held inside the target), so the target stays in sight.
+function HudLayout.handPoint(target: Rect, hold: boolean?): (number, number)
+	local g = HudLayout.GUIDE
+	local o = if hold then g.holdOffset else g.handOffset
 	local cx, cy = target.x + target.width / 2, target.y + target.height / 2
 	local dx = math.min(o, target.width / 2)
 	local dy = math.min(o, target.height / 2)
@@ -1045,6 +1134,14 @@ function HudLayout.homeTag(
 	local r = first :: Rect -- safe: set on the first pass
 	r.y = math.clamp(r.y, 0, math.max(0, content.height - height))
 	return r
+end
+
+--- G3 hold: the ring that fills round `target` while the hand is down, a circle `holdRingPad`
+--- (`k` times) outside the target's larger side.
+function HudLayout.holdRing(target: Rect, k: number?): Rect
+	local g = HudLayout.GUIDE
+	local side = math.max(target.width, target.height) + 2 * g.holdRingPad * (k or 1)
+	return centredRect(target.x + target.width / 2, target.y + target.height / 2, side, side)
 end
 
 --- 04 §3.2 dash pulse: the white ring round the dash button or tile (`k` times further out).

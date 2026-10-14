@@ -271,38 +271,34 @@ function GuideHints.mouse(parent: Instance, kind: "move" | "left" | "right", z: 
 	return holder
 end
 
---- `UI_Hint_KeyArrows` (72 x 48 in 08 §13.12, drawn here at 96 x 64): the four arrow keys.
+GuideHints.ARROWS_GAP = 4
+-- The four arrow caps in a row: ← ↑ ↓ → (UI review 2: an inverted T in 64 rpx drew 28 rpx caps).
+GuideHints.ARROWS = 4 * GuideHints.CAP + 3 * GuideHints.ARROWS_GAP
+
+--- `UI_Hint_KeyArrows` (08 §13.12, 236 x 64): the four arrow keys as full key caps in a row, each
+--- with a bold navy arrow, the same cream face and navy lip as the other caps.
 function GuideHints.arrows(parent: Instance, z: number?): Frame
 	local zi = z or 4
-	local holder = Draw.new(
-		"Frame",
-		{ Name = "Arrows", Size = UDim2.fromOffset(96, 64), ZIndex = zi, Parent = parent }
-	) :: Frame
-	local cap = 28
-	local spots = {
-		{ 48, 15, -90 },
-		{ 16, 47, 180 },
-		{ 48, 47, 90 },
-		{ 80, 47, 0 },
-	}
-	for _, s in spots do
-		local key = Draw.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset(s[1], s[2]),
-			Size = UDim2.fromOffset(cap, cap),
-			BackgroundColor3 = Theme.PANEL,
-			BackgroundTransparency = 0,
-			ZIndex = zi,
-			Parent = holder,
-		}, { Draw.corner(6), Draw.stroke(Theme.STROKE_CHIP * 0.75) }) :: Frame
+	local holder = Draw.new("Frame", {
+		Name = "Arrows",
+		Size = UDim2.fromOffset(GuideHints.ARROWS, 64),
+		ZIndex = zi,
+		Parent = parent,
+	}) :: Frame
+	for i, rotation in { 180, -90, 90, 0 } do
+		local cap, face = GuideHints.keyCap(holder, "", nil, zi)
+		cap.Name = "ArrowKey"
+		cap.Position = UDim2.fromOffset((i - 1) * (GuideHints.CAP + GuideHints.ARROWS_GAP), 2)
 		local turn = Draw.new("Frame", {
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromOffset(0, 0),
-			Rotation = s[3],
-			ZIndex = zi + 1,
-			Parent = key,
+			Rotation = rotation,
+			ZIndex = zi + 2,
+			Parent = face,
 		})
-		GuideHints.triangle(turn, 6, Theme.INK, UDim2.fromOffset(1, 0), zi + 1)
+		-- Drawn pointing right: a shaft and a head, 28 rpx end to end.
+		bar(turn, 18, 8, -4, 0, 0, Theme.INK, zi + 2)
+		GuideHints.triangle(turn, 12, Theme.INK, UDim2.fromOffset(8, 0), zi + 2)
 	end
 	Draw.slot("UI_Hint_KeyArrows", holder, zi + 3)
 	return holder
@@ -403,7 +399,8 @@ function GuideHints.hand(parent: Instance, size: number, z: number?): Frame
 	return holder
 end
 
---- `UI_Guide_GhostThumb` (04 §3.2): a see-through thumbprint, `size` rpx, centred on its point.
+--- `UI_Guide_GhostThumb` (04 §3.2): a bright white thumbprint, `size` rpx, centred on its point
+--- (the prompt draws it at 90%).
 function GuideHints.thumbprint(parent: Instance, size: number, z: number?): Frame
 	local zi = z or 4
 	local holder = Draw.new("Frame", {
@@ -419,7 +416,7 @@ function GuideHints.thumbprint(parent: Instance, size: number, z: number?): Fram
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(size * 0.7, size * 0.9),
 		BackgroundColor3 = Theme.WHITE,
-		BackgroundTransparency = 0.15,
+		BackgroundTransparency = 0,
 		ZIndex = zi,
 		Parent = holder,
 	}, { Draw.corner(), Draw.stroke(Theme.STROKE_ICON) }) :: Frame
@@ -497,12 +494,12 @@ end
 
 export type GhostRow = { root: Frame, width: number, face: Frame, mouse: Frame }
 
---- 04 §3.2 ghost thumb with keys: the mouse with move arrows, a W key cap and the arrow keys in
---- one row 64 tall.
+--- 04 §3.2 ghost thumb with keys: the mouse with move arrows, a W key cap and the four arrow keys
+--- in one row 64 tall (`HudLayout.GUIDE.ghostKeysWidth` wide).
 function GuideHints.ghostRow(parent: Instance, z: number?): GhostRow
 	local zi = z or 4
 	local gap = GuideHints.ROW_GAP
-	local width = 64 + gap + GuideHints.CAP + gap + 96
+	local width = 64 + gap + GuideHints.CAP + gap + GuideHints.ARROWS
 	local root = Draw.new("Frame", {
 		Name = "GhostKeys",
 		AnchorPoint = Vector2.new(0.5, 0.5),
