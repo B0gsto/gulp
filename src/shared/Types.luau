@@ -109,7 +109,7 @@ export type ZoneDef = {
 	preyTierMin: number,
 	preyTierMax: number,
 	safe: boolean,
-	lightingPreset: string,
+	lightingPreset: string, -- chapter 06, section 10.2; the Drop-off's "upper" blends to "deep" by depth (10.3)
 }
 
 export type TideDef = {

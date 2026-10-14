@@ -961,6 +961,8 @@ All prices must be read at run time with `MarketplaceService:GetProductInfo`, ne
 
 ### 8.2 Game passes
 
+The **Grant** column uses chapter 09's vocabulary (section 3.2, `ProductDef.grant`): `flag` (a pass the server reads), `token` (one use kept on the profile), `pearls`, `pattern`, `decoration`, or `bundle` (several of these, listed in the cell).
+
 <!-- data:Passes -->
 Soft-launch slice (chapter 13, section 3.2): `pass_deep_pockets`, `pass_bigger_cove`.
 

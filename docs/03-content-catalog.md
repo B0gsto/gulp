@@ -359,7 +359,7 @@ Soft-launch slice (chapter 13, section 3.2): `barracuda`, `jelly_bloom`, `curren
 
 | ID | Tag | Name | Tier · eats | Zones | Count per server | Cruise / attack speed (studs/s) | Detect (studs) | Attack | Rest after attack (s) | Strike radius (studs) | Telegraph (s) | Give up after (s) | Mass when eaten | Effect | Magnitude | Effect time (s) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `gull` | [MVP] | Gull | 3 · eats tier 2 and lower | Sunlit Reef, surface only | Up to 3 dives at once | Dive 90 | A tier 1 or 2 creature within 6 studs of the surface for 2 s | Dives to depth 12; catch radius 5 | 8 | 5 | 1.5 | 0 | None | None | None | None |
+| `gull` | [MVP] | Gull | Acts as tier 3 · eats tiers 1 to 2 | Sunlit Reef, surface only | Up to 3 dives at once | Dive 90 | A tier 1 or 2 creature within 6 studs of the surface for 2 s | Dives to depth 12; catch radius 5 | 8 | 5 | 1.5 | 0 | None | None | None | None |
 | `moray` | [MVP] | Moray | 4 · eats tier 3 and lower | Kelp Forest, in 8 holes | 8 (one per hole) | Lunge 70 | 14 from the hole | Lunges 18 studs out, pulls back in 1.2 s | 6 | 2.76 | 0.6 | 1.2 | None | None | None | None |
 | `barracuda` | [MVP] | Barracuda | 4 · eats tier 3 and lower | Reef (east half), Kelp | 3 (1 Reef, 2 Kelp) | 18 / 36 | 45 | Straight-line chase for 6 s, turn rate 80°/s | 5 | 2.76 **(tune)** | 0.8 | 6 | 25 | None | None | None |
 | `grouper` | [L] | Grouper | 5 · eats tier 4 and lower | The Drop-off | 4 (6 during Whale Fall) | 12 / 12 | 32 | Suction cone 32 long, 60° wide, pulls at 22 studs/s for 2.5 s | 6 | 3.84 | 1 | 2.5 | 60 | None | None | None |

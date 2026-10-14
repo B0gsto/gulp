@@ -448,7 +448,8 @@ local function buildPredators(catalog: Tables, hazards: boolean, slice: boolean)
 	local wire = 0
 	for _, row in t.rows do
 		local tierCell = cell(t, row, "Tier · eats")
-		if (string.match(tierCell, "^%d") == nil) ~= hazards then
+		local isHazard = tierCell == "Hazard" or tierCell == "Helper"
+		if isHazard ~= hazards then
 			continue
 		end
 		wire += 1
@@ -477,7 +478,7 @@ local function buildPredators(catalog: Tables, hazards: boolean, slice: boolean)
 			for _, f in
 				{
 					field("tier", tiers[1]),
-					field("eatsMaxTier", tiers[2]),
+					field("eatsMaxTier", tiers[#tiers]), -- "eats tier 3 and lower", "eats tiers 1 to 2"
 					field("speed", speeds[#speeds]), -- the attack speed: the cell's last number
 					field("senseRadius", sense),
 					field("strikeRadius", firstNumber(t, row, "Strike radius (studs)")),
@@ -500,6 +501,9 @@ local function buildPredators(catalog: Tables, hazards: boolean, slice: boolean)
 	}
 end
 
+-- The zone's base preset comes first; the Drop-off's cell adds 06 §10.3's blend to "Drop-off, deep".
+local PRESET = "Lighting preset (chapter 06, section 10.2)"
+
 local function buildZones(canon: Tables, slice: boolean): Module
 	local t = get(canon, CANON, "Zones")
 	local rows = {}
@@ -515,7 +519,7 @@ local function buildZones(canon: Tables, slice: boolean): Module
 			field("safe", string.match(cell(t, row, "Danger"), "^None") ~= nil),
 			field(
 				"lightingPreset",
-				MarkdownTables.plain(cell(t, row, "Lighting preset (chapter 06, section 11)"))
+				string.match(MarkdownTables.plain(cell(t, row, PRESET)), "^[^;]+") :: string
 			),
 		})
 	end

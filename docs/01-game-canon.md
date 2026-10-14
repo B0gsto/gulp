@@ -143,12 +143,12 @@ One shared map per server: a disc of water with a radius of about 1,000 studs an
 <!-- data:Zones -->
 Soft-launch slice (chapter 13, section 3.2): `nursery`, `reef`, `kelp`, `cove`.
 
-| ID | Zone | Where | Prey tiers | Danger | Purpose | Tag | Lighting preset (chapter 06, section 11) |
+| ID | Zone | Where | Prey tiers | Danger | Purpose | Tag | Lighting preset (chapter 06, section 10.2) |
 |---|---|---|---|---|---|---|---|
 | `nursery` | **Nursery Lagoon** | Sheltered pool beside the reef | 0 to 1 | None. No player can be eaten here. | First two minutes for new players; safe start for every Fry | [MVP] | Nursery Lagoon |
 | `reef` | **Sunlit Reef** | Shallow centre, bright | 0 to 3 | Gulls at the surface, a Barracuda on the east side away from cove mouths | Early growth, common traits | [MVP] | Sunlit Reef |
 | `kelp` | **Kelp Forest** | West and north ring, dim green | 1 to 4 | Morays in holes, jelly blooms | Mid growth, uncommon traits, hiding places | [MVP] | Kelp Forest |
-| `dropoff` | **The Drop-off** | East and south wall into deep water, dark | 3 to 6 | Groupers, vents, Old Scar | Late growth, rare and epic traits, Whale Fall site | [MVP] | Drop-off, upper |
+| `dropoff` | **The Drop-off** | East and south wall into deep water, dark | 3 to 6 | Groupers, vents, Old Scar | Late growth, rare and epic traits, Whale Fall site | [MVP] | Drop-off, upper; blends to Drop-off, deep from 150 to 300 studs down (chapter 06, section 10.3) |
 | `trench` | **The Trench** | Below the Drop-off | 5 to 6 | Everything | Opens only during a tide event. [P2] | [P2] | The Trench |
 | `cove` | **Coves** | 24 cave mouths around the reef rim, one per player | None | None | Banking, specimens, visitors | [MVP] | Cove interior |
 
@@ -220,7 +220,7 @@ Eat five of the same trait prey in one run to gain that trait.
 
 | ID | Name | Tier | Where | Behaviour |
 |---|---|---|---|---|
-| `gull` | Gull | Eats tiers 1 to 2 | Reef surface | Shadow appears, then dives after 1.5 s |
+| `gull` | Gull | Acts as tier 3 (chapter 02, section 9.4); eats tiers 1 to 2 | Reef surface | Shadow appears, then dives after 1.5 s |
 | `moray` | Moray | 4 | Kelp holes | Lunges from a hole when a creature of tier 3 or lower passes |
 | `barracuda` | Barracuda | 4 | Reef edge, Kelp | Patrols, chases in straight lines, gives up after 6 s |
 | `grouper` | Grouper | 5 | Drop-off | Slow; sucks nearby smaller creatures toward its mouth |
