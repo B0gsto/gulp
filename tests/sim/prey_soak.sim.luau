@@ -11,6 +11,12 @@
 -- area to area across every zone; 6 dash across the map (3 s at dash speed, 2 s at cruise).
 -- Every swimmer bites the nearest edible prey within reach (tier ≤ its own, faded in), then
 -- spends that catch's seconds from 05 §2.2 before the next, through PreySim.clearMember and PreySpawner.onEaten, as PreyService.tryEat does.
+-- Newcomers. Four of the roamers are tier 2 newcomers on chapter 04's scripted route (04 §3.5)
+-- from a hatch point in the Nursery: Swarm A (6 krill) at 14 studs, a trail of 10 plankton motes
+-- every 4 studs from 20 to 56, Swarm B (14 krill) at 60 and 5 Glowfry at 90, all owned by that
+-- newcomer's slot (PreySpawner.spawnOwned) and respawning, so the 17 groups each stay for the whole
+-- run. A newcomer swims the route back and forth; only it may eat its prey, and only its packets
+-- carry them. The soak fails if a route is refused or the groups pass MAX_GROUPS.
 -- Frenzy. 02 §14.2 and §14.4: T+0 at FRENZY_AT, rules off 240 s later; PreySpawner.setTide("frenzy")
 -- (spawnRateMult 3 divides respawn delays; the frenzy tide doubles normal prey targets). Its
 -- eventPrey list is empty, so the soak adds the worst case 09 §8.1 leaves room for: Moon Tide's
@@ -72,6 +78,8 @@ local BITE_REACH = 10 -- studs from the swimmer to a group's centre
 local HUNT_RADIUS = 120 -- studs: packs chase prey this close to their anchor
 local LEASH_EPS = 0.05 -- studs of f32 slack on the leash check
 local EVENT_PREY = "lunar_fry"
+local NEWCOMERS = { 11, 12, 13, 14 } -- roamer slots that play the scripted route instead
+local ROUTE = { 0, 14, 38, 60, 90 } -- studs along +X from the hatch point: the route's stops
 -- 16.2 limits.
 local POP_LOW, POP_HIGH = 0.6, 1.6
 local PEAK_BYTES, AVG_BYTES = 9000, 4500
@@ -136,7 +144,8 @@ end
 -- Swimmers.
 
 type Swimmer = {
-	role: string, -- "pack", "roam", "dash"
+	role: string, -- "pack", "roam", "dash", "newcomer"
+	slot: number,
 	tier: number,
 	cruise: number,
 	dash: number,
@@ -153,6 +162,11 @@ type Swimmer = {
 	cycleAt: number,
 	biteAt: number,
 	bites: number,
+	stop: number, -- newcomer: index into ROUTE it swims to
+	step: number, -- newcomer: +1 or −1 along the route
+	hx: number, -- newcomer: hatch point
+	hy: number,
+	hz: number,
 }
 
 type Anchor = { x: number, y: number, z: number, tx: number, ty: number, tz: number, zone: string }
@@ -219,6 +233,11 @@ export type Result = {
 	finalGroups: number,
 	leashBreaks: number,
 	leashWorst: number, -- distance over the clamp, studs
+	-- Newcomers' scripted prey.
+	ownedRefused: number, -- route specs spawnOwned refused
+	ownedPeakGroups: number,
+	allPeakGroups: number, -- shared and owned
+	ownedBites: number,
 	-- Bytes.
 	maxPacket: number,
 	packets: number,
@@ -281,6 +300,7 @@ local function run(seed: number): Result
 		end
 		table.insert(swimmers, {
 			role = role,
+			slot = i,
 			tier = tier,
 			cruise = SwimModel.topSpeed(tier, species, 1),
 			dash = SwimModel.dashSpeed(tier, species, 1),
@@ -297,7 +317,18 @@ local function run(seed: number): Result
 			cycleAt = Rng.range(rng, 0, 5),
 			biteAt = 0,
 			bites = 0,
+			stop = 1,
+			step = 1,
+			hx = x,
+			hy = y,
+			hz = z,
 		})
+	end
+	for _, slot in NEWCOMERS do
+		local s = swimmers[slot]
+		local x, y, z = pointIn(rng, areaOf(rng, sp, "nursery"))
+		s.role, s.tier = "newcomer", 2
+		s.x, s.y, s.z, s.tx, s.ty, s.tz, s.hx, s.hy, s.hz = x, y, z, x, y, z, x, y, z
 	end
 	local px, py, pz = table.create(PLAYERS, 0), table.create(PLAYERS, 0), table.create(PLAYERS, 0)
 	local function syncPositions()
@@ -317,6 +348,44 @@ local function run(seed: number): Result
 	end
 	setPlayers()
 	PreySpawner.fill(sp, 0, px, py, pz, PLAYERS)
+	local ownedRefused = 0
+	for _, slot in NEWCOMERS do
+		local s = swimmers[slot]
+		local trail, glowfry = {}, {}
+		for k = 0, 9 do
+			table.insert(trail, { s.hx + 20 + 4 * k, s.hy, s.hz })
+		end
+		for k = 0, 4 do
+			table.insert(glowfry, { s.hx + 90, s.hy, s.hz + 3 * k - 6 })
+		end
+		local specs: { PreySpawner.OwnedSpec } = {
+			{
+				prey = "krill",
+				count = 6,
+				x = s.hx + 14,
+				y = s.hy,
+				z = s.hz,
+				spread = 3,
+				respawn = true,
+			},
+			{ prey = "plankton", points = trail, respawn = true },
+			{
+				prey = "krill",
+				count = 14,
+				x = s.hx + 60,
+				y = s.hy,
+				z = s.hz,
+				spread = 4,
+				respawn = true,
+			},
+			{ prey = "glowfry", points = glowfry, spread = 3, respawn = true },
+		}
+		for _, spec in specs do
+			if PreySpawner.spawnOwned(sp, slot, spec, 0) == nil then
+				ownedRefused += 1
+			end
+		end
+	end
 
 	local result: Result = {
 		ticks = TICKS,
@@ -338,6 +407,10 @@ local function run(seed: number): Result
 		finalGroups = 0,
 		leashBreaks = 0,
 		leashWorst = 0,
+		ownedRefused = ownedRefused,
+		ownedPeakGroups = 0,
+		allPeakGroups = 0,
+		ownedBites = 0,
 		maxPacket = 0,
 		packets = 0,
 		peakBytes = 0,
@@ -381,7 +454,13 @@ local function run(seed: number): Result
 		for k = 1, n do
 			local g = queryOut[k]
 			local def = Formation.defOf(buffer.readu8(b.kind, g))
-			if def == nil or def.tier > s.tier or not PreySpawner.edibleAt(sp, g, now) then
+			local own = PreySim.ownerOf(sim, g)
+			if
+				def == nil
+				or def.tier > s.tier
+				or not PreySpawner.edibleAt(sp, g, now)
+				or (own ~= 0 and own ~= s.slot)
+			then
 				continue
 			end
 			local o4 = g * 4
@@ -403,6 +482,9 @@ local function run(seed: number): Result
 				local below = s.tier - def.tier -- creature tier 2 eats krill (tier 1) as "one below"
 				local cost = (CATCH_SECONDS[def.id] or CATCH_OTHER)
 					* (if below <= 0 then 1.6 elseif below >= 2 then 0.8 else 1)
+				if PreySim.ownerOf(sim, best) ~= 0 then
+					result.ownedBites += 1
+				end
 				PreySpawner.onEaten(sp, best, now)
 				s.biteAt = now + cost
 				s.bites += 1
@@ -419,7 +501,8 @@ local function run(seed: number): Result
 		for k = 1, n do
 			local g = queryOut[k]
 			local def = Formation.defOf(buffer.readu8(b.kind, g))
-			if def == nil or def.tier > s.tier then
+			local own = PreySim.ownerOf(sim, g)
+			if def == nil or def.tier > s.tier or (own ~= 0 and own ~= s.slot) then
 				continue
 			end
 			local o4 = g * 4
@@ -459,6 +542,9 @@ local function run(seed: number): Result
 				else
 					s.tx, s.ty, s.tz = a.x + s.ox, a.y, a.z + s.oz
 				end
+			elseif s.role == "newcomer" then
+				-- Back and forth along the route, eating what it passes.
+				s.tx, s.ty, s.tz = s.hx + ROUTE[s.stop], s.hy, s.hz
 			elseif s.role == "roam" then
 				-- Area to area across the map, snapping at prey met on the way.
 				local g = nearestPrey(s, s.x, s.z, 25)
@@ -480,7 +566,12 @@ local function run(seed: number): Result
 			end
 			local arrived
 			s.x, s.y, s.z, arrived = moveToward(s.x, s.y, s.z, s.tx, s.ty, s.tz, speed * TICK)
-			if arrived and s.role ~= "pack" then
+			if arrived and s.role == "newcomer" then
+				if ROUTE[s.stop + s.step] == nil then
+					s.step = -s.step
+				end
+				s.stop += s.step
+			elseif arrived and s.role ~= "pack" then
 				s.tx, s.ty, s.tz = pointIn(rng, areaOf(rng, sp, nil))
 			end
 			tryBite(s, now)
@@ -509,7 +600,7 @@ local function run(seed: number): Result
 		moveSwimmers(now)
 		syncPositions()
 		for i, s in swimmers do
-			PreySim.setThreat(sim, i - 1, s.x, s.y, s.z, s.tier, PreySim.THREAT_PLAYER)
+			PreySim.setThreat(sim, i - 1, s.x, s.y, s.z, s.tier, PreySim.THREAT_PLAYER, i)
 		end
 		PreySim.setThreatCount(sim, PLAYERS)
 		local t0 = os.clock()
@@ -612,6 +703,9 @@ local function run(seed: number): Result
 				result.frenzyPeakGroups = math.max(result.frenzyPeakGroups, groups)
 			end
 			prevTarget = target
+			result.ownedPeakGroups =
+				math.max(result.ownedPeakGroups, select(2, PreySpawner.ownedLive(sp)))
+			result.allPeakGroups = math.max(result.allPeakGroups, sim.liveGroups)
 
 			for g = 0, PreySim.MAX_GROUPS - 1 do
 				if buffer.readu8(b.kind, g) == 0 then
@@ -730,6 +824,18 @@ row(
 )
 row("bites", tostring(r.bites), "", nil)
 row(
+	"scripted: refused / peak groups / bites",
+	string.format("%d / %d / %d", r.ownedRefused, r.ownedPeakGroups, r.ownedBites),
+	string.format("0 / %d / > 0", 17 * #NEWCOMERS),
+	r.ownedRefused == 0 and r.ownedBites > 0
+)
+row(
+	"all live groups, peak",
+	tostring(r.allPeakGroups),
+	string.format("≤ %d", PreySim.MAX_GROUPS),
+	r.allPeakGroups <= PreySim.MAX_GROUPS
+)
+row(
 	"packets / largest (B)",
 	string.format("%d / %d", r.packets, r.maxPacket),
 	string.format("≤ %d", PreyState.MAX_BYTES),
@@ -803,6 +909,16 @@ describe("prey_soak (09 §16.2)", function()
 		expect(r.frenzyPeakMembers >= FRENZY_REACH * FRENZY_MEMBERS).toBe(true)
 		expect(r.frenzyPeakGroups <= PreySim.MAX_GROUPS).toBe(true)
 	end)
+
+	it(
+		"keeps every newcomer's scripted route, in budget, and lets only its owner eat it",
+		function()
+			expect(r.ownedRefused).toBe(0)
+			expect(r.ownedPeakGroups).toBe(17 * #NEWCOMERS)
+			expect(r.allPeakGroups <= PreySim.MAX_GROUPS).toBe(true)
+			expect(r.ownedBites > 0).toBe(true)
+		end
+	)
 
 	it("never sends a packet over 900 bytes", function()
 		expect(r.maxPacket <= PreyState.MAX_BYTES).toBe(true)

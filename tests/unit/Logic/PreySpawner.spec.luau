@@ -250,4 +250,155 @@ describe("PreySpawner", function()
 		end
 		expect(passes).toEqual({ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 })
 	end)
+
+	it(
+		"keeps owned groups out of rows, targets, culls and liveMembers, wherever they are placed",
+		function()
+			local sp, sim = reefSpawner()
+			PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
+			local counts, targets = {}, {}
+			for i, row in sp.rows do
+				counts[i], targets[i] = row.count, row.target
+			end
+			local _, groups = PreySpawner.liveMembers(sp)
+			expect(groups).toBe(sim.liveGroups)
+			local targetMembers = PreySpawner.targetMembers(sp)
+			-- A ball and a 10-mote trail, both outside the reef's only spawn area.
+			local ball = PreySpawner.spawnOwned(
+				sp,
+				2,
+				{ prey = "krill", count = 6, x = 900, y = 10, z = 900, spread = 3 },
+				0
+			)
+			local points = {}
+			for k = 0, 9 do
+				table.insert(points, { 700 + 4 * k, 10, 700 })
+			end
+			local trail = PreySpawner.spawnOwned(sp, 2, { prey = "plankton", points = points }, 0)
+			expect(ball ~= nil and trail ~= nil and ball ~= trail).toBe(true)
+			local ownedMembers, ownedGroups = PreySpawner.ownedLive(sp)
+			expect(ownedMembers).toBe(16)
+			expect(ownedGroups).toBe(11)
+			expect(select(2, PreySpawner.liveMembers(sp))).toBe(groups)
+			for _, part in sp.owned[trail :: number].parts do
+				expect(PreySim.ownerOf(sim, part.g)).toBe(2)
+				expect(PreySim.aliveCount(sim, part.g)).toBe(1)
+				-- A group of one sits on its group point (Formation: member 0).
+				local x = PreySim.memberPosAt(sim, part.g, 0, 0)
+				expect(x).toBeCloseTo(part.x, 0.05)
+			end
+			-- Thirty passes with a player next to the trail: nothing culls, straggles or recounts them.
+			local px, py, pz = { 710 }, { 10 }, { 700 }
+			for t = 1, 30 do
+				PreySim.step(sim, t, 1)
+				PreySpawner.pass(sp, t, px, py, pz, 1)
+			end
+			for i, row in sp.rows do
+				expect(row.count).toBe(counts[i])
+				expect(row.target).toBe(targets[i])
+			end
+			-- (A crystal_jelly drift may have joined the shared groups meanwhile.)
+			expect(select(2, PreySpawner.liveMembers(sp))).toBe(sim.liveGroups - 11)
+			expect(PreySpawner.targetMembers(sp)).toBe(targetMembers)
+			expect(select(2, PreySpawner.ownedLive(sp))).toBe(11)
+		end
+	)
+
+	it("refuses unknown prey, malformed specs and specs over the owned budgets", function()
+		local sp = reefSpawner()
+		local function motes(n: number): { { number } }
+			local list = {}
+			for k = 1, n do
+				table.insert(list, { 4 * k, -50, 0 })
+			end
+			return list
+		end
+		expect(PreySpawner.spawnOwned(sp, 1, { prey = "nope", x = 0, y = 0, z = 0 }, 0)).toBe(nil)
+		expect(
+			PreySpawner.spawnOwned(sp, 1, { prey = "krill", count = 25, x = 0, y = 0, z = 0 }, 0)
+		).toBe(nil)
+		expect(PreySpawner.spawnOwned(sp, 1, { prey = "krill", count = 6 }, 0)).toBe(nil)
+		expect(
+			PreySpawner.spawnOwned(sp, 1, { prey = "plankton", count = 3, points = motes(2) }, 0)
+		).toBe(nil)
+		local perSlot = PreySpawner.OWNED_MAX_PER_SLOT
+		expect(
+			PreySpawner.spawnOwned(sp, 1, { prey = "plankton", points = motes(perSlot) }, 0) ~= nil
+		).toBe(true)
+		expect(PreySpawner.spawnOwned(sp, 1, { prey = "glowfry", x = 0, y = -50, z = 0 }, 0)).toBe(
+			nil
+		)
+		-- The server budget: whole slots until it is reached, then nothing more for anyone.
+		local slot = 1
+		while sp.ownedTotal + perSlot <= PreySpawner.OWNED_MAX_GROUPS do
+			slot += 1
+			PreySpawner.spawnOwned(sp, slot, { prey = "plankton", points = motes(perSlot) }, 0)
+		end
+		local left = PreySpawner.OWNED_MAX_GROUPS - sp.ownedTotal
+		expect(
+			PreySpawner.spawnOwned(sp, slot + 1, { prey = "plankton", points = motes(left + 1) }, 0)
+		).toBe(nil)
+		expect(
+			PreySpawner.spawnOwned(sp, slot + 1, { prey = "plankton", points = motes(left) }, 0)
+				~= nil
+		).toBe(true)
+		expect(sp.ownedTotal).toBe(PreySpawner.OWNED_MAX_GROUPS)
+		expect(select(2, PreySpawner.ownedLive(sp))).toBe(PreySpawner.OWNED_MAX_GROUPS)
+	end)
+
+	it(
+		"respawns a respawning owned group after PreyDef.respawn, and clears a slot's groups",
+		function()
+			local sp, sim = reefSpawner()
+			local removed: { number } = {}
+			sp.onRemoved = function(g: number, _gen: number)
+				table.insert(removed, g)
+			end
+			local delay = Index.Prey.byId.krill.respawn :: number
+			local id = PreySpawner.spawnOwned(
+				sp,
+				4,
+				{ prey = "krill", count = 3, x = 0, y = -50, z = 0, spread = 3, respawn = true },
+				0
+			) :: number
+			local once = PreySpawner.spawnOwned(
+				sp,
+				4,
+				{ prey = "glowfry", x = 5, y = -50, z = 0 },
+				0
+			) :: number
+			local run, single = sp.owned[id], sp.owned[once]
+			local g, gen = run.parts[1].g, run.parts[1].gen
+			local fry = single.parts[1].g
+			expect(PreySpawner.ownedRun(sp, g)).toBe(run)
+			-- Eat the ball out at t = 10, and the glowfry.
+			for m = 0, 2 do
+				PreySim.clearMember(sim, g, m)
+				PreySpawner.onEaten(sp, g, 10)
+			end
+			PreySim.clearMember(sim, fry, 0)
+			PreySpawner.onEaten(sp, fry, 10)
+			expect(#removed).toBe(2)
+			expect(sp.owned[once]).toBe(nil) -- gone for good, its budget back
+			expect(sp.ownedBySlot[4]).toBe(1)
+			expect(run.parts[1].g).toBe(-1)
+			for t = 11, 10 + delay do
+				PreySpawner.pass(sp, t, NONE, NONE, NONE, 0)
+				expect(run.parts[1].g >= 0).toBe(t >= 10 + delay)
+			end
+			local back = run.parts[1].g
+			expect(PreySim.isLive(sim, back)).toBe(true)
+			expect(PreySim.aliveCount(sim, back)).toBe(3)
+			expect(back ~= g or run.parts[1].gen ~= gen).toBe(true)
+			expect(PreySim.ownerOf(sim, back)).toBe(4)
+			expect(PreySpawner.edibleAt(sp, back, 10 + delay)).toBe(false)
+			-- Clearing the slot removes it through onRemoved and frees every budget.
+			expect(PreySpawner.clearOwned(sp, 4, 30)).toBe(1)
+			expect(removed[#removed]).toBe(back)
+			expect(next(sp.owned)).toBe(nil)
+			expect(sp.ownedTotal).toBe(0)
+			expect(sp.ownedBySlot[4]).toBe(0)
+			expect(PreySpawner.clearOwned(sp, 4, 31)).toBe(0)
+		end
+	)
 end)

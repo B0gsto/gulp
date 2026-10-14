@@ -3,7 +3,8 @@
 -- interest and spawn rules are covered in Lune (tests/unit/Logic/PreyInterest and PreySpawner);
 -- this checks the service in the engine: the arena's rows are filled to their targets from the
 -- Zone volumes, no Instance is created for prey, and the PreyState packets that go out are at most
--- 900 bytes and reach a player (the play test's own player when there is one).
+-- 900 bytes and reach a player (the play test's own player when there is one), and scripted prey
+-- (04 §3.5) stays with its slot through the service's own API.
 -- In a VM where Main did not start the service (Open Cloud), the spec starts it here after
 -- WorldIndexSpec has run WorldIndex.init in this VM; physics does not step there, so the spec drives
 -- `PreyService.frame` by hand.
@@ -105,6 +106,63 @@ return function()
 				expect(stats.maxPacket <= PreyState.MAX_BYTES).toBe(true)
 				expect(sim.tick > 0 and PreySim.MAX_GROUPS == PreyState.MAX_GROUPS).toBe(true)
 			end
+		end)
+
+		it("keeps scripted prey to its slot, away from any spawn volume, until cleared", function()
+			ensureRunning()
+			local sim, _, spawner = PreyService.internals()
+			local slot = 24
+			while slot > 2 and CreatureService.get(slot) do
+				slot -= 1
+			end
+			-- Another slot: the play test's own creature when there is one.
+			local other = firstSlot() or slot - 1
+			-- Swarm A and a trail of 10 motes every 4 studs, far outside the arena's volumes.
+			local swarm = PreyService.spawnScripted(slot, {
+				preyId = "krill",
+				count = 6,
+				centre = Vector3.new(800, -50, 800),
+				spread = 3,
+			})
+			local motes = {}
+			for k = 0, 9 do
+				table.insert(motes, Vector3.new(806 + 4 * k, -50, 800))
+			end
+			local trail =
+				PreyService.spawnScripted(slot, { preyId = "plankton", positions = motes })
+			expect(swarm ~= nil and trail ~= nil).toBe(true)
+			expect(PreyService.stats().scriptedGroups).toBe(11)
+			local part = spawner.owned[swarm :: number].parts[1]
+			expect(PreySim.ownerOf(sim, part.g)).toBe(slot)
+			for _ = 1, 12 do
+				PreyService.frame()
+			end
+			-- Interest from the swarm's own point: the owner is sent it, another slot never is.
+			local state = PreyInterest.new(24)
+			local function sent(s: number): boolean
+				local payload = PreyInterest.updatePlayer(state, sim, s, 800, -50, 800)
+				if payload == nil then
+					return false
+				end
+				local _, _, f = PreyState.header(payload)
+				local full = PreyState.newFull()
+				for k = 0, f - 1 do
+					PreyState.readFull(payload, k, full)
+					if full.groupId == part.g then
+						return true
+					end
+				end
+				return false
+			end
+			expect(sent(other)).toBe(false)
+			expect(sent(slot)).toBe(true)
+			-- Another slot cannot eat it, even once it has faded in.
+			local later = workspace:GetServerTimeNow() + 1
+			expect((PreyService.tryEat(other, part.g, 0, part.gen, later))).toBe(false)
+			expect(PreySim.memberAlive(sim, part.g, 0)).toBe(true)
+			PreyService.clearScripted(slot)
+			expect(PreySim.isLive(sim, part.g, part.gen)).toBe(false)
+			expect(PreyService.stats().scriptedGroups).toBe(0)
 		end)
 	end)
 end

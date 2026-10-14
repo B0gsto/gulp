@@ -8,10 +8,13 @@
 -- drives this module and reads the buffers directly.
 --
 -- Data layout (8.2): struct of arrays, one buffer per field, indexed by group ID 0 to 639. The
--- `cell`, `nextInCell` and `prevInCell` buffers are the SpatialGrid's own (8.3). Two additions,
--- both reported as deviations: `burstUntil` (f32, end of the current flee burst, then end of the
--- 2 s tired window that follows it, docs/03 §2.1) and the history sample's pad byte, which holds the
--- quantised heading (u8, 2π/256) so `memberPosAt` can rebuild the formation at a past time.
+-- `cell`, `nextInCell` and `prevInCell` buffers are the SpatialGrid's own (8.3). Three additions,
+-- all reported as deviations: `burstUntil` (f32, end of the current flee burst, then end of the
+-- 2 s tired window that follows it, docs/03 §2.1), the history sample's pad byte, which holds the
+-- quantised heading (u8, 2π/256) so `memberPosAt` can rebuild the formation at a past time, and
+-- `owner` (u8, 0 = shared, else the one slot a scripted group belongs to, docs/04 §3.5).
+-- Owned groups (`own`) have a home of their own, OWNED_HOME + group ID, centred where they were
+-- spawned, so they need no PreySpawn volume; they react only to their owner's threat.
 -- While a group flees, `wanderX/Y/Z` hold its unit flee direction; while it is lured, the lure
 -- point. `wanderUntil = 0` then makes it pick a fresh wander target when that ends.
 --
@@ -49,6 +52,9 @@ PreySim.MAX_THREATS = 64 -- 24 creatures and 32 predators fit
 PreySim.MAX_HOMES = 1024
 PreySim.HIST = 8 -- samples in the history ring, one per tick (0.8 s)
 PreySim.MAX_GEN = 254 -- gen wraps 0 to 254 so a client's `known = gen + 1` fits a u8 (8.2)
+-- Homes from here on are one per group, for owned groups (home OWNED_HOME + g); spawn areas use
+-- the homes below it.
+PreySim.OWNED_HOME = PreySim.MAX_HOMES - PreySim.MAX_GROUPS
 
 PreySim.FLAG_FLEEING = 1
 PreySim.FLAG_STUNNED = 2
@@ -157,6 +163,7 @@ export type PreyBuffers = {
 	histPos: buffer, -- 8 samples × (u16 x, u16 y, u16 z, u8 scatter, u8 heading) per group = 64 B
 	histHead: buffer, -- u8
 	burstUntil: buffer, -- f32 (addition) end of the flee burst, then of the tired window
+	owner: buffer, -- u8 (addition) 0 = shared, else the slot the group belongs to (04 §3.5)
 }
 
 export type Sim = {
@@ -173,6 +180,7 @@ export type Sim = {
 	threatCount: number,
 	threats: buffer, -- f64 × 4 per threat: x, y, z, eatTier
 	threatFlags: buffer, -- u8 per threat
+	threatSlot: buffer, -- u8 per threat: the creature's slot, 0 for a predator
 	-- Threat pass scratch.
 	bestD2: buffer, -- f64 per group
 	bestThreat: buffer, -- u8 per group
@@ -216,6 +224,7 @@ function PreySim.new(seed: number): Sim
 		histPos = buffer.create(n * HIST * HIST_BYTES),
 		histHead = buffer.create(n),
 		burstUntil = f32(n),
+		owner = buffer.create(n),
 	}
 	return {
 		buffers = buffers,
@@ -231,6 +240,7 @@ function PreySim.new(seed: number): Sim
 		threatCount = 0,
 		threats = buffer.create(MAX_THREATS * 32),
 		threatFlags = buffer.create(MAX_THREATS),
+		threatSlot = buffer.create(MAX_THREATS),
 		bestD2 = buffer.create(n * 8),
 		bestThreat = buffer.create(n),
 		stamp = buffer.create(n * 4),
@@ -275,7 +285,8 @@ function PreySim.setThreatCount(sim: Sim, n: number)
 end
 
 --- Threat `i` (0-based): a creature or predator at (x, y, z). `eatTier` is the highest prey tier it
---- may eat (BiteRules.canEatPrey; −1 for none). `flags` is a sum of THREAT_* bits.
+--- may eat (BiteRules.canEatPrey; −1 for none). `flags` is a sum of THREAT_* bits. `slot` is the
+--- creature's slot (nil or 0 for a predator): owned groups react only to their owner's threat.
 function PreySim.setThreat(
 	sim: Sim,
 	i: number,
@@ -283,7 +294,8 @@ function PreySim.setThreat(
 	y: number,
 	z: number,
 	eatTier: number,
-	flags: number
+	flags: number,
+	slot: number?
 )
 	local o = i * 32
 	buffer.writef64(sim.threats, o, x)
@@ -291,6 +303,7 @@ function PreySim.setThreat(
 	buffer.writef64(sim.threats, o + 16, z)
 	buffer.writef64(sim.threats, o + 24, eatTier)
 	buffer.writeu8(sim.threatFlags, i, flags)
+	buffer.writeu8(sim.threatSlot, i, slot or 0)
 end
 
 local function quantHeading(vx: number, vz: number, fallback: number): number
@@ -373,6 +386,7 @@ function PreySim.spawn(
 	buffer.writeu8(b.kind, g, kind)
 	buffer.writeu8(b.gen, g, gen)
 	buffer.writeu8(b.flags, g, if eventPrey then EVENT else 0)
+	buffer.writeu8(b.owner, g, 0)
 	buffer.writeu8(b.count, g, count)
 	buffer.writeu32(b.alive, o4, 2 ^ count - 1)
 	buffer.writeu16(b.seed, g * 2, seed)
@@ -415,9 +429,36 @@ function PreySim.remove(sim: Sim, g: number)
 	end
 	buffer.writeu8(b.kind, g, 0)
 	buffer.writeu8(b.flags, g, 0)
+	buffer.writeu8(b.owner, g, 0)
 	buffer.writeu32(b.alive, g * 4, 0)
 	SpatialGrid.remove(sim.grid, g)
 	sim.liveGroups -= 1
+end
+
+--- Gives live group `g` to slot `owner` (1 to 255; docs/04 §3.5: scripted prey) and a home of its
+--- own, home OWNED_HOME + g: a cylinder of `radius` and half height `halfHeight` around its current
+--- position, so it wanders and is leashed there whatever volumes are near.
+function PreySim.own(sim: Sim, g: number, owner: number, radius: number, halfHeight: number)
+	assert(PreySim.isLive(sim, g), "PreySim.own: the group is not live")
+	assert(owner >= 1 and owner <= 255 and owner % 1 == 0, "PreySim.own: bad owner")
+	local b, o4 = sim.buffers, g * 4
+	local home = PreySim.OWNED_HOME + g
+	PreySim.setHome(
+		sim,
+		home,
+		buffer.readf32(b.posX, o4),
+		buffer.readf32(b.posY, o4),
+		buffer.readf32(b.posZ, o4),
+		radius,
+		halfHeight
+	)
+	buffer.writeu16(b.home, g * 2, home)
+	buffer.writeu8(b.owner, g, owner)
+end
+
+--- The slot group `g` belongs to, 0 when it is shared.
+function PreySim.ownerOf(sim: Sim, g: number): number
+	return buffer.readu8(sim.buffers.owner, g)
 end
 
 --- True when group `g` is live, and has generation `gen` if one is given.
@@ -511,7 +552,8 @@ end
 -- Step 1: the threat pass. Returns how many groups it reached (in `touched`).
 local function threatPass(sim: Sim, now: number): number
 	local b, grid = sim.buffers, sim.grid
-	local threats, threatFlags = sim.threats, sim.threatFlags
+	local threats, threatFlags, threatSlot = sim.threats, sim.threatFlags, sim.threatSlot
+	local owner = b.owner
 	local bestD2, bestThreat, stamp, touched = sim.bestD2, sim.bestThreat, sim.stamp, sim.touched
 	local tick = sim.tick
 	local nTouched = 0
@@ -525,6 +567,7 @@ local function threatPass(sim: Sim, now: number): number
 		local ty = buffer.readf64(threats, t * 32 + 8)
 		local tz = buffer.readf64(threats, t * 32 + 16)
 		local lures = bit32.band(tf, T_PLAYER + T_MOONLIT) == T_PLAYER + T_MOONLIT
+		local slot = buffer.readu8(threatSlot, t)
 		local c0, c1, r0, r1 = SpatialGrid.range(tx, tz, reactRange)
 		for row = r0, r1 do
 			for col = c0, c1 do
@@ -532,7 +575,8 @@ local function threatPass(sim: Sim, now: number): number
 				while g ~= NONE do
 					local k1 = buffer.readu8(b.kind, g) + 1
 					local fleeR2 = kFleeR2[k1]
-					if kTier[k1] <= eatTier and fleeR2 > 0 then
+					local own = buffer.readu8(owner, g)
+					if kTier[k1] <= eatTier and fleeR2 > 0 and (own == 0 or own == slot) then
 						local o4 = g * 4
 						local dx = buffer.readf32(b.posX, o4) - tx
 						local dy = buffer.readf32(b.posY, o4) - ty

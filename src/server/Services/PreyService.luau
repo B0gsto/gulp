@@ -14,6 +14,11 @@
 -- volume's upright cylinder (radius = the smaller horizontal half size, the volume's rotation is
 -- ignored). areaScale of a zone is the plan area of its Zone volumes ÷ its data:ZoneAreas area.
 -- Times given to `tryEat` and `memberPosAt` are on the `GetServerTimeNow` clock.
+-- Scripted prey (docs/04 §3.5, §12 C8): `spawnScripted(slot, spec)` makes groups that belong to one
+-- slot (PreySpawner.spawnOwned). Only that slot's interest set and packets carry them, only its
+-- creature scares them, `tryEat` refuses every other slot, and `onScriptedEaten` fires on each
+-- bite. They go when `clearScripted` is called, and when the slot's creature changes or goes (the
+-- player left, or CreatureService.remove), seen on the next tick.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -25,6 +30,7 @@ local PreyInterest = require(ReplicatedStorage.Shared.Logic.PreyInterest)
 local PreySim = require(ReplicatedStorage.Shared.Sim.PreySim)
 local PreySpawnMath = require(ReplicatedStorage.Shared.Logic.PreySpawnMath)
 local PreySpawner = require(ReplicatedStorage.Shared.Logic.PreySpawner)
+local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VolumeMath = require(ReplicatedStorage.Shared.Logic.VolumeMath)
 
@@ -32,6 +38,7 @@ local CreatureService = require("./CreatureService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
 
+type CreatureState = CreatureService.CreatureState
 type PreyDef = Types.PreyDef
 type Slot = Types.Slot
 type Volume = Types.Volume
@@ -57,10 +64,27 @@ export type Stats = {
 	maxPacket: number,
 	seconds: number, -- since the last reset
 	eventBytes: number,
+	scriptedGroups: number, -- live groups of scripted prey (not in `groups`)
+}
+
+--- Scripted prey for `spawnScripted`: a ball of `count` members (1 to 24) around `centre` with
+--- radius `spread`, or one member at each of `positions` (the plankton trail's motes). Each group
+--- is leashed to its own spawn point (radius `spread`, at least PreySpawner.OWNED_LEASH_MIN), so it
+--- needs no PreySpawn volume. `respawns`: a group eaten out comes back after its PreyDef.respawn s.
+export type ScriptedSpec = {
+	preyId: string,
+	count: number?,
+	centre: Vector3?,
+	spread: number?,
+	positions: { Vector3 }?,
+	respawns: boolean?,
 }
 
 local PreyService = {}
 PreyService.name = "PreyService"
+
+--- (slot, scripted ID, prey ID): a member of a scripted group was eaten by its owner.
+PreyService.onScriptedEaten = Signal.new() :: Types.Signal<Slot, number, string>
 
 local sim: PreySim.Sim
 local interest: PreyInterest.State
@@ -73,6 +97,8 @@ local playerOf: { Player? } = table.create(MAX_SLOTS)
 local px, py, pz =
 	table.create(MAX_SLOTS, 0), table.create(MAX_SLOTS, 0), table.create(MAX_SLOTS, 0)
 local playerCount = 0
+-- Per slot with scripted prey: the creature it was spawned for, false when it had none yet.
+local scriptedFor: { [number]: CreatureState | false } = {}
 -- PreyEvent queue: one record per entry, with the slots (bit slot − 1) that know the group.
 local evOp, evGroup, evGen, evMember, evEater, evMask = {}, {}, {}, {}, {}, {}
 local evCount = 0
@@ -94,6 +120,7 @@ local function freshStats(): Stats
 		maxPacket = 0,
 		seconds = os.clock(),
 		eventBytes = 0,
+		scriptedGroups = 0,
 	}
 end
 
@@ -178,7 +205,15 @@ local function onRemoved(g: number, gen: number)
 	PreyInterest.forget(interest, g)
 end
 
--- Reads every creature: threats for the sim, positions for the spawner, slot changes for interest.
+--- Removes every scripted group of `slot`; each one's knowers get a PreyEvent. Also run for a slot
+--- whose creature changed or went.
+function PreyService.clearScripted(slot: Slot)
+	scriptedFor[slot] = nil
+	PreySpawner.clearOwned(spawner, slot, serverNow())
+end
+
+-- Reads every creature: threats for the sim, positions for the spawner, slot changes for interest
+-- and scripted prey.
 local function gatherPlayers()
 	local n = 0
 	for slot = 1, MAX_SLOTS do
@@ -188,9 +223,15 @@ local function gatherPlayers()
 			PreyInterest.reset(interest, slot)
 			playerOf[slot] = player
 		end
+		local held = scriptedFor[slot]
+		if held == false and state then
+			scriptedFor[slot] = state
+		elseif held and held ~= state then
+			PreyService.clearScripted(slot)
+		end
 		if state then
 			local p = state.root.Position
-			PreySim.setThreat(sim, n, p.X, p.Y, p.Z, state.tier, PreySim.THREAT_PLAYER)
+			PreySim.setThreat(sim, n, p.X, p.Y, p.Z, state.tier, PreySim.THREAT_PLAYER, slot)
 			n += 1
 			px[n], py[n], pz[n] = p.X, p.Y, p.Z
 		end
@@ -360,6 +401,12 @@ function PreyService.tryEat(
 	if creature == nil or def == nil or def.tier > creature.tier then
 		return false, nil
 	end
+	-- Scripted prey: only its owner's creature, the one it was spawned for (04 §3.5).
+	local owner = PreySim.ownerOf(sim, groupId)
+	local held = scriptedFor[slot]
+	if owner ~= 0 and (owner ~= slot or (held and held ~= creature)) then
+		return false, nil
+	end
 	local now = t - Server.EPOCH
 	if not PreySpawner.edibleAt(spawner, groupId, now) then
 		return false, nil
@@ -367,8 +414,51 @@ function PreyService.tryEat(
 	local mask = bit32.bor(knowers(groupId, gen), bit32.lshift(1, slot - 1))
 	PreySim.clearMember(sim, groupId, member)
 	queueEvent(PreyEvent.OP_EATEN, groupId, gen, member, slot, mask)
+	local run = if owner ~= 0 then PreySpawner.ownedRun(spawner, groupId) else nil
 	PreySpawner.onEaten(spawner, groupId, serverNow())
+	if run then
+		PreyService.onScriptedEaten:fire(slot, run.id, run.prey)
+	end
 	return true, def
+end
+
+--- Spawns scripted prey that belongs to `slot` alone (04 §3.5; see the header and ScriptedSpec).
+--- Returns its scripted ID (the one `onScriptedEaten` reports), or nil when the prey is unknown,
+--- the spec is malformed, or it does not fit whole in the budgets (PreySpawner.OWNED_MAX_GROUPS on
+--- the server, OWNED_MAX_PER_SLOT per slot) or the free group slots. Addition to 5.1's API.
+function PreyService.spawnScripted(slot: Slot, spec: ScriptedSpec): number?
+	local creature = CreatureService.get(slot)
+	local held = scriptedFor[slot]
+	if held and held ~= creature then
+		PreyService.clearScripted(slot) -- left from the slot's last creature
+	end
+	local points: { { number } }? = nil
+	if spec.positions then
+		local list = {}
+		for _, p in spec.positions :: { Vector3 } do
+			table.insert(list, { p.X, p.Y, p.Z })
+		end
+		points = list
+	end
+	local c = spec.centre
+	local id = PreySpawner.spawnOwned(spawner, slot, {
+		prey = spec.preyId,
+		count = spec.count,
+		x = if c then c.X else nil,
+		y = if c then c.Y else nil,
+		z = if c then c.Z else nil,
+		spread = spec.spread,
+		points = points,
+		respawn = spec.respawns,
+	}, serverNow())
+	if id == nil then
+		Log.warn(TAG, `spawnScripted: {spec.preyId} for slot {slot} refused`)
+		return nil
+	end
+	if not scriptedFor[slot] then
+		scriptedFor[slot] = creature or false
+	end
+	return id
 end
 
 --- The PreyDef of member `member` of group `groupId` when the group is live at `gen` and the
@@ -442,6 +532,7 @@ end
 function PreyService.stats(): Stats
 	local s = table.clone(stats)
 	s.members, s.groups = PreySpawner.liveMembers(spawner)
+	s.scriptedGroups = select(2, PreySpawner.ownedLive(spawner))
 	s.targetMembers = PreySpawner.targetMembers(spawner)
 	s.simMs = if stats.ticks > 0 then stats.simMs / stats.ticks else 0
 	s.interestMs = if stats.interestCalls > 0 then stats.interestMs / stats.interestCalls else 0

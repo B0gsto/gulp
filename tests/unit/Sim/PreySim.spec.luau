@@ -389,4 +389,55 @@ describe("Sim/PreySim (09 §8.1 to 8.4)", function()
 		expect(same).toBe(true)
 		expect(differs).toBe(true)
 	end)
+
+	it(
+		"owns a group: its own home at its spawn point, owner cleared when the slot is reused",
+		function()
+			local sim = newSim()
+			-- Far outside home 0 (the Nursery path is in no spawn volume).
+			local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+			PreySim.own(sim, g, 3, 3, 3)
+			expect(PreySim.ownerOf(sim, g)).toBe(3)
+			local home = buffer.readu16(sim.buffers.home, g * 2)
+			expect(home).toBe(PreySim.OWNED_HOME + g)
+			expect(buffer.readf32(sim.homes, home * 20)).toBe(400)
+			expect(buffer.readf32(sim.homes, home * 20 + 12)).toBe(3)
+			PreySim.remove(sim, g)
+			expect(PreySim.ownerOf(sim, g)).toBe(0)
+			local again = PreySim.spawn(sim, KRILL, 0, 0, -50, 0, 6, nil, g) :: number
+			expect(again).toBe(g)
+			expect(PreySim.ownerOf(sim, again)).toBe(0)
+		end
+	)
+
+	it(
+		"lets an owned group flee only from its owner's creature, and keeps it on its leash",
+		function()
+			local sim = newSim()
+			local g = PreySim.spawn(sim, KRILL, 0, 400, -20, 300, 6) :: number
+			PreySim.own(sim, g, 3, 3, 3)
+			local shared = PreySim.spawn(sim, KRILL, 0, 420, -20, 300, 6) :: number
+			-- Slot 5 sits on both groups: only the shared one flees.
+			local now = run(sim, 0, 3, function()
+				PreySim.setThreat(sim, 0, 405, -20, 300, 3, PLAYER, 5)
+				PreySim.setThreat(sim, 1, 415, -20, 300, 3, PLAYER, 5)
+				PreySim.setThreatCount(sim, 2)
+			end)
+			expect(bit32.btest(flags(sim, g), PreySim.FLAG_FLEEING)).toBe(false)
+			expect(bit32.btest(flags(sim, shared), PreySim.FLAG_FLEEING)).toBe(true)
+			-- Its owner, slot 3: it flees, then wanders, never past 1.5 × its 3-stud home.
+			local fled = false
+			local worst = 0
+			run(sim, now, 200, function(t)
+				PreySim.setThreat(sim, 0, 400 + 4 * math.sin(t), -20, 302, 3, PLAYER, 3)
+				PreySim.setThreatCount(sim, 1)
+				fled = fled or bit32.btest(flags(sim, g), PreySim.FLAG_FLEEING)
+				local x, y, z = pos(sim, g)
+				worst = math.max(worst, math.sqrt((x - 400) ^ 2 + (z - 300) ^ 2), math.abs(y + 20))
+			end)
+			expect(fled).toBe(true)
+			expect(worst > 0.5).toBe(true)
+			expect(worst <= 4.5 + 1e-3).toBe(true)
+		end
+	)
 end)
