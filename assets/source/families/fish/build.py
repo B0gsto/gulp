@@ -169,12 +169,6 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
-        # The bible's own Minnow dark (06 section 4.3) breaks its dark-block rule (4.1): logged,
-        # reported to the owner in spike/results/art-blender.md, and waived for this stand-in only.
-        "waivers": {
-            "palette: dark L*": "06 4.3 Minnow dark #C2491D vs 4.1 dark <= 35; bible inconsistency for the owner",
-            "value: dark L*": "follows from the palette waiver above",
-        },
         "meshes": [
             {"object": body, "role": "body", "primary": True},
             {"object": crest, "role": "piece", "budget": "crest", "socket": "Sock_Crest"},
