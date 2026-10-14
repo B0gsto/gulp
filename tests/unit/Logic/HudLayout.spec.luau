@@ -394,6 +394,246 @@ describe("HudLayout S14 cove HUD (docs/08 sections 1.3 to 1.5 and 5.1)", functio
 	end)
 end)
 
+describe("HudLayout moment slot, S07 and S08 (docs/08 sections 1.5, 3.3, 4.1 to 4.3)", function()
+	local slotSize = { width = HudLayout.MOMENT_SLOT.width, height = HudLayout.MOMENT_SLOT.height }
+	local cards = {
+		["S07 with food"] = HudLayout.tierUpCard(slotSize, true),
+		["S07 without food"] = HudLayout.tierUpCard(slotSize, false),
+		["S07 tier 7"] = HudLayout.tierUpCard(slotSize, false, true),
+		["S07 tier 7 with food"] = HudLayout.tierUpCard(slotSize, true, true),
+		["S08"] = HudLayout.traitCard(slotSize),
+		["S08 Epic or Mythic"] = HudLayout.traitCard(slotSize, true),
+	}
+	-- The cards that turn `UI_Common_Rays` (08 §4.2 tier 7, §4.3 Epic and Mythic).
+	local burst = {
+		["S07 tier 7"] = true,
+		["S07 tier 7 with food"] = true,
+		["S08 Epic or Mythic"] = true,
+	}
+	local function offset(r: Rect, dx: number, dy: number): Rect
+		return { x = r.x + dx, y = r.y + dy, width = r.width, height = r.height }
+	end
+
+	for name, layout in SCREENS do
+		local content = layout.contentSize
+		local slot = HudLayout.momentCardSlot(content)
+		local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
+		local box = { x = 0, y = 0, width = content.width, height = content.height }
+		local chip = HudLayout.bankChip(content)
+
+		it(`{name}: the slot is top centre, 130 down, inside the content box`, function()
+			expect(slot.y).toBe(130)
+			expect(slot.x + slot.width / 2).toBeCloseTo(content.width / 2, 1e-6)
+			expect(inside(slot, box)).toBe(true)
+		end)
+
+		it(`{name}: the slot clears the mass bar, the bank chip and the keep-out`, function()
+			expect(HudLayout.overlaps(slot, rects.massBar)).toBe(false)
+			expect(HudLayout.overlaps(slot, chip)).toBe(false)
+			for _, k in layout.keepOut do
+				expect(HudLayout.overlaps(slot, k)).toBe(false)
+			end
+		end)
+
+		it(`{name}: the slot and the keep-clear box (docs/14 section 4, row 35)`, function()
+			-- On a phone the content box is 676 rpx tall, so the box starts at 229.8 and the
+			-- slot dips 12 rpx into it; elsewhere it stays clear.
+			local dip = slot.y + slot.height - rects.keepClear.y
+			if layout.screenClass == "Phone" then
+				expect(dip).toBeCloseTo(12.16, 0.01)
+			else
+				expect(dip <= 0).toBe(true)
+			end
+		end)
+
+		for card, c in cards do
+			local placed = offset(c.card, slot.x, slot.y)
+			it(`{name}, {card}: the card stays in the slot, 16 rpx under the chip row`, function()
+				expect(inside(placed, slot)).toBe(true)
+				local gap = placed.y - (chip.y + chip.height)
+				expect(gap >= HudLayout.GAP_MIN).toBe(true)
+				expect(placed.y - (rects.massBar.y + rects.massBar.height) >= HudLayout.GAP_MIN).toBe(
+					true
+				)
+			end)
+
+			it(`{name}, {card}: the rays never reach the mass bar or below the card`, function()
+				local clip = offset(c.raysClip, placed.x, placed.y)
+				expect(HudLayout.overlaps(clip, rects.massBar)).toBe(false)
+				expect(clip.y + clip.height).toBeCloseTo(placed.y + placed.height, 1e-6)
+				-- They do reach past the card's side and top (08 §4.1 to §4.3).
+				expect(c.rays.x < 0 and c.rays.y < 0).toBe(true)
+				expect(clip.y < placed.y).toBe(true)
+			end)
+
+			if burst[card] then
+				it(
+					`{name}, {card}: the rays are symmetric about the art and clear the text`,
+					function()
+						local ax = c.art.x + c.art.width / 2
+						local ay = c.art.y + c.art.height / 2
+						expect(c.rays.x + c.rays.width / 2).toBeCloseTo(ax, 1e-6)
+						expect(c.rays.y + c.rays.height / 2).toBeCloseTo(ay, 1e-6)
+						expect(c.raysClip.x + c.raysClip.width / 2).toBeCloseTo(ax, 1e-6)
+						-- Round: the clip holds the whole burst above the card's bottom.
+						local pad = HudLayout.RAYS_PAD
+						expect(c.raysClip.width).toBeCloseTo(c.rays.width + 2 * pad, 1e-6)
+						expect(c.raysClip.y).toBeCloseTo(c.rays.y - pad, 1e-6)
+						-- The spokes show beyond the art (not a thin corona), and stay off the text.
+						expect(c.rays.width / 2 - c.art.width / 2 >= 32).toBe(true)
+						for _, t in { c.header, c.name, c.line } do
+							expect(HudLayout.overlaps(t :: Rect, c.raysClip)).toBe(false)
+						end
+					end
+				)
+			end
+		end
+
+		-- 08 §1.5: Small 22 is the floor. Kit/Draw sizes text with ScreenScale.textRpx, which
+		-- rounds up to whole pixels, so each row must hold the rounded size, and what the engine
+		-- draws must not fall under 22 rpx at this class's scale (0.9 on a 1080p desktop).
+		it(`{name}: every card text keeps the 22 rpx floor and fits its row`, function()
+			local scale = layout.scale
+			for _, spec in { HudLayout.TIER_UP, HudLayout.TRAIT_GAINED } do
+				for _, row in
+					{
+						{ spec.type.header, spec.headerHeight },
+						{ spec.type.name, spec.nameHeight },
+						{ spec.type.line, spec.lineHeight },
+					}
+				do
+					local size = ScreenScale.textRpx(row[1], scale)
+					expect(row[1] >= HudLayout.TEXT_FLOOR).toBe(true)
+					expect(ScreenScale.drawnPx(size, scale) / scale >= HudLayout.TEXT_FLOOR).toBe(
+						true
+					)
+					expect(size <= row[2]).toBe(true)
+				end
+			end
+		end)
+	end
+
+	for name, c in cards do
+		it(`{name}: the parts fit the card without overlap`, function()
+			local card = { x = 0, y = 0, width = c.card.width, height = c.card.height }
+			local text = { c.header, c.name }
+			local line = c.line
+			if line then
+				table.insert(text, line)
+			end
+			expect(inside(c.art, card)).toBe(true)
+			expect(inside(c.band, card)).toBe(true)
+			expect(inside(c.art, c.band)).toBe(true)
+			for i, p in text do
+				expect(inside(p, c.band)).toBe(true)
+				expect(HudLayout.overlaps(p, c.art)).toBe(false)
+				for j = i + 1, #text do
+					expect(HudLayout.overlaps(p, text[j])).toBe(false)
+				end
+			end
+			for _, t in c.tails do
+				expect(inside(t, card)).toBe(true)
+				-- Each tail shows beyond the band by more than its notch, and tucks under it.
+				local shown = if t.x < c.band.x
+					then c.band.x - t.x
+					else t.x + t.width - (c.band.x + c.band.width)
+				expect(shown > HudLayout.TIER_UP.notch).toBe(true)
+				expect(HudLayout.overlaps(t, c.band)).toBe(true)
+			end
+		end)
+	end
+
+	it(
+		"uses 08's sizes: S07 460 x 104 with a 96 badge (104 at tier 7), S08 420 x 104, icon 80",
+		function()
+			local t = HudLayout.tierUpCard(slotSize, true)
+			expect(t.card.width).toBe(460)
+			expect(t.card.height).toBe(104)
+			expect(t.art.width).toBe(96)
+			expect(t.card.x).toBe(10)
+			expect(t.card.y).toBe(8)
+			local top = HudLayout.tierUpCard(slotSize, true, true)
+			expect(top.art.width).toBe(104)
+			expect(top.art.x + top.art.width / 2).toBe(t.art.x + t.art.width / 2)
+			-- The badge grows to 104 by a gold rim round the 96 rpx badge.
+			expect(top.art.width - 2 * HudLayout.TIER_UP.topRim).toBe(t.art.width)
+			expect(top.header.x).toBe(top.rays.x + top.rays.width + HudLayout.TIER_UP.raysGap)
+			local s = HudLayout.traitCard(slotSize)
+			expect(s.card.width).toBe(420)
+			expect(s.card.height).toBe(104)
+			expect(s.art.width).toBe(80)
+			expect(#s.tails).toBe(0)
+		end
+	)
+
+	it("sets the S08 effect line in Body 24 and fits three food icons on the S07 row", function()
+		expect(HudLayout.TRAIT_GAINED.type.line).toBe(24)
+		local t = HudLayout.TIER_UP
+		for _, top in { false, true } do
+			local line = HudLayout.tierUpCard(slotSize, true, top).line :: Rect
+			-- "New food:" at Small 22 is about 100 rpx in English; three icons follow it.
+			expect(100 + 3 * (t.foodIcon + t.foodGap) <= line.width).toBe(true)
+			expect(t.foodIcon <= line.height).toBe(true)
+		end
+	end)
+
+	-- The phone the review captures: an iPhone 12 to 15 in landscape, 844 x 390 points with
+	-- 47 point notch insets (Dev/HudHarness's simulated phone). What the engine draws for each
+	-- S07 and S08 text, the prey icons and the badges, in rpx at that phone's scale.
+	describe("on a real phone viewport, 844 x 390 with 47 px notches", function()
+		local phone = screen(reading(true, false, 844, 390), 47)
+		local scale = phone.scale
+		local function drawn(rpx: number): number
+			return ScreenScale.drawnPx(ScreenScale.textRpx(rpx, scale), scale) / scale
+		end
+
+		it("is the Phone class, so the review's capture is the real size", function()
+			expect(phone.screenClass).toBe("Phone")
+			expect(scale > 0.5 and scale < 0.7).toBe(true)
+		end)
+
+		it(
+			"draws You grew! (moment.tier_up) and New food (moment.new_food) at 22 rpx or more",
+			function()
+				local t = HudLayout.TIER_UP
+				expect(drawn(t.type.header) >= 24).toBe(true)
+				expect(drawn(t.type.line) >= HudLayout.TEXT_FLOOR).toBe(true)
+				-- In screen points: 12 for Small 22 and 13 for Body 24 at this phone's 0.542.
+				expect(ScreenScale.drawnPx(ScreenScale.textRpx(t.type.line, scale), scale)).toBe(12)
+				expect(ScreenScale.drawnPx(ScreenScale.textRpx(t.type.header, scale), scale)).toBe(
+					13
+				)
+			end
+		)
+
+		it("draws every S07 and S08 text at its 08 §1.5 size or more and fits its row", function()
+			for _, spec in { HudLayout.TIER_UP, HudLayout.TRAIT_GAINED } do
+				for _, row in
+					{
+						{ spec.type.header, spec.headerHeight },
+						{ spec.type.name, spec.nameHeight },
+						{ spec.type.line, spec.lineHeight },
+					}
+				do
+					expect(drawn(row[1]) >= row[1]).toBe(true)
+					expect(ScreenScale.textRpx(row[1], scale) <= row[2]).toBe(true)
+				end
+			end
+		end)
+
+		it(
+			"shows the food icons at 36 rpx (about 20 points) and the tier 7 badge at 104 against 96",
+			function()
+				expect(HudLayout.TIER_UP.foodIcon * scale >= 19).toBe(true)
+				local t = HudLayout.tierUpCard(slotSize, true)
+				local top = HudLayout.tierUpCard(slotSize, true, true)
+				expect(top.art.width).toBe(104)
+				expect(t.art.width).toBe(96)
+				expect((top.art.width - t.art.width) * scale >= 4).toBe(true)
+			end
+		)
+	end)
+end)
 describe(
 	"HudLayout HUD.Traits and HUD.TraitMarkers (docs/08 sections 1.5, 3.3, 3.6, 3.10)",
 	function()

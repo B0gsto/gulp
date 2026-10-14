@@ -375,7 +375,7 @@ function UIController.start()
 	end)
 
 	-- HUD.Traits (08 §3.6): TraitService's `run.traits` and `run.progress` (09 §5.3), and the
-	-- Just gained flash on the own "traitGained" event (S08 itself is S6-C5's).
+	-- Just gained flash with S08 on the own "traitGained" event (below).
 	local function refreshTraits()
 		local run = StateStore.get("run")
 		local traits = if type(run) == "table" then run.traits else nil
@@ -388,18 +388,21 @@ function UIController.start()
 	end
 	StateStore.observe("run", refreshTraits)
 	StateStore.observe("passes", refreshTraits)
-	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, _id: unknown, index: unknown)
-		if
-			kind == "traitGained"
-			and slot == player:GetAttribute("Slot")
-			and type(index) == "number"
-		then
-			Hud.traitGained(index)
-		end
-	end)
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
 	Client.on("CreatureEvent", onCreatureEvent)
+	-- S07 and S08 (task S6-C5) for the own creature: "tier", slot, tier, previousTier
+	-- (RunLoopService) and "traitGained", slot, traitId, index (TraitService, S6: index 1 to 3 is
+	-- the trait slot it took; "traitShed" is the slot's, not a moment).
+	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, a: unknown, b: unknown)
+		if slot ~= player:GetAttribute("Slot") then
+			return
+		elseif kind == "tier" and type(a) == "number" and type(b) == "number" then
+			Hud.tierUp(a, b)
+		elseif kind == "traitGained" and type(a) == "string" and type(b) == "number" then
+			Hud.traitGained(a, b)
+		end
+	end)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)
 		local info, reason = WorldInfo.decode(netVersion, epoch, list)
 		if info == nil then

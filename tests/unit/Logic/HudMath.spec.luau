@@ -92,3 +92,31 @@ describe("HudMath.grouped (docs/08 section 5.1)", function()
 		expect(HudMath.grouped(-5)).toBe("0")
 	end)
 end)
+
+describe("HudMath.newFood (docs/08 section 4.2)", function()
+	it("lists the prey that became edible, regular prey first, at most three", function()
+		local food = HudMath.newFood(1, 2)
+		expect(#food).toBe(3)
+		expect(food[1]).toBe("sardine")
+		for _, id in food do
+			local def = Index.Prey.byId[id] or Index.TraitPrey.byId[id]
+			expect(def ~= nil and def.tier == 2).toBe(true)
+		end
+	end)
+	it("covers every tier passed on a jump of two", function()
+		local food = HudMath.newFood(2, 4)
+		expect(food[1]).toBe("darter")
+		expect(food[2]).toBe("mackerel")
+	end)
+	it("leaves out [L] and event-only prey, and is empty when nothing new is edible", function()
+		for from = 0, 6 do
+			for _, id in HudMath.newFood(from, from + 1) do
+				local def = Index.Prey.byId[id] or Index.TraitPrey.byId[id]
+				expect(def.scope).toBe("MVP")
+				expect(def.eventOnly).toBe(nil)
+			end
+		end
+		expect(#HudMath.newFood(6, 7)).toBe(0)
+		expect(#HudMath.newFood(3, 3)).toBe(0)
+	end)
+end)

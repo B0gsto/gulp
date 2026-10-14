@@ -1,5 +1,5 @@
 --!strict
--- HudMath: the numbers the run HUD stage 1 shows (docs/08, sections 3.4, 3.12 and 3.16). Pure,
+-- HudMath: the numbers the run HUD shows (docs/08, sections 3.4, 3.12, 3.16 and 4.2). Pure,
 -- so it runs in Lune. Text is never built here: callers pass the parts to `Loc.t`.
 local Index = require("../Data/Index")
 local TierMath = require("./TierMath")
@@ -82,6 +82,32 @@ end
 --- metre), rounded to the nearest 5.
 function HudMath.homeDistance(studs: number): number
 	return math.max(0, math.floor(studs / HudMath.HOME_ROUND + 0.5) * HudMath.HOME_ROUND)
+end
+
+-- 08 §4.2: the tier-up card shows up to three prey that just became edible.
+HudMath.NEW_FOOD_MAX = 3
+
+--- The prey that became edible on a rise from `from` to `to` (08 §4.2; canon 5.2: a prey of
+--- tier n is edible from tier n): MVP prey first, then trait prey, in table order, event-only
+--- prey left out, at most three IDs.
+function HudMath.newFood(from: number, to: number): { string }
+	local out: { string } = {}
+	for _, list in { Index.Prey.list, Index.TraitPrey.list } do
+		for _, def in list do
+			if #out >= HudMath.NEW_FOOD_MAX then
+				return out
+			end
+			if
+				def.tier > from
+				and def.tier <= to
+				and def.scope == "MVP"
+				and def.eventOnly == nil
+			then
+				table.insert(out, def.id)
+			end
+		end
+	end
+	return out
 end
 
 export type Pop = { amount: number, born: number, lastHit: number }

@@ -556,6 +556,10 @@ All in-run moments share `HUD.MomentSlot` (top centre, above the keep-clear box)
 
 A higher priority moment replaces a lower one at once. Up to three wait in a queue; a waiting moment older than 6 s is dropped, except tier-up and trait gained, which always play. Each enters in 180 ms and leaves in 160 ms.
 
+Each card sits 8 rpx down in the slot and is 104 rpx tall, so it keeps the 16 rpx gap of 1.5 under `HUD.BankChip` (which ends at 122) and ends with the slot. Its `UI_Common_Rays` is a round burst centred on the badge or icon, drawn over the card: it may reach past the card's sides and top (through that gap and up beside `HUD.BankChip`), never below the card. Chapter 14, section 4, row 35 (e) has where it meets the chip.
+
+Chapter 04's first-run banners (NIBBLER and GLOW, 1.5 s, 04 §3.3) pass their own hold in place of the times above. Chapter 14, section 4, row 35 lists what is still open between this section, chapter 04 and the keep-clear box.
+
 ### 4.2 Tier-up (S07) [MVP]
 
 ```
@@ -568,15 +572,15 @@ A higher priority moment replaces a lower one at once. Up to three wait in a que
 
 | Item | Detail |
 |---|---|
-| Size | 460 × 112 on `UI_Common_Ribbon` |
+| Size | 460 × 104 on `UI_Common_Ribbon` (the band and its two tails) |
 | Content | New tier badge, `moment.tier_up`, tier name (`tier.1` to `tier.7`), `moment.new_food` with up to three icons of prey that just became edible, each with an edible-colour ring |
-| Tier 7 | 2,200 ms, `UI_Common_Rays` turning behind the badge, `toast.leviathan` sent to the whole server |
+| Tier 7 | 2,200 ms, `UI_Common_Rays` turning behind the badge, which grows to 104, a gold edge on the ribbon, `toast.leviathan` sent to the whole server |
 | Feedback | `SFX_UI_TierUp`, two haptic pulses. The creature's own growth effect belongs to chapter 06. |
 | Never | Blocks input, or covers the keep-clear box |
 
 ### 4.3 Trait gained (S08) [MVP]
 
-Card 420 × 112: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`, trait name, effect line (`trait.<id>.fx`). Epic and Mythic add `UI_Common_Rays`. `SFX_UI_TraitGain`. At the same time the slot plays its Just gained state.
+Card 420 × 104: trait icon (80 rpx) in its rarity frame, `moment.trait_gained`, trait name, effect line (`trait.<id>.fx`, Body 24; Small 22 when a translation does not fit). Epic and Mythic add `UI_Common_Rays`. `SFX_UI_TraitGain`. At the same time the slot plays its Just gained state.
 
 ### 4.4 Gulped panel (S11) [MVP]
 
