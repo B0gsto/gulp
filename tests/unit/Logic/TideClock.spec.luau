@@ -1,5 +1,6 @@
 --!strict
 -- 09 §16.1: every minute of an hour, slot edges, MVP fallback.
+local Index = require("../../../src/shared/Data/Index")
 local TestKit = require("../../../src/shared/Util/TestKit")
 local TideClock = require("../../../src/shared/Logic/TideClock")
 
@@ -98,6 +99,34 @@ describe("TideClock fallback (09 §11.1, canon 10)", function()
 			expect(TideClock.at(HOUR0 + q * 900, { shipped = none }).id).toBe("frenzy")
 		end
 		expect(TideClock.resolve("no_such_tide")).toBe("frenzy")
+	end)
+
+	it("follows the chain past tides the slice build leaves out (outOfBuild)", function()
+		-- The slice build (tools/gen/content -- --slice) keeps every row and marks the ones
+		-- outside the slice; the generated rows are not frozen, so mark them here and restore.
+		local moon = Index.Tides.byId.moon_tide :: any
+		local whale = Index.Tides.byId.whale_fall :: any
+		expect(moon.fallback).toBe("frenzy")
+		moon.outOfBuild, whale.outOfBuild = true, true
+		local ok, err = pcall(function()
+			for q = 0, 3 do
+				expect(TideClock.at(HOUR0 + q * 900).id).toBe("frenzy")
+				expect(TideClock.at(HOUR0 + q * 900, { shipped = FULL }).id).toBe("frenzy")
+			end
+			expect(TideClock.resolve("whale_fall")).toBe("frenzy") -- whale_fall → moon_tide → frenzy
+			expect(TideClock.resolve("moon_tide", FULL)).toBe("frenzy")
+			-- A limited tide the build leaves out is not offered either.
+			expect(TideClock.slotTide(HOUR0 + 1800, {
+				shipped = FULL,
+				limitedId = "moon_tide",
+				limitedStart = HOUR0,
+				limitedEnd = HOUR0 + 3600,
+			})).toBe("frenzy")
+		end)
+		moon.outOfBuild, whale.outOfBuild = nil, nil
+		if not ok then
+			error(err, 0)
+		end
 	end)
 end)
 

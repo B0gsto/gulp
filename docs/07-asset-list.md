@@ -88,6 +88,8 @@ After the prefix, an `FX_` or `SFX_` name is **one PascalCase name with no under
 
 A species, trait, predator or ability is never a group: it is the first word of the name (`SFX_MinnowChirp`, `FX_GlowAura`, `SFX_OldScarNear`, `FX_PuffInflate`). A phase such as Start, Loop, In or Out is part of the name, not a variant (`SFX_RampageLoop`, `SFX_CamoOff`).
 
+**Sound takes.** A row's "× 3" is its number of takes: recordings of the same sound that code picks among at random so repeats do not sound mechanical. Takes are files, not rows. Each file is the row's name with a two-digit take number appended, **without** an extra underscore, so a name still has at most two inner underscores: `SFX_Bite_Small01`, `SFX_Bite_Small02`, `SFX_Bite_Small03`; `SFX_Gulp01`; `SFX_UI_Tap01`. A sound with one take still gets `01`. A take is not a variant: a variant is picked by a value and is its own row.
+
 **Music, lighting, skies and scenes**
 
 - `MUS_Event_<Event>` is a tide event theme (`MUS_Event_Warning` is the shared 60-second warning) and `MUS_Sting_<Name>` is a stinger. Every other track is `MUS_<Name>`, where the name is a zone or a state.
@@ -196,10 +198,10 @@ Shared by every species in the family. Lengths are frames at 30 a second (docume
 | `A_Fish_Dash` | [MVP] | Squash to 85%, stretch to 125% with fins pinned back, settle. Matches the 0.35 s dash | 14 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Bite` | [MVP] | Jaw snap and a 12% head lunge; cheeks bulge | 7 to 9 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Gulp` | [MVP] | Eater swallows a player or large prey: full gape, snap, swallow bulge down the body | 12 frames | RIG_Fish | 0.8 | not started |
-| `A_Fish_Hit` | [MVP] | Flash and squash to 80%: bite survived, or two same-tier players bump | 11 frames | RIG_Fish | 0.5 | not started |
+| `A_Fish_Hit` | [MVP] | Squash to 80%: bite survived, or two same-tier players bump. The white flash is code, not keyed (06 §7.2) | 11 frames | RIG_Fish | 0.5 | not started |
 | `A_Fish_Stunned` | [MVP] | Wobble loop (eyes spiral in code). Also used when slowed, burning, hooked or pulled by a Grouper | loop 20 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_TierUp` | [MVP] | Squash to 75%, pop to 130% of the new size, settle | 18 frames | RIG_Fish | 1 | not started |
-| `A_Fish_Gulped` | [MVP] | Stretch 140% toward the mouth and shrink to nothing | 8 frames | RIG_Fish | 0.6 | not started |
+| `A_Fish_Gulped` | [MVP] | Stretch 140% toward the mouth, the body pulled in behind the head. Bones only: the shrink to nothing is code, `Model:ScaleTo` over frames 4 to 8 (06 §7.2) | 8 frames | RIG_Fish | 0.6 | not started |
 | `A_Fish_Bank` | [MVP] | Happy spin with eyes closed on entering the cove | 18 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Breach` | [MVP] | Arc through the air and flop back in | 30 frames | RIG_Fish | 0.8 | not started |
 | `A_Fish_Hatch` | [MVP] | Wriggle out of the egg and stretch; the player has control by 1.5 s | 45 frames | RIG_Fish | 1 | not started |
@@ -1057,7 +1059,7 @@ Shared by many effects. Flipbooks are rendered from Blender or painted, then pac
 
 | Asset | Tag | Description | Size / budget (tune) | Depends on | Hours (tune) | Status |
 |---|---|---|---|---|---|---|
-| `FX_BiteChomp` | [MVP] | A bite landed: five bubbles and one lime-white pop star at the mouth | 6 particles | T_FX_Bubble_Mask | 0.5 | not started |
+| `FX_BiteChomp` | [MVP] | A bite landed: five bubbles and one lime-white pop star at the mouth | 6 particles | T_FX_Bubble_Mask, T_FX_Star_Mask (2×2: the star is one still frame of the sheet, not a flipbook; 06 §11.2) | 0.5 | not started |
 | `FX_BubblePop_T0` | [MVP] | Plankton eaten: one tiny glint. Must be nearly free; it fires several times a second | 1 particle | T_FX_Star_Mask | 0.3 | not started |
 | `FX_BubblePop_T1T2` | [MVP] | Tier 1 and 2 prey: bubble pop and two glints in the prey colour | 8 particles | T_FX_Bubble_Mask, T_FX_Star_Mask | 0.5 | not started |
 | `FX_BubblePop_T3T4` | [MVP] | Tier 3 and 4 prey: bigger pop with a ring | 12 particles | T_FX_Ring_Mask | 0.5 | not started |

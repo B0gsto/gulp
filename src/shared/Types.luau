@@ -201,6 +201,7 @@ export type TideDef = {
 	wire: number,
 	scope: Scope,
 	fallback: string?,
+	outOfBuild: boolean?, -- slice build only: the rotation names it, the build leaves it out (09 §11.1)
 	spawnRateMult: number,
 	eventPrey: { string },
 }
@@ -244,7 +245,7 @@ export type RevivePointDef = {
 -- kept as data. `inv` is the part's inverse frame as 12 numbers (position, then the rotation by
 -- rows), so a world point turns into the part's local space with plain arithmetic.
 export type ZoneId = string
--- One of the 12 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
+-- One of the 13 `Kind` values of the section 9.1 table (VolumeMath.KINDS). A plain string: luau-lsp
 -- 1.70.1 widens these singleton unions to `string` through loops and refinements.
 export type VolumeKind = string
 export type VolumeShape = string -- "Block", "Ball" or "Cylinder"; a Cylinder's axis is its local X
@@ -300,6 +301,9 @@ export type GoalDef = {
 	difficulty: "Easy" | "Medium" | "Hard",
 	reward: string, -- R1 to R5: chapter 05's Pearl reward step
 	needs: string?, -- the condition for offering it; nil when it needs nothing
+	kind: string, -- the event counted (chapter 03, section 9: eat_prey, reach_tier, bank_mass …)
+	subject: string?, -- prey, zone, tide or predator ID, tier, rarity or trait count; nil when none
+	pool: "eat" | "grow" | "world", -- chapter 02's goal pool (section 15.3)
 }
 
 export type LandmarkDef = {

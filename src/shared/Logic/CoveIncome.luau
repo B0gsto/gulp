@@ -5,7 +5,8 @@
 --
 -- Clock-tamper safety (09 §13.3): `now` is the caller's server `os.time()`; elapsed time is
 -- clamped to 0 from below and `accruedAt` only moves forward, so a slow clock cannot wind the
--- pile back and re-pay a period; the pile is capped, so a fast clock over-pays at most one cap.
+-- pile back and re-pay a period; income stops `capHours` after the last claim, so a fast clock
+-- over-pays at most one cap window.
 --
 -- The base rate per tier comes from Data/Generated/Tiers (05 §3.3 data:CoveIncome), trait bonuses
 -- from Traits (05 data:TraitIncome) through TraitRules, the caps and thresholds from
@@ -55,18 +56,22 @@ end
 
 --- Brings the pile up to `now` at `rate` Pearls per hour (09 §13.2). Returns the new pile and the
 --- new `accruedAt`. Call it before any change to the specimen list, so the old rate applies to
---- the old period. The pile never decreases and never grows past `rate × capHours`; `accruedAt`
+--- the old period. The cap is a time window, not an amount (02 §13.2, 05 §3.4): income counts
+--- only until `lastClaimAt + capHours`, each period at the rate it had, so after a rate change
+--- the pile can hold more or less than `rate × capHours`. `lastClaimAt` is `cove.lastClaim.at`;
+--- nil (a profile without one) counts as `accruedAt`. The pile never decreases; `accruedAt`
 --- never moves back; a clock behind `accruedAt` adds nothing.
 function CoveIncome.accrue(
 	pending: number,
 	accruedAt: number,
 	now: number,
 	rate: number,
+	lastClaimAt: number?,
 	capHours: number
 ): (number, number)
-	local dt = math.clamp(now - accruedAt, 0, capHours * HOUR)
-	local newPending = math.min(pending + rate * dt / HOUR, rate * capHours)
-	return math.max(newPending, pending), math.max(accruedAt, now)
+	local stop = math.min(now, (lastClaimAt or accruedAt) + capHours * HOUR)
+	local dt = math.max(0, stop - accruedAt)
+	return pending + math.max(0, rate) * dt / HOUR, math.max(accruedAt, now)
 end
 
 --- A claim (02 §13.2, 05 §3.3): the whole Pearls of the pile are paid, the fraction stays.

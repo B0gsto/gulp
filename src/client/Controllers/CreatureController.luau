@@ -405,7 +405,9 @@ function CreatureController.rigOf(slot: number): Rig?
 end
 
 --- The own creature's mouth centre and radius from the smoothed rig (02 §4.1; 09 §6.7, F2).
---- `mouthMult` is not in the species data yet, so it is 1; the dash is read from the speed.
+--- RigMath.mouth is BiteMath's mouth, the one the server checks against (09 §8.9). `mouthMult`
+--- and `lengthMult` are not in the species data yet, so they are 1; the dash is read from the
+--- speed. TODO(B20, S4-C6): the first-run factor (04 §4), with the server's.
 function CreatureController.localMouth(): (Vector3, number)
 	local e = ownEntry
 	if e == nil then

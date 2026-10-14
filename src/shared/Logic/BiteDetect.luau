@@ -15,9 +15,15 @@
 --           A member that leaves the cone or the range loses its pull. Prey only, never players.
 --           The set follows the input mode of the moment (15 §4.3): Touch is the drag column.
 --
+-- The mouth centre and radius passed in are 02 §4.1's, from BiteMath (RigMath.mouth reads it),
+-- the same formula the server checks against (09 §8.9), so a claim made here is always inside
+-- the server's reach (`BiteMath.claimLimit`; tests/unit/Logic/BiteMath.spec.luau proves it).
+--
 -- Members are keyed `groupId × 32 + member` (24 members at most, 8.7). The pull tables are
 -- swapped every frame, so a member not tested this frame is forgotten; nothing allocates once
 -- the tables have grown.
+
+local BiteMath = require("./BiteMath")
 
 export type AssistSet = { cone: number, range: number, pull: number } -- degrees, × mouthRadius, studs/s
 export type InputMode = "Touch" | "Keys" | "Pad"
@@ -43,6 +49,12 @@ BiteDetect.ASSIST_SETS = table.freeze({
 --- The assist set for an input mode (15 §4.3); an unknown mode gets the Keys set, the narrowest.
 function BiteDetect.assistSet(mode: string): AssistSet
 	return BiteDetect.ASSIST_SETS[mode] or BiteDetect.ASSIST_SETS.Keys
+end
+
+--- The furthest from the mouth centre a member of `preyRadius` can be claimed with mouth radius
+--- `r` and assist set `set` (nil: no assist): 02 §4.1, "What a client may claim".
+function BiteDetect.claimLimit(r: number, preyRadius: number, set: AssistSet?): number
+	return BiteMath.claimLimit(r, preyRadius, if set then set.range else 0)
 end
 
 --- The member key of member `member` of group `groupId`.
@@ -98,7 +110,7 @@ function BiteDetect.test(
 		return BiteDetect.NONE, gap
 	end
 	-- The cone's apex is the nose, half a mouth radius behind the mouth centre (02 §4.1).
-	local h = 0.5 * r
+	local h = BiteMath.CENTRE_AHEAD * r
 	local nx, ny, nz = ax + fx * h, ay + fy * h, az + fz * h
 	local nd = math.sqrt(nx * nx + ny * ny + nz * nz)
 	if nd > 1e-6 and (nx * fx + ny * fy + nz * fz) / nd < math.cos(math.rad(set.cone)) then

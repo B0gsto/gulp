@@ -200,6 +200,8 @@ Whale Fall injects a fixed amount of mass per server no matter how many players 
 
 ## 3. Pearl sources
 
+**A new profile starts with 0 Pearls and 0 of every token** (revive, Trait Lock, Call the Tide, Goal Reroll). There is no starting grant: the first Pearls come from the first bank (3.1, chapter 04, section 6) and the first-day goals (3.5; chapter 04, section 7.2), and the first income tick (canon 11) pays one hour of the first specimen's income.
+
 ### 3.1 Banking **[MVP]**
 
 ```
@@ -289,7 +291,7 @@ Section 5.5 shows why both tables moved: with the first-draft canon anchors a re
 ### 3.4 Uncollected income cap and offline income **[MVP]**
 
 - Income collects in one pile whether the player is online or offline (canon section 11). Being online gives no extra.
-- The pile stops growing after 8 hours unclaimed (canon), so it holds at most 8 hours of the cove's current income. Tide Watcher raises that to 24 hours.
+- The pile stops growing 8 hours after the last claim (canon): income counts only while less than 8 hours have passed since then, each period at the rate the cove had at the time. After a rate change the pile can therefore hold more or less than 8 hours of the current rate. Tide Watcher raises the window to 24 hours.
 - The pile is paid into the player's Pearls only when the player claims it: by tapping the pile at the Pearl clam in the cove, or by tapping the welcome-back card. It is never claimed automatically: not at login, not on a bank, not on leaving the cove and not on a timer (canon section 11). The one exception is the first-bank reward in section 3.3.
 - When the cove changes (a bank, a release, a new slot), the server first adds the income earned so far to the pile at the old rate, then switches to the new rate. Nothing is paid out at that moment. A specimen never earns for hours before it was banked.
 - Maximum per day without the pass: 24 hours of income, by claiming three times at least 8 hours apart. Tide Watcher does not raise that ceiling; it removes the need to log in three times.
@@ -315,7 +317,7 @@ Three goals a day: one easy, one medium, one hard. They reset at 00:00 UTC. The 
 | All three done | +100 | — |
 | **Full day** | **500** | |
 
-Paid amount = base × rank multiplier (section 3.7). In chapter 03's bands (section 3.12) Easy is R1, Medium is R2, Hard is R3 and the all-three bonus is R1.
+Paid amount = base × rank multiplier (section 3.7), rounded down to a whole Pearl: a Medium goal at Reef Rank 2 pays `floor(125 × 1.1) = 137`, a Hard one `floor(175 × 1.1) = 192`. The all-three bonus is rounded the same way, on its own. In chapter 03's bands (section 3.12) Easy is R1, Medium is R2, Hard is R3 and the all-three bonus is R1.
 
 An account's first day uses a fixed starter set of two Easy goals and one Medium (`dg_eat_50`, `dg_tier3`, `dg_bank_snapper`; chapter 04, section 7.2), the one exception canon 11 allows to "one Easy, one Medium, one Hard", so that day pays 425 in full, not 500.
 

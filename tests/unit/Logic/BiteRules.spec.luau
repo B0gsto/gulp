@@ -346,6 +346,15 @@ describe("BiteRules.playerBite (09 §10.2, in order)", function()
 		b = legal()
 		b.inRange, b.bubbleAvailable = false, true -- out of range spends no bubble
 		expect(select(3, BiteRules.playerBite(b))).toBe(nil)
+		b = legal()
+		b.inRange, b.recentlyGulped = false, true -- rule 6 before rule 7
+		expect(select(2, BiteRules.playerBite(b))).toBe("range")
+		b = legal()
+		b.recentlyGulped, b.bubbleAvailable, b.platedAvailable = true, true, true -- rule 7 first
+		local ok, reason, save = BiteRules.playerBite(b)
+		expect(ok).toBe(false)
+		expect(reason).toBe("repeat")
+		expect(save).toBe(nil) -- a repeat bite spends neither the bubble nor the plates
 	end)
 
 	it(

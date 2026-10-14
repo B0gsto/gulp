@@ -7,8 +7,10 @@
 --              :30 frenzy, :45 whale_fall
 --   phase    = active for the first 240 s of a slot, warning for the last 60 s (naming the next
 --              slot's tide), calm in between (naming the next slot's tide too)
---   fallback = a tide whose row is not in this build, or whose scope tag the build does not ship,
---              runs its `TideDef.fallback` (whale_fall → moon_tide until Whale Fall ships)
+--   fallback = a tide whose row is not in this build, whose scope tag the build does not ship, or
+--              that the build leaves out (`TideDef.outOfBuild`, the slice build) runs its
+--              `TideDef.fallback`, followed until a tide that runs (whale_fall → moon_tide until
+--              Whale Fall ships; moon_tide → frenzy in the slice, so all four slots are frenzy)
 --   :30      = after launch a limited-time tide from live config replaces its Feeding Frenzy
 --              while the slot start lies inside the configured window (09 §11.1, §17.4)
 --
@@ -35,15 +37,16 @@ export type Options = {
 	limitedEnd: number?, -- live.limitedTideEnd as Unix seconds (exclusive)
 }
 
+-- A tide runs when its row is in this build, its scope tag ships and the build does not leave it
+-- out (09 §11.1: the slice build marks the rows outside the slice `outOfBuild`).
 local function playable(id: string, shipped: { [string]: boolean }): boolean
 	local def = Index.Tides.byId[id]
-	return def ~= nil and shipped[def.scope] == true
+	return def ~= nil and shipped[def.scope] == true and not def.outOfBuild
 end
 
 --- The tide that actually runs for `id` in a build shipping `shipped`: `id` itself, or the first
---- playable tide down its `fallback` chain. When the chain ends with nothing playable (the
---- soft-launch slice has only `frenzy`, and data:Tides gives `moon_tide` no fallback) it is the
---- :00 tide, `frenzy`, which every build ships (13 S16-C1: Frenzy on all four slots there).
+--- playable tide down its `fallback` chain (09 §11.1). A chain that ends with nothing playable
+--- (never in the generated data) falls back to the :00 tide, `frenzy`, which every build ships.
 function TideClock.resolve(id: string, shipped: { [string]: boolean }?): string
 	local scopes = shipped or TideClock.MVP
 	local current: string? = id

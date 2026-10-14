@@ -615,9 +615,9 @@ Frames at 30 a second. All **(tune)**.
 | **Swallow bulge** | — | 8: a bump travels from head to tail on the Girth bones | — | 4 | 12 | Bigger prey, bigger bump |
 | **Dash** (0.35 s) | 2: squash to 85% | 6: stretch 125%, fins pinned back | 2: 95% | 4 | 14 | The move itself starts on frame 1; the squash overlaps it |
 | **Tier-up** | 3: squash to 75% | 3: pop to 130% of the new size | 4: 110%, then 96% | 8 | 18, plus a 6-frame sparkle hold | The mesh swap at tier 4 happens on the pop frame, hidden by `FX_TierUp_T4` and `FX_Metamorph` (chapter 07) |
-| **Gulped** (victim) | — | 4: stretch 140% toward the mouth | 4: shrink to nothing | `FX_GulpPop` for 12 | 20 | No blood. A burst of bubbles and one spinning star. |
+| **Gulped** (victim) | — | 4: stretch 140% toward the mouth | 4: shrink to nothing | `FX_GulpPop` for 12 | 20 | No blood. A burst of bubbles and one spinning star. Bones cannot scale, so the clip (`A_Fish_Gulped`, 8 frames) only moves bones: frames 1 to 4 stretch the head toward the mouth with the body pulled in behind it, frames 5 to 8 keep pulling the body into the head. The shrink is code: over the clip's frames 4 to 8 the victim's model is scaled with `Model:ScaleTo` from 1 down to 0.05, eased in, then hidden. |
 | **Gulp** (eater) | 2: mouth opens to full | 1: snap | 3: head 110% | 6, with the swallow bulge | 12 | |
-| **Hit and survived** (Plated) | — | 2: flash white, squash 80% | 3 | 6 | 11 | Plates crack on frame 2 |
+| **Hit and survived** (Plated) | — | 2: flash white, squash 80% | 3 | 6 | 11 | Plates crack on frame 2. The clip keys only the squash; the white flash is code, because a bone cannot change colour. |
 | **Ability start** | 4 | by species | 2 | 6 | varies | `Puff` and `Shell` swap meshes (section 7.5) |
 | **Bank** (enter cove) | — | 10: happy spin, eyes closed | — | 8 | 18 | |
 | **Stunned** | — | Loop of 20: wobble, eyes spiral | — | — | loop | |
@@ -1015,7 +1015,7 @@ Counts are live particles at the peak, on a phone. All **(tune)**.
 | Effect | What it shows | Build | Peak particles | Lifetime |
 |---|---|---|---|---|
 | `FX_BubbleTrail` | Movement, wake at tier 5 and up | 1 emitter, ring bubbles rising | 8 | 0.8 s |
-| `FX_BiteChomp` | A bite landed | Burst: 5 bubbles, 1 lime-white "pop" star (4 × 4 flipbook, 512) | 6 | 0.3 s |
+| `FX_BiteChomp` | A bite landed | Burst: 5 bubbles, 1 lime-white "pop" star. The star is a still frame of chapter 07's 2 × 2 `T_FX_Star_Mask` (256², one of its four star shapes per burst, `FlipbookMode` Random), popped by the particle's size, spin and fade curves; it is not a flipbook, so it reads the same with flipbooks off | 6 | 0.3 s |
 | `FX_GulpPop` | A creature was gulped | Burst: 12 bubbles, 1 spinning star, 1 ring | 14 | 0.5 s |
 | `FX_TierUp_T2` to `_T7` | Tier-up, one effect per tier reached (chapter 07) | Burst: ring shockwave, 10 four-point stars in the species' light colour, 8 bubbles; a 0.2 s white flash on the body | 20 at tiers 2 and 3, rising to 60 at tier 7 | 0.6 s |
 | `FX_DashTrail` | Dash | A `Trail` from the tail (white to clear, 0.25 s), plus 4 streak particles | 4, plus the trail | 0.25 s |

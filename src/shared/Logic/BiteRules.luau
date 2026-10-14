@@ -25,10 +25,10 @@ BiteRules.NURSERY_SHARE = D.nurseryShare
 
 export type Kind = "prey" | "player" | "predator"
 
---- 09 §10.2's reject reasons, plus "repeat" (02 §4.2 check 7) and "inedible" (canon 5.2).
+--- 09 §10.2's reject reasons ("repeat" is rule 7, 02 §4.2 check 7) and "inedible" (canon 5.2).
 export type Reason = "state" | "tier" | "safe zone" | "protected" | "range" | "repeat" | "inedible"
 
---- What saved a victim whose bite was otherwise legal (09 §10.2 rules 7 and 8).
+--- What saved a victim whose bite was otherwise legal (09 §10.2 rules 8 and 9).
 export type Save = "bubble" | "plated"
 
 --- The target of a `canEat` test. Prey ignores every flag (02 §0.4). `protected` is any
@@ -150,22 +150,26 @@ function BiteRules.predatorCanEat(predatorId: string, target: Target): (boolean,
 end
 
 --- 09 §10.2: a player's bite on a player, checked in order at processing time; the first failure
---- decides. Returns true to gulp. A refused bite returns the reason, and for the newcomer bubble
---- (rule 7) and the Plated save (rule 8) also which one the caller must spend. 02 §4.2 check 7
---- (the 90 s repeat guard), which 09 §10.2 does not list, runs after the range test.
+--- decides. Returns true to gulp (rule 10). A refused bite returns the reason, and for the
+--- newcomer bubble (rule 8) and the Plated save (rule 9) also which one the caller must spend.
 function BiteRules.playerBite(b: PlayerBite): (boolean, Reason?, Save?)
+	-- Rule 1: both in a run and alive; the eater not stunned, not flagged.
 	if not b.eaterInRun or not b.victimInRun or b.eaterStunned or b.eaterFlagged then
 		return false, "state", nil
 	end
+	-- Rule 2: tier 1 players cannot be eaten by players.
 	if b.victimTier <= 1 then
 		return false, "tier", nil
 	end
+	-- Rule 3: the victim is outside SafeNursery, every CoveMouth and every CoveInterior.
 	if b.victimInSafeVolume then
 		return false, "safe zone", nil
 	end
+	-- Rule 4: not Protected (revive, resume, first-run shield) and not in Shell.
 	if b.victimProtected or b.victimTucked then
 		return false, "protected", nil
 	end
+	-- Rule 5: eaterTier ≥ victimTier + 1, the victim +1 while puffed and +1 with Spiny.
 	if
 		not BiteRules.tierAllows(
 			b.eaterTier,
@@ -178,15 +182,19 @@ function BiteRules.playerBite(b: PlayerBite): (boolean, Reason?, Save?)
 	then
 		return false, "tier", nil
 	end
+	-- Rule 6: distance with lag compensation (09 §10.3).
 	if not b.inRange then
 		return false, "range", nil
 	end
+	-- Rule 7: the 90 s repeat guard (02 §4.2 check 7). The victim bumps.
 	if b.recentlyGulped then
 		return false, "repeat", nil
 	end
+	-- Rule 8: the newcomer bubble absorbs the first bite by a player.
 	if b.bubbleAvailable then
 		return false, "protected", "bubble"
 	end
+	-- Rule 9: an unused Plated saves the victim.
 	if b.platedAvailable then
 		return false, "protected", "plated"
 	end
