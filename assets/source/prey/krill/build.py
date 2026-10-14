@@ -113,21 +113,21 @@ def legs_part():
     notches = (-0.14, -0.02)
     A0 = (ya, belly(ya) + 0.035)
     A3 = (yb, belly(yb) + 0.035)
-    B = [(y + 0.03, belly(y) - (0.12 - 0.015 * i)) for i, y in enumerate(tips)]
-    N = [(y, belly(y) - 0.03) for y in notches]
+    B = [(y + 0.03, belly(y) - (0.09 - 0.01 * i)) for i, y in enumerate(tips)]
+    N = [(y, belly(y) - 0.062) for y in notches]
     outline = [A0, B[0], N[0], B[1], N[1], B[2], A3]
     tris = [(0, 1, 2), (2, 3, 4), (4, 5, 6), (0, 2, 4), (0, 4, 6)]
-    return extrude(outline, tris, 0.05)
+    return extrude(outline, tris, 0.04)
 
 
 def tail_part():
     """Three-point tail fan behind the curled tail tip."""
-    outline = [(0.24, -0.045), (0.40, -0.035), (0.345, -0.095), (0.375, -0.175), (0.25, -0.10)]
+    outline = [(0.24, -0.045), (0.40, -0.04), (0.365, -0.10), (0.38, -0.17), (0.25, -0.10)]
     tris = [(0, 1, 2), (0, 2, 4), (2, 3, 4)]
     return extrude(outline, tris, 0.026)
 
 
-EYE_C, EYE_R = (0.088, -0.295, 0.085), 0.056
+EYE_C, EYE_R = (0.086, -0.295, 0.085), 0.05
 
 
 def eye_part(side):

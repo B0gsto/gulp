@@ -544,6 +544,8 @@ def run_shell(spec):
                     if m and m["inside_points"] == 0 and width_ok(m, d):
                         chosen = want
                         break
+                    print("[shell] %s try %d: %d folds%s" % (name, want, folds, "" if not m else
+                          ", %d points inside, width %.3f to %.3f, mean %.3f, cv %.2f for %.3f" % (m["inside_points"], m["min"], m["max"], m["mean"], m["cv"], d)))
                     if want != tries[-1]:
                         bpy.data.meshes.remove(obj.data)
                 raised = triangles(obj.data) > target

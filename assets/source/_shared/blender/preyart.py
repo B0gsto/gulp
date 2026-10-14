@@ -130,7 +130,7 @@ def paint_krill(img, block, profile):
     m = mix(m, mix(mid, VIOLET, 0.16), smooth(0.45, 1.0, t))
     m = mix(m, mix(m, VIOLET, 0.10), 1.0 - smooth(0.35, 0.75, s))            # cool lower flank
     l = mix(light, WARM, 0.25 * (1.0 - t))
-    is_light = s < 0.36 - 0.06 * np.sin(t * math.pi * 5.0) * 0.4
+    is_light = s < 0.18
     col = np.where(is_light[..., None], l, m)
     blk = np.where(is_light, 1, 0)
     # the segment bands across the back (krill dark, a thin accent) behind the head
@@ -141,8 +141,11 @@ def paint_krill(img, block, profile):
     hi = (s > 0.80) & (t > 0.10) & (t < 0.34)
     col = np.where(hi[..., None], mix(col, WARM, 0.22), col)
     # legs: everything under the belly line is the leg fringe (dark, violet-navy, lighter tips)
-    leg = Z < legs_top
-    lc = mix(dark, mix(dark, rgb(KR_MID), 0.22), smooth(0.0, 1.0, (legs_top - Z) / 0.14))
+    # the top of the comb, next to the belly, stays body colour; the fringe below it is dark
+    leg = Z < legs_top - 0.035
+    col = np.where(((Z < legs_top) & ~leg)[..., None], mix(m, VIOLET, 0.12), col)
+    blk = np.where((Z < legs_top) & ~leg, 0, blk)
+    lc = mix(dark, mix(dark, rgb(KR_MID), 0.22), smooth(0.0, 1.0, (legs_top - 0.035 - Z) / 0.10))
     col = np.where(leg[..., None], lc, col)
     blk = np.where(leg, 2, blk)
     # tail fan past the body's end: mid with an accent rim
@@ -160,7 +163,7 @@ def paint_krill(img, block, profile):
     yy, xx = np.mgrid[0:h, 0:w]
     fu = (xx + 0.5 - MARGIN) / (w - 2 * MARGIN)
     fv = 1.0 - (yy + 0.5 - MARGIN) / (h - 2 * MARGIN)
-    g1 = np.hypot((fu - 0.30) / 0.16, (fv - 0.72) / 0.09) < 1.0
+    g1 = np.hypot((fu - 0.30) / 0.19, (fv - 0.70) / 0.12) < 1.0
     g2 = np.hypot((fu - 0.62) / 0.07, (fv - 0.46) / 0.04) < 1.0
     eye = np.broadcast_to(dark, (h, w, 3)).copy()
     eye[g1 | g2] = rgb("#FFFFFF")
@@ -209,7 +212,7 @@ def sampler(block):
         def sample(u, v):
             r = min(SIZE - 1, max(0, int((1.0 - v) * SIZE)))
             c = min(SIZE - 1, max(0, int(u * SIZE)))
-            return names.get(int(block[r, c]), "none"), tuple(img[r, c, :3])
+            return names.get(int(block[r, c]), "none"), tuple(float(x) for x in img[r, c, :3])
         return sample
     return at
 
