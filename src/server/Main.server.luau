@@ -18,6 +18,7 @@ require(script.Parent.Net.Server)
 
 -- Section 4.5's order, listing only the services written so far; each task adds its own.
 local loaded: { Service } = {
+	require(script.Parent.Services.LiveConfig),
 	require(script.Parent.Services.Analytics),
 	require(script.Parent.Services.DataService),
 	require(script.Parent.Services.WorldIndex),
@@ -83,4 +84,19 @@ if environment.devCheats or environment.name == "ci" then
 		return player ~= nil and DataService.patch(player, path, value)
 	end
 	patch.Parent = script.Parent
+	-- Live config for Studio checks (the smoke's `config.*` step): `LiveConfigSet:Invoke(values)`
+	-- applies a key → value table as if ConfigService had sent it and forwards the client keys
+	-- that changed; `LiveConfigSet:Invoke(nil)` goes back to the real snapshot.
+	local LiveConfig = require(script.Parent.Services.LiveConfig)
+	local liveSet = Instance.new("BindableFunction")
+	liveSet.Name = "LiveConfigSet"
+	liveSet.OnInvoke = function(values: { [string]: any }?): boolean
+		if values == nil then
+			LiveConfig._test.restore()
+		else
+			LiveConfig._test.apply(values)
+		end
+		return true
+	end
+	liveSet.Parent = script.Parent
 end

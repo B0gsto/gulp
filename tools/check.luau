@@ -186,7 +186,11 @@ local STEPS: { Step } = {
 			-- Regenerate and compare with what was on disk, so this also works on a tree with
 			-- uncommitted work. On a clean checkout it equals `git diff --exit-code`.
 			local before = snapshot(GENERATED_ROOT)
-			if not run("lune", { "run", "tools/gen/content" }) then
+			-- Content from the bible's tables; the English string table from assets/loc (18.1).
+			if
+				not run("lune", { "run", "tools/gen/content" })
+				or not run("lune", { "run", "tools/gen/strings" })
+			then
 				return false
 			end
 			local after = snapshot(GENERATED_ROOT)

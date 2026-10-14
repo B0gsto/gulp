@@ -20,6 +20,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
+local LiveConfig = require("./LiveConfig")
 local RunLoopService = require("./RunLoopService")
 local Server = require("../Net/Server")
 local WorldIndex = require("./WorldIndex")
@@ -69,6 +70,7 @@ local function spawnCreature(player: Player)
 	WorldIndex.sendWorldInfo(player) -- once, after ClientReady (09 §5.3, §9.1)
 	CreatureService.spawn(player, RunLoopService.join(player, slot)) -- Nursery or cove (6.3)
 	DataService.pushAll(player) -- the first state push, before onReady
+	LiveConfig.pushAll(player) -- the `config.*` root of the same push (09 §5.3, §17.4)
 	PlayerLifecycle.onReady:fire(player, slot)
 end
 

@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Flags = require(ReplicatedStorage.Shared.Config.Flags)
+local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Migrations = require(ReplicatedStorage.Shared.Logic.Migrations)
 local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 
@@ -81,10 +82,34 @@ return function()
 			expect(profile.Data.pearls).toBe(10)
 			DataService._test.beforeSave(profile)
 			expect(profile.Data).toBe(live)
-			-- Data that breaks the save rules is refused the same way.
+			-- Data that breaks the save rules is refused the same way. The refusal is logged at
+			-- error level; the line is captured here so it never reaches the console (the smoke's
+			-- step 6 fails on any error line).
 			live.pearls = 0 / 0
-			DataService._test.beforeSave(profile)
+			local lines: { string } = {}
+			Log.setSink(function(level, tag, message)
+				table.insert(lines, `{level} {tag} {message}`)
+			end)
+			local saved, problem = pcall(function()
+				DataService._test.beforeSave(profile)
+			end)
+			Log.setSink(nil)
+			assert(saved, problem)
 			expect(profile.Data.pearls).toBe(99)
+			local logged = false
+			for _, line in lines do
+				if
+					string.find(
+						line,
+						`error Data save of {key} refused: data.pearls: not a finite number`,
+						1,
+						true
+					)
+				then
+					logged = true
+				end
+			end
+			expect(logged).toBe(true)
 			live.pearls = 99
 			DataService._test.close(profile)
 		end)

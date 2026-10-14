@@ -1,61 +1,70 @@
 --!strict
--- Loc: text by key (docs/09 section 18.1; docs/08 section 14.0). Code asks for text by key and
--- never contains player-facing words.
+-- Loc: text by key (docs/09, section 18.1, V30; docs/08, section 14; task S5-C5, module B33).
+-- Code asks for text by key and never contains player-facing words.
 --
--- TODO(B33): this is the stage 1 stand-in. B33 adds `assets/loc/strings.csv`, generates
--- `Data/Generated/Strings.luau` from it and makes `t` use `LocalizationService`'s translator
--- (`GetTranslatorForPlayerAsync` in `pcall`, `FormatByKey`) with the generated English table as
--- the fallback. Until then the English text of the keys the HUD stage 1 shows is copied here,
--- word for word from docs/08 section 14, and any other key falls back to the key itself.
-local Log = require(game:GetService("ReplicatedStorage").Shared.Util.Log)
+--   * Every key and its English are in `assets/loc/strings.csv`, generated into
+--     Data/Generated/Strings by `lune run tools/gen/strings`; the CSV is also the cloud
+--     localisation table.
+--   * `t` asks Roblox's translator first: `LocalizationService:GetTranslatorForPlayerAsync` runs
+--     once, inside `pcall`, in its own thread, and `Translator:FormatByKey` runs inside `pcall`.
+--     Until the translator arrives, or when either call fails, the English table is used.
+--   * Parameters are `{Name}` (a dictionary of arguments) or `{1:int}` (an array); no text is
+--     built by concatenation. Automatic text capture is off on our text objects (UI/Kit/Draw).
+local LocalizationService = game:GetService("LocalizationService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local English = require(ReplicatedStorage.Shared.Data.Generated.Strings)
+local LocFormat = require(ReplicatedStorage.Shared.Logic.LocFormat)
+local Log = require(ReplicatedStorage.Shared.Util.Log)
+
+local TAG = "Loc"
 
 local Loc = {}
 
-local ENGLISH: { [string]: string } = table.freeze({
-	-- 08 §14.1
-	["common.continue"] = "Continue",
-	["common.max"] = "MAX",
-	["common.pearls"] = "Pearls",
-	["common.mass"] = "Mass",
-	["common.thousand"] = "{Value}K",
-	["common.million"] = "{Value}M",
-	-- 08 §14.2
-	["tier.1"] = "Fry",
-	["tier.2"] = "Nibbler",
-	["tier.3"] = "Snapper",
-	["tier.4"] = "Hunter",
-	["tier.5"] = "Brute",
-	["tier.6"] = "Titan",
-	["tier.7"] = "Leviathan",
-	-- 08 §14.3 and §14.10: the multiplier rows of the bank summary
-	["trait.crystal"] = "Crystal",
-	["pass.deep_pockets"] = "Deep Pockets",
-	-- 08 §14.5
-	["hud.next_tier"] = "{Mass} to {Tier}",
-	["hud.plus_mass"] = "+{Mass}",
-	["hud.home_dist"] = "{Dist} m",
-	-- 08 §14.6
-	["gulped.title"] = "GULPED!",
-	["gulped.again"] = "Swim again",
-	["bank.title"] = "Home safe!",
-	["bank.best"] = "New best!",
-})
+local translator: Translator? = nil
+local asked = false
 
---- The text of `key` with its `{Name}` parameters filled from `args`. Unknown keys return the
---- key itself (logged once), so a missing string is visible but never breaks the screen.
-function Loc.t(key: string, args: { [string]: any }?): string
-	local text = ENGLISH[key]
-	if text == nil then
-		Log.once("warn", "Loc", `no text for key "{key}" (TODO B33: generated strings)`)
+local function askTranslator()
+	asked = true
+	local player = Players.LocalPlayer
+	if player == nil then
+		return -- not a client: English only
+	end
+	task.spawn(function()
+		local ok, result = pcall(function()
+			return LocalizationService:GetTranslatorForPlayerAsync(player)
+		end)
+		if ok then
+			translator = result
+		else
+			Log.once("warn", TAG, `no translator ({result}); using English`)
+		end
+	end)
+end
+
+--- The text of `key` with its parameters filled from `args` (`{Name}` from a dictionary,
+--- `{1:int}` from an array). A key with no text anywhere returns the key itself (logged once),
+--- so a missing string is visible but never breaks the screen.
+function Loc.t(key: string, args: LocFormat.Args?): string
+	if not asked then
+		askTranslator()
+	end
+	local current = translator
+	if current then
+		local ok, text = pcall(current.FormatByKey, current, key, args or {})
+		if ok and type(text) == "string" then
+			return text
+		end
+		-- Until the cloud table holds the key (or always, for a malformed call): English.
+		Log.once("info", TAG, "the translator has no entry for some keys; using English")
+	end
+	local english = English[key]
+	if english == nil then
+		Log.once("warn", TAG, `no text for key "{key}"`)
 		return key
 	end
-	if args then
-		text = string.gsub(text, "{(%w+)}", function(name: string): string
-			local value = args[name]
-			return if value == nil then `\{{name}\}` else tostring(value)
-		end)
-	end
-	return text
+	return LocFormat.format(english, args)
 end
 
 return Loc
