@@ -85,7 +85,7 @@ def _rear(t, waist, start=0.38, power=1.35):
 
 def top(y):
     t = _t(y)
-    return 0.40 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
+    return 0.40 * _front(t) * _rear(t, 0.27, 0.40, 1.3) - 0.03 * (1.0 - _front(t))   # the back falls away behind mid-body, under the fin
 
 
 def bot(y):
@@ -133,7 +133,7 @@ EYE_Y, EYE_Z = -1.05, 0.12
 EYE_R = 1.46 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0    # well over the 34% row: big cartoon eyes (art-director loops)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
-PUPIL_COS = math.cos(math.asin(0.60))                       # pupil 60% of the eye diameter
+PUPIL_COS = math.cos(math.asin(0.56))                       # pupil 60% of the eye diameter as seen (the eyeball sits 0.02 into the head)
 PEC = (on_flank(-0.52, -0.25, 0.03), -0.52, -0.25)
 DORSAL = (-0.30, 0.50)                                      # fore and aft ends of the back fin's root: set back, where the back line falls away, so the fin stands clear of it in side view
 MOUTH_END = -1.27                                           # the closed smile runs back to here
@@ -397,7 +397,7 @@ def paint(P, N, part):
     s = np.where(b, s + 0.4 * brow, s)                                                   # wet highlight on the brow
     # The smile: short, thick and upturned on the side of the head, below and in front of the eye and
     # clear of the snout tip, sitting on a cream lip patch so it still reads at 48 px.
-    my, mz, half, k = -1.225, -0.25, 0.205, 3.0
+    my, mz, half, k = -1.23, -0.22, 0.18, 3.2          # clear of the belly line, under the front of the eye
     curve = mz + k * (y - my) ** 2                         # corners turn up
     mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.068 - 0.8 * (y - my) ** 2)   # 2 px thick at 48 px
     corner_z = mz + k * half ** 2
@@ -462,7 +462,7 @@ def paint(P, N, part):
         put(pupil, "dark", PUPIL)
         s = np.where(pupil, 0.6 * smoothstep(0.86, 0.98, cos_a) - 0.6, s)
         # main glint about a quarter of the pupil across, a small second one opposite
-        glint = e & ((dvec @ g1 > math.cos(math.radians(9.5))) | (dvec @ g2 > math.cos(math.radians(4.5))))
+        glint = e & (dvec @ g1 > math.cos(math.radians(11.0)))    # one glint (06 7.7)
         put(glint, "light", EYE_WHITE)
         s = np.where(glint, 1.0, s)
         fade = np.where(e, 0.0, fade)

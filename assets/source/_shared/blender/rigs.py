@@ -243,9 +243,9 @@ def fish_stretch_pose(stretch, k=1.0, fins_back=0.0):
     gz, gx = FISH_HALF_H * k * g, FISH_HALF_W * k * g
     return {
         "Spine1": {"loc": (0.0, -0.35 * k * d, 0.0)},
-        "Spine3": {"loc": (0.0, 0.12 * k * d, 0.0)},
-        "Spine4": {"loc": (0.0, 0.18 * k * d, 0.0)},
-        "TailFin": {"loc": (0.0, 0.10 * k * d, 0.0)},
+        "Spine3": {"loc": (0.0, 0.14 * k * d, 0.0)},     # the stretch spread evenly down the back half,
+        "Spine4": {"loc": (0.0, 0.14 * k * d, 0.0)},     # so the tail root does not thin to a step
+        "TailFin": {"loc": (0.0, 0.06 * k * d, 0.0)},
         "Girth_Top": {"loc": (0.0, 0.0, gz)}, "Girth_Bot": {"loc": (0.0, 0.0, -gz)},
         "Girth_L": {"loc": (gx, 0.0, 0.0)}, "Girth_R": {"loc": (-gx, 0.0, 0.0)},
         "Pec_L": {"rot": (0.0, 0.0, 22.0 * fins_back)}, "Pec_R": {"rot": (0.0, 0.0, -22.0 * fins_back)},
@@ -315,13 +315,15 @@ def fish_dash_pose(frame, k=1.0):
     95%, settle. The wave of the bend travels down the body: each bone back from the middle takes
     it about a frame later and the tail fin 2 frames late; the fins follow the body 1 frame late."""
     pose = fish_stretch_pose(ease_keys(frame, DASH_STRETCH), k)
-    bend = lambda lag: ease_keys(frame - lag, DASH_BEND)
+    # Into the C every bone curls together (an even C, no kink at the tail); from the snap on,
+    # each bone holds the C for its lag, then follows: the wave runs down the body.
+    bend = lambda lag: ease_keys(max(frame - lag, min(frame, 2.0)), DASH_BEND)
     fins = ease_keys(frame - 1.0, DASH_FINS)
     _put(pose, "Spine2", rot=(0.0, 0.0, 9.0 * bend(0.0)))
     _put(pose, "Spine1", rot=(0.0, 0.0, 7.0 * bend(0.0)))
-    _put(pose, "Spine3", rot=(0.0, 0.0, -10.0 * bend(0.5)))
-    _put(pose, "Spine4", rot=(0.0, 0.0, -16.0 * bend(1.2)))
-    _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), -24.0 * bend(2.0)))
+    _put(pose, "Spine3", rot=(0.0, 0.0, -12.0 * bend(0.5)))
+    _put(pose, "Spine4", rot=(0.0, 0.0, -13.0 * bend(1.2)))
+    _put(pose, "TailFin", rot=(0.0, 8.0 * bend(2.6), -15.0 * bend(2.0)))
     pose["Pec_L"] = {"rot": (0.0, -6.0 * min(fins, 0.0), 26.0 * fins)}
     pose["Pec_R"] = {"rot": (0.0, 6.0 * min(fins, 0.0), -26.0 * fins)}
     pose["Dorsal"] = {"rot": (-16.0 * fins, 5.0 * bend(1.8), 0.0)}
@@ -338,10 +340,10 @@ def fish_bite_pose(frame, k=1.0):
     bulge; frames 3 and 4: the body stretches to 115%; then 4 frames of settle with a 3% rebound.
     The pectorals flare forward to brake and the tail flicks, 1 and 2 frames behind the head."""
     jaw = ease_keys(frame, [(0, 28.0), (1, 55.0), (2, 0.0, "snap")])
-    stretch = ease_keys(frame, [(0, 1.0), (1, 0.96, "in"), (2, 1.08, "snap"), (4, 1.15), (6, 0.97, "io"), (8, 1.0, "io")])
+    stretch = ease_keys(frame, [(0, 1.0), (1, 0.93, "in"), (2, 1.08, "snap"), (4, 1.15), (6, 0.97, "io"), (8, 1.0, "io")])
     lunge = ease_keys(frame, [(0, 0.0), (1, -0.05 * k, "in"), (2, 0.36 * k, "snap"), (4, 0.22 * k, "io"), (6, -0.02 * k, "io"), (8, 0.0, "io")])
     nod = ease_keys(frame, [(0, -2.0), (1, -7.0, "in"), (2, 6.0, "snap"), (4, 0.0, "io"), (6, -1.5, "io"), (8, 0.0, "io")])
-    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.06, "snap"), (4, 0.035, "io"), (7, 0.0, "io")])
+    bulge = ease_keys(frame, [(0, 0.0), (1, 0.0), (2, 0.08, "snap"), (4, 0.045, "io"), (7, 0.0, "io")])
     brake = ease_keys(frame - 1.0, [(0, 0.0), (1, 0.0), (2, 1.0, "snap"), (4, 0.35, "io"), (7, 0.0, "io")])
     flick = lambda lag: ease_keys(frame - lag, BITE_FLICK)
     pose = fish_stretch_pose(stretch, k)
