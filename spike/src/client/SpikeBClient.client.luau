@@ -390,13 +390,30 @@ end)
 local function s12(seconds: number)
 	local r = myRoot()
 	local move = r:FindFirstChild("Move") :: LinearVelocity
-	local t0 = os.clock()
 	local sim = 0
-	local function step(dt)
+	-- Part D retry: the input is a pure function of the simulated state (the root's own position on the R = 60
+	-- circle), not of wall-clock time, so a resimulated tick sees exactly the input the first pass saw.
+	local CENTER = r.Position - Vector3.new(60, 0, 0)
+	local argInfo, lastP, lastV = nil, nil, nil
+	local stepDev = {}
+	local function step(dt, ...)
 		sim += 1
-		local t = os.clock() - t0
-		local ang = t * 38 / 60
-		move.VectorVelocity = Vector3.new(-math.sin(ang), 0, math.cos(ang)) * (if t % 2.5 < 0.35 then 83.6 else 38)
+		if not argInfo then
+			argInfo = { n = select("#", ...) + 1, t1 = typeof(dt), v1 = tostring(dt) }
+			for i = 1, select("#", ...) do argInfo["t" .. (i + 1)] = typeof((select(i, ...))) argInfo["v" .. (i + 1)] = string.sub(tostring((select(i, ...))), 1, 40) end
+		end
+		local p = r.Position
+		if lastP and type(dt) == "number" then
+			table.insert(stepDev, (p - (lastP + lastV * dt)).Magnitude)
+		end
+		local rel = Vector3.new(p.X - CENTER.X, 0, p.Z - CENTER.Z)
+		local ang = math.atan2(rel.Z, rel.X)
+		local tangent = Vector3.new(-math.sin(ang), 0, math.cos(ang))
+		local radial = if rel.Magnitude > 1e-3 then rel.Unit else Vector3.zero
+		local dash = ((ang / (2 * math.pi)) * 6) % 1 < 0.14
+		local v = tangent * (if dash then 83.6 else 38) + radial * (60 - rel.Magnitude) * 2
+		move.VectorVelocity = v
+		lastP, lastV = p, v
 	end
 	local okBind, err = pcall(function()
 		RunService:BindToSimulation(step)
@@ -423,7 +440,8 @@ local function s12(seconds: number)
 	end)
 	move.VectorVelocity = Vector3.zero
 	put("S12_client", { authorityMode = (ok2 and "" or "unreadable: ") .. tostring(am), bindOk = okBind, bindErr = tostring(err), simCallbacks = sim,
-		frames = #pops, ownerPopMax = r3(pct(pops, 1)), ownerPopP99 = r3(pct(pops, 0.99)) })
+		frames = #pops, ownerPopMax = r3(pct(pops, 1)), ownerPopP99 = r3(pct(pops, 0.99)), cbArgs = argInfo,
+		stepDevMax = r3(pct(stepDev, 1)), stepDevP99 = r3(pct(stepDev, 0.99)), stepDevOver05 = (function() local n = 0 for _, x in stepDev do if x > 0.5 then n += 1 end end return n end)() })
 end
 
 cmd.Event:Connect(function(what, a, b)
