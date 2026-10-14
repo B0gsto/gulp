@@ -258,6 +258,14 @@ Defaults.nursery = table.freeze({
 	channelWidth = 36, -- 04 §3.5: the channel (the Elbow) is 36 wide
 	curtainThickness = 2, -- 03 §6.2 (tune): the kelp curtain volume, across the arch's Nursery end
 	markerSize = 4, -- 03 §6.2 (tune): a point's Ball, and the trail's cross-section
+	-- The Nursery Lagoon (03 §6.2): an oval 220 long × 170 wide centred (−361, 361), depth 0 to 30.
+	-- NurseryRoute.lagoon lays it out as the `SafeNursery` Block that bounds the oval, its length
+	-- along the line from the centre to Little Arch (the only way out, at the oval's end).
+	lagoonX = -361, -- 03 §6.2: centre X
+	lagoonZ = 361, -- 03 §6.2: centre Z
+	lagoonLength = 220, -- 03 §6.2: length
+	lagoonWidth = 170, -- 03 §6.2: width
+	lagoonDepth = 30, -- 03 §6.2: depth 0 to 30
 })
 
 -- Logic/TideClock: canon 10; 02 §14.1; 09 §11.1.

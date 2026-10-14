@@ -1,10 +1,13 @@
 --!strict
+local BiteMath = require("../../../src/shared/Logic/BiteMath")
 local FtueConfig = require("../../../src/shared/Config/FtueConfig")
 local FtuePlan = require("../../../src/shared/Logic/FtuePlan")
 local Index = require("../../../src/shared/Data/Index")
 local NurseryPath = require("../../../src/shared/Data/Generated/NurseryPath")
 local NurseryRoute = require("../../../src/shared/Logic/NurseryRoute")
 local TestKit = require("../../../src/shared/Util/TestKit")
+local TierMath = require("../../../src/shared/Logic/TierMath")
+local VolumeMath = require("../../../src/shared/Logic/VolumeMath")
 
 local describe, it, expect = TestKit.describe, TestKit.it, TestKit.expect
 
@@ -101,6 +104,89 @@ describe("FtuePlan", function()
 		expect(FtuePlan.crossedGap(cfg, nil)).toBe(false)
 		expect(FtuePlan.crossedGap(cfg, "nowhere")).toBe(false)
 	end)
+
+	it("feeds a fresh run below tier 3 by the end of B5 (02 §4.4, 04 §3.5, §6)", function()
+		-- The script's own prey at its places, eaten in order as BiteService scores it: Nursery prey
+		-- (inside the Lagoon's SafeNursery, NurseryRoute.lagoon) gives a tier 1 Fry all its mass and
+		-- a tier 2 Nibbler half. Without the share the same prey gives 27, and three of B3's top-up
+		-- krill then make tier 3 (30) inside the Nursery (task S6-C2).
+		local cfg = FtueConfig
+		local v = NurseryRoute.lagoon()
+		local lagoon = VolumeMath.new(
+			v.kind,
+			v.shape,
+			v.frame,
+			v.size[1],
+			v.size[2],
+			v.size[3],
+			{ Kind = v.kind }
+		)
+		local mass, tierUpAt, eaten = 0, nil :: number?, 0
+		local function eat(preyId: string, x: number, y: number, z: number)
+			local def = Index.Prey.byId[preyId] or Index.TraitPrey.byId[preyId]
+			expect(VolumeMath.contains(lagoon, x, y, z)).toBe(true)
+			local before = TierMath.tier(mass)
+			mass += BiteMath.gain(def.mass, 1, BiteMath.nurseryMult(before))
+			eaten += 1
+			if before == 1 and TierMath.tier(mass) == 2 then
+				tierUpAt = eaten
+			end
+		end
+		local function swarm(preyId: string, count: number, s: number)
+			local x, y, z = FtuePlan.routePoint(s)
+			for _ = 1, count do
+				eat(preyId, x, y, z)
+			end
+		end
+		local f = cfg.feed
+		swarm(FtuePlan.KRILL, f.swarmACount, cfg.layout.swarmA)
+		for _, p in FtuePlan.trailPoints(cfg.layout.trailFrom, f.trailMotes, f.trailSpacing) do
+			eat(FtuePlan.PLANKTON, p[1], p[2], p[3])
+		end
+		swarm(FtuePlan.KRILL, f.swarmBCount, cfg.layout.swarmB)
+		local glowfry = FtuePlan.traitPreyFor(cfg.arms.firstTrait) :: string
+		swarm(glowfry, cfg.arms.traitCount, cfg.layout.grotto)
+		-- 04 §3.6 B3: Swarm A 6 and the trail 2, so tier 2 arrives two krill into Swarm B.
+		expect(tierUpAt).toBe(f.swarmACount + f.trailMotes + 2)
+		-- 04 §6: 10 + 12 krill at half (6) + 5 Glowfry at half (2.5) = 18.5, inside 15 to 23.
+		expect(mass).toBeCloseTo(18.5, 1e-9)
+		expect(mass <= 23).toBe(true)
+		-- The margin to tier 3, in B3's top-up krill at the tier 2 share: 23 more must be eaten.
+		local krill = Index.Prey.byId[FtuePlan.KRILL].mass * BiteMath.nurseryMult(2)
+		expect(math.ceil((TierMath.def(3).massNeeded - mass) / krill)).toBe(23)
+		expect(TierMath.tier(mass)).toBe(2)
+	end)
+
+	it(
+		"lays the Lagoon's SafeNursery over the route to Little Arch, not the Elbow (03 §6.2)",
+		function()
+			local v = NurseryRoute.lagoon()
+			local lagoon = VolumeMath.new(
+				v.kind,
+				v.shape,
+				v.frame,
+				v.size[1],
+				v.size[2],
+				v.size[3],
+				{ Kind = v.kind }
+			)
+			for s = 0, 130 do
+				local x, y, z = FtuePlan.routePoint(s)
+				expect(VolumeMath.contains(lagoon, x, y, z)).toBe(true)
+			end
+			local inLagoon =
+				{ hatch_bed = true, swarm_a = true, swarm_b = true, glow_grotto = true }
+			for _, def in NurseryPath do
+				if inLagoon[def.id] then
+					local x, z = def.markX or def.x, def.markZ or def.z
+					expect(VolumeMath.contains(lagoon, x, -18, z)).toBe(true)
+				end
+			end
+			local x, y, z = FtuePlan.routePoint(140)
+			expect(VolumeMath.contains(lagoon, x, y, z)).toBe(false) -- the Elbow, past the Nursery
+			expect(VolumeMath.contains(lagoon, -361, 1, 361)).toBe(false) -- above the surface
+		end
+	)
 
 	it("finds the trait prey of the first trait: Glowfry for Glow", function()
 		local id = FtuePlan.traitPreyFor(FtueConfig.arms.firstTrait)
