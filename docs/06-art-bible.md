@@ -145,6 +145,8 @@ Measured on the side view. Body length excludes the tail fin.
 | Body depth as a share of body length (fish family) | 45 to 55%, as the species' size row in section 6.2 allows | 42% | 45% | 25 to 35% |
 | Smallest radius on any outside corner | 6% of body height | 5% | 6% | 1% (sharp is allowed) |
 
+A trait prey whose chapter 03 look names a round body may be deeper than the prey column: the Glowfry ("tiny round fry") is 58% (task S6-A1).
+
 All values **(tune)** after the first three species are reviewed side by side. Where a proportion here and a size in section 6.2 disagree, the size wins. The Minnow juvenile was 3.0 × 1.1 studs, which with chapter 03's short round tail could not reach this depth (spike S0-A7, F26); on 14 October 2026 its height became 1.365 studs, the reviewed S2-A1 mesh, whose body depth is 47% of its body length.
 
 ### 3.4 How danger reads in shape
@@ -263,6 +265,7 @@ Light / mid / dark / accent. All **(tune)** in the first review round.
 | `shrimp` | [MVP] | `#FFE6D1` | `#FFB48A` | `#C2693D` | — | |
 | `sardine` | [MVP] | `#F2F8FC` | `#BFD9E8` | `#5C9AD9` | — | |
 | `darter` | [MVP] | `#FFF6C9` | `#FFD23D` | `#2F7F8C` | `#FF7A5C` | |
+| `glowfry` | [MVP] | `#FFE98A` | `#E6C029` | `#1B5662` | — | Trait prey on the darter's palette (below). Light is the Glow signature colour, the lantern belly and eye rings; mid is the darter's yellow two degrees further from lantern amber (hue 48°) and inside the mid block's L\* 80 (L\* 79); dark is the darter's teal at L\* 33 (task S6-A1) |
 | `mackerel` | [MVP] | `#E8F2F0` | `#2FA89A` | `#16574F` | — | Dark tiger marks on the back |
 | `bonito` | [MVP] | `#E6EEF5` | `#6F8FD9` | `#23366B` | — | |
 | `tuna` | [MVP] | `#F0F4F8` | `#4F6FD0` | `#162657` | `#FFD23D` | Yellow finlets |
@@ -793,6 +796,8 @@ The combination sheet (section 15.5) renders every species with the 12 hardest t
 |---|---|---|
 | A. Decal layers (dropped) | A `Decal` on a skinned `MeshPart` is projected per face, not along the mesh UVs (spike S0-A4, F18). | Fail |
 | **B. Overlay shell** (chosen) | A second skinned mesh 0.5% outside the body with the overlay as its `SurfaceAppearance`, `AlphaMode = Transparency`, built into the template before spawning (above). Each overlay's `SurfaceAppearance` is made ahead of time and cloned; game scripts cannot set its maps (F17). | Pass, IoU 0.994. Doubles the creature's triangles while any pattern trait is active |
+
+A Light trait's overlay (`T_Trait_<Trait>_<Family>[_Fallback]_Emi`) is one 8-bit greyscale mask that also carries itself as alpha, so the one file is the shell's colour map, tinted with the trait's signature colour (section 8.2), and its emissive mask (task S6-A1). The masks are baked from each trait's scripted master by the trait overlay bake (`assets/source/_shared/blender/traitbake.py`, chapter 07 section 14.1).
 | C. Composite | Build one texture per creature on the client from base and overlays, shown only through `MeshPart.TextureContent`, with no PBR maps: game scripts cannot set an `EditableImage` as a `SurfaceAppearance` map (spike S0-A4, F17) | Kept only as a fallback |
 
 ---

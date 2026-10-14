@@ -12,8 +12,12 @@ density inside validate; clips.py checks every clip inside validate, and the cli
 each clip's strip of key poses and 2-second preview; clips-rbxm writes each clip as a binary
 Roblox KeyframeSequence, assets/export/animations/<A_name>.rbxm, with no Studio click, and checks
 it read back against the rig's bone names: clips.to_rbxm, animrbx.py, luau/xml2rbxm.luau). Steps always run in that order, whatever order they are listed in:
-validate runs after lod and shell so it checks what they made. The bible's palette and bake
-are not separate steps yet; asking for one prints a note and carries on.
+validate runs after lod and shell so it checks what they made. bake runs a build's texture bakes
+(spec["bake"]: functions of the spec, such as a Cycles occlusion bake and the paint over it, or the
+trait overlay bake of traitbake.py) after lod and shell and before validate; a build with bakes
+always runs them, since its texture is part of the asset. palette (palettecheck.py) runs after
+validate: block shares and L*, the water contrast rule and the reserved colour bands, for builds
+that declare spec["palette"] (task S6-A1).
 Nothing in assets/export/ is written when validation fails. Exit status 1 on any failure.
 """
 import argparse
@@ -33,14 +37,15 @@ import bpy  # noqa: E402
 import clips  # noqa: E402
 import common  # noqa: E402
 import export  # noqa: E402
+import palettecheck  # noqa: E402
 import preview  # noqa: E402
 import template  # noqa: E402
 import validate  # noqa: E402
 import versions  # noqa: E402
 
 STEPS = ("build", "validate", "palette", "shell", "lod", "bake", "export", "preview", "clips", "clips-rbxm")
-IMPLEMENTED = ("build", "lod", "shell", "validate", "export", "preview", "clips", "clips-rbxm")
-DEFAULT_STEPS = "build,lod,shell,validate,export,preview,clips,clips-rbxm"
+IMPLEMENTED = ("build", "lod", "shell", "bake", "validate", "palette", "export", "preview", "clips", "clips-rbxm")
+DEFAULT_STEPS = "build,lod,shell,bake,validate,palette,export,preview,clips,clips-rbxm"
 
 
 def parse_args(build_file):
@@ -85,6 +90,12 @@ def run(build_file, steps, builder=None):
         versions.run_lod(spec)
     if "shell" in steps:
         versions.run_shell(spec)
+    bakes = []
+    if spec.get("bake"):
+        if "bake" not in steps:
+            print("[run] %s carries texture bakes: run with the build" % name)
+        for fn in spec["bake"]:
+            bakes.append(fn(spec) or {})
 
     report = validate.Report()
     result = {"asset": name, "id": asset_id, "date": common.today(), "commit": common.git_commit(),
@@ -93,9 +104,16 @@ def run(build_file, steps, builder=None):
     if "validate" in steps:
         report = validate.run(spec)
         ok = report.ok
+    if bakes:
+        result["bakes"] = bakes
+    if "palette" in steps and spec.get("palette"):
+        result["palette"] = palettecheck.run(spec, report)
+        ok = report.ok
     if "export" in steps:
         if ok:
             result["exports"] = export.run(spec, report)
+            for check in spec.get("post_export_checks", []):     # rows on the files as written
+                check(spec, report)
             ok = report.ok
             if not ok:
                 for row in report.failures():
