@@ -27,7 +27,6 @@ local STRAFE_MULT = SWIM.strafeMult
 local STOP_SPEED = SWIM.stopSpeed
 local TURN_GAIN = SWIM.turnGain
 local PITCH_LIMIT = SWIM.pitchLimit
-local DASH_MULT = SWIM.dashMult
 local DASH_DURATION = SWIM.dashDuration
 local DASH_LONGFIN_ADD = SWIM.dashLongfinAdd
 local DASH_ACCEL = SWIM.dashAccel
@@ -41,6 +40,16 @@ local GRAVITY = SWIM.gravity
 local AIR_TURN_MULT = SWIM.airTurnMult
 local MIN_AIR_TIME = SWIM.minAirTime
 local REENTRY_MULT = SWIM.reentryMult
+
+-- 09 §7.1: √(1 + 0.6²) rounded up, full forward speed plus a full strafe (02 §1.3). (tune)
+local SLIDE_MULT = 1.17
+-- 09 §7.1: the dash window opens this long before the accepted dash start and closes this long
+-- after the dash ends; the cooldown is checked with this slack.
+local DASH_WINDOW_BEFORE = 0.10
+local DASH_WINDOW_AFTER = 0.25
+local DASH_COOLDOWN_SLACK = 0.15
+-- 09 §7.2 and 7.4: ping counts up to this much (s) when a claimed press time is checked.
+local PING_CAP = 0.3
 
 -- The longest dt one step simulates. A longer frame (a hitch, a debugger pause) is treated as
 -- this long, so the creature slows down rather than jumping, and never outruns the validator.
@@ -84,7 +93,9 @@ export type SwimState = {
 	radiusMult: number, -- species.radiusMult
 	dashCooldown: number, -- species.dashCooldown, s from the start of a dash
 	dashDurationMult: number, -- species.dashDurationMult
-	accel: number, -- 02 §1.3, 1/s
+	dashMult: number, -- species.dashMult: dash speed = top speed × this (02 §1.2, 03 §1.1)
+	accelMult: number, -- species.accelMult: multiplies the four rates below (02 §1.3, 03 §1.1)
+	accel: number, -- 02 §1.3 × species.accelMult, 1/s
 	coast: number,
 	brake: number,
 	grip: number,
@@ -256,7 +267,7 @@ local function integrate(
 	local top = s.tierSpeed * s.speedMult * mods.speedMult
 	local target, k
 	if dashing then
-		target, k = top * DASH_MULT, DASH_ACCEL
+		target, k = top * s.dashMult, DASH_ACCEL
 	elseif brake then
 		target, k = 0, s.brake
 	elseif throttle > 0 then
@@ -349,6 +360,8 @@ function SwimModel.new(speciesId: string, tier: number): SwimState
 		radiusMult = species.radiusMult,
 		dashCooldown = species.dashCooldown,
 		dashDurationMult = species.dashDurationMult,
+		dashMult = species.dashMult,
+		accelMult = species.accelMult,
 		accel = 0,
 		coast = 0,
 		brake = 0,
@@ -390,11 +403,13 @@ function SwimModel.setTier(state: SwimState, tier: number)
 	state.tier = tier
 	state.tierSpeed = def.swimSpeed
 	state.turnRate = def.turnRate * species.turnMult
-	-- 02 §1.3 multiplies these by species.accelMult; chapter 03 has no such column yet, so 1.
-	state.accel = tuning.accel
-	state.coast = tuning.coast
-	state.brake = tuning.brake
-	state.grip = tuning.grip
+	-- 02 §1.3: all four rates are multiplied by species.accelMult (03 §1.1, Acceleration). The
+	-- dash's own constant (02 §7.1, 30/s) is not.
+	local accelMult = state.accelMult
+	state.accel = tuning.accel * accelMult
+	state.coast = tuning.coast * accelMult
+	state.brake = tuning.brake * accelMult
+	state.grip = tuning.grip * accelMult
 end
 
 --- Sets the collision radius from the body scale (02 §0.2; scale follows mass, Logic/TierMath).
@@ -561,14 +576,20 @@ function SwimModel.topSpeed(tier: number, species: Types.SpeciesDef, mult: numbe
 	return tierDef(tier).swimSpeed * species.speedMult * mult
 end
 
---- Forward speed target while Dashing, studs/s (02 §1.2, §7.1).
+--- Forward speed target while Dashing, studs/s (02 §1.2, §7.1): topSpeed × species.dashMult.
 function SwimModel.dashSpeed(tier: number, species: Types.SpeciesDef, mult: number): number
-	return SwimModel.topSpeed(tier, species, mult) * DASH_MULT
+	return SwimModel.topSpeed(tier, species, mult) * species.dashMult
 end
 
---- The dash speed multiplier (canon 5.3). One value until the Species data carries dashMult.
-function SwimModel.dashMult(_species: Types.SpeciesDef): number
-	return DASH_MULT
+--- The dash speed multiplier (03 §1.1 Dash speed: 2.2; Sea Turtle 2.0, Squid 2.6).
+function SwimModel.dashMult(species: Types.SpeciesDef): number
+	return species.dashMult
+end
+
+--- Forward relaxation constant after thrust, 1/s (02 §1.3): the tier's accel × species.accelMult.
+function SwimModel.accel(tier: number, species: Types.SpeciesDef): number
+	tierDef(tier)
+	return BY_TIER[tier].accel * species.accelMult
 end
 
 --- Dash length, s (02 §7.1): 0.35 × (species.dashDurationMult + 0.3 per Longfin).
@@ -579,6 +600,74 @@ end
 --- Dash cooldown, s from the start of a dash (02 §7.1; Minnow 2.0 through Dart).
 function SwimModel.dashCooldown(species: Types.SpeciesDef): number
 	return species.dashCooldown
+end
+
+--- `dashFactor` once the dash window has closed (09 §7.1, dash tail): 1 + (dashMult − 1) ×
+--- e^(−accel × accelMult × t), `t` the seconds since the window closed. The relaxation `step`
+--- itself uses after a dash, so the validator expects exactly an honest creature's slow-down.
+function SwimModel.dashTail(tier: number, species: Types.SpeciesDef, t: number): number
+	if not (t > 0) then
+		t = 0
+	end
+	return 1 + (species.dashMult - 1) * exp(-SwimModel.accel(tier, species) * t)
+end
+
+--- 09 §7.1's `dashFactor` `sinceStart` seconds after an accepted dash start (negative before it):
+--- species.dashMult from 0.10 s before the start to 0.25 s after the dash ends, then the dash
+--- tail; 1 before the window.
+function SwimModel.dashFactor(
+	tier: number,
+	species: Types.SpeciesDef,
+	longfins: number,
+	sinceStart: number
+): number
+	if not (sinceStart >= -DASH_WINDOW_BEFORE) then
+		return 1
+	end
+	local closes = SwimModel.dashDuration(species, longfins) + DASH_WINDOW_AFTER
+	if sinceStart <= closes then
+		return species.dashMult
+	end
+	return SwimModel.dashTail(tier, species, sinceStart - closes)
+end
+
+--- The server's check of an `Ability` dash (op 1; 09 §5.3, §7.1). `claimed` is the client's
+--- press time and `now` the server time, both in seconds on the same clock; `lastStart` the last
+--- accepted start (−math.huge for none); `ping` the round trip, s. The claim is held to between
+--- `now − min(ping, 0.3)` and `now`. Returns the accepted start time, or nil when the cooldown
+--- (with 0.15 s slack) has not elapsed. Alive and not stunned are the caller's checks.
+function SwimModel.acceptDash(
+	species: Types.SpeciesDef,
+	lastStart: number,
+	claimed: number,
+	now: number,
+	ping: number
+): number?
+	local lag = if ping > 0 then (if ping < PING_CAP then ping else PING_CAP) else 0
+	local start = claimed
+	if not (start <= now) then
+		start = now -- also NaN
+	elseif start < now - lag then
+		start = now - lag
+	end
+	if start - lastStart < species.dashCooldown - DASH_COOLDOWN_SLACK then
+		return nil
+	end
+	return start
+end
+
+--- A current's speed along the stream, studs/s (02 §1.2, 09 §7.1): 0.6 × tierSpeed, added after
+--- everything else, so neither species, statuses nor a dash scale it.
+function SwimModel.currentSpeed(tier: number): number
+	return CURRENT_MULT * tierDef(tier).swimSpeed
+end
+
+--- Allowed speeds of 09 §7.1 for a creature whose swim speed (statuses and dash factor already
+--- applied) is `vSwim`: `vForward` along its look vector and `vAllowed` in any direction.
+--- `inCurrent` adds the current; `slideMult` (1.17) covers a full strafe.
+function SwimModel.allowedSpeed(tier: number, vSwim: number, inCurrent: boolean): (number, number)
+	local vCurrent = if inCurrent then SwimModel.currentSpeed(tier) else 0
+	return vSwim + vCurrent, vSwim * SLIDE_MULT + vCurrent
 end
 
 return SwimModel

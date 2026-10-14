@@ -28,8 +28,14 @@ local MAX_LATENCY = 0.3 -- 09 §16.2: 0 to 300 ms
 local JITTER = 0.04 -- ± seconds of latency jitter per sample
 local STALL = 0.4 -- 09 §16.2: 0.4 s stalls
 local STALLS_PER_MINUTE = 6
-local SPECIES = { "minnow", "puffer", "eel" } -- the MVP species
+-- Every species in the data, so each dashMult (2.2; Sea Turtle 2.0, Squid 2.6) is exercised.
+local SPECIES: { string } = {}
+for _, row in Index.Species.list do
+	table.insert(SPECIES, row.id)
+end
 local SPEED_CEILING = 1.15 -- × dash speed: a sanity ceiling for the slide, not a game rule
+-- 09 §7.1: the dash window stays open this long after the dash ends, then the dash tail runs.
+local DASH_WINDOW_AFTER = 0.25
 
 export type Sample = { t: number, x: number, y: number, z: number, tier: number }
 
@@ -45,6 +51,7 @@ export type Trace = {
 	stalls: number,
 	latencyOk: boolean,
 	worstWindowRatio: number, -- informational: max 1 s displacement / top speed, outside dashes
+	worstOverAllowed: number, -- max speed / vAllowed of 09 §7.1 (dash window and tail included)
 }
 
 local function finite(value: number): boolean
@@ -96,9 +103,11 @@ local function runTrace(seed: number, cheat: number): Trace
 		stalls = 0,
 		latencyOk = true,
 		worstWindowRatio = 0,
+		worstOverAllowed = 0,
 	}
 
 	local t, nextChange, stallUntil, lastArrival = 0, 0, -1, 0
+	local airSinceDash = 0 -- seconds airborne since the last dash started
 	while t < SECONDS do
 		-- An honest player changes intent every 0.2 to 2 s.
 		if t >= nextChange then
@@ -137,6 +146,24 @@ local function runTrace(seed: number, cheat: number): Trace
 		end
 		local speed = SwimModel.speed(state)
 		trace.worstSpeedOverDash = math.max(trace.worstSpeedOverDash, speed / dashSpeed)
+		-- 09 §7.1's allowed speed at this moment, from the model's own dash clock (a hitch is
+		-- clamped to MAX_DT, so `t` runs ahead of the model).
+		local dashFactor = 1
+		-- In the air there is no drag (02 §1.7): a breach keeps its launch speed, so the tail's
+		-- clock does not run while airborne (this harness's assumption; 09 §7.1 is silent).
+		if state.dashStarted then
+			airSinceDash = 0
+		elseif state.airborne or state.splashed then
+			airSinceDash += math.min(dt, SwimModel.MAX_DT)
+		end
+		local sinceWindow = state.dashAge - state.dashLength - DASH_WINDOW_AFTER - airSinceDash
+		if sinceWindow <= 0 then
+			dashFactor = SwimModel.dashMult(species)
+		elseif state.dashAge < math.huge then
+			dashFactor = SwimModel.dashTail(tier, species, sinceWindow)
+		end
+		local _, vAllowed = SwimModel.allowedSpeed(tier, top * dashFactor, false)
+		trace.worstOverAllowed = math.max(trace.worstOverAllowed, speed / vAllowed)
 		if not (finite(state.x) and finite(state.y) and finite(state.z) and finite(speed)) then
 			trace.finite = false
 		end
@@ -229,6 +256,23 @@ describe("movement_fuzz, model half", function()
 		print(string.format("movement_fuzz: worst honest speed = %.3f × dash speed", worst))
 		expect(worst <= SPEED_CEILING).toBe(true)
 	end)
+
+	it(
+		"never moves faster than 09 §7.1's vAllowed (slideMult 1.17, dash window and tail)",
+		function()
+			local worst = 0
+			for _, trace in honest do
+				worst = math.max(worst, trace.worstOverAllowed)
+			end
+			print(
+				string.format(
+					"movement_fuzz: worst honest speed = %.3f × vAllowed (09 §7.1)",
+					worst
+				)
+			)
+			expect(worst <= 1).toBe(true)
+		end
+	)
 
 	it("spaces dashes by at least the species cooldown and never starts one in the air", function()
 		local dashes = 0
