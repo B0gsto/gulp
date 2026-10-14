@@ -48,6 +48,8 @@ BUDGETS = {
     "set_piece_mesh": {"tris": 6000, "bones": 0},
     "cove_shell": {"tris": 6000, "bones": 0},
     "cove_prop": {"tris": 800, "tris_min": 100, "bones": 0},
+    # Not a 06 6.3 row: the mouth arch's budget is chapter 07's (section 6.6, M_Cove_Mouth: 2,500 tris).
+    "cove_mouth": {"tris": 2500, "bones": 0},
     # Not a bible row: M_Prop_ScaleCube is a script output (07 section 17 tool row).
     # It is held to the cove-prop ceiling, with no floor.
     "calibration": {"tris": 800, "bones": 0},
