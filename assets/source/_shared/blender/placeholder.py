@@ -7,18 +7,25 @@ One command builds the stand-in for a named row of chapter 07, under the final n
 assets/placeholder/ (07 section 1.3), laid out like assets/export/. Names are read from the
 chapter 07 tables themselves; a name that is not in them is refused.
 
-  M_*    meshes, built in Blender (this file re-runs itself under the heavy-job wrapper) through
-         run.py: build, lod, shell, validate, export, preview. Species: capsule, cone tail, eyes,
-         lid caps on the real family skeleton (Fish family only so far). Prey: ellipsoids by
-         tier, trait prey with a ring. Predators and hazards: red-toned primitives. Env, cove,
-         props and trait pieces: grey blocks at the footprint the row gives.
+  M_*    meshes, built in Blender (one process for all the names given, under the heavy-job
+         wrapper) through run.py: build, lod, shell, validate, export, preview. Species: capsule,
+         cone tail, eyes, lid caps on the real family skeleton (Fish family: the slice's Minnow and
+         Pufferfish). Prey: ellipsoids by tier, trait prey with a ring, plankton a 2-triangle
+         billboard. Predators and hazards: red-toned primitives; the Barracuda on RIG_Barracuda
+         (placeholder_rigs.py). Env, cove, props and trait pieces: grey blocks at the footprint the
+         row gives, every face showing its cell's stamp; the Pearl Clam with a hinged lid.
+  A_*    clips: the host body on its skeleton, one procedural move of the row's length in frames
+         (placeholder_rigs.py), exported as one take.
   T_*    flat tint, "PH" stamp and the name (texgen.py); effect textures are the soft dot.
   FX_*   emitter settings JSON on the soft dot, tinted by type.
   LGT_*  one neutral preset with the fog colour and view distance of 06 section 10.2.
   SKY_*  six flat two-colour faces.
   SFX_*  a beep of the row's length pitched by group, loops are soft noise (ffmpeg, OGG Vorbis).
-  MUS_*  an eight-bar mallet loop at 124 bpm pitched by name; stingers are three notes.
-  A_*, SCN_*  not generated yet (A_: needs every family skeleton; SCN_: 07 says none needed).
+  MUS_*  an eight-bar mallet loop at 124 bpm pitched by name, one file per stem (<Name>_Stem<n>
+         when Qty > 1); stingers are three notes over the row's length.
+  SCN_*  none (07 says none needed). RIG_*: skeletons travel inside the mesh and clip files.
+
+Every manifest row at once, resumable: placeholder_batch.py.
 """
 import hashlib
 import json
@@ -85,18 +92,27 @@ def _expand(cell):
         for part in [p.strip() for p in chunk.split(",")]:
             if part.startswith("_") and prev:
                 part = prev.rsplit("_", 1)[0] + part
-            m = re.match(r"^(.*?)(\d+)[–-](\d+)$", part)
+            m = re.match(r"^(.*?)(\d+)[–-](\d+)(_[A-Za-z]\w*)?$", part)      # `X_01–06` and `T_Caustics_01–16_Mask`
             if m:
                 width = len(m.group(2))
-                names += [m.group(1) + str(i).zfill(width) for i in range(int(m.group(2)), int(m.group(3)) + 1)]
+                names += [m.group(1) + str(i).zfill(width) + (m.group(4) or "") for i in range(int(m.group(2)), int(m.group(3)) + 1)]
             else:
                 names.append(part)
             prev = part
     return names
 
 
+_ROWS = []
+
+
 def rows():
-    """Every table row of chapter 07 whose Asset cell names files, with its section."""
+    """Every table row of chapter 07 whose Asset cell names files, with its section (read once)."""
+    if not _ROWS:
+        _ROWS.extend(_read_rows())
+    return _ROWS
+
+
+def _read_rows():
     out, header, section = [], None, ""
     with open(DOC, encoding="utf-8") as f:
         for line in f:
@@ -349,24 +365,41 @@ def sound(name, row):
     return out, "%.2f s beep at %.0f Hz (%s)" % (length, pitch, group)
 
 
+def stem_names(name, row):
+    """07 section 12: "stems are separate files of the same length that start together; Qty
+    counts them". Chapter 07 names no stem file, so a track of n > 1 stems is written as
+    <Name>_Stem1 .. _Stem<n> (stem 1 the base); a one-stem track keeps its own name."""
+    try:
+        n = int(re.sub(r"[^0-9]", "", row.get("Qty", "")) or 1)
+    except ValueError:
+        n = 1
+    return [name] if n <= 1 else ["%s_Stem%d" % (name, i) for i in range(1, n + 1)]
+
+
 def music(name, row):
     beat = 60.0 / TEMPO
     root = 220.0 * 2 ** (seeded(name, 12) / 12.0)
     if name.startswith("MUS_Sting_"):
-        notes, step = [0, 4, 7], beat / 2
+        notes = [0, 4, 7]                                     # three notes spread over the row's length
+        step = seconds(column(row, "Length"), 1.5) / 3.0
     else:
         notes, step = [0, 7, 4, 7, 12, 7, 4, 7] * 4, beat      # eight bars of 4/4 in quarter notes = 32 beats
     length = len(notes) * step
-    terms = []
-    for i, semis in enumerate(notes):
-        f = root * 2 ** (semis / 12.0)
-        t0 = i * step
-        terms.append("between(t,%.4f,%.4f)*sin(2*PI*%.2f*(t-%.4f))*exp(-7*(t-%.4f))" % (t0, t0 + step, f, t0, t0))
-    expr = "0.45*(" + "+".join(terms) + ")"
-    out = os.path.join(OUT, "audio", "music", name + ".ogg")
-    ffmpeg(["-f", "lavfi", "-i", "aevalsrc='%s':d=%.3f:s=44100" % (expr, length)], out)
-    return out, "%.2f s mallet %s at %d bpm, root %.0f Hz; one file, stems not split" % (
-        length, "stinger" if len(notes) == 3 else "loop", TEMPO, root)
+    stems = stem_names(name, row)
+    for i, stem in enumerate(stems):
+        # stem 1: the mallet loop; stem 2: an octave-up off-beat pulse; then a fifth below, a high pad
+        shift, offset = [(0, 0.0), (12, step / 2), (-5, 0.0), (19, 0.0)][i % 4]
+        terms = []
+        for j, semis in enumerate(notes):
+            f = root * 2 ** ((semis + shift) / 12.0)
+            t0 = j * step + (offset if j % 2 == 0 else 0.0)
+            t1 = min(length, t0 + step)
+            terms.append("between(t,%.4f,%.4f)*sin(2*PI*%.2f*(t-%.4f))*exp(-7*(t-%.4f))" % (t0, t1, f, t0, t0))
+        expr = "0.45*(" + "+".join(terms) + ")"
+        out = os.path.join(OUT, "audio", "music", stem + ".ogg")
+        ffmpeg(["-f", "lavfi", "-i", "aevalsrc='%s':d=%.3f:s=44100" % (expr, length)], out)
+    return os.path.join(OUT, "audio", "music", stems[0] + ".ogg"), "%.2f s mallet %s at %d bpm, root %.0f Hz, %d stem file(s)" % (
+        length, "stinger" if len(notes) == 3 else "loop", TEMPO, root, len(stems))
 
 
 # ---------------------------------------------------------------- meshes (inside Blender)
@@ -425,10 +458,11 @@ def mesh_spec(name, row):
                         weights=lambda p, q: fit.body_weights(p))
         else:
             rings = []
-            for i in range(1, 15):
-                y = -L / 2.0 + (body_end + L / 2.0) * i / 15.0
+            nr, ns = (21, 20) if "Adult" in parts else (15, 16)     # adults have 2.3 times the triangle budget (06 6.3)
+            for i in range(1, nr):
+                y = -L / 2.0 + (body_end + L / 2.0) * i / float(nr)
                 rings.append([(half_w(y) * math.sin(a), y, half_h(y) * math.cos(a))
-                              for a in (2.0 * math.pi * j / 16 for j in range(16))])
+                              for a in (2.0 * math.pi * j / ns for j in range(ns))])
             md.add_part(meshgen.loft(rings, (0, -L / 2.0, 0), (0, body_end + 0.02 * L, 0)), colour,
                         weights=lambda p, q: fit.body_weights(p))
             tail = [[(0.45 * W * (0.1 + 0.25 * t) * math.sin(a), body_end - 0.06 * L + t * (L / 2.0 - body_end + 0.06 * L),
@@ -453,12 +487,19 @@ def mesh_spec(name, row):
         H = SIZES.get(ident, (0, None))[1] or (0.45 * L if cat == "Prey" else 0.35 * L)
         W = 0.3 * L if cat == "Prey" else 0.3 * L
         colour = mesh_colour(name) if cat == "Prey" else common.colour("ui.destructive")
-        segs, rings = ((8, 4) if tier <= 1 else (12, 7) if tier <= 4 else (16, 9))
+        segs, rings = ((8, 4) if tier <= 1 else (12, 5) if tier == 2 else (12, 7) if tier <= 4 else (16, 9))
+        if row["section"].startswith("4.2"):
+            segs, rings = 14, 9             # trait prey: 06 6.3 floor of 300 triangles
         if cat == "Prey":
-            if ident == "plankton":
-                raise SystemExit("M_Prey_Plankton is a 2-triangle billboard: not a closed mesh, left to the effect tools")
+            if ident == "plankton":         # 06 6.3: a 2-triangle camera-facing billboard, open by design
+                s = L / 2.0
+                md.add_part(([(-s, 0.0, -s), (s, 0.0, -s), (s, 0.0, s), (-s, 0.0, s)], [(0, 1, 2), (0, 2, 3)],
+                             [(0.0, 0.0)] * 4), colour)
+                spec.update(budget="plankton", tier=0, billboard=True, size=(L, 0.0, L), id=ident, facing={"kind": "none"})
+                return finish_spec(spec, md, name, cat, None)
             md.add_part(ellipsoid((0, 0, 0), L, H, W, segs, rings), colour, tag=0)
-            md.add_part(ellipsoid((0, -0.4 * L, 0), 0.16 * L, 0.2 * H, 0.2 * W, 6, 3), colour, tag=common.TAG_FRONT)
+            md.add_part(ellipsoid((0, -0.4 * L, 0), 0.16 * L, 0.2 * H, 0.2 * W, 4 if tier == 2 else 6, 3), colour,
+                        tag=common.TAG_FRONT)     # tier 2's 150-triangle ceiling (06 6.3) takes a 4-sided nose
             if trait:                       # trait prey carry a ring (07 16)
                 ring = [[(0.62 * W * math.cos(b) + 0.06 * L * math.cos(a) * math.cos(b), 0.06 * L * math.sin(a),
                           0.62 * H * math.sin(b) + 0.06 * L * math.cos(a) * math.sin(b)) for b in
@@ -468,7 +509,20 @@ def mesh_spec(name, row):
         else:
             shape = {"barracuda": "wedge", "old_scar": "wedge", "moray": "tube", "grouper": "sphere_lid", "gull": "cross",
                      "jelly_bloom": "sphere", "jelly": "sphere", "vent": "cone", "anemone": "ring", "hook": "ring"}.get(ident, "wedge")
-            if shape == "wedge":
+            if shape == "wedge" and ident == "barracuda":   # 07 7: RIG_Barracuda, 12 bones (placeholder_rigs.py)
+                import placeholder_rigs
+                arm = meshgen.build_armature("RIG_Barracuda", placeholder_rigs.barracuda_bones(L, H, W))
+                wts = placeholder_rigs.barracuda_weights(L, H)
+                rings = []
+                for i in range(1, 16):     # a wedge: grows from the nose to 60% of the length, tapers to the tail
+                    t = i / 16.0
+                    y = -L / 2.0 + L * t
+                    r = 0.2 + 0.8 * t / 0.6 if t <= 0.6 else 1.0 - 0.6 * (t - 0.6) / 0.4
+                    rings.append([(W / 2 * r * math.sin(a), y, H / 2 * r * math.cos(a)) for a in (2.0 * math.pi * j / 12 for j in range(12))])
+                md.add_part(meshgen.loft(rings, (0, -L / 2.0, 0), (0, L / 2.0, 0)), colour, weights=wts)
+                spec.update(rig="Barracuda", armature=arm)
+                shape = "done"              # faces by its bones: Jaw at the front, TailFin at the back
+            elif shape == "wedge":
                 md.add_part(meshgen.prism([(-W / 2, L / 2, -H / 2), (0, -L / 2, -H / 2), (W / 2, L / 2, -H / 2)], (0, 0, H)), colour)
             elif shape == "tube":
                 H = W = 0.08 * L
@@ -476,7 +530,10 @@ def mesh_spec(name, row):
             elif shape in ("sphere", "sphere_lid"):
                 W = 0.5 * L if shape == "sphere_lid" else L
                 H = H if shape == "sphere_lid" else L
-                md.add_part(ellipsoid((0, 0, -0.06 * H), L, 0.88 * H, W, 16, 10), colour)
+                if "Squeezed" in parts:     # the pulse pose: a narrower, taller bell
+                    W, H, L = 0.75 * W, 1.2 * H, 0.75 * L
+                lid = shape == "sphere_lid"
+                md.add_part(ellipsoid((0, 0, -0.06 * H if lid else 0.0), L, 0.88 * H if lid else H, W, 16 if lid else 14, 10), colour)
                 if shape == "sphere_lid":   # the hinged lid: a cap over the front top
                     md.add_part(ellipsoid((0, -0.2 * L, 0.38 * H), 0.5 * L, 0.24 * H, 0.8 * W, 10, 5), colour)
             elif shape == "cross":          # the Gull: 8 wingspan across X, body along Y
@@ -490,10 +547,12 @@ def mesh_spec(name, row):
                                          (0, 0, -L / 2), (0, 0, L / 2)), colour)
                 W = H = L
             # a small tagged nose block inside the bounds marks the front (-Y) for the facing check
-            md.add_part(meshgen.box((-0.04 * W, -0.5 * L, -0.04 * H), (0.04 * W, -0.42 * L, 0.04 * H)), "#3D3D3D",
-                        tag=common.TAG_FRONT)
-            spec.update(budget="placeholder_block")
-        spec.update(size=None, id=ident, facing={"kind": "tag"})
+            if shape != "done":
+                    md.add_part(meshgen.box((-0.04 * W, -0.5 * L, -0.04 * H), (0.04 * W, -0.42 * L, 0.04 * H)), "#3D3D3D",
+                                tag=common.TAG_FRONT)
+            import budgets                  # the row's own class where 06 6.3 has one (barracuda, jelly), else a block
+            spec.update(budget=ident if ident in budgets.BUDGETS else "placeholder_block")
+        spec.update(size=None, id=ident, facing={"kind": "bones", "front": "Jaw", "back": "TailFin"} if arm else {"kind": "tag"})
     else:                                   # Env, Cove, Prop, Trait: grey blocks (07 16)
         text = column(row, "Size") + " " + desc
         m = re.search(r"(\d+(?:\.\d+)?)\s*×\s*(\d+(?:\.\d+)?)(?:\s*×\s*(\d+(?:\.\d+)?))?\s*studs", text)
@@ -506,16 +565,35 @@ def mesh_spec(name, row):
         zone_key = {"DropOff": "dropoff_upper"}.get(zone, (zone or "").lower())
         colour = (name_colour(name, ("rarity",)) if "_LM_" in name else
                   common.colour("water.%s.fog" % zone_key) if zone else "#9A9A9A")
-        md.add_part(meshgen.box((-W / 2, -L / 2, 0.0), (W / 2, L / 2, H)), colour)
+        if name == "M_Cove_PearlClam":      # 07 11: "Two bones": a shell box and a lid box hinged at the back
+            import placeholder_rigs
+            hinge = 0.6 * H
+            arm = meshgen.build_armature("RIG_PearlClam", placeholder_rigs.clam_bones(L, hinge))
+            md.add_part(meshgen.box((-W / 2, -L / 2, 0.0), (W / 2, L / 2, hinge - 0.02)), colour, weights={"Shell": 1.0})
+            md.add_part(meshgen.box((-W / 2, -L / 2, hinge), (W / 2, L / 2, H)), colour, weights={"Lid": 1.0})
+            spec.update(rig="PearlClam", armature=arm, face_uvs=True)
+        else:
+            md.add_part(meshgen.box((-W / 2, -L / 2, 0.0), (W / 2, L / 2, H)), colour)
         md.add_part(meshgen.box((-0.1 * W, -0.5 * L, 0.98 * H), (0.1 * W, -0.35 * L, 1.05 * H)), "#3D3D3D",
-                    tag=common.TAG_FRONT)          # front marker on top, inside the footprint
+                    tag=common.TAG_FRONT, weights={"Lid": 1.0} if arm else None)   # front marker on top, inside the footprint
         spec.update(budget="placeholder_block", origin="prop", facing={"kind": "tag"}, size=(W, L, 1.05 * H))
 
+    return finish_spec(spec, md, name, cat, arm)
+
+
+def finish_spec(spec, md, name, cat, arm):
+    """Object, UVs, stamped material, skin, exports and preview of a mesh placeholder."""
+    import meshgen
+    root = OUT
     obj = md.to_object(name, "GEO")
     import uvlayout
     tex = TEXTURE or {}
     rect = tuple(tex.get("rect") or ((0.0, 0.5, 1.0, 1.0) if cat == "Species" else (0.0, 0.0, 1.0, 1.0)))
-    uvlayout.project(obj, rect, tex.get("size", 256), "box" if cat in ("Env", "Cove", "Prop", "Trait") else "side")
+    if spec.get("tier") == 2 and tex.get("focus"):
+        rect = tuple(tex["focus"])          # tier 2's few faces sample too little of a small atlas cell: map onto its stamp
+    uvlayout.project(obj, rect, tex.get("size", 256), "box" if cat in ("Env", "Cove", "Prop", "Trait") or spec.get("billboard") else "side")
+    if spec.get("face_uvs") or spec.get("billboard") or cat in BLOCKS:
+        face_uvs(obj, tuple(tex.get("focus") or rect))
     if tex.get("path"):
         spec["ph_texture"] = tex["path"]
         obj.data.materials.clear()
@@ -534,6 +612,28 @@ def mesh_spec(name, row):
                 preview={"main": [obj], "lineup": [{"label": name, "objects": [obj]}], "lineup_caption": ["placeholder"],
                          "extras": [], "texture": "placeholder " + spec["texture_note"]})
     return spec
+
+
+def face_uvs(obj, rect, share=1.0, lift=0.0):
+    """Every face shows the whole stamped cell (two-box props, whose box projection would give
+    thin faces a sliver); `share` < 1 keeps a billboard's two triangles on the stamp in the
+    middle of its cell (texgen.stamp sets "PH" a tenth of the cell above the middle: `lift`)."""
+    u0, v0, u1, v1 = rect
+    cu, cv = (u0 + u1) / 2.0, (v0 + v1) / 2.0 + lift * (v1 - v0)
+    hu, hv = (u1 - u0) / 2.0 * share, (v1 - v0) / 2.0 * share
+    uv = obj.data.uv_layers.active.data
+    lo = [min(d.uv[i] for d in uv) for i in (0, 1)]
+    hi = [max(d.uv[i] for d in uv) for i in (0, 1)]
+    for poly in obj.data.polygons:
+        loops = list(poly.loop_indices)
+        if len(loops) == 4:
+            for li, (a, b) in zip(loops, ((-1, -1), (1, -1), (1, 1), (-1, 1))):
+                uv[li].uv = (cu + a * hu, cv + b * hv)
+        else:                       # triangles: the mesh's own UV bounds stretched onto the box
+            for li in loops:
+                u, v = uv[li].uv
+                uv[li].uv = (cu + hu * (2.0 * (u - lo[0]) / max(hi[0] - lo[0], 1e-9) - 1.0),
+                             cv + hv * (2.0 * (v - lo[1]) / max(hi[1] - lo[1], 1e-9) - 1.0))
 
 
 TEXTURE = None      # set by blender_main: {"name", "path", "size", "rect"}
@@ -567,13 +667,197 @@ def torus(rings):
     return verts, faces, [(0.0, 0.0)] * len(verts)
 
 
-def blender_main(name, texture_json=None):
+# ---------------------------------------------------------------- clips (inside Blender)
+
+# The body each clip is played on: the family clips on the reference Minnow (06 section 7.3),
+# a species' or prop's own clips on its own mesh. The rig travels in that body's spec.
+CLIP_HOSTS = {"Fish": "M_Species_Minnow_Juv", "Minnow": "M_Species_Minnow_Juv", "Puffer": "M_Species_Puffer_Juv",
+              "Barracuda": "M_Pred_Barracuda", "PearlClam": "M_Cove_PearlClam"}
+
+
+def clip_host(name):
+    owner, action = name.split("_")[1], name.split("_")[2]
+    if owner == "Puffer" and action == "PuffHold":
+        return "M_Species_Puffer_Juv_Puffed"          # 07: "slow bob and paddle on the puffed mesh"
+    return CLIP_HOSTS.get(owner)
+
+
+def clip_spec(name, row):
+    """A_<Rig>_<Action>: the host body on its real skeleton, one procedural action of the row's
+    length (07 section 16), exported as one take with the rig and the body."""
+    import placeholder_rigs
+    host = clip_host(name)
+    if not host:
+        raise SystemExit("%s: no placeholder rig for '%s' yet" % (name, name.split("_")[1]))
+    frames, loop = placeholder_rigs.clip_length(row)
+    if not frames:
+        raise SystemExit("%s: chapter 07 gives no length in frames" % name)
+    spec = mesh_spec(host, find(host))
+    arm = spec["armature"]
+    owner, action = name.split("_")[1], name.split("_")[2]
+    pose = placeholder_rigs.clip_pose(action, spec["rig"], spec["size"][1] / 3.0, set(b.name for b in arm.data.bones), owner)
+    clip = placeholder_rigs.bake(arm, name, frames, loop, pose)
+    body = spec["meshes"][0]["object"]
+    spec.update(name=name, host=host, actions=[clip],
+                exports=[{"file": os.path.join(OUT, "animations", name + ".fbx"), "objects": [body, arm], "clip": clip}])
+    spec["preview"]["lineup_caption"] = ["placeholder clip %s, %d frames%s, on %s" % (name, frames, " loop" if loop else "", host)]
+    return spec
+
+
+BILLBOARD_WAIVER = "06 6.3: plankton is a 2-triangle camera-facing billboard: open, flat and without a front by design"
+
+
+def billboard_validation():
+    """The plankton billboard cannot be watertight or enclose a volume: those two checks are
+    recorded as waived (with the bible's reason) instead of failed. Nothing else is relaxed."""
+    import validate
+    if getattr(validate, "_ph_billboard", False):
+        return
+    plain = validate.check_mesh
+
+    def check_mesh(spec, entry, report):
+        if not spec.get("billboard"):
+            return plain(spec, entry, report)
+        add = report.add
+
+        def waive(subject, check, ok, detail="", waiver=None):
+            if not ok and check in ("watertight", "faces outward", "facing"):
+                waiver = BILLBOARD_WAIVER
+            return add(subject, check, ok, detail, waiver)
+        report.add = waive
+        try:
+            return plain(spec, entry, report)
+        finally:
+            report.add = add
+    validate.check_mesh = check_mesh
+    validate._ph_billboard = True
+
+
+def blender_batch(jobs_path, results_path):
+    """Builds many mesh and clip rows in this one Blender process (template reloaded per row).
+    Each result is appended to results_path as it lands, so a killed run resumes cleanly."""
     global TEXTURE
+    import traceback
     import run
-    TEXTURE = json.loads(texture_json) if texture_json else None
-    row = find(name)
-    ok = run.run(None, list(run.IMPLEMENTED), builder=lambda: mesh_spec(name, row))
-    sys.exit(0 if ok else 1)
+    billboard_validation()
+    with open(jobs_path, encoding="utf-8") as f:
+        jobs = json.load(f)
+    for job in jobs:
+        name = job["name"]
+        TEXTURE = job.get("texture")
+        err = ""
+        try:
+            row = find(name)
+            if name.startswith("A_"):
+                ok = run.run(None, ["build", "validate", "export", "preview"], builder=lambda: clip_spec(name, row))
+            else:
+                ok = run.run(None, list(run.IMPLEMENTED), builder=lambda: mesh_spec(name, row))
+        except SystemExit as e:
+            ok, err = False, str(e)
+        except Exception:
+            ok, err = False, traceback.format_exc()[-800:]
+        with open(results_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"name": name, "ok": bool(ok), "error": err}) + "\n")
+        print("[batch] %s %s %s" % (name, "OK" if ok else "FAILED", err.splitlines()[-1] if err else ""), flush=True)
+    sys.exit(0)
+
+
+def blender_main(*args):
+    if not args or args[0] != "--batch":
+        raise SystemExit("inside Blender: placeholder.py -- --batch <jobs.json> <results.jsonl>")
+    blender_batch(args[1], args[2])
+
+
+# ---------------------------------------------------------------- Blender jobs (outside Blender)
+
+def blender_job(name, made=None):
+    """The job a Blender batch needs for one M_ or A_ row: its name and its stamped texture,
+    made here (Pillow is outside Blender). `made` caches textures already written this run."""
+    host = clip_host(name) if name.startswith("A_") else name
+    if host is None:
+        raise SystemExit("%s: no placeholder rig for '%s' yet" % (name, name.split("_")[1]))
+    job = {"name": name}
+    tex = texture_for(host, find(host))
+    if tex:
+        made = made if made is not None else {}
+        if tex not in made:
+            path, note = texture(tex, find(tex))
+            from PIL import Image
+            made[tex] = (path, Image.open(path).size[0])
+        path, size = made[tex]
+        atlas = path.replace(".png", ".atlas.json")
+        rect = json.load(open(atlas))["cells"].get(host) if os.path.exists(atlas) else None
+        job["texture"] = {"name": tex, "path": path, "size": size, "rect": rect}
+        if host in BILLBOARDS or host.split("_")[1] in BLOCKS or host.startswith("M_Prey_"):
+            job["texture"]["focus"] = stamp_focus(path, rect or (0.0, 0.0, 1.0, 1.0))
+    return job
+
+
+BILLBOARDS = ("M_Prey_Plankton",)
+BLOCKS = ("Env", "Cove", "Prop", "Trait")   # block-out pieces: every face shows its cell's stamp
+
+
+def stamp_focus(path, rect):
+    """The UV box around the stamp ink inside a texture cell. A 2-triangle billboard maps onto it,
+    so its two faces show the "PH" stamp (07 section 16) rather than mostly the flat tint. The
+    margin is the first that puts at least 3 of validate.check_ph_stamp's lattice samples on ink,
+    centred (thin strokes can fall between the lattice points)."""
+    from PIL import Image
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    px = im.load()
+    u0, v0, u1, v1 = rect
+    ink = [(x, y) for x in range(int(u0 * w), int(u1 * w)) for y in range(int((1 - v1) * h), int((1 - v0) * h))
+           if max(px[x, y]) < 38]
+    if not ink:
+        return list(rect)
+    x0, x1 = min(x for x, _ in ink) / w, (max(x for x, _ in ink) + 1) / w
+    y0, y1 = 1 - (max(y for _, y in ink) + 1) / h, 1 - min(y for _, y in ink) / h
+
+    def lattice(box):                   # the samples check_ph_stamp takes over the two triangles
+        a, b, c, d = (box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3])
+        hits = []
+        for p, q, r in ((a, b, c), (a, c, d)):
+            for i in range(7):
+                for j in range(7 - i):
+                    u = (p[0] * (6 - i - j) + q[0] * i + r[0] * j) / 6
+                    v = (p[1] * (6 - i - j) + q[1] * i + r[1] * j) / 6
+                    if max(px[min(w - 1, int(u * w)), min(h - 1, int((1 - v) * h))]) < 38:
+                        hits.append((u, v))
+        if len(hits) < 3:
+            return False
+        return all(0.3 <= (sum(hh[i] for hh in hits) / len(hits) - box[i]) / (box[i + 2] - box[i]) <= 0.7 for i in (0, 1))
+
+    for k in range(0, 41):
+        m = 0.01 * k
+        mx, my = m * (x1 - x0), m * (y1 - y0)
+        box = [max(u0, x0 - mx), max(v0, y0 - my), min(u1, x1 + mx), min(v1, y1 + my)]
+        if lattice(box):
+            return box
+    return [x0, y0, x1, y1]
+
+
+def run_blender(jobs, tag="batch"):
+    """One Blender process for all `jobs`, through the heavy-job wrapper. Returns {name: result}."""
+    logs = os.path.join(OUT, "logs")
+    os.makedirs(logs, exist_ok=True)
+    jobs_path, results = os.path.join(logs, tag + ".jobs.json"), os.path.join(logs, tag + ".results.jsonl")
+    write_json(jobs_path, jobs)
+    if os.path.exists(results):
+        os.remove(results)
+    cmd = [heavy_wrapper(), "--owner", os.environ.get("GULP_HEAVY_OWNER", "gulp-placeholders"), "--game", "Gulp", "--",
+           BLENDER, "--background", "--python", os.path.abspath(__file__), "--", "--batch", jobs_path, results]
+    with open(os.path.join(logs, tag + ".log"), "w") as f:
+        subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT)
+    out = {}
+    if os.path.exists(results):
+        with open(results, encoding="utf-8") as f:
+            for line in f:
+                r = json.loads(line)
+                out[r["name"]] = r
+    for job in jobs:
+        out.setdefault(job["name"], {"name": job["name"], "ok": False, "error": "Blender stopped before this row (see logs/%s.log)" % tag})
+    return out
 
 
 # ---------------------------------------------------------------- command line
@@ -584,31 +868,14 @@ KINDS = {"T": texture, "FX": effect, "LGT": lighting, "SKY": sky, "SFX": sound, 
 def make(name):
     row = find(name)
     prefix = name.split("_")[0]
-    if prefix == "M":
-        cmd = [heavy_wrapper(), "--owner", "gulp-art", "--game", "Gulp", "--", BLENDER, "--background",
-               "--python", os.path.abspath(__file__), "--", name]
-        tex = texture_for(name, row)
-        if tex:
-            path, note = texture(tex, find(tex))
-            print("[placeholder] %s -> %s (%s)" % (tex, os.path.relpath(path, common.REPO_DIR), note))
-            atlas = path.replace(".png", ".atlas.json")
-            rect = json.load(open(atlas))["cells"].get(name) if os.path.exists(atlas) else None
-            from PIL import Image
-            cmd.append(json.dumps({"name": tex, "path": path, "size": Image.open(path).size[0], "rect": rect}))
-        log = os.path.join(OUT, "logs", name + ".log")
-        os.makedirs(os.path.dirname(log), exist_ok=True)
-        with open(log, "w") as f:
-            done = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT)
-        with open(log) as f:
-            lines = [l.rstrip() for l in f if l.startswith(("[run]", "[lod]", "[shell]", "[validate] FAIL", "[validate] PASS:",
-                                                          "[validate] FAIL:", "[export]", "[versions]", "[preview]", "Traceback", "SystemExit"))
-                     or "Error" in l]
-        print("\n".join(lines[-40:]))
-        return done.returncode == 0
-    if prefix in ("A", "SCN", "RIG"):
-        print("%s: no placeholder generated (%s)" % (name, {"SCN": "07 16: none needed", "A": "clips wait for every family skeleton",
+    if prefix in ("M", "A"):
+        r = run_blender([blender_job(name)], "single_" + name)[name]
+        print("[placeholder] %s %s %s" % (name, "OK" if r["ok"] else "FAILED", r["error"]))
+        return r["ok"]
+    if prefix in ("SCN", "RIG"):
+        print("%s: no placeholder generated (%s)" % (name, {"SCN": "07 16: none needed",
                                                             "RIG": "skeletons travel inside the species placeholders"}[prefix]))
-        return prefix == "SCN"
+        return True
     if prefix not in KINDS:
         raise SystemExit("%s: no placeholder kind for prefix %s" % (name, prefix))
     path, note = KINDS[prefix](name, row)
@@ -625,7 +892,14 @@ def main(argv):
     if not argv:
         print(__doc__)
         return 2
-    return 0 if all([make(n) for n in argv]) else 1
+    heavy = [n for n in argv if n.split("_")[0] in ("M", "A")]
+    ok = True
+    if heavy:
+        made = {}
+        for n, r in run_blender([blender_job(n, made) for n in heavy], "cli").items():
+            print("[placeholder] %s %s %s" % (n, "OK" if r["ok"] else "FAILED", r["error"]))
+            ok = ok and r["ok"]
+    return 0 if all([make(n) for n in argv if n not in heavy]) and ok else 1
 
 
 if __name__ == "__main__":
@@ -635,6 +909,6 @@ if __name__ == "__main__":
     except ImportError:
         IN_BLENDER = False
     if IN_BLENDER:
-        blender_main(*sys.argv[sys.argv.index("--") + 1:][:2])
+        blender_main(*sys.argv[sys.argv.index("--") + 1:])
     else:
         sys.exit(main(sys.argv[1:]))
