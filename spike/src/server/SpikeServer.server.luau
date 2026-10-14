@@ -21,7 +21,7 @@ fn.Parent = RS
 
 local function report(key: string, value: any)
 	local json = HttpService:JSONEncode(value)
-	results:SetAttribute(key, json)
+	local __v = json if not pcall(function() results:SetAttribute(key, __v) end) then local __sv = results:FindFirstChild(key) or Instance.new("StringValue") __sv.Name = key __sv.Value = tostring(__v) __sv.Parent = results end -- S12 place: attribute strings are capped at 50 chars
 	print("[SPIKE] " .. key .. " " .. json)
 end
 
@@ -347,7 +347,7 @@ ev.OnServerEvent:Connect(function(player, kind, a, b)
 		onHello(player)
 	elseif kind == "report" then
 		s.reports[a] = b
-		results:SetAttribute(a, b)
+		local __v = b if not pcall(function() results:SetAttribute(a, __v) end) then local __sv = results:FindFirstChild(a) or Instance.new("StringValue") __sv.Name = a __sv.Value = tostring(__v) __sv.Parent = results end -- S12 place: attribute strings are capped at 50 chars
 		print("[SPIKE] " .. tostring(a) .. " " .. tostring(b))
 	elseif kind == "s4arrive" then
 		s.arrivals[a] = { clientStamp = b, serverRecv = workspace:GetServerTimeNow() }

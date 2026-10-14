@@ -58,7 +58,9 @@ class Drv:
         """JSON attributes of ReplicatedStorage.<folder> as a dict of decoded values."""
         ok, text = self.lua(dm, """
 local f = game:GetService("ReplicatedStorage"):FindFirstChild("%s")
-return game:GetService("HttpService"):JSONEncode(f and f:GetAttributes() or {})""" % folder)
+local t = f and f:GetAttributes() or {}
+if f then for _, c in f:GetChildren() do if c:IsA("StringValue") then t[c.Name] = c.Value end end end
+return game:GetService("HttpService"):JSONEncode(t)""" % folder)
         m = re.search(r"\{.*\}", text, re.S)
         if not (ok and m):
             return {}

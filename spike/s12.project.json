@@ -1,0 +1,6808 @@
+{
+ "name": "GulpSpike",
+ "tree": {
+  "$className": "DataModel",
+  "Workspace": {
+   "$className": "Workspace",
+   "$properties": {
+    "StreamingEnabled": true,
+    "StreamingMinRadius": 64,
+    "StreamingTargetRadius": 256,
+    "StreamingIntegrityMode": "PauseOutsideLoadedArea",
+    "ModelStreamingBehavior": "Improved",
+    "FallenPartsDestroyHeight": -5000,
+    "AuthorityMode": "Server"
+   },
+   "Collision": {
+    "$className": "Model",
+    "$properties": {
+     "ModelStreamingMode": "Persistent"
+    },
+    "Floor_001": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_002": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_003": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_004": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_005": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_006": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_007": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_008": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_009": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_010": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -270,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_011": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_012": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_013": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_014": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_015": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_016": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_017": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_018": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_019": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_020": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -210,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_021": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_022": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_023": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_024": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_025": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_026": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_027": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_028": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_029": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_030": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -150,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_031": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_032": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_033": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_034": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_035": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_036": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_037": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_038": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_039": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_040": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -90,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_041": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_042": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_043": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_044": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_045": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_046": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_047": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_048": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_049": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_050": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -30,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_051": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_052": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_053": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_054": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_055": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_056": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_057": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_058": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_059": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_060": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         30,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_061": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_062": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_063": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_064": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_065": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_066": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_067": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_068": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_069": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_070": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         90,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_071": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_072": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_073": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_074": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_075": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_076": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_077": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_078": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_079": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_080": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         150,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_081": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_082": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_083": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_084": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_085": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_086": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_087": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_088": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_089": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_090": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         210,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_091": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         -270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_092": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         -210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_093": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         -150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_094": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         -90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_095": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         -30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_096": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         30
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_097": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         90
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_098": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         150
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_099": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         210
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Floor_100": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       60,
+       4,
+       60
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         270,
+         -122,
+         270
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_001": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -275,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_002": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -225,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_003": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -175,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_004": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -125,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_005": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -75,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_006": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -25,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_007": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         25,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_008": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         75,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_009": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         125,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_010": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         175,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_011": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         225,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_012": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         275,
+         -60,
+         -302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_013": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -275,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_014": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -225,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_015": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -175,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_016": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -125,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_017": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -75,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_018": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -25,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_019": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         25,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_020": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         75,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_021": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         125,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_022": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         175,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_023": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         225,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_024": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       50,
+       120,
+       4
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         275,
+         -60,
+         302
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_025": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -275
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_026": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -225
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_027": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -175
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_028": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -125
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_029": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -75
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_030": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         -25
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_031": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         25
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_032": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         75
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_033": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         125
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_034": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         175
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_035": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         225
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_036": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -302,
+         -60,
+         275
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_037": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -275
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_038": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -225
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_039": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -175
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_040": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -125
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_041": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -75
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_042": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         -25
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_043": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         25
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_044": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         75
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_045": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         125
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_046": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         175
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_047": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         225
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Wall_048": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       4,
+       120,
+       50
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         302,
+         -60,
+         275
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Pillar_001": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       12,
+       120,
+       12
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         60,
+         -60,
+         60
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    },
+    "Pillar_002": {
+     "$className": "Part",
+     "$properties": {
+      "Anchored": true,
+      "Size": [
+       12,
+       120,
+       12
+      ],
+      "CFrame": {
+       "CFrame": {
+        "position": [
+         -60,
+         -60,
+         -60
+        ],
+        "orientation": [
+         [
+          1,
+          0,
+          0
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ]
+        ]
+       }
+      },
+      "Color": [
+       0.16,
+       0.32,
+       0.42
+      ],
+      "Material": "Slate",
+      "TopSurface": "Smooth",
+      "BottomSurface": "Smooth"
+     }
+    }
+   },
+   "Creatures": {
+    "$className": "Folder"
+   }
+  },
+  "Players": {
+   "$className": "Players",
+   "$properties": {
+    "CharacterAutoLoads": false
+   }
+  },
+  "ReplicatedStorage": {
+   "$className": "ReplicatedStorage",
+   "Shared": {
+    "$path": "src/shared"
+   }
+  },
+  "ServerScriptService": {
+   "$className": "ServerScriptService",
+   "Server": {
+    "$path": "src/server"
+   }
+  },
+  "TextChatService": {
+   "$className": "TextChatService",
+   "$properties": {
+    "ChatVersion": "TextChatService"
+   }
+  },
+  "StarterPlayer": {
+   "$className": "StarterPlayer",
+   "StarterPlayerScripts": {
+    "$className": "StarterPlayerScripts",
+    "$path": "src/client"
+   }
+  }
+ }
+}

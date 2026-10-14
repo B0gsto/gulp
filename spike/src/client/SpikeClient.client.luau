@@ -41,11 +41,11 @@ state.Parent = RS
 local ev = RS:WaitForChild("SpikeEvent")
 local fn = RS:WaitForChild("SpikeFn")
 local function setState(k: string, v: any)
-	state:SetAttribute(k, HttpService:JSONEncode(v))
+	local __v = HttpService:JSONEncode(v) if not pcall(function() state:SetAttribute(k, __v) end) then local __sv = state:FindFirstChild(k) or Instance.new("StringValue") __sv.Name = k __sv.Value = tostring(__v) __sv.Parent = state end -- S12 place: attribute strings are capped at 50 chars
 end
 local function report(k: string, v: any)
 	local j = HttpService:JSONEncode(v)
-	state:SetAttribute(k, j)
+	local __v = j if not pcall(function() state:SetAttribute(k, __v) end) then local __sv = state:FindFirstChild(k) or Instance.new("StringValue") __sv.Name = k __sv.Value = tostring(__v) __sv.Parent = state end -- S12 place: attribute strings are capped at 50 chars
 	ev:FireServer("report", k, j)
 end
 
