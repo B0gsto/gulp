@@ -24,9 +24,9 @@ local WorldIndex = require("./WorldIndex")
 type Slot = Types.Slot
 type Volume = Types.Volume
 
--- The server's view of one creature (section 5.1: "CreatureState per slot"). Traits, progress,
--- statuses and protection are added by the tasks that own them (TraitService, B19; hazards,
--- B24; protections, B19 and B25).
+-- The server's view of one creature (section 5.1: "CreatureState per slot"). Statuses and
+-- protection are added by the tasks that own them (hazards, B24; protections, B19 and B25).
+-- `traits`, `progress` and `traitGainedAt` belong to TraitService, which alone writes them.
 export type CreatureState = {
 	slot: Slot,
 	player: Player,
@@ -42,6 +42,9 @@ export type CreatureState = {
 	-- accepted `Ability` dash, −math.huge for none, and the seq it came with.
 	dashStart: number,
 	dashSeq: number,
+	traits: { string }, -- held trait IDs in slot order, no gaps (02 §8.3)
+	progress: { [string]: number }, -- trait ID → trait prey eaten this run (02 §8.1)
+	traitGainedAt: { [string]: number }, -- trait ID → os.clock() of its last pip (02 §8.2)
 }
 
 local TAG = "Creature"
@@ -259,6 +262,9 @@ function CreatureService.spawn(player: Player, at: CFrame?): CreatureState
 		writtenDiameter = root.Size.X,
 		dashStart = -math.huge,
 		dashSeq = -1,
+		traits = {},
+		progress = {},
+		traitGainedAt = {},
 	}
 	states[slot] = state
 
@@ -277,7 +283,8 @@ function CreatureService.spawn(player: Player, at: CFrame?): CreatureState
 	player:SetAttribute("Mass", roundMass(mass))
 	player:SetAttribute("Phase", "cove") -- RunLoopService owns it from here
 	player:SetAttribute("Protected", false)
-	-- TODO(B20, S4-C6): `Pattern` from the profile. TODO(B19, S6-C3): `Traits`.
+	player:SetAttribute("Traits", "") -- TraitService owns it from here
+	-- TODO(B20, S4-C6): `Pattern` from the profile.
 	return state
 end
 

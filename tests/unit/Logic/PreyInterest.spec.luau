@@ -213,4 +213,33 @@ describe("PreyInterest", function()
 			expect(fulls).toEqual({ again })
 		end
 	)
+
+	it("sends a group owned by one slot only to that slot, however near the others are", function()
+		local sim = newSim()
+		local shared = PreySim.spawn(sim, SARDINE, 0, 10, -50, 0, 10) :: number
+		local owned = PreySim.spawn(sim, KRILL, 0, 12, -50, 4, 6) :: number
+		PreySim.own(sim, owned, 2, 3, 3)
+		local gen = buffer.readu8(sim.buffers.gen, owned)
+		local state = PreyInterest.new(3)
+		for _ = 1, 30 do
+			step(sim)
+			for slot = 1, 3 do
+				local payload = PreyInterest.updatePlayer(state, sim, slot, 0, -50, 0)
+				local fulls, deltas = {}, {}
+				if payload then
+					fulls, deltas = decode(payload)
+				end
+				for _, list in { fulls, deltas } do
+					for _, g in list do
+						expect(g ~= owned or slot == 2).toBe(true)
+					end
+				end
+			end
+		end
+		expect(PreyInterest.knows(state, 2, owned, gen, sim.tick)).toBe(true)
+		expect(PreyInterest.knows(state, 1, owned, gen, sim.tick)).toBe(false)
+		expect(PreyInterest.knows(state, 3, owned, gen, sim.tick)).toBe(false)
+		local sharedGen = buffer.readu8(sim.buffers.gen, shared)
+		expect(PreyInterest.knows(state, 1, shared, sharedGen, sim.tick)).toBe(true)
+	end)
 end)
