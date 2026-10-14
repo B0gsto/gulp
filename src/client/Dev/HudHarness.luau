@@ -7,6 +7,9 @@
 --   HudHarness:Invoke("open", "S11" | "S12")   and   HudHarness:Invoke("close", "S11" | "S12")
 --   HudHarness:Invoke("open", "S12card" | "S12small")   S12 with a specimen card, or a tier 1 run
 --   HudHarness:Invoke("cove")       S14 with fixed values and a Pearl pile in front of the camera
+--   HudHarness:Invoke("tierup", "2".."7")   S07 for a rise to that tier (7: rays, 2.2 s)
+--   HudHarness:Invoke("trait", traitId)     S08 for that trait in slot 1 ("crystal": Epic, rays)
+--   HudHarness:Invoke("hold", "on" | "off") holds the moment card on screen for screenshots
 --   HudHarness:Invoke("device", "tablet")   a simulated 1024 x 768 tablet (task S6-C4)
 --   HudHarness:Invoke("mode", "Touch" | "Keys" | "Pad")   the guide's input pictures
 --   HudHarness:Invoke("guide", "point" | "tap" | "hold" | "ghost" | "off")   the guide kit S33
@@ -25,6 +28,7 @@ local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 local CoveHud = require("../UI/Hud/CoveHud")
 local CreatureRig = require("../Render/CreatureRig")
 local Guide = require("../UI/Kit/Guide")
+local Hud = require("../UI/Hud/Hud")
 local InputController = require("../Controllers/InputController")
 local Outlines = require("../Render/Outlines")
 local Screen = require("../UI/Kit/Screen")
@@ -283,6 +287,13 @@ local function measure(): string
 			)}`
 		)
 	end
+	-- S07 and S08 (08 §4.2, §4.3).
+	size("Slot", "GulpMoments", "HUD.MomentSlot")
+	size("TierUp", "GulpMoments", "S07.TierUp")
+	size("TraitGained", "GulpMoments", "S08.TraitGained")
+	for _, n in { "Header", "TierName", "FoodLabel", "TraitName", "Effect" } do
+		text("moment " .. n, "GulpMoments", n)
+	end
 	size("Card", "GulpMoments", "Specimen")
 	text("card tier", "GulpMoments", "TierName")
 	text("card perHour", "GulpMoments", "PerHour")
@@ -379,6 +390,9 @@ local function pose(): string
 	end)
 	return `posed {layout.screenClass} at scale {layout.scale}`
 end
+
+-- "hold": the next moment cards stay up for an hour, for screenshots.
+local holding = false
 
 -- The guide kit (task S6-C4): world points in front of the camera, on the simulated screen.
 local function ahead(sx: number, sy: number, depth: number): Vector3?
@@ -611,6 +625,18 @@ function HudHarness.bind(parent: Instance)
 			return arg
 		elseif command == "cove" then
 			return cove(arg ~= "off")
+		elseif command == "tierup" then
+			local tier = tonumber(arg) or 2
+			Hud.clearMoments()
+			Hud.tierUp(tier, tier - 1, if holding then 3600 else nil)
+			return `S07 tier {tier}`
+		elseif command == "trait" then
+			Hud.clearMoments()
+			Hud.traitGained(arg or "glow", 1, if holding then 3600 else nil)
+			return `S08 {arg or "glow"}`
+		elseif command == "hold" then
+			holding = arg ~= "off"
+			return `hold {holding}`
 		elseif command == "mode" and (arg == "Touch" or arg == "Keys" or arg == "Pad") then
 			if not Guide.isMounted() then
 				Guide.mount()
@@ -626,6 +652,8 @@ function HudHarness.bind(parent: Instance)
 			return "closed"
 		end
 		UIController.setPreview(nil)
+		Hud.clearMoments()
+		holding = false
 		outlineDemo(false)
 		cove(false)
 		if Guide.isMounted() then
