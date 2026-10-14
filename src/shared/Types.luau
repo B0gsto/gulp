@@ -60,6 +60,32 @@ export type RewardBandDef = {
 	pearls: number,
 }
 
+-- A banking mass band (01 §5.4): `pearlsPerMass` for the mass from `from` to `upTo` (nil: no limit).
+export type BankRateDef = {
+	from: number,
+	upTo: number?,
+	pearlsPerMass: number,
+}
+
+-- A scraps share (01 §5.5): from the `fromDeath`-th death on the account (1-based) onward.
+export type ScrapsDef = {
+	fromDeath: number,
+	share: number,
+}
+
+-- A Reef Rank (05 §7): reached at `threshold` lifetime banked Pearls; pays `reward` Pearls [L].
+export type ReefRankDef = {
+	rank: number,
+	threshold: number,
+	reward: number,
+}
+
+-- The Pearl price of a cove slot (05 §4.2); slots below the first row are free.
+export type SlotPriceDef = {
+	slot: number,
+	price: number,
+}
+
 export type SpeciesDef = {
 	id: string,
 	wire: number,

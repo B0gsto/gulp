@@ -234,6 +234,118 @@ local function buildRewardBands(economy: Tables, slice: boolean): Module
 	}
 end
 
+-- 01 §5.4 data:BankRates: the banking mass bands. Each band pays its rate per mass inside it; the
+-- last band has no upper limit ("No limit") and the bands must follow on from each other.
+local function buildBankRates(canon: Tables, slice: boolean): Module
+	local t = get(canon, CANON, "BankRates")
+	local rows = {}
+	local expectFrom = 0
+	for _, row in t.rows do
+		local from = num(t, row, "Mass from")
+		if from ~= expectFrom then
+			fail(`data:BankRates, row {row.key}: starts at {from}, not at {expectFrom}`)
+		end
+		local upTo = MarkdownTables.number(cell(t, row, "Mass up to"))
+		if upTo == nil and row.position ~= #t.rows then
+			fail(`data:BankRates, row {row.key}: only the last band can have no limit`)
+		end
+		expectFrom = upTo or expectFrom
+		if row.inSlice or not slice then
+			local fields = { field("from", from) }
+			optional(fields, "upTo", upTo)
+			table.insert(fields, field("pearlsPerMass", num(t, row, "Pearls per mass")))
+			table.insert(rows, fields)
+		end
+	end
+	return {
+		name = "BankRates",
+		typeName = "BankRateDef",
+		sources = { `{CANON} data:BankRates` },
+		rows = rows,
+	}
+end
+
+-- 01 §5.5 data:Scraps: the scraps share by death number on the account ("1st to 3rd" starts at
+-- death 1). The share column is a percentage.
+local function buildScraps(canon: Tables, slice: boolean): Module
+	local t = get(canon, CANON, "Scraps")
+	local rows = {}
+	for _, row in rowsFor(t, slice) do
+		table.insert(rows, {
+			field("fromDeath", firstNumber(t, row, "Death on the account")),
+			field(
+				"share",
+				num(t, row, "Scraps (share of the Pearls the run would have banked)") / 100
+			),
+		})
+	end
+	return {
+		name = "Scraps",
+		typeName = "ScrapsDef",
+		sources = { `{CANON} data:Scraps` },
+		rows = rows,
+	}
+end
+
+-- 05 §4.2 data:SlotPrices: the Pearl price of each cove slot beyond the free ones. The slots must
+-- be consecutive and the running total must add up (the column is checked, not generated).
+local function buildSlotPrices(economy: Tables, slice: boolean): Module
+	local t = get(economy, ECONOMY, "SlotPrices")
+	local rows = {}
+	local total = 0
+	local previous: number? = nil
+	for _, row in t.rows do
+		local slot = num(t, row, "Slot")
+		if previous ~= nil and slot ~= previous + 1 then
+			fail(`data:SlotPrices, row {row.key}: slot {slot} does not follow slot {previous}`)
+		end
+		previous = slot
+		local price = num(t, row, "Price (Pearls)")
+		total += price
+		if num(t, row, "Running total") ~= total then
+			fail(`data:SlotPrices, row {row.key}: the running total should be {total}`)
+		end
+		if row.inSlice or not slice then
+			table.insert(rows, { field("slot", slot), field("price", price) })
+		end
+	end
+	return {
+		name = "SlotPrices",
+		typeName = "SlotPriceDef",
+		sources = { `{ECONOMY} data:SlotPrices` },
+		rows = rows,
+	}
+end
+
+-- 05 §7 data:ReefRanks: the lifetime banked Pearls each Reef Rank needs and the Pearls it pays
+-- ("—" for rank 1: nothing). Ranks must be consecutive from 1 with rising thresholds.
+local function buildReefRanks(economy: Tables, slice: boolean): Module
+	local t = get(economy, ECONOMY, "ReefRanks")
+	local rows = {}
+	local last = -1
+	for _, row in t.rows do
+		local rank = num(t, row, "Rank")
+		local threshold = num(t, row, "Lifetime banked Pearls")
+		if rank ~= row.position or threshold <= last then
+			fail(`data:ReefRanks, row {row.key}: ranks must count up from 1 with rising thresholds`)
+		end
+		last = threshold
+		if row.inSlice or not slice then
+			table.insert(rows, {
+				field("rank", rank),
+				field("threshold", threshold),
+				field("reward", maybeNumber(t, row, "Reward (Pearls)") or 0),
+			})
+		end
+	end
+	return {
+		name = "ReefRanks",
+		typeName = "ReefRankDef",
+		sources = { `{ECONOMY} data:ReefRanks` },
+		rows = rows,
+	}
+end
+
 local function buildTraits(catalog: Tables, economy: Tables, slice: boolean): Module
 	local t = get(catalog, CATALOG, "Traits")
 	local income = get(economy, ECONOMY, "TraitIncome")
@@ -1043,6 +1155,10 @@ local art = load(ART)
 local modules = {
 	buildTiers(canon, economy, slice),
 	buildRewardBands(economy, slice),
+	buildBankRates(canon, slice),
+	buildScraps(canon, slice),
+	buildSlotPrices(economy, slice),
+	buildReefRanks(economy, slice),
 	buildSpecies(catalog, economy, slice),
 	buildPrey(canon, catalog, "Prey", slice),
 	buildPrey(canon, catalog, "TraitPrey", slice),

@@ -3,6 +3,7 @@
 -- by ID and by wire index (the row's 1-based position in its canon table, sent in packets),
 -- tiers by tier number and products (which have no wire index) by ID only. Works on the full build and on the soft-launch build, whose wire indices
 -- have gaps. Pure Luau: no `game`, no Instances (section 4.4).
+local BankRates = require("./Generated/BankRates")
 local Codex = require("./Generated/Codex")
 local Goals = require("./Generated/Goals")
 local Hazards = require("./Generated/Hazards")
@@ -11,8 +12,11 @@ local Prey = require("./Generated/Prey")
 local PreyMotion = require("./Generated/PreyMotion")
 local PreySpawns = require("./Generated/PreySpawns")
 local Products = require("./Generated/Products")
+local ReefRanks = require("./Generated/ReefRanks")
 local RevivePoints = require("./Generated/RevivePoints")
 local RewardBands = require("./Generated/RewardBands")
+local Scraps = require("./Generated/Scraps")
+local SlotPrices = require("./Generated/SlotPrices")
 local Species = require("./Generated/Species")
 local Tides = require("./Generated/Tides")
 local Tiers = require("./Generated/Tiers")
@@ -56,6 +60,12 @@ for _, def in RewardBands do
 	bandById[def.id] = def
 end
 
+-- Cove slot prices (05 §4.2) by slot number; a slot below the first row is free.
+local slotPriceBySlot: { [number]: Types.SlotPriceDef } = {}
+for _, def in SlotPrices do
+	slotPriceBySlot[def.slot] = def
+end
+
 local productById: { [string]: Types.ProductDef } = {}
 for _, def in Products do
 	if productById[def.id] ~= nil then
@@ -88,6 +98,10 @@ local Index = {
 	Products = table.freeze({ list = Products, byId = table.freeze(productById) }),
 	Tiers = table.freeze({ list = Tiers, byTier = table.freeze(tierByNumber) }),
 	RewardBands = table.freeze({ list = RewardBands, byId = table.freeze(bandById) }),
+	BankRates = table.freeze({ list = BankRates }), -- 01 §5.4, in mass order
+	Scraps = table.freeze({ list = Scraps }), -- 01 §5.5, in death order
+	SlotPrices = table.freeze({ list = SlotPrices, bySlot = table.freeze(slotPriceBySlot) }),
+	ReefRanks = table.freeze({ list = ReefRanks }), -- 05 §7, rank 1 to 50 in order
 	Codex = lookup("Codex", Codex, function(def: Types.CodexCategoryDef): (string, number)
 		return def.id, def.wire
 	end),
