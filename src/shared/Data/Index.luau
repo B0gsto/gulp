@@ -12,6 +12,7 @@ local PreyMotion = require("./Generated/PreyMotion")
 local PreySpawns = require("./Generated/PreySpawns")
 local Products = require("./Generated/Products")
 local RevivePoints = require("./Generated/RevivePoints")
+local RewardBands = require("./Generated/RewardBands")
 local Species = require("./Generated/Species")
 local Tides = require("./Generated/Tides")
 local Tiers = require("./Generated/Tiers")
@@ -49,6 +50,12 @@ for _, def in Tiers do
 	tierByNumber[def.tier] = def
 end
 
+-- Reward bands (05 §3.12) by ID, R1 to R5; they have no wire index.
+local bandById: { [string]: Types.RewardBandDef } = {}
+for _, def in RewardBands do
+	bandById[def.id] = def
+end
+
 local productById: { [string]: Types.ProductDef } = {}
 for _, def in Products do
 	if productById[def.id] ~= nil then
@@ -80,6 +87,7 @@ local Index = {
 	PreySpawns = table.freeze({ list = PreySpawns, byZone = table.freeze(spawnsByZone) }),
 	Products = table.freeze({ list = Products, byId = table.freeze(productById) }),
 	Tiers = table.freeze({ list = Tiers, byTier = table.freeze(tierByNumber) }),
+	RewardBands = table.freeze({ list = RewardBands, byId = table.freeze(bandById) }),
 	Codex = lookup("Codex", Codex, function(def: Types.CodexCategoryDef): (string, number)
 		return def.id, def.wire
 	end),
