@@ -18,7 +18,7 @@ BUDGETS = {
     "turtle_tucked_adult": {"tris": 2000, "shell": 0.4},
     "crest": {"tris": 150, "bones": 0},
     "plankton": {"tris": 2, "bones": 0},
-    "prey_t1": {"tris": 120, "tris_min": 60, "shell": 64, "bones": 0},   # (tune) 64 since S0-T1 F26d
+    "prey_t1": {"tris": 120, "tris_min": 60, "shell": 80, "bones": 0},   # (tune) 80 since S3-A1: an even 0.033-stud krill shell needs it
     "prey_t2": {"tris": 150, "shell": 60, "bones": 0},
     "prey_t3": {"tris": 300, "shell": 120, "bones": 3},
     "prey_t4": {"tris": 450, "shell": 180, "bones": 3},

@@ -76,18 +76,8 @@ def patch(material, seed=3):
     return out
 
 
-def krill_profile():
-    """The krill build's body profile, so this build writes the same whole atlas as the krill's."""
-    import importlib.util
-    path = os.path.join(HERE, "..", "krill", "build.py")
-    spec = importlib.util.spec_from_file_location("gulp_krill_build", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod.profile
-
-
 def build():
-    img, block = preyart.atlas(krill_profile=krill_profile())
+    img, block = preyart.atlas()   # the whole atlas, krill cells included, the same as the krill build writes
     work = os.path.join(common.review_dir(NAME), "%s_work.png" % ALBEDO)
     preyart.save_rgba(work, img)
     mat = preyart.material("MAT_" + NAME, work, alpha=True)
