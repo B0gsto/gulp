@@ -164,7 +164,8 @@ gulp/
 │   │   └── Loading.client.luau     custom loading screen, removes the default one
 │   ├── shared/                 → ReplicatedStorage.Shared
 │   │   ├── Types.luau              every exported type used across modules
-│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau
+│   │   ├── Config/                 Version.luau, Defaults.luau (tunable numbers), Flags.luau,
+│   │   │                           FtueConfig.luau (every tunable of chapter 04, section 3.1)
 │   │   ├── Data/
 │   │   │   ├── Generated/          Tiers, Species, Prey, TraitPrey, Traits, Predators, Hazards,
 │   │   │   │                       Zones, Tides, PreySpawns, TraitPreySpawns, PreyMotion, Products,
@@ -173,7 +174,7 @@ gulp/
 │   │   │   │                       (GENERATED, do not edit)
 │   │   │   └── Index.luau          lookups by ID and by wire index
 │   │   ├── Logic/                  pure rules: BiteRules, TierMath, TraitRules, BankMath,
-│   │   │                           CoveIncome, TideClock, GoalRules, Migrations
+│   │   │                           CoveIncome, TideClock, GoalRules, Migrations, FtueRules
 │   │   ├── Sim/                    pure simulation: SwimModel, PreySim, Formation, SpatialGrid,
 │   │   │                           Quantize, PredatorSim
 │   │   ├── Net/
@@ -341,6 +342,13 @@ export type CodexCategoryDef = { id: string, wire: number, scope: Scope,   -- cd
 
 export type RevivePointDef = { id: string, wire: number, zone: string,     -- rp_01 to rp_12 (chapter 03, section 6.11)
 	x: number, z: number, depth: number }                                  -- world position (x, −depth, z)
+
+export type NurseryPointDef = { id: string, wire: number,                 -- hatch_bed ... home_current_mouth (chapter 03, section 6.2)
+	at: number, to: number,                  -- distance along the first-run route; to = at for a point
+	x: number, z: number, toX: number, toZ: number,   -- the place; a stretch's start and end
+	top: number, bottom: number, toBottom: number,    -- depth band (toBottom: at a stretch's end)
+	floor: boolean,                          -- bottom is the sea floor; the band runs up to the surface
+	markX: number?, markZ: number? }         -- the landmark a point serves (the Glow Grotto's mouth)
 
 export type PatternDef = { id: string, wire: number, scope: Scope, species: string,   -- pat_<species>_<name>, 18 at launch
 	source: "robux" | "codex" | "starter_pack" }                           -- chapter 03, section 1.3
@@ -519,10 +527,10 @@ A hot path is anything that runs every frame or every tick: `Sim/*`, `Codec/*`, 
 | **DataService** | MVP | Load, migrate, session-lock, autosave and release profiles; push state patches to the owner | The ProfileStore session, `Profile.Data` | `get(player): ProfileData?`, `patch(player, path: string, value: any)`, `saveNow(player): boolean`, `onLoaded: Signal<Player>` |
 | **EconomyService** | MVP | The only place Pearls change | Nothing persistent (writes through DataService) | `grant(player, amount, source: PearlSource, sku: string?)`, `spend(player, amount, sink: PearlSink, sku: string): boolean`, `balance(player): number` |
 | **AnalyticsService** (wrapper, module name `Analytics`) | MVP | Typed front for Roblox `AnalyticsService`; enforces the event list and limits of chapter 10; writes to a memory buffer in Studio | Event name enum (the chapter 10 event dictionary), funnel session IDs | The three calls of chapter 10, section 2.4: `step(player, funnel, sessionId, stepNumber, ctx?)`, `event(player, name, value, ctx)`, `pearls(player, flow, amount, balance, transactionType, sku)` |
-| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
+| **WorldIndex** | MVP | Reads tagged volumes and the 12 revive points at start, builds the height field, answers point queries | Volume table, revive point list, height field buffer | `zoneAt(x,y,z): ZoneId`, `isSafe(x,y,z): boolean`, `coveMouthAt(x,y,z): Slot?`, `volumesOf(kind): {Volume}`, `floorY(x,z): number`, `segmentBlocked(a, b): boolean`, `nurseryPathAt(x,y,z): string?` (the `NurseryPath` `PointId`, section 9.1), `revivePoints(): {RevivePoint}` (the 12 points, section 9.1), `sendWorldInfo(player)` (sends `WorldInfo` once; `PlayerLifecycle` calls it after `ClientReady`, before the creature spawns, because WorldIndex cannot listen to `onReady`: `PlayerLifecycle` requires `CreatureService`, which requires WorldIndex) |
 | **CreatureService** | MVP | Builds and owns each creature model; species, mass, the tier and body scale derived from mass (section 6.8), status effects, protection (revive, reconnect, newcomer shield) | Root parts; `CreatureState` per slot | `spawn(player)`, `get(slot): CreatureState?`, `addMass(slot, amount)` (the amount may be negative: hook, vent), `setStatus(slot, effect, seconds)`, `protect(slot, reason, seconds)`, `isProtected(slot): boolean` (any protection window open: revive, reconnect, newcomer shield), `teleport(slot, cf)`, `onTierChanged: Signal<Slot, number>` (fires on a rise and on a fall), `remove(slot)` (destroys the creature on leave, called by `PlayerLifecycle` after `onLeaving` so leave settlement can still read the state), `coveSpawnCFrame(slot): CFrame` (where the creature appears: its `CoveInterior` centre facing its `CoveMouth`; the first revive point on a map with no cove for that slot, such as the CI arena) |
 | **MovementValidator** | MVP | Checks every creature's motion 20 times a second; keeps pose history for lag compensation | Pose ring per slot, suspicion score | `poseAt(slot, t): (x,y,z, lx,ly,lz)`, `allowedSpeed(slot): number`, `grace(slot, seconds)`, `suspicion(slot): number`, `flag(slot, points, why)` |
-| **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot)`, `defenceTierBonus(slot)` |
+| **TraitService** | MVP | Trait progress (five trait prey, four with `pass_keen_nose`), slots, shedding, effects on rules | `traits`, `progress` in `CreatureState`; the `Traits` attribute; `run.traits` and `run.progress` in `State` | `onTraitPreyEaten(slot, traitId)`, `shed(slot, index)`, `has(slot, traitId): boolean`, `speedMult(slot)`, `massMult(slot, source?)` (`prey` by default), `defenceTierBonus(slot)`, `traits(slot)` (the held list, for the bank), `reset(slot)` (a bank's new start and a respawn), `onGained: Signal<Slot, string, number>` |
 | **PreyService** | MVP | Spawns, simulates and replicates prey groups; interest management | Group buffers, spatial grid, per-player send state | `tryEat(slot, groupId, member, gen, t): (boolean, PreyDef?)`, `memberPosAt(groupId, member, t)`, `setTide(tideId?)` (respawn delays ÷ the tide's `spawnRateMult`; targets and caps ×2 only for `frenzy`, chapter 02, section 14.4), `spawnEventPrey(tideId)`, `stunNear(x,y,z, r, maxTier, seconds)`, `spawnScripted(slot, spec): number?`, `steerScripted(slot, scriptedId, target?, speed?): boolean` and `clearScripted(slot)` (one player's scripted prey, section 8.1), event `onScriptedEaten: Signal<Slot, number, string>` (slot, scripted ID, prey ID) |
 | **PredatorService** | MVP | Predator state machines, telegraphs, strikes; hazard volume checks; wild creatures [L] (section 9.3) | Predator buffers (32 slots) | `list(): {PredatorView}`, `gather(x,y,z)` (Whale Fall), `tryEat(slot, predatorId, t): boolean`, `onGulp: Signal<Slot, string>` |
 | **BiteService** | MVP | Validates bite claims on prey, players and edible predators; applies results | Bite sequence and rate state | Remote handler only, plus `onPlayerEaten: Signal<Slot, Slot>` |
@@ -569,11 +577,11 @@ Created by `Net/Server` from `shared/Net/Remotes.luau`, parented to `ReplicatedS
 | `TutorialStep` | Reliable | C→S | Plain argument, not a buffer: step number (integer) | 2/s (4) |
 | `EmoteAction` [L] | Reliable | C→S | emote index 1 to 6 | 1 per 3 s (1) |
 | `Telemetry` | Unreliable | C→S | 8 bytes: fps bucket, graphics tier, memory bucket, screen class, display size, input mode (the source of `sess_device`, `perf_tier` and `run_end_input`, chapter 10; the server accepts only values from the fixed lists) | 1 per 20 s (2) |
-| `State` | Reliable | S→C | path string, value. A path is dot-separated keys, a segment of digits indexing an array (`cove.slots`, `goals.list.2.progress`); at most 128 characters and 8 segments. The first segment is a top-level key of the profile (12.2: `pearls`, `cove`, `goals`, `tokens` …) or `config`, the root of the live config keys forwarded to clients (17.4: `config.flag.tideEvents`). Profile keys sit at the top level next to `config`; there are no other roots, and no profile key may be named `config` | n/a |
+| `State` | Reliable | S→C | path string, value. A path is dot-separated keys, a segment of digits indexing an array (`cove.slots`, `goals.list.2.progress`); at most 128 characters and 8 segments. The first segment is a top-level key of the profile (12.2: `pearls`, `cove`, `goals`, `tokens` …) or `config`, the root of the live config keys forwarded to clients (17.4: `config.flag.tideEvents`). Profile keys sit at the top level next to `config`; there are no other roots, and no profile key may be named `config`. During a run `TraitService` sends `run.traits` (the held list) and `run.progress` (trait ID → pips) itself, at the paths of the profile's `RunSnapshot` (12.2), without writing the profile | n/a |
 | `WorldInfo` | Reliable | S→C | volume table, once after `ClientReady`; the decoder rejects more than 1,024 volumes, more than 16 attributes on a volume or a string over 256 characters **(tune)** | n/a |
 | `BiteResult` | Reliable | S→C | 9 bytes | n/a |
 | `PreyEvent` | Reliable | S→C | 1 + 6n bytes, n ≥ 1: at least 7 bytes | n/a |
-| `CreatureEvent` | Reliable | S→C | Plain arguments to every client, the kind first: `"gulped", slot, by` (`by`: `player:<slot>` or a predator ID); `"tier", slot, tier, previousTier`; `"banked", slot, mass, pearls, crystal, deepPockets, best, specimen` (the bank of 13.4: `mass` the banked mass, `pearls` what the bank paid, `crystal` and `deepPockets` whether those multipliers applied, `best` true for a new best mass, `specimen` `added`, `full` (kept as `cove.pendingSpecimen`) or `none` (tier 1, or refused); the owner's client opens the bank summary from it, chapter 08); revived, status, bite absorbed and emote [L] are added with their features, each listed here | n/a |
+| `CreatureEvent` | Reliable | S→C | Plain arguments to every client, the kind first: `"gulped", slot, by` (`by`: `player:<slot>` or a predator ID); `"tier", slot, tier, previousTier`; `"banked", slot, mass, pearls, crystal, deepPockets, best, specimen` (the bank of 13.4: `mass` the banked mass, `pearls` what the bank paid, `crystal` and `deepPockets` whether those multipliers applied, `best` true for a new best mass, `specimen` `added`, `full` (kept as `cove.pendingSpecimen`) or `none` (tier 1, or refused); the owner's client opens the bank summary from it, chapter 08); `"traitGained", slot, traitId, index` (02 §8.2: `index` is the slot it took, 1 to 3; the owner's client plays the slot's Just gained flash and S08 from it, every client grows the body feature in); `"traitShed", slot, traitId, index` (02 §8.3: the slot it left; the feature pops off as bubbles); revived, status, bite absorbed and emote [L] are added with their features, each listed here | n/a |
 | `PredatorEvent` | Reliable | S→C | 14 bytes | n/a |
 | `TideEvent` | Reliable | S→C | override start and end only | n/a |
 | `CoveView` | Reliable | S→C | specimen list of one cove | n/a |
@@ -1115,6 +1123,7 @@ Gameplay regions are authored in Studio as invisible parts under `Workspace.Volu
 | `GullSky`, `MorayHole`, `PredatorNode` | `PredatorId`, `Next` | PredatorService |
 | `HatchBed` | — (one small Ball part; only its centre and the part's look vector are kept) | `RunLoopService.join`: where an account that has never banked hatches for its first run, facing along the look vector (chapter 04, section 3.5; chapter 03, section 6.2 places it at (−398, 340), floor 24, facing east). Exactly one per place with a Nursery |
 | `RevivePoint` | `PointId`: `rp_01` to `rp_12` (chapter 03, section 6.11) | `RunLoopService`: where a revived or resumed creature returns (section 6.3) |
+| `NurseryPath` | `PointId`: a row of chapter 03's `data:NurseryPath` (section 6.2): `swarm_a`, `plankton_trail`, `swarm_b`, `glow_grotto`, `kelp_curtain`, `little_arch`, `elbow_leg_1`, `elbow_bend`, `elbow_leg_2`, `home_current_mouth` | `WorldIndex.nurseryPathAt` and `TutorialDirector`: where on the first-run route a creature is, such as crossing the Gap (chapter 04, section 3.5). Shapes and sizes are chapter 03's (section 6.2, authoring the route); `Logic/NurseryRoute` builds them and `tools/studio/place_nursery_volumes.luau` places them |
 
 A `RevivePoint` is a small Ball part; only its centre is kept. `WorldIndex` stores the 12 centres with the volume table and does not send them to clients. `tools/studio/check_place.luau` fails if any of the 12 IDs is missing, sits away from its row in the generated `RevivePoints` table, or lies inside the collision shell or a `Hazard` volume.
 
@@ -1398,7 +1407,8 @@ export type ProfileData = {
 	offers: { [string]: number },                -- offer ID → UTC day last dismissed (chapter 05, section 9)
 	social: { bubbleDay: number, bubbledUserIds: { number } },   -- [L] coves given a Bubble today, by owner
 	board: { week: number, weekBest: number },                   -- [L] avoids reads before writes
-	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04)
+	ftue: { stage: number, completed: boolean,                   -- tutorial state (chapter 04); stage: S0_LOADING = 0
+		                                         -- to S10_RUN2 = 10, DONE = 11 (chapter 04, section 3.1)
 		version: number,                         -- tutorial version the account saw, currently 1 (chapter 04, section 9)
 		attempts: number },                      -- +1 each time the tutorial restarts after a disconnect before the first bank
 	ab: { [string]: string },                    -- experiment key → arm, copied at first exposure (chapter 10, section 8.1)

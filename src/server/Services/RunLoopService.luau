@@ -56,6 +56,7 @@ local CreatureService = require("./CreatureService")
 local DataService = require("./DataService")
 local EconomyService = require("./EconomyService")
 local Server = require("../Net/Server")
+local TraitService = require("./TraitService")
 local WorldIndex = require("./WorldIndex")
 
 type Slot = Types.Slot
@@ -210,9 +211,9 @@ function payBank(run: RunState)
 		Log.warn(TAG, `bank: no creature or profile for {player.UserId}; nothing paid`)
 		return
 	end
-	-- 1. Final mass, tier and traits. TODO(B19, S6-C3): the run's traits from CreatureState.
+	-- 1. Final mass, tier and traits.
 	local mass, tier, species = state.mass, state.tier, state.species
-	local traits: { string } = {}
+	local traits = TraitService.traits(slot)
 	local crystal = TraitRules.has(traits, "crystal")
 	local deep = deepPockets(profile)
 	-- 2 and 3. Pearls through EconomyService; rank points without Deep Pockets.
@@ -269,6 +270,7 @@ function payBank(run: RunState)
 	CreatureService.teleport(slot, CreatureService.coveSpawnCFrame(slot))
 	local startMass = Index.Tiers.byTier[Index.Species.byId[species].startTier].massNeeded
 	CreatureService.addMass(slot, startMass - state.mass)
+	TraitService.reset(slot) -- 02 §8.1: pips reset on banking; the traits went with the specimen
 end
 
 -- Applies one RunRules event to `run`; returns the outcome.
@@ -373,6 +375,7 @@ local function swimAgain(player: Player): boolean
 		local def = Index.Species.byId[state.species]
 		local startMass = Index.Tiers.byTier[def.startTier].massNeeded
 		CreatureService.addMass(slot, startMass - state.mass) -- tier 1, or 2 for the Shark Pup
+		TraitService.reset(slot) -- 02 §8.1: unbanked traits and pips are lost
 		task.delay(math.max(0, releaseAt - now()), function()
 			if not current() or player.Parent ~= Players then
 				return
@@ -499,7 +502,8 @@ function RunLoopService.gulp(slot: Slot, by: string): boolean
 	sendEvent("gulped", slot, by)
 	-- The respawn waits for "Swim again" (`RunAction` op 1, `swimAgain` above), with no timeout;
 	-- a player who leaves first is settled at leave. TODO(B19, S12-C3): scraps (BankMath.scraps)
-	-- and run-end settlement; TODO(B19, S6-C3): unbanked traits are lost; TODO(B19, S14-C1):
+	-- and run-end settlement (unbanked traits are lost at the respawn, `swimAgain`, since a revive
+	-- restores them, 02 §8.1); TODO(B19, S14-C1):
 	-- `offerRevive` adds Revive to the same card (09 §6.3).
 	return true
 end
