@@ -287,7 +287,7 @@ export type TideDef = { id: string, wire: number, scope: Scope, fallback: string
 
 export type ProductDef = { id: string,   -- chapter 05 purchase ID, unchanged: pass_<name>, prod_<name>,
 	                                     -- pat_<species>_<name> or deco_buy_<name> (section 12.6)
-	kind: "pass" | "product", robloxId: number,
+	kind: "pass" | "product",           -- the Roblox ID is Config/Defaults' (per environment), never generated
 	scope: Scope,
 	grant: string,                       -- "pearls", "token", "pattern", "decoration", "flag" or "bundle"
 	amount: number?,
@@ -318,6 +318,11 @@ export type DecorationDef = { id: string, wire: number, scope: Scope,      -- 50
 export type EmoteDef = { id: string, wire: number, scope: Scope }          -- em_<name>; wire 1 to 6 is the index in EmoteAction
 
 export type RankRewardDef = { rank: number, title: string?, decoration: string?, shelf: number? }   -- chapter 03, section 11
+
+export type GoalDef = { id: string, wire: number, scope: Scope,   -- dg_<name> (chapter 03, section 9)
+	text: string, target: number, difficulty: "Easy" | "Medium" | "Hard",
+	reward: string,                  -- R1 to R5: chapter 05's Pearl reward step
+	needs: string? }                 -- the condition for offering it; nil when it needs nothing
 
 export type LandmarkDef = { id: string, wire: number, scope: Scope, zone: string,   -- lm_<name>: chapter 03's landmark IDs (sections 6.2 to 6.6)
 	x: number, z: number, depth: number,                                   -- found within 40 studs (cdx_places)
@@ -555,7 +560,7 @@ Creature_<userId>   Model, PrimaryPart = Root, ModelStreamingMode = Atomic
                                           Responsiveness = 40 (tune), MaxTorque = 1e6 (tune)
 ```
 
-`Root.Size` is a ball of diameter `2.0 × bodyScale × species.radiusMult` studs **(tune)**: 2.0 studs for a Fry, 13 studs for a Leviathan. There is no Humanoid, no `AnimationController` and no mesh on the server.
+`Root.Size` is a ball of diameter `1.8 × bodyScale × species.radiusMult` studs, twice chapter 02's collision radius (section 0.2): 1.8 studs for a Fry, 11.7 studs for a Leviathan. There is no Humanoid, no `AnimationController` and no mesh on the server.
 
 `LinearVelocity`, `AlignOrientation` and `VectorForce` are the current mover constraints; `BodyVelocity` and `BodyGyro` are deprecated (**V32**).
 
