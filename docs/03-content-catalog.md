@@ -27,6 +27,9 @@ Each species is one rig with a juvenile mesh (tiers 1 to 3) and an adult mesh (t
 
 All values are percent of the canon tier table or of the canon dash (2.2× speed, 0.35 s, 2.5 s cooldown). All (tune).
 
+<!-- data:Species -->
+Soft-launch slice (chapter 13, section 3.2): `minnow`, `puffer`.
+
 | ID | Tag | Swim speed | Turn rate | Dash speed | Dash time | Dash cooldown | Mouth size | Start tier | Body at scale 1.0 (L × H × W) |
 |---|---|---|---|---|---|---|---|---|---|
 | `minnow` | [MVP] | 100% | 100% | 2.2× | 0.35 s | 2.0 s (Dart) | 100% | 1 | 3.0 × 1.1 × 0.7 |
@@ -35,6 +38,8 @@ All values are percent of the canon tier table or of the canon dash (2.2× speed
 | `turtle` | [L] | 85% | 85% | 2.0× | 0.35 s | 3.0 s | 105% | 1 | 3.0 × 1.2 × 2.6 |
 | `squid` | [L] | 96% | 75% | 2.6× | 0.35 s | 2.5 s | 90% | 1 | 3.6 × 1.0 × 1.0 |
 | `shark` | [L] | 104% | 90% | 2.2× | 0.35 s | 2.5 s | 120% | 2 (mass 10) | 3.4 × 1.3 × 0.9 |
+
+<!-- /data -->
 
 Mouth size scales the bite zone at the front of the body. Document 02 defines the base bite zone; this chapter only gives the multiplier.
 
@@ -170,6 +175,9 @@ All eight prey are [MVP]. Prey are data on the server and drawn by clients (cano
 
 ### 2.1 Stats
 
+<!-- data:Prey -->
+Soft-launch slice (chapter 13, section 3.2): `plankton`, `krill`, `shrimp`, `sardine`, `darter`, `mackerel`.
+
 | ID | Tag | Tier | Mass | Group size | Flee speed (% of same-tier player) | Flee speed (studs/s) | Turn rate (°/s) | Flee distance (studs) | Flee burst (s) | Respawn (s) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `plankton` | [MVP] | 0 | 0.2 | Patch of 6 to 10 | 8% (drift only) | 2 | None | Does not flee | None | 4 |
@@ -180,6 +188,8 @@ All eight prey are [MVP]. Prey are data on the server and drawn by clients (cano
 | `mackerel` | [MVP] | 4 | 25 | 1 to 3 | 95% | 30.4 | 120 | 28 | 4 | 35 |
 | `bonito` | [MVP] | 5 | 60 | Pack of 3 to 5 | 100% | 34 | 110 | 34 | 5 | 50 |
 | `tuna` | [MVP] | 6 | 150 | 1 | 110% | 39.6 | 90 | 50 | 6 | 90 |
+
+<!-- /data -->
 
 Notes (all tune):
 - **Flee distance** is how close a creature that can eat it must come before it flees.
@@ -236,6 +246,9 @@ Eat five of the same trait prey in one run to gain its trait (canon 8.2); four w
 
 Mass for trait prey is not in canon; chapter 05, section 2.1 sets it (the same as ordinary prey of the same tier, Marrow 40) and this table copies it. "Alive" is the most alive on one server at once.
 
+<!-- data:TraitPrey -->
+Soft-launch slice (chapter 13, section 3.2): `glowfry`, `zebra_darter`, `dotted_goby`, `armor_shrimp`, `urchin_puff`.
+
 | ID | Tag | Tier | Mass | Gives | Rarity | Alive per server | Respawn (s) | Flee speed | Flee distance (studs) |
 |---|---|---|---|---|---|---|---|---|---|
 | `glowfry` | [MVP] | 1 | 1 | Glow | Common | 10 (6 Reef, 4 Kelp) | 30 | 60% | 10 |
@@ -251,6 +264,8 @@ Mass for trait prey is not in canon; chapter 05, section 2.1 sets it (the same a
 | `vent_snail` | [L] | 4 | 25 | Ember | Epic | 4 | 180 | 10% (crawls) | Does not flee |
 | `lunar_fry` | [MVP] | 2 | 4 | Moonlit | Mythic | 12 (4 per moonbeam); 40 in total per event | Event only | 70% | 16 |
 | `marrow` | [L] | 3 | 40 | Bonefed | Mythic | 60 in total per event | Event only | 3 studs/s drift | Does not flee |
+
+<!-- /data -->
 
 Intended effort for one player with no competition (tune): Common about 1 minute, Uncommon about 3 minutes, Rare about 6 minutes, Epic one long careful run, Mythic only during its event.
 
@@ -278,6 +293,9 @@ Intended effort for one player with no competition (tune): Common about 1 minute
 
 **Channel** tells artists how three traits fit on one body: Pattern, Light or Form (chapter 06, section 8.1). The colour and body-area columns are copies of chapter 06, section 8.2, which is the authority for how a trait looks; this chapter owns the names, rarities, effects and Codex text. The trait colour is also the halo colour of its trait prey (section 3).
 
+<!-- data:Traits -->
+Soft-launch slice (chapter 13, section 3.2): `glow`, `stripes`, `spots`, `plated`, `spiny`.
+
 | ID | Tag | Trait | Rarity | Trait colour | Channel · body area | Codex text |
 |---|---|---|---|---|---|---|
 | `glow` | [MVP] | Glow | Common | Warm yellow | Light · the line along each side, nose to tail | You light up, and trait prey nearby cannot hide from you. |
@@ -293,6 +311,8 @@ Intended effort for one player with no competition (tune): Common about 1 minute
 | `ember` | [L] | Ember | Epic | Orange with a yellow core | Light · cracks across the back and flanks | Warm glowing cracks keep vents and jellies from hurting you. |
 | `moonlit` | [MVP] | Moonlit | Mythic | Silver-lilac with a cyan glow | Light · a rim around the whole outline, brightest on the back | You shine like the moon, and prey drifts toward you. |
 | `bonefed` | [L] | Bonefed | Mythic | Bone white | Pattern · flank and face: spine, ribs and a mask | Fed on whale bone, you grow more from everything you eat. |
+
+<!-- /data -->
 
 ### 4.2 Look on the body, by family
 
@@ -333,6 +353,9 @@ Bonefed is drawn as a friendly costume-style bone pattern (white lines on the sk
 
 All numbers beyond the canon behaviour line are (tune). "Detect" is how close a target must be. Predators never enter the Nursery or any cove.
 
+<!-- data:Predators -->
+Soft-launch slice (chapter 13, section 3.2): `barracuda`, `jelly_bloom`, `current`.
+
 | ID | Tag | Name | Tier · eats | Zones | Count per server | Cruise / attack speed (studs/s) | Detect (studs) | Attack | Rest after attack (s) |
 |---|---|---|---|---|---|---|---|---|---|
 | `gull` | [MVP] | Gull | Eats tiers 1 to 2 | Sunlit Reef, surface only | Up to 3 dives at once | Dive 90 | A tier 1 or 2 creature within 6 studs of the surface for 2 s | Dives to depth 12; catch radius 5 | 8 |
@@ -346,13 +369,20 @@ All numbers beyond the canon behaviour line are (tune). "Detect" is how close a 
 | `hook` | [MVP] | Fishing hook | Hazard | Sunlit Reef, depth 8 to 20 | 8 | Fixed | Eating the bait | Yanked 30 studs up and out of the water; lose 20% of mass | Bait returns after 45 |
 | `current` | [MVP] | Current | Helper | Between zones | 6 named currents (section 6.8) | +60% speed for riders | Entering the stream | Carries creatures along its path | None |
 
+<!-- /data -->
+
 **Thermal vent rule (tune).** This chapter owns it; chapter 02, section 10.3 copies it and adds only how the burn is ticked and the upward push.
+
+<!-- data:VentCycle -->
+Soft-launch slice (chapter 13, section 3.2): no rows (the vent is not in the slice).
 
 | Vent state | Length | What it does |
 |---|---|---|
 | `Dormant` | 4 s | Harmless. No column. Vent Snails on the rim can be reached. |
 | `Rumble` | 1 s | Harmless. The warning: the rim glows brighter, a burst of small bubbles rises, a low rumble plays. |
 | `Erupting` | 3 s | The column burns: a creature whose centre is inside loses 5% of its current mass per second (canon 8.3). |
+
+<!-- /data -->
 
 - **Cycling vents (6):** the six outer chimneys loop `Dormant` → `Rumble` → `Erupting`, 8 s in all (3 s on, 5 s off). Each starts at its own fixed offset, so the six never all erupt together.
 - **Always-on vents (3):** the three chimneys at the centre of the cluster stay in `Erupting` for good, with no `Rumble`. They are a wall to swim around, and they mark the Chimneys from far away.
@@ -786,6 +816,9 @@ All 24 coves share one layout. Document 09 decides whether a cove is built in pl
 
 Document 02 (section 12.3) returns a revived or reconnecting creature to the place it was gulped, unless something that can eat it is within 60 studs; then it uses the nearest of these 12 points that passes the same test. Every point is in open water away from predator paths and hazards, and the four Drop-off points are on the Ledge, where Old Scar never comes (tune).
 
+<!-- data:RevivePoints -->
+Soft-launch slice (chapter 13, section 3.2): `rp_01`, `rp_02`, `rp_03`, `rp_04`, `rp_05`, `rp_06`, `rp_07`, `rp_08`.
+
 | ID | Zone | Place | Position (X, Z) · depth |
 |---|---|---|---|
 | `rp_01` | Sunlit Reef | West side of Noggin Rock | (−60, 0) · 30 |
@@ -800,6 +833,8 @@ Document 02 (section 12.3) returns a revived or reconnecting creature to the pla
 | `rp_10` | The Drop-off | The Ledge, west of the South Pass | (−70, 610) · 75 |
 | `rp_11` | The Drop-off | The Ledge at B135 | (438, 438) · 80 |
 | `rp_12` | The Drop-off | The Ledge at B200, by the South Squeeze | (−212, 583) · 80 |
+
+<!-- /data -->
 
 ## 7. Tide events
 
@@ -860,6 +895,9 @@ Canon 11 lists the Codex categories: Species, Tiers (one page per species), Trai
 
 Pearl amounts are chapter 05's (section 3.8) and are paid once per account. The decorations, patterns, titles and badge are this chapter's. Decoration rewards arrive with decorations at [L]; a player who finished a category in [MVP] gets them then.
 
+<!-- data:Codex -->
+Soft-launch slice (chapter 13, section 3.2): `cdx_species`, `cdx_tiers`, `cdx_traits`, `cdx_prey`.
+
 | ID | Category | Tag | Entries at MVP | Entries at launch | How an entry is filled | Pearls per entry (chapter 05) | Reward for completing the category |
 |---|---|---|---|---|---|---|---|
 | `cdx_species` | Species | [MVP] | 3 | 6 | Start a run as the species | None | Family Portrait decoration + Pearls R3 (175) |
@@ -870,6 +908,8 @@ Pearl amounts are chapter 05's (section 3.8) and are paid once per account. The 
 | `cdx_places` | Places | [L] | None | 30 | Swim within 40 studs of the landmark (entry key: its `lm_*` ID) | None | Sea Globe decoration + Pearls R3 (175) |
 | `cdx_tides` | Tides | [L] | None | 3 | Eat 10 prey during the event | None | Tide Chart decoration + Pearls R2 (125) |
 | `cdx_all` | Whole Codex | [L] | 50 | 124 | Complete every category above | None | Badge "Know-It-All" + title "Reef Scholar" + Pearls R5 (5,000) |
+
+<!-- /data -->
 
 Post-launch species, traits, places and events add entries to their categories. A category that was complete stays rewarded; each new entry pays the per-entry amount for its category.
 
@@ -888,6 +928,9 @@ Post-launch species, traits, places and events add entries to their categories. 
 ## 9. Daily goals · [MVP]
 
 Three goals a day (canon): one Easy, one Medium, one Hard. Reward band follows difficulty: Easy = R1 (100 Pearls), Medium = R2 (125), Hard = R3 (175), and R1 (100) more when all three are done. Chapter 05, section 3.5 owns these amounts and multiplies them by the rank multiplier. Document 02 owns how goals are picked; the **Needs** column lists what must be true before a goal can be offered. Targets are (tune).
+
+<!-- data:Goals -->
+Soft-launch slice (chapter 13, section 3.2): `dg_eat_50`, `dg_krill_30`, `dg_plankton_100`, `dg_shrimp_15`, `dg_sardine_15`, `dg_dash_25`, `dg_runs_3`, `dg_bank_1`, `dg_tier3`, `dg_current_3`, `dg_breach_5`, `dg_trait_1`, `dg_tier4`, `dg_bank_snapper`, `dg_bank_mass_300`, `dg_darter_10`, `dg_mackerel_8`, `dg_kelp_20`, `dg_trait_prey_10`, `dg_traits_2`, `dg_bank_common`, `dg_frenzy_40`, `dg_survive_300`, `dg_species_2`, `dg_player_1`, `dg_tier5`, `dg_tier6`, `dg_bank_brute`, `dg_bank_mass_1000`, `dg_bank_3_traits`, `dg_bank_uncommon`, `dg_players_3`.
 
 | ID | Text | Target | Difficulty | Reward | Needs | Tag |
 |---|---|---|---|---|---|---|
@@ -933,6 +976,8 @@ Three goals a day (canon): one Easy, one Medium, one Hard. Reward band follows d
 | `dg_players_3` | Eat 3 other players | 3 | Hard | R3 | 6 or more players on the server | [MVP] |
 | `dg_scar_escape` | Escape a chase by Old Scar | 1 | Hard | R3 | Has reached Hunter before | [MVP] |
 | `dg_marrow_3` | Eat 3 Marrow chunks | 3 | Hard | R3 | Has reached Snapper before | [L] |
+
+<!-- /data -->
 
 Content limits for the picker: no more than one goal a day that needs eating players; never the same goal two days running; a brand-new account's first day is always the fixed set `dg_eat_50` (Easy), `dg_tier3` (Easy) and `dg_bank_snapper` (Medium), which chapter 04 (section 7.2) builds the first session on. That day is the one exception to "one Easy, one Medium, one Hard" and pays 425 Pearls in full (chapter 05, section 3.5). Finishing all three goals in a day gives a bonus (Pearls R1, 100).
 

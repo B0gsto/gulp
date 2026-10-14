@@ -244,7 +244,7 @@ Studio-owned containers, never touched by Rojo:
 
 ### 3.2 Content data
 
-All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance) and writes one module per table. Neither file carries markers yet (checked 13 October 2026); adding them is the first step of B04. Until then the generator reads the same tables from `01-game-canon.md` sections 5 to 12. CI regenerates and fails on any difference, so the documents and the code cannot drift.
+All tunable content is a typed Luau module under `src/shared/Data/Generated/`. The generator `tools/gen/content.luau` reads Markdown tables that sit between `<!-- data:NAME -->` and `<!-- /data -->` markers in `03-content-catalog.md` (creatures, traits, zones) and `05-economy-and-monetization.md` (prices and balance) and writes one module per table. The tables that only the canon has (tiers, section 5.1; zones, section 6; tides, section 10) are marked in `01-game-canon.md` (task S1-D1). The line right after each opening marker starts "Soft-launch slice (chapter 13, section 3.2):" and lists the IDs (first column) of the rows in the slice, or says "every row" or "no rows", so `lune run tools/gen/content` writes the full build and `lune run tools/gen/content -- --slice` writes only the slice rows, with the same wire indices. CI regenerates and fails on any difference, so the documents and the code cannot drift.
 
 Each row gets a stable **wire index** (its 1-based position in the canon table) used in packets; rows are only ever appended.
 
