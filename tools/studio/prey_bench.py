@@ -8,7 +8,8 @@ build build/ci.rbxl, open it as TestBench-<tag>, bring Studio to the front (a ba
 spike F12), start play, wait for the local creature, then on the client:
   1  Dev/PreyHarness.start (Smooth tier: 80 pooled meshes) feeds synthetic PreyState packets at 10 Hz and samples
      the frame time and PreyRenderer's draw step for N seconds (default 10) after a 2 s warm-up
-  2  pass when 80 meshes were drawn, lime shells showed, no packet was rejected and the frame-time p99 is at most
+  2  (S4-C1: plus 40 far groups and 2 groups held on the mouth) pass when 80 meshes were drawn, 170 far
+     glints (250 visible − 80 meshes) on at most 30 emitters, bite claims were sent and the harness's accepts applied, lime shells showed, no packet was rejected and the frame-time p99 is at most
      20 ms (60 fps, vsync-capped on the Mac: 16.7 ms frames; tech-b S6 measured p99 17.7 ms) or within 2 ms of a
      control run with no prey measured just before it (Studio's own hitches)
   3  a second short run for the screenshot, then smoke.py's finish: no console line at error level, one screenshot
@@ -27,6 +28,9 @@ from studio import StudioSession, studio_lock  # noqa: E402
 OUT = os.path.join(REPO, "build", "prey")
 HARNESS = 'local H = game:GetService("Players").LocalPlayer.PlayerScripts.Client:WaitForChild("PreyHarness", 10) '
 P99_LIMIT_MS = 20.0
+# S4-C1: 40 far krill groups (glints; Smooth has 30 emitters) and 2 groups held on the mouth, whose
+# claims the harness answers as accepted.
+S4_OPTIONS = "farGroups = 40, biteGroups = 2, acceptBites = true"
 CONTROL_MARGIN_MS = 2.0  # or: no worse than the empty control run's p99 plus this
 
 
@@ -54,7 +58,8 @@ def run(sm, seconds):
     m = re.search(r"frameMs .*?p99=([\d.]+)", control)
     control_p99 = float(m.group(1)) if m else 0.0
     sm.add("INFO", "control", control[:300])
-    _, text = sm.lua("Client", HARNESS + 'return H:Invoke("start", { seconds = %d, tier = "Smooth" })' % seconds)
+    _, text = sm.lua("Client", HARNESS + 'return H:Invoke("start", { seconds = %d, tier = "Smooth", %s })'
+                     % (seconds, S4_OPTIONS))
     sm.add("PASS" if text.startswith("started") else "FAIL", "harness", text.strip()[:200])
     time.sleep(seconds + 2.5)  # no MCP calls while measuring: each one can cost Studio a frame
     done, text = sm.poll_lua("Client", HARNESS + 'return H:Invoke("result")', lambda x: x.startswith("done"),
@@ -67,9 +72,13 @@ def run(sm, seconds):
     p99 = float(p99.group(1)) if p99 else 999.0
     ok = (done and nums.get("drawnMax") == 80 and nums.get("outlinedMax", 0) > 0 and nums.get("rejected", 1) == 0
           and (p99 <= P99_LIMIT_MS or p99 <= control_p99 + CONTROL_MARGIN_MS))
+    # S4-C1: far glints fill Smooth's prey-visible total (250 - 80 meshes = 170) within its 30 emitters, and
+    # the mouth's bites were claimed, hidden and accepted (the harness accepts in the frame after the claim).
+    ok = ok and 0 < nums.get("emittersMax", 0) <= 30 and nums.get("glintsMax") == 170 \
+        and nums.get("claims", 0) > 0 and nums.get("accepted", 0) > 0
     sm.add("PASS" if ok else "FAIL", "bench", text[:600])
     # A short second run, so the screenshot shows prey; finish() captures while it runs.
-    sm.lua("Client", HARNESS + 'return H:Invoke("start", { seconds = 6, tier = "Smooth" })')
+    sm.lua("Client", HARNESS + 'return H:Invoke("start", { seconds = 6, tier = "Smooth", %s })' % S4_OPTIONS)
     time.sleep(4.0)
 
 
