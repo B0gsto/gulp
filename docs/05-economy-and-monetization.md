@@ -291,7 +291,7 @@ Section 5.5 shows why both tables moved: with the first-draft canon anchors a re
 ### 3.4 Uncollected income cap and offline income **[MVP]**
 
 - Income collects in one pile whether the player is online or offline (canon section 11). Being online gives no extra.
-- The pile stops growing after 8 hours unclaimed (canon), so it holds at most 8 hours of the cove's current income. Tide Watcher raises that to 24 hours.
+- The pile stops growing 8 hours after the last claim (canon): income counts only while less than 8 hours have passed since then, each period at the rate the cove had at the time. After a rate change the pile can therefore hold more or less than 8 hours of the current rate. Tide Watcher raises the window to 24 hours.
 - The pile is paid into the player's Pearls only when the player claims it: by tapping the pile at the Pearl clam in the cove, or by tapping the welcome-back card. It is never claimed automatically: not at login, not on a bank, not on leaving the cove and not on a timer (canon section 11). The one exception is the first-bank reward in section 3.3.
 - When the cove changes (a bank, a release, a new slot), the server first adds the income earned so far to the pile at the old rate, then switches to the new rate. Nothing is paid out at that moment. A specimen never earns for hours before it was banked.
 - Maximum per day without the pass: 24 hours of income, by claiming three times at least 8 hours apart. Tide Watcher does not raise that ceiling; it removes the need to log in three times.

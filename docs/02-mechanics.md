@@ -117,8 +117,7 @@ Overlays: `Dashing`, `Puffed`, `Tucked`, `Jetting`, `Rampaging`, `Slowed`, `Camo
 
 1. A run **starts** when the centre leaves the owner's `CoveSafe` (`InCove` → `Swimming`). The run timer starts.
 2. A run is **armed for banking** once mass ≥ 1.
-3. Re-entering the own cove with mass < 1 cancels the run silently (back to `InCove`; not counted in any statistic). Re-entering it with an armed run banks it at once (section 11.2); an armed run is never cancelled.
-   - **Build note, before the bank sequence exists** (Sprint 4 builds run start and gulp before banking): an armed run that re-enters the own cove stays a live run. The creature keeps its mass and traits, is as safe as any creature in its own cove, and carries on when it swims out. Nothing is paid or counted. When the bank sequence lands, this case banks as above.
+3. Re-entering the own cove with mass < 1 cancels the run silently (back to `InCove`; not counted in any statistic). Re-entering it with an armed run banks it at once (canon 5.4; section 11.2); an armed run is never cancelled.
 4. A run **ends** by banking (section 11), by being gulped without a revive (section 12), or by a suspended run expiring (section 16.5).
 
 ---
