@@ -48,12 +48,14 @@ DEPTH = 30.0                        # depth of the cove frame origin
 
 # ---------------------------------------------------------------- palette (06 4.1, 4.2 cove row, 4.5)
 STONE = "#D9B48F"         # 06 4.2: cove interior warm stone (mid, L* 76)
-WARM_A = "#DDB993"        # warm stone, lit end of its gradient (mid)
-WARM_B = "#D0AA8C"        # warm stone, other end (mid; 7 L* below)
-COOL_A = "#C9A695"        # throat and ceiling: darker, hue toward violet (06 4.1), still mid
-COOL_B = "#BC9C93"        # (mid; 66 L*, 10 below WARM_A: inside the 12-point gradient rule)
-SAND = "#F6E3B4"          # 06 4.2 Nursery sand: the soft sand floor (light, L* 90)
-SAND_SHADE = "#EFDAA9"    # broad ripple troughs, still light
+WARM_A = "#D6B08C"        # walls, lit end of their one gradient (mid, L* 74)
+WARM_B = "#CDA88A"        # walls, other end (mid, L* 71)
+COOL_A = "#C8A693"        # vault: hue toward violet (06 4.1), still mid (L* 70)
+COOL_B = "#C2A194"        # (mid, L* 68: within 6 of the walls, 12 of the base)
+SAND = "#F8E2AE"          # the soft sand floor, warmer than 06 4.2's Nursery sand (light, L* 90)
+SAND_SHADE = "#F4DCA8"    # one broad soft gradient, still light
+THROAT_INK = "#4A3F66"        # the mouth's throat: blue-violet dark (dark block, L* 29)
+THROAT_INK_DEEP = "#33294A"   # its inner ring, deeper (dark block, L* 19)
 LIP = "#F8E8C6"           # worn lips and step edges catching the warm light (light)
 GLOW = "#FCF1D2"          # light through the ceiling cracks and the Trophy niche (light; not the reserved #FFF1DC)
 DARK = "#5E4058"          # crevices and creases: violet-brown, never black (dark, L* 31)
@@ -117,16 +119,8 @@ def paint_wall(w, h, a=WARM_A, b=WARM_B):
     joint in the lower one; each block a single soft gradient (06 5.2: at most two per block).
     Periodic in both directions, so it repeats face to face without a seam."""
     U, V = _grid(w, h)
-    tau = 2.0 * math.pi
-    joint = 0.55 + 0.12 * np.sin(tau * U)
-    upper = V > joint
-    img = np.where(upper[..., None], _mix(_base(w, h, a), b, _sm(0.0, 1.0, (V - joint) / (1.0 - joint + 1e-3))),
-                   _mix(_base(w, h, b), a, 0.8 * _sm(0.0, 1.0, np.abs(np.sin(math.pi * U)))))
-    d1 = np.abs(V - joint) * h
-    d2 = np.abs(U - 0.3 - 0.03 * np.sin(tau * V)) * w
-    dark = (d1 < 5.5) | ((d2 < 5.5) & (V < joint - 0.02) & (V > 0.12))
-    img[dark] = _rgb(DARK)
-    return img, np.where(dark, 2, 0)
+    img = _mix(_base(w, h, a), b, 0.15 - 0.15 * np.cos(2.0 * math.pi * U))   # near-flat: under 1 L* of drift, no stripes
+    return img, np.zeros((h, w), np.int32)
 
 
 def paint_cool(w, h):
@@ -145,8 +139,7 @@ def paint_sand(w, h):
     U, V = _grid(w, h)
     tau = 2.0 * math.pi
     img = _base(w, h, SAND)
-    ripple = np.sin(tau * (2 * V + 0.15 * np.sin(tau * U)))
-    img = _mix(img, SAND_SHADE, 0.8 * _sm(0.2, 0.9, ripple))
+    img = _mix(img, SAND_SHADE, 0.2 - 0.2 * np.cos(tau * U))
     return img, np.ones((h, w), np.int32)
 
 
@@ -154,10 +147,10 @@ def paint_terrace(w, h):
     """One shelf, bottom to top: cool foot, stone riser, the dark underside of the ledge above
     (the riser leans back under its lip), the worn light lip, the sand-dusted tread. Periodic along fu."""
     U, V = _grid(w, h)
-    img = _mix(_base(w, h, WARM_A), COOL_B, _sm(0.3, 0.0, V))
-    under = (V >= 0.40) & (V < 0.55)
-    lip = (V >= 0.55) & (V < 0.66)
-    tread = V >= 0.66
+    img = _mix(_base(w, h, WARM_A), WARM_B, _sm(0.3, 0.0, V))
+    under = (V >= 0.24) & (V < 0.55)
+    lip = (V >= 0.55) & (V < 0.70)
+    tread = (V >= 0.70) & (V < 0.75)    # sand dusted along the lip; the back of the shelf is bare stone
     img[under] = _rgb(DARK)
     img[lip] = _rgb(LIP)
     sand, _ = paint_sand(w, h)
@@ -201,23 +194,20 @@ def paint_stone(w, h):
 def paint_niche(w, h):
     """The lit niche behind the Trophy Rock: light falling on the back wall, brightest in the middle."""
     U, V = _grid(w, h)
-    r = np.sqrt((U - 0.5) ** 2 + (V - 0.5) ** 2)
-    img = _mix(_base(w, h, SAND), GLOW, _sm(0.5, 0.1, r))
+    r = np.sqrt((U - 0.5) ** 2 + ((V - 0.45) * 1.2) ** 2)
+    img = _mix(_base(w, h, SAND), LIP, _sm(0.55, 0.3, r))
+    img = _mix(img, GLOW, _sm(0.32, 0.12, r))                 # the bright halo round the Trophy Rock
     return img, np.ones((h, w), np.int32)
 
 
 def paint_throat(w, h):
     U, V = _grid(w, h)
-    img = _mix(_base(w, h, COOL_B), COOL_A, 0.12 + 0.12 * np.sin(2.0 * math.pi * U))
-    return img, np.zeros((h, w), np.int32)
+    return _base(w, h, THROAT_INK), np.full((h, w), 2, np.int32)
 
 
 def paint_throat_deep(w, h):
-    img, _ = paint_throat(w, h)
     U, V = _grid(w, h)
-    deep = V < 0.55
-    img[deep] = _rgb(DARK)
-    return img, np.where(deep, 2, 0)
+    return _mix(_base(w, h, THROAT_INK), THROAT_INK_DEEP, _sm(1.0, 0.3, V)), np.full((h, w), 2, np.int32)
 
 
 PAINTERS = {"throat": paint_throat, "throat_deep": paint_throat_deep, "warm": paint_wall, "cool": paint_cool, "blend": paint_blend,

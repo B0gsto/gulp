@@ -148,7 +148,7 @@ def lit_box(name, lo, hi, colour):
 
 def rim_wall(off):
     """A slab of Rim face around the opening (preview only), in the Reef rock colour (06 4.2)."""
-    rock = "#B89A86"
+    rock = RIM_ROCK
     o = Vector(off)
     parts = [((-80, 0.6, -50), (-19, 8, 50)), ((19, 0.6, -50), (80, 8, 50)),
              ((-19, 0.6, 15), (19, 8, 50)), ((-19, 0.6, -50), (19, 8, -15))]
@@ -183,7 +183,7 @@ def opening_checks(rings, off):
     return check
 
 
-RIM_ROCK = "#C9A98F"        # 06 4.2 Sunlit Reef rock: what the Rim face around the mouth is painted in
+RIM_ROCK = "#DCC8B4"        # the pale Rim face (03 6.7: "a ring of pale rock"), flat, L* 81; also the preview slab
 
 
 def distance_read(mouth, kinds, sample):
@@ -259,7 +259,9 @@ def build():
         "size_tol": 0.001,
         "facing": {"kind": "tag"},
         "meshes": [{"object": mouth, "role": "body", "primary": True}],
-        "extra_checks": [ca.surface_checks([mouth], NAME, sample), opening_checks(rings, off),
+        "extra_checks": [ca.surface_checks([mouth], NAME, sample, waivers={
+            "value: dark share": "the throat is the opening and is painted dark (L* 19 to 29) so the mouth reads as a cave at 20 and 8 px (review loop 2); 06 4.1 puts mouth interiors in the dark block",
+            "value: mid share": "the dark throat takes share from the mid block (review loop 2)"}), opening_checks(rings, off),
                          distance_read(mouth, kinds, sample), table_writer(mouth, off, anchors)],
         "exports": [{"file": "meshes/%s.fbx" % NAME, "objects": [mouth]}],
         "textures": [{"file": "textures/%s.png" % ca.ALBEDO, "write": lambda path: __import__("preyart").save_rgba(path, img), "max": 512}],

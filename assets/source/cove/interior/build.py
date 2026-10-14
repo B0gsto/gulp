@@ -41,7 +41,7 @@ M = 40                         # points round a ring, evenly spaced; 0 is the fl
 WALL = 3.0                     # shell thickness
 CRACKS = ((52.0, 70.0), (85.0, 103.0))   # two wide light cracks along the crown, one face row each side
 VAULT_Z = 8.0                  # walls warm below, vault and throat cool above (painted occlusion)
-NICHE = (124.0, 12.0, 8.0)     # back-wall faces from y 124, |x| < 12, z < 8: the lit Trophy niche
+NICHE = (118.0, 17.0, 13.0)    # back-wall faces from y 118, |x| < 17, z < 13: the lit Trophy niche
 INNER_Y = [ca.CH_Y0 + 3.0 * i for i in range(37)] + [134.4]
 OUTER_Y = [25.0, 31.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 128.0, 133.0, 134.4]
 TERRACE_STATIONS = [ca.TERRACE_Y[0] + (ca.TERRACE_Y[1] - ca.TERRACE_Y[0]) * i / 24.0 for i in range(25)]
@@ -77,6 +77,21 @@ def offset_ring(ring, d):
         ln = math.hypot(tx, tz) or 1.0
         out.append([ring[k][0] + d * tz / ln, ring[k][1], ring[k][2] - d * tx / ln])
     return out
+
+
+def inside_terraces(p, tol=0.05):
+    """True when a point of the shell lies inside a terrace solid (then nobody can see it)."""
+    x, y, z = p
+    if ca.terrace_amount(y) <= 0.0 or not (ca.TERRACE_Y[0] <= y <= ca.TERRACE_Y[1]):
+        return False
+    e = ca.plan_half_width(y) - abs(x)
+    poly = terrace_section(y)
+    inside = False
+    for k in range(len(poly)):
+        (e1, z1), (e2, z2) = poly[k - 1], poly[k]
+        if (z1 > z) != (z2 > z) and e < e1 + (z - z1) * (e2 - e1) / (z2 - z1) - tol:
+            inside = not inside
+    return inside
 
 
 def shell_part():
@@ -129,7 +144,7 @@ def shell_part():
             else:
                 uv.append(ca.cell_uv("blend", ((i % 3) + dr) / 3.0, float(dj != lower_j)))
         uvs.append(uv)
-        hidden.append(False)
+        hidden.append(all(inside_terraces(verts[v]) for v in idx))   # floor and wall behind the perch shelves
     part = ca.Part()
     part.add(verts, faces, uvs, hidden, front_verts=range(no * M, no * M + M))   # the throat ring
     return part, inner
@@ -139,8 +154,8 @@ def terrace_section(y):
     tau = ca.terrace_amount(y)
     tp = 0.08 + 0.92 * tau
     e = [(4 - k) * ca.TREAD * tp - HIDE * (1.0 - tau) for k in range(5)]
-    c = 0.7 * min(1.0, 2.0 * tp)
-    uc = 0.7 * tau                 # each riser leans back under its lip: a shaded underside
+    c = 1.2 * min(1.0, 2.0 * tp)   # a wide worn lip
+    uc = 1.2 * tau                 # each riser leans back under its lip: a shaded underside
     pts = [(e[0] - uc, -23.0)]
     for k in range(1, 5):
         z = ca.ROW_Z[k - 1]
