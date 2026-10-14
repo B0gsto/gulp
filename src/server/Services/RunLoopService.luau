@@ -4,15 +4,18 @@
 -- slot and the `Phase` attribute (`cove`, `run`, `dead`) after CreatureService's first write.
 -- The pure rules (phase transitions, respawn timing, the return rule) are Logic/RunRules.
 --
--- Join     PlayerLifecycle asks `join` where the creature appears: the Nursery for an account that
---          has never banked (its first run), else the own cove. `Phase = cove`.
+-- Join     PlayerLifecycle asks `join(player, slot)` where the creature appears: the `HatchBed`
+--          volume (09 §9.1) for an account that has never banked (its first run; the Nursery
+--          centre, with a log, on a map without one), else the own cove. `Phase = cove`.
 -- Start    ten times a second the centre of every creature in `cove` is tested against its home
---          volume; leaving it calls `startRun` (`Phase = run`; 09 §5.1 names it `start(player)`,
---          which would clash with the service's own `start()` of section 4.5). Re-entering home with mass < 1
---          cancels the run silently (02 §0.7 item 3).
--- Gulped   `gulp(slot, by)`: `Phase = dead`, owner nil, anchored, `CreatureEvent` "gulped"; after
---          the client's 0.8 s gulp effect the creature is moved to its cove spawn and reset to the
---          species' start mass; at 2.0 s it is released to its owner with `Phase = cove`.
+--          volume; leaving it calls `startRun(player)` (`Phase = run`). Re-entering home with
+--          mass < 1 cancels the run silently (02 §0.7 item 3). Re-entering the own cove armed
+--          calls `bank`, which until S5-C3 keeps the live run (13, S5-C3 build note).
+-- Gulped   `gulp(slot, by)`: `Phase = dead`, owner nil, anchored, `CreatureEvent` "gulped". The
+--          server then waits, with no timeout, for "Swim again" (`RunAction` op 1, 09 §5.3),
+--          accepted from 1.2 s after the gulp (the card, 02 §12.1). From the tap: moved to the
+--          cove spawn and reset to the species' start mass at 0.3 s (the client's fade out),
+--          released to its owner with `Phase = cove` at 0.6 s (02 §12.4: within 0.8 s).
 -- Tier     every `CreatureService.onTierChanged` sends `CreatureEvent` "tier" to everyone (the
 --          tier-up clip, pop and FX play on every client, 02 §5.1); a rise also gives 1.0 s of
 --          `Protected(tierUp)`.
@@ -50,6 +53,7 @@ export type RunState = {
 	home: Home, -- where the current run starts and may be cancelled
 	startedAt: number?, -- server time of `start`; nil outside a run
 	gulpedAt: number?, -- server time of the last gulp while dead
+	respawning: boolean, -- "Swim again" was accepted; the respawn timers are running
 	gulpedBy: string?,
 	tier: number?, -- the tier last announced, for the "tier" event's previous tier
 	generation: number, -- bumped on every gulp and on leave, so stale timers do nothing
@@ -93,19 +97,28 @@ local function inOwnCove(slot: Slot, p: Vector3): boolean
 	return list ~= nil and inside(list, p)
 end
 
+local hatchBeds: { Volume } = {}
+
 local function runOf(player: Player): RunState?
 	local slot = player:GetAttribute("Slot")
 	local run = if type(slot) == "number" then runs[slot] else nil
 	return if run and run.player == player then run else nil
 end
 
--- The Nursery spawn: the first SafeNursery volume's centre, facing along its look vector.
--- TODO(B31, S6-C2): the Hatch Bed point of 04 §3.5 once the map marks it; 09 §9.1 has no volume
--- kind for it yet.
+-- The first-run spawn (09 §9.1, 04 §3.5): the `HatchBed` volume's centre, facing along its look
+-- vector; on a map without one, the first SafeNursery volume's, with a log.
 local function nurseryCFrame(): CFrame?
-	local v = nurseries[1]
+	local v = hatchBeds[1]
 	if v == nil then
-		return nil
+		v = nurseries[1]
+		if v == nil then
+			return nil
+		end
+		Log.once(
+			"warn",
+			TAG,
+			"no HatchBed volume (09 §9.1): first runs start at the Nursery centre"
+		)
 	end
 	local at = Vector3.new(VolumeMath.centre(v))
 	local look = Vector3.new(VolumeMath.lookVector(v))
@@ -179,8 +192,64 @@ local function onTierChanged(slot: Slot, tier: number)
 	-- CreatureService.addMass carries the same TODO.
 end
 
+-- Op 1, "Swim again" (09 §5.3, §6.3 Gulped row): pay scraps, then respawn at the own cove. The
+-- budget runs from the tap: moved once the client's fade out has blacked the screen, released
+-- when its fade in ends.
+local function swimAgain(player: Player): boolean
+	local run = runOf(player)
+	if
+		run == nil
+		or run.respawning
+		or not RunRules.canSwimAgain(run.phase, run.gulpedAt, now())
+	then
+		return false
+	end
+	local slot = run.slot
+	local state = CreatureService.get(slot)
+	if state == nil then
+		return false
+	end
+	run.respawning = true
+	local generation, root = run.generation, state.root
+	-- TODO(B19, S5-C3): pay the scraps (BankMath.scraps, 02 §12.2) here, at the tap; TODO(B19,
+	-- S14-C1): tapping Swim again declines an open revive offer.
+	local releaseAt, moveAt = RunRules.respawnTimes(now())
+	local function current(): boolean
+		return runs[slot] == run
+			and run.generation == generation
+			and CreatureService.get(slot) == state
+	end
+	task.delay(math.max(0, moveAt - now()), function()
+		if not current() then
+			return
+		end
+		CreatureService.teleport(slot, CreatureService.coveSpawnCFrame(slot))
+		local def = Index.Species.byId[state.species]
+		local startMass = Index.Tiers.byTier[def.startTier].massNeeded
+		CreatureService.addMass(slot, startMass - state.mass) -- tier 1, or 2 for the Shark Pup
+		task.delay(math.max(0, releaseAt - now()), function()
+			if not current() or player.Parent ~= Players then
+				return
+			end
+			root.Anchored = false
+			root:SetNetworkOwner(player)
+			run.home = RunRules.respawnHome()
+			run.gulpedAt, run.gulpedBy, run.respawning = nil, nil, false
+			apply(run, "respawned")
+			-- TODO(B14, S8-C2): MovementValidator.grace(slot, RunRules.RESPAWN_GRACE_SECONDS).
+		end)
+	end)
+	return true
+end
+
+local function onRunAction(player: Player, op: number)
+	if op == RunRules.Op.swimAgain then
+		swimAgain(player)
+	end
+end
+
 function RunLoopService.init()
-	runs, coveVolumes, nurseries, sinceScan = {}, {}, {}, 0
+	runs, coveVolumes, nurseries, hatchBeds, sinceScan = {}, {}, {}, {}, 0
 end
 
 function RunLoopService.start()
@@ -195,6 +264,13 @@ function RunLoopService.start()
 		end
 	end
 	nurseries = WorldIndex.volumesOf("SafeNursery")
+	hatchBeds = WorldIndex.volumesOf("HatchBed")
+	-- 09 §5.3: op, then up to 2 numbers; op 1 takes none. Later ops widen the specs.
+	Server.on(
+		"RunAction",
+		{ Server.Validate.int(RunRules.Op.swimAgain, RunRules.Op.swimAgain) },
+		onRunAction
+	)
 	CreatureService.onTierChanged:connect(onTierChanged)
 	RunService.Heartbeat:Connect(function(dt: number)
 		sinceScan += dt
@@ -225,6 +301,7 @@ function RunLoopService.join(player: Player, slot: Slot): CFrame
 		home = home,
 		startedAt = nil,
 		gulpedAt = nil,
+		respawning = false,
 		gulpedBy = nil,
 		tier = nil,
 		generation = if old then old.generation + 1 else 1,
@@ -233,8 +310,7 @@ function RunLoopService.join(player: Player, slot: Slot): CFrame
 	return at :: CFrame
 end
 
---- Run start (09 §6.3; 09 §5.1's `start(player)`, renamed so it does not clash with the service
---- `start()` of section 4.5): the player swam out of the run's home. `Phase = run`. Does nothing
+--- Run start (09 §5.1, §6.3): the player swam out of the run's home. `Phase = run`. Does nothing
 --- outside the `cove` phase.
 function RunLoopService.startRun(player: Player)
 	local run = runOf(player)
@@ -243,9 +319,11 @@ function RunLoopService.startRun(player: Player)
 	end
 end
 
---- Banks the run when the player enters their own cove armed (02 §11; canon 5.4).
+--- Banks the run when the player enters their own cove armed (02 §0.7, §11; canon 5.4).
 --- TODO(B19, S5-C3): BankMath, Pearls through EconomyService, the specimen, the reset to a Fry
---- and `Phase = cove`. Until then an armed run stays a run inside the cove.
+--- and `Phase = cove`. Until then, by 13's S5-C3 build note, an armed run that re-enters the own
+--- cove stays a live run: mass and traits kept, safe as in any cove, and it goes on when the
+--- creature swims out; nothing is paid or counted.
 function RunLoopService.bank(player: Player)
 	local run = runOf(player)
 	if run then
@@ -254,52 +332,25 @@ function RunLoopService.bank(player: Player)
 end
 
 --- The creature of `slot` was gulped by `by` ("player:<slot>", a predator ID, a hazard).
---- Returns false when the creature is not in a run. Runs 09 §6.3's Gulped row: released at its
---- cove after 2.0 s.
+--- Returns false when the creature is not in a run. Runs 09 §6.3's Gulped row up to the tap:
+--- the creature stays anchored and `dead` until "Swim again".
 function RunLoopService.gulp(slot: Slot, by: string): boolean
 	local run = runs[slot]
 	local state = CreatureService.get(slot)
 	if run == nil or state == nil or apply(run, "gulped") ~= "gulp" then
 		return false
 	end
-	local player, root = run.player, state.root
+	local root = state.root
 	run.generation += 1
-	local generation = run.generation
-	run.gulpedAt, run.gulpedBy, run.startedAt = now(), by, nil
+	run.gulpedAt, run.gulpedBy, run.startedAt, run.respawning = now(), by, nil, false
 	root:SetNetworkOwner(nil)
 	root.Anchored = true
 	root.AssemblyLinearVelocity = Vector3.zero
 	sendEvent("gulped", slot, by)
-	-- TODO(B19, S5-C3): scraps (BankMath.scraps) and run-end settlement; TODO(B19, S6-C3):
-	-- unbanked traits are lost; TODO(B19, S14-C1): `offerRevive` holds `dead` until the choice
-	-- (09 §6.3); TODO(B23, S4-C5): 02 §12.1 respawns on the gulp card's "Swim again" tap (a
-	-- `RunAction` op not yet in 09 §5.3); until both exist the respawn runs on the 2.0 s budget.
-	local releaseAt, moveAt = RunRules.respawnTimes(run.gulpedAt :: number)
-	local function current(): boolean
-		return runs[slot] == run
-			and run.generation == generation
-			and CreatureService.get(slot) == state
-	end
-	task.delay(math.max(0, moveAt - now()), function()
-		if not current() then
-			return
-		end
-		CreatureService.teleport(slot, CreatureService.coveSpawnCFrame(slot))
-		local def = Index.Species.byId[state.species]
-		local startMass = Index.Tiers.byTier[def.startTier].massNeeded
-		CreatureService.addMass(slot, startMass - state.mass) -- tier 1, or 2 for the Shark Pup
-		task.delay(math.max(0, releaseAt - now()), function()
-			if not current() or player.Parent ~= Players then
-				return
-			end
-			root.Anchored = false
-			root:SetNetworkOwner(player)
-			run.home = RunRules.respawnHome()
-			run.gulpedAt, run.gulpedBy = nil, nil
-			apply(run, "respawned")
-			-- TODO(B14, S8-C2): MovementValidator.grace(slot, RunRules.RESPAWN_GRACE_SECONDS).
-		end)
-	end)
+	-- The respawn waits for "Swim again" (`RunAction` op 1, `swimAgain` above), with no timeout;
+	-- a player who leaves first is settled at leave. TODO(B19, S5-C3): scraps (BankMath.scraps) and
+	-- run-end settlement; TODO(B19, S6-C3): unbanked traits are lost; TODO(B19, S14-C1):
+	-- `offerRevive` adds Revive to the same card (09 §6.3).
 	return true
 end
 
@@ -309,7 +360,8 @@ end
 function RunLoopService.offerRevive(_player: Player) end
 
 --- Leave settlement for a mid-run disconnect (canon 5.5; 02 §16.4). TODO(B19, S12-C4): 10 s in
---- the water, then the run saved as suspended for 5 minutes. For now the run is forgotten.
+--- the water, then the run saved as suspended for 5 minutes; a dead player who never tapped
+--- Swim again is settled here (scraps paid, 09 §6.3; S5-C3). For now the run is forgotten.
 function RunLoopService.suspendOnLeave(player: Player)
 	local run = runOf(player)
 	if run then
@@ -348,6 +400,10 @@ RunLoopService._test = table.freeze({
 	nurseries = function(): { Volume }
 		return nurseries
 	end,
+	hatchBeds = function(): { Volume }
+		return hatchBeds
+	end,
+	swimAgain = swimAgain,
 })
 
 return RunLoopService

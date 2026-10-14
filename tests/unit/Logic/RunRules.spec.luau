@@ -68,12 +68,27 @@ describe("RunRules (canon 5.5; 02 §0.7, §12; 09 §6.3)", function()
 		end
 	end)
 
-	it("respawns 2.0 s after the gulp, moving the creature after the 0.8 s effect", function()
+	it("accepts Swim again only while dead and once the gulp card is up (02 §12.1)", function()
+		expect(RunRules.Op.swimAgain).toBe(1) -- 09 §5.3
+		expect(RunRules.GULP_CARD_SECONDS).toBe(1.2)
+		expect(RunRules.canSwimAgain("dead", 100, 101.2)).toBe(true)
+		expect(RunRules.canSwimAgain("dead", 100, 101.19)).toBe(false)
+		expect(RunRules.canSwimAgain("dead", 100, 100 + 3600)).toBe(true) -- no timeout
+		expect(RunRules.canSwimAgain("dead", nil, 200)).toBe(false)
+		expect(RunRules.canSwimAgain("run", 100, 102)).toBe(false)
+		expect(RunRules.canSwimAgain("cove", 100, 102)).toBe(false)
+	end)
+
+	it("respawns from the tap: moved after the fade out, released after the fade in", function()
 		local release, move = RunRules.respawnTimes(100)
-		expect(release).toBeCloseTo(102, 1e-9)
-		expect(move).toBeCloseTo(100.8, 1e-9)
-		expect(RunRules.RESPAWN_SECONDS <= 3).toBe(true) -- canon 5.5
-		expect(RunRules.GULP_EFFECT_SECONDS < RunRules.RESPAWN_SECONDS).toBe(true)
+		expect(move).toBeCloseTo(100.3, 1e-9)
+		expect(release).toBeCloseTo(100.6, 1e-9)
+		-- 02 §12.4: within 0.8 s of the tap; 09 §6.3: budget 2.0 s; canon 5.5: 3 s.
+		expect(release - 100 <= RunRules.RESPAWN_TARGET_SECONDS).toBe(true)
+		expect(RunRules.RESPAWN_TARGET_SECONDS <= RunRules.RESPAWN_SECONDS).toBe(true)
+		expect(RunRules.RESPAWN_SECONDS <= 3).toBe(true)
+		-- 02 §12.1: the shortest gulp-to-control time is 2.0 s (card at 1.2 s, then 0.8 s).
+		expect(RunRules.GULP_CARD_SECONDS + RunRules.RESPAWN_TARGET_SECONDS).toBeCloseTo(2.0, 1e-9)
 	end)
 
 	describe("the return rule", function()

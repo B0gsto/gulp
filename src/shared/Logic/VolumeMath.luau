@@ -27,6 +27,7 @@ local KINDS: { VolumeKind } = {
 	"GullSky",
 	"MorayHole",
 	"PredatorNode",
+	"HatchBed",
 	"RevivePoint",
 }
 VolumeMath.KINDS = table.freeze(KINDS)

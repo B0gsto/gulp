@@ -2,8 +2,9 @@
 -- Engine-side spec of RunLoopService (task S4-C4; docs/09, sections 5.3, 6.3 and 6.8; docs/02,
 -- sections 0.7 and 5.1). It needs one real player, so it runs in a play test through the RunTests
 -- hook (section 16.3): the join placement, run start on leaving home and the silent cancel on
--- coming back, a gulp with its `Phase` transitions and the 2.0 s respawn, and the tier change
--- events on growth and on loss. It ends with the creature at its cove, released to its owner.
+-- coming back, a gulp with its `Phase` transitions, no respawn before "Swim again" (`RunAction`
+-- op 1), the tap refused before the gulp card is up, the respawn within 0.8 s of the tap, and
+-- the tier change events on growth and on loss. It ends with the creature at its cove, released to its owner.
 -- With no player (CI) it registers one note. The pure rules are tests/unit/Logic/RunRules.spec.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -82,6 +83,11 @@ return function()
 				local run = assert(RunLoopService._test.run(slot))
 				expect(run.player).toBe(player)
 				expect(player:GetAttribute("Phase")).toBe(RunLoopService.state(slot))
+				-- A first run hatches at the HatchBed (09 §9.1) when the map has one.
+				local beds = RunLoopService._test.hatchBeds()
+				if run.home == "nursery" and #beds > 0 then
+					expect(#beds).toBe(1) -- exactly one per place with a Nursery
+				end
 			end
 		)
 
@@ -166,7 +172,7 @@ return function()
 			expect(run.phase).toBe("cove")
 		end)
 
-		it("gulps: dead, held by the server, then back at the cove within 2.0 s", function()
+		it("gulps: dead and held until Swim again, then back at the cove within 0.8 s", function()
 			local slot, state = slotAndState()
 			local run = assert(RunLoopService._test.run(slot))
 			if run.phase ~= "run" then
@@ -179,7 +185,7 @@ return function()
 				table.insert(phases, player:GetAttribute("Phase") :: string)
 			end)
 			local ok, problem = pcall(function()
-				local t0 = os.clock()
+				expect(RunLoopService._test.swimAgain(player)).toBe(false) -- not dead
 				expect(RunLoopService.gulp(slot, "spec")).toBe(true)
 				expect(RunLoopService.state(slot)).toBe("dead")
 				expect(player:GetAttribute("Phase")).toBe("dead")
@@ -187,13 +193,22 @@ return function()
 				expect(state.root:GetNetworkOwner()).toBe(nil)
 				expect(RunLoopService._test.lastSent()).toEqual({ "gulped" :: any, slot, "spec" })
 				expect(RunLoopService.gulp(slot, "again")).toBe(false) -- once per death
+				expect(RunLoopService._test.swimAgain(player)).toBe(false) -- the card is not up
 
+				-- No timeout (02 §12.1): well past the old 2.0 s, still dead and held.
+				task.wait(RunRules.RESPAWN_SECONDS + 0.5)
+				expect(run.phase).toBe("dead")
+				expect(state.root.Anchored).toBe(true)
+
+				local t0 = os.clock()
+				expect(RunLoopService._test.swimAgain(player)).toBe(true)
+				expect(RunLoopService._test.swimAgain(player)).toBe(false) -- one tap respawns
 				expect(waitFor(function()
 					return run.phase ~= "dead"
 				end, RunRules.RESPAWN_SECONDS + 1)).toBe(true)
 				local took = os.clock() - t0
-				expect(took >= RunRules.RESPAWN_SECONDS - 0.1).toBe(true)
-				expect(took <= RunRules.RESPAWN_SECONDS + 0.2).toBe(true) -- 09 §6.3: 2.0 s total
+				-- 02 §12.4: within 0.8 s of the tap (09 §6.3 budget 2.0 s).
+				expect(took <= RunRules.RESPAWN_TARGET_SECONDS + 0.1).toBe(true)
 				expect(state.root.Anchored).toBe(false)
 				expect(state.root:GetNetworkOwner()).toBe(player)
 				local def = Index.Species.byId[state.species]

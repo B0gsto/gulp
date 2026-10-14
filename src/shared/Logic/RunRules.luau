@@ -7,8 +7,10 @@
 --           In a run, entering the own cove armed (mass ≥ 1) banks (02 §0.7, §11; S5-C3).
 --   home    where the run starts: the Nursery for an account that has never banked (its first
 --           run, canon 5.5), the own cove for every later run, a respawn included.
---   respawn gulped at t: the creature returns to the cove at t + 2.0 s (09 §6.3), after the
---           client's 0.8 s gulp effect.
+--   respawn gulped at g, the creature waits (no timeout) for the "Swim again" tap (`RunAction`
+--           op 1, 09 §5.3), accepted from g + 1.2 s when the gulp card comes up (02 §12.1). From
+--           the tap at t: moved to the cove at t + 0.3 s (the client's fade out), released at
+--           t + 0.6 s (fade in), inside 02 §12.4's 0.8 s and 09 §6.3's 2.0 s budget.
 --   return  the return rule of 09 §6.3 for a revive or a resume: the place the creature was if
 --           nothing that can eat it is within 60 studs, else the nearest clear revive point, else
 --           the nearest revive point.
@@ -19,8 +21,11 @@ local Defaults = require("../Config/Defaults")
 local RunRules = {}
 
 local D = Defaults.run
+RunRules.GULP_CARD_SECONDS = D.gulpCardSeconds
+RunRules.FADE_OUT_SECONDS = D.respawnFadeOutSeconds
+RunRules.FADE_IN_SECONDS = D.respawnFadeInSeconds
+RunRules.RESPAWN_TARGET_SECONDS = D.respawnTargetSeconds
 RunRules.RESPAWN_SECONDS = D.respawnSeconds
-RunRules.GULP_EFFECT_SECONDS = D.gulpEffectSeconds
 RunRules.RESPAWN_GRACE_SECONDS = D.respawnGraceSeconds
 RunRules.TIER_GRACE_SECONDS = D.tierGraceSeconds
 RunRules.TIER_UP_PROTECT_SECONDS = D.tierUpProtectSeconds
@@ -38,6 +43,11 @@ export type Event = "leftHome" | "enteredCove" | "enteredNursery" | "gulped" | "
 export type Outcome = "start" | "cancel" | "bank" | "gulp" | "respawn"
 
 export type Point = { x: number, y: number, z: number }
+
+--- `RunAction` ops (09 §5.3). Later ops are added with the features that need them.
+RunRules.Op = table.freeze({
+	swimAgain = 1, -- no numbers: the gulp card's "Swim again" (02 §12.1)
+})
 
 --- The home of the run an account starts on joining (09 §6.3 Join row; canon 5.5): the Nursery
 --- until the account has banked once, else its cove.
@@ -77,10 +87,18 @@ function RunRules.transition(phase: Phase, event: Event, mass: number): (Phase, 
 	return phase, nil
 end
 
---- Server time at which a creature gulped at `gulpedAt` is released at its cove (09 §6.3), and
---- the time the client's gulp effect ends (when the creature is moved and reset).
-function RunRules.respawnTimes(gulpedAt: number): (number, number)
-	return gulpedAt + RunRules.RESPAWN_SECONDS, gulpedAt + RunRules.GULP_EFFECT_SECONDS
+--- Whether a "Swim again" tap at server time `at` is accepted (09 §5.3 `RunAction` op 1): only
+--- while dead and once the gulp card is up, 1.2 s after the gulp at `gulpedAt` (02 §12.1).
+function RunRules.canSwimAgain(phase: Phase, gulpedAt: number?, at: number): boolean
+	return phase == "dead" and gulpedAt ~= nil and at >= gulpedAt + RunRules.GULP_CARD_SECONDS
+end
+
+--- From a "Swim again" tap at server time `tappedAt` (09 §6.3: the budget runs from the tap):
+--- when the creature is released to its owner (after the client's fade out and fade in), and when
+--- it is moved to the cove and reset (once the screen is black).
+function RunRules.respawnTimes(tappedAt: number): (number, number)
+	local moveAt = tappedAt + RunRules.FADE_OUT_SECONDS
+	return moveAt + RunRules.FADE_IN_SECONDS, moveAt
 end
 
 -- Whether no threat is within `radius` of (x, y, z).

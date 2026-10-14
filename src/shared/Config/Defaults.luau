@@ -250,8 +250,11 @@ Defaults.goals = table.freeze({
 
 -- Logic/RunRules and RunLoopService: canon 5.5; 02 §0.7, §5.1, §12; 09 §6.3, §6.8.
 Defaults.run = table.freeze({
-	respawnSeconds = 2.0, -- 09 §6.3 Gulped row: 2.0 s total (canon limit 3 s); 02 §12.1's shortest
-	gulpEffectSeconds = 0.8, -- 09 §6.3: the client's gulp effect the server waits for
+	gulpCardSeconds = 1.2, -- 02 §12.1: the gulp card, and so "Swim again", comes up at T+1.20
+	respawnFadeOutSeconds = 0.3, -- 02 §12.4: the client's fade out after the tap; moved while black
+	respawnFadeInSeconds = 0.3, -- 02 §12.4: then the fade in; released when it ends
+	respawnTargetSeconds = 0.8, -- 02 §12.4: control again within 0.8 s of the tap
+	respawnSeconds = 2.0, -- 09 §6.3 Gulped row: the budget from the tap (canon limit 3 s)
 	respawnGraceSeconds = 2, -- 09 §6.3: MovementValidator.grace(slot, 2) after a respawn or a return
 	tierGraceSeconds = 0.5, -- 09 §6.8: MovementValidator.grace(slot, 0.5) on a tier change
 	tierUpProtectSeconds = 1.0, -- 02 §5.1: Protected(tierUp), T+0.00 to T+1.00

@@ -54,6 +54,7 @@ local KINDS = {
 	GullSky = true,
 	MorayHole = true,
 	PredatorNode = true,
+	HatchBed = true,
 	RevivePoint = true,
 }
 
