@@ -224,45 +224,13 @@ PRED_HAZARD = ("barracuda", "moray", "grouper", "gull", "old_scar", "jelly", "ve
 
 
 def fx_mask(name, row, size):
-    """Effect masks: white on clear in their shape class, with the PH stamp in dark opaque ink so
-    it shows in colour and in alpha. Shafts (GodRay, Streak) are a soft vertical gradient at the
-    row's width x height; rings (Ring, TierRing, Foam) a soft ring; flipbooks (`_Flip`, `4×4`) a
-    grid of frames that grow and break up (a `2×2` mask holds variants the same way); everything else the soft dot of 07 section 16."""
+    """07 section 16: one white soft dot for every effect texture, at the row's square size (a
+    non-square row such as `64 × 256` keeps the default). The PH stamp is drawn in dark opaque
+    ink, so it shows in colour and in alpha."""
     import texgen
-    from PIL import Image
-    cell = column(row, "Size") or ""
-    m = None if "²" in cell else re.search(r"(\d+)\s*×\s*(\d+)", cell)        # `64 × 256`: a non-square mask
-    grid = re.search(r"(\d+)×(\d+)", cell.replace(" ", "").split(",")[-1]) if "," in cell else None   # `512², 4×4` frames or variants
-    w, h = (int(m.group(1)), int(m.group(2))) if m and not grid else (size, size)
-    shape = "shaft" if any(k in name for k in ("GodRay", "Streak")) else "ring" if any(k in name for k in ("Ring", "Foam")) else "dot"
-
-    def frame(fw, fh, t=0.0):
-        img = Image.new("RGBA", (fw, fh), (255, 255, 255, 0))
-        px = img.load()
-        for y in range(fh):
-            for x in range(fw):
-                u, v = (x + 0.5) / fw * 2 - 1, (y + 0.5) / fh * 2 - 1
-                if shape == "shaft":                    # bright at the top, soft edges, fading down
-                    a = max(0.0, 1 - abs(u)) ** 1.5 * (1 - (v + 1) / 2) ** 0.7
-                elif shape == "ring":                   # a ring that spreads and breaks up with t
-                    r = (u * u + v * v) ** 0.5
-                    a = max(0.0, 1 - abs(r - (0.35 + 0.5 * t)) / 0.12) * (1 - 0.8 * t * (seeded("%d,%d" % (x // 4, y // 4), 3) == 0))
-                else:
-                    a = max(0.0, 1 - (u * u + v * v) ** 0.5) ** 1.6
-                px[x, y] = (255, 255, 255, int(255 * max(0.0, min(1.0, a))))
-        return img
-    if grid:
-        cols, rws = int(grid.group(1)), int(grid.group(2))
-        cw, ch = size // cols, size // rws
-        img = Image.new("RGBA", (size, size), (255, 255, 255, 0))
-        for i in range(cols * rws):
-            img.paste(frame(cw, ch, i / float(cols * rws - 1)), ((i % cols) * cw, (i // cols) * ch))
-        note = "%s flipbook %dx%d frames" % (shape, cols, rws)
-    else:
-        img = frame(w, h)
-        note = "white %s %dx%d" % (shape, w, h)
+    img = texgen.soft_dot(size)
     texgen.stamp(img, name.split("_")[2])
-    return img, note + ", PH stamp in opaque ink"
+    return img, "white soft dot (07 16: one effect texture for everything), PH stamp in opaque ink"
 
 
 def texture_users(tex):

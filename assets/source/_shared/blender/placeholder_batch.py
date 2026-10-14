@@ -142,8 +142,8 @@ def check_file(name):
         for o in outs:
             im = Image.open(o).convert("RGBA")
             w, h = im.size
-            if (w != h and not name.startswith("T_FX_")) or w & (w - 1) or h & (h - 1) or max(w, h) > texgen.MAX_TEXTURE:
-                return False, "%s is %dx%d: power of two up to %d, square unless an effect mask" % (os.path.basename(o), w, h, texgen.MAX_TEXTURE)
+            if w != h or w & (w - 1) or h & (h - 1) or max(w, h) > texgen.MAX_TEXTURE:
+                return False, "%s is %dx%d: square power of two up to %d" % (os.path.basename(o), w, h, texgen.MAX_TEXTURE)
             ink = sum(1 for px in im.getdata() if px[3] > 0 and max(px[:3]) < 38) / float(w * h)
             if ink < 0.005:
                 return False, "%s shows no PH stamp (%.2f%% ink)" % (os.path.basename(o), 100 * ink)
@@ -256,7 +256,7 @@ KIND_NOTES = {
     "Environment": "grey blocks at the row's footprint, zone tint, landmarks in their own colour",
     "Cove and decorations": "labelled blocks; the Pearl Clam has a hinged lid (Shell and Lid bones) and its Open clip",
     "Water and sky": "flat stamped textures, the surface ones in the water tint; SKY_ is six flat two-colour faces",
-    "Effects": "white masks in their shape class (soft dot, shaft, ring, flipbook grid) with an opaque PH stamp; emitter JSON tinted by type",
+    "Effects": "one white soft dot with an opaque PH stamp for every mask; emitter JSON tinted by type",
     "Lighting": "one neutral preset with the 06 10.2 fog colour and view distance; LGT_Event_Frenzy takes the 06 10.6 values over the Reef, LGT_Gulped a labelled dim-and-desaturate (06 gives none)",
     "Sound effects": "a beep of the row's length pitched by group; loops are soft noise",
     "Music": "eight-bar mallet loop at 124 bpm pitched by name, one file per stem; stingers are three notes",
