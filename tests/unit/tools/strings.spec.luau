@@ -42,9 +42,9 @@ describe("Strings CSV format", function()
 	end)
 
 	it("refuses a wrong header, a short record and a repeated key", function()
-		expect(Strings.rowsOfCsv("key,en\na,b\n")).toBe(nil)
-		expect(Strings.rowsOfCsv("key,context,en\na.b,c\n")).toBe(nil)
-		expect(Strings.rowsOfCsv("key,context,en\na.b,c,d\na.b,e,f\n")).toBe(nil)
+		expect(Strings.rowsOfCsv("key,context,en\na.b,c,d\n")).toBe(nil)
+		expect(Strings.rowsOfCsv("Key,Context,Example,Source\na.b,c,d\n")).toBe(nil)
+		expect(Strings.rowsOfCsv("Key,Context,Example,Source\na.b,c,,d\na.b,e,,f\n")).toBe(nil)
 	end)
 end)
 

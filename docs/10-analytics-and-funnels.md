@@ -115,8 +115,8 @@ One server module (`Analytics`; document 09 owns its location) is the only code 
 
 | Call | Sends |
 |---|---|
-| `Analytics.step(player, funnel, sessionId, stepNumber)` | A funnel step. `funnel = "onboarding"` uses `LogOnboardingFunnelStepEvent`. Step names come from the tables in section 3. |
-| `Analytics.event(player, name, value, ctx)` | A custom event |
+| `Analytics.step(player, funnel, sessionId, stepNumber, ctx?)` | A funnel step. `funnel = "onboarding"` uses `LogOnboardingFunnelStepEvent`; its `sessionId` is nil. Step names come from the tables in section 3. `ctx` is the funnel's context value where section 3 gives one (species, trait, tide event, product type, tier or `paid`), otherwise left out. |
+| `Analytics.event(player, name, value, ctx)` | A custom event. `value` defaults to 1; `ctx` is left out for an event whose context is "—" in 4.2. |
 | `Analytics.pearls(player, flow, amount, balance, transactionType, sku)` | An economy event with currency `Pearls` |
 
 **Custom fields.** The module fills all three on every call.
@@ -124,14 +124,24 @@ One server module (`Analytics`; document 09 owns its location) is the only code 
 | Field | Name here | Contents | Distinct values |
 |---|---|---|---|
 | `CustomField01` | `exp` | The player's experiment arms, for example `chase=escort`. Attached only to events listed for that experiment; otherwise `none`. | 5 at most at one time |
-| `CustomField02` | `cohort` | `s1` (first session), `d0` (first day, later session), `d1_6` (1 to 6 days after the first play day), `d7p` (7 or more) | 4 |
-| `CustomField03` | `ctx` | The event's one context value, as given in the event dictionary (section 4) | 392 at most: 300 across the events that can carry an experiment arm, and 92 on the five device and input events (4.2), which never carry one |
+| `CustomField02` | `cohort` | `s1` (first session), `d0` (first day, later session), `d1_6` (1 to 6 days after the first play day), `d7p` (7 or more). A player whose profile is not loaded yet, or failed to load, counts as `s1`: nothing older is known | 4 |
+| `CustomField03` | `ctx` | The event's one context value, as given in the event dictionary (section 4); `none` when the event or step has no context | 392 at most: 300 across the events that can carry an experiment arm, and 92 on the five device and input events (4.2), which never carry one |
 
 Worst case 300 × 4 × 5 + 92 × 4 = 6,368 combinations, under the 8,000 limit: the device and input events always send `exp` = `none`, so their 92 values multiply only by the 4 cohorts. A new `ctx` value needs a line in section 4 first.
 
 **What never goes in a custom field:** user IDs, user names, display names, chat text, free text of any kind, or any number with more than a handful of possible values. Numbers go in `value`.
 
-**Rate budget.** Each server keeps a token bucket of 16 events per player per minute. When it is empty the module drops events by priority: P2 first (settings, Codex, hazard hits, `sess_device`, `perf_tier`, `input_switch`), then P1 (run events, including `run_end_input` and `pvp_pair`), never P0 (onboarding steps, purchases, economy). Drops are counted and reported once a minute as `guard_flag` with ctx `analytics_drop`.
+**Rate budget.** Each server keeps a token bucket of 16 events per player per minute; funnel steps, custom events and economy events all draw from it. Every custom event and every funnel has one of three priorities:
+
+| Priority | Events | Sent when |
+|---|---|---|
+| P0 | Onboarding steps (3.1); the steps of the shop and purchase funnel (3.8), the revive offer funnel (3.9) and the starter pack funnel (3.12) [L], which are purchases; economy events (section 5); and every custom event not listed as P1 or P2 below | Always, even with the bucket empty |
+| P1 | The run events (`run_*`, including `run_end_input`, and `pvp_pair` [L]) and the steps of the other funnels: run (3.2), species unlock (3.5), trait (3.6), tide event (3.7), rewarded video (3.10) [L] and cove visit (3.11) [L] | While at least 1 token is left |
+| P2 | Settings, Codex (`codex_*`), hazard hits (`run_hazard_hit`), `sess_device`, `perf_tier`, `input_switch` [L] | While more than 4 tokens are left: P2 stops when 4 are left **(tune)** |
+
+The P2 reserve of 4 is what "P2 first" needs: without it a burst of P2 events could empty the bucket just before a run ends. 4 is the largest set of P1 events one moment sends: a run end sends `run_banked` (or `run_gulped` or `run_abandoned`), `run_duration`, `run_end_input` and the run funnel's step together. Drops are counted and reported once a minute as `guard_flag` with ctx `analytics_drop`.
+
+**Warning and error counts.** The module also counts every `Log.warn` and `Log.error` line by level and tag (chapter 09, section 4.6), in memory only, for tests and the Studio print. No event carries them: `AnalyticsService` logs each event against one player, while the counts belong to the server, and pinning them to one player would skew that player's cohort and spend their budget. Live error spikes are read from the Creator Dashboard (09 §21.2, U24).
 
 **Studio and tests.** `AnalyticsService` does not accept events from Studio, so in Studio the module writes each call to an in-memory buffer of the last 2,000 events and prints it when `Analytics.debugPrint = true`. Automated tests and the chapter 04 checklist read this buffer.
 

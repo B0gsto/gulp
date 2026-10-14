@@ -51,7 +51,7 @@ export type PlayerBite = {
 	victimInRun: boolean, -- in a run and alive (a disconnected body still counts, 09 §10.4)
 	eaterTier: number,
 	victimTier: number,
-	victimInSafeVolume: boolean, -- NurserySafe, a CoveMouth or a CoveInterior
+	victimInSafeVolume: boolean, -- SafeNursery, a CoveMouth or a CoveInterior
 	victimProtected: boolean, -- revive, resume, first-run shield, spawn, tier-up, ... (02 §6.3)
 	victimTucked: boolean, -- Shell
 	victimPuffed: boolean,
@@ -217,7 +217,7 @@ function BiteRules.nurseryShare(eaterTier: number): number
 	return BiteRules.NURSERY_SHARE[eaterTier] or 0
 end
 
---- Whether a creature of `tier` may enter `NurserySafe` (canon 5.2, 02 §0.5).
+--- Whether a creature of `tier` may enter `SafeNursery` (canon 5.2, 02 §0.5).
 function BiteRules.mayEnterNursery(tier: number): boolean
 	return tier <= BiteRules.NURSERY_MAX_TIER
 end

@@ -335,7 +335,7 @@ function CoveRules.preference(banks: number): { number }
 end
 
 -- The two volumes of every cove (09 §9.1 `CoveMouth` and `CoveInterior`, `CoveIndex` = the cove
--- number; 02 §11.1: together they are `CoveSafe`, from the mouth plane in). Sizes are 03's: the
+-- number; 02 §11.1: together they are the cove, from the mouth plane in). Sizes are 03's: the
 -- mouth opening 36 wide × 28 high centred at depth 30 on the Rim's inner face, then a 25-stud throat
 -- (§6.7); the chamber 76 wide × 44 high × 110 long behind it, floor at depth 52 and ceiling at depth
 -- 8 (§6.10). Each cove runs straight out from the Reef's centre through its mouth.
