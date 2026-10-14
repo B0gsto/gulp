@@ -12,7 +12,8 @@ local TestKit = require(ReplicatedStorage.Shared.Util.TestKit)
 -- Each spec module returns a function that registers its cases. A module body runs only once
 -- per session, and RunAll may be called several times in one play test.
 local SPECS: { () -> () } = {
-	-- No engine specs yet: each one is added here by the task that writes it.
+	-- Each task that writes an engine spec adds it here, one require per line.
+	require("./NetSpec"),
 }
 
 local function runAll(): string
