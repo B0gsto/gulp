@@ -316,6 +316,9 @@ def to_rbxm(spec, report, validation_ok):
     if not validation_ok:
         print("[clips-rbxm] validation failed: no animation files written")
         return results
+    if spec.get("clip_files") is False:
+        print("[clips-rbxm] %s writes no clip files (spec clip_files False)" % spec["name"])
+        return results
     family = set(budgets.FAMILIES[spec["rig"]]["deform"])
     fbx_bones = None
     mesh_fbx = next((e["file"] for e in spec.get("exports", []) if not e.get("clip") and
