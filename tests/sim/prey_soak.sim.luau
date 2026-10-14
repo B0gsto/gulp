@@ -14,8 +14,8 @@
 -- Frenzy. 02 §14.2 and §14.4: T+0 at FRENZY_AT, rules off 240 s later; PreySpawner.setTide("frenzy")
 -- (spawnRateMult 3 divides respawn delays; the frenzy tide doubles normal prey targets). Its
 -- eventPrey list is empty, so the soak adds the worst case 09 §8.1 leaves room for: Moon Tide's
--- lunar_fry event (PreyDef.alive = 12 groups at once, topped up to eventTotal) for the Frenzy's
--- length, cleared at its end.
+-- lunar_fry event (PreyDef.alive = 12 animals at once, 3 groups of 4, topped up to eventTotal)
+-- for the Frenzy's length, cleared at its end.
 --
 -- Fails (16.2): live members outside 60% to 160% of target; a group outside its leash (1.5 × its
 -- home's radius and half height, 8.4 step 4); bytes per player per second above 9,000 in any

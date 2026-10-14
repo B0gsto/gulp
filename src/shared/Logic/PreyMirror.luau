@@ -10,7 +10,7 @@
 --             for a group the client does not know is ignored (8.7: the next keyframe fixes it).
 --   Events    `PreyEvent` records clear (eaten) or set (restored) a member's alive bit, or drop the
 --             group (removed). A record whose `gen` differs from the group's is stale and ignored.
---   Drop rule A group not heard about for 3 s is dropped (8.5, `Out` band).
+--   Drop rule A Near or Mid group not heard about for 3 s is dropped, a Far one after 5 s (8.5).
 --   Dead reckoning  target = lastPos + lastVel × (now − lastTime), times in server seconds since
 --             ServerEpoch (`timeMs` / 1000). The drawn position eases toward the target with a
 --             0.1 s time constant, so a new packet never pops (8.8). A group's first record snaps.
@@ -46,7 +46,7 @@ export type Mirror = {
 	vy: { number },
 	vz: { number },
 	t0: { number }, -- server seconds of the last record
-	heard: { number }, -- local clock seconds of the last record (the 3 s rule)
+	heard: { number }, -- local clock seconds of the last record (the drop rule)
 	dx: { number }, -- drawn position
 	dy: { number },
 	dz: { number },
@@ -61,6 +61,7 @@ export type Mirror = {
 	order: { number },
 	newestSeq: number,
 	hasSeq: boolean,
+	feed: string, -- the one packet source the mirror takes ("remote", or a dev harness)
 	fullScratch: PreyState.Full,
 	deltaScratch: PreyState.Delta,
 }
@@ -68,8 +69,12 @@ export type Mirror = {
 local PreyMirror = {}
 
 PreyMirror.MAX_GROUPS = PreyState.MAX_GROUPS -- 512
---- 8.5: a group not heard about for this long is dropped.
-PreyMirror.DROP_AFTER = 3 -- seconds
+--- 8.5: a Near or Mid group not heard about for this long is dropped.
+PreyMirror.DROP_AFTER = 3 -- seconds (tune)
+--- 8.5: a Far group (drawn past FAR_FROM studs) is dropped after this long: its keep-alive comes
+--- every 2 s, so one lost keep-alive leaves at most 4.4 s of silence.
+PreyMirror.DROP_AFTER_FAR = 5 -- seconds (tune)
+PreyMirror.FAR_FROM = 350 -- studs: the Far band starts here (8.5)
 --- 8.8: time constant of the ease toward the dead-reckoned target.
 PreyMirror.EASE_TAU = 0.1 -- seconds
 --- 8.5: the default mesh range, the outer edge of the Mid band; the renderer passes its graphics
@@ -111,6 +116,7 @@ function PreyMirror.new(): Mirror
 		at = table.create(N, 0),
 		order = table.create(N),
 		newestSeq = 0,
+		feed = "remote",
 		hasSeq = false,
 		fullScratch = PreyState.newFull(),
 		deltaScratch = PreyState.newDelta(),
@@ -124,6 +130,26 @@ end
 
 --- True when `seq` is newer than every packet seen so far, and records it as the newest. u16
 --- order wraps: a seq up to 32767 ahead of the newest is newer.
+--- Makes `feed` the one packet source. Two sources have their own seq counters, so feeding both
+--- into one mirror makes each reject the other's packets as old (the S3-C4 prey bench rejected
+--- most packets this way). A change of source forgets every group and the seq.
+function PreyMirror.setFeed(m: Mirror, feed: string)
+	if feed == m.feed then
+		return
+	end
+	m.feed = feed
+	m.hasSeq = false
+	m.newestSeq = 0
+	for k = #m.ids, 1, -1 do
+		PreyMirror.remove(m, m.ids[k])
+	end
+end
+
+--- True when packets from `feed` are the mirror's to take (see setFeed).
+function PreyMirror.takes(m: Mirror, feed: string): boolean
+	return feed == m.feed
+end
+
 function PreyMirror.acceptSeq(m: Mirror, seq: number): boolean
 	if m.hasSeq then
 		local ahead = (seq - m.newestSeq) % 65536
@@ -253,16 +279,29 @@ function PreyMirror.applyEvents(m: Mirror, payload: buffer): boolean
 	return true
 end
 
---- The 3 s rule (8.5): drops every group not heard about since `now − DROP_AFTER`. Returns how
+--- The drop rule (8.5): drops every group not heard about for DROP_AFTER (3 s), or DROP_AFTER_FAR
+--- (5 s) for a group more than FAR_FROM studs from the viewer at (x, y, z) (no viewer: every group
+--- uses 3 s). Returns how
 --- many were dropped.
-function PreyMirror.dropStale(m: Mirror, now: number): number
+function PreyMirror.dropStale(m: Mirror, now: number, x: number?, y: number?, z: number?): number
 	local ids, heard = m.ids, m.heard
 	local limit = now - PreyMirror.DROP_AFTER
+	local limitFar = now - PreyMirror.DROP_AFTER_FAR
+	local far2 = PreyMirror.FAR_FROM * PreyMirror.FAR_FROM
 	local dropped = 0
 	local k = #ids
 	while k >= 1 do
 		local id = ids[k]
-		if heard[id + 1] < limit then
+		local i = id + 1
+		local h = heard[i]
+		local stale = h < limit
+		if stale and x and y and z then
+			local ax, ay, az = m.dx[i] - x, m.dy[i] - y, m.dz[i] - z
+			if ax * ax + ay * ay + az * az > far2 then
+				stale = h < limitFar
+			end
+		end
+		if stale then
 			PreyMirror.remove(m, id)
 			dropped += 1
 		end

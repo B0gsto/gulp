@@ -39,6 +39,7 @@ local PreyHarness = {}
 
 local WARMUP = 2 -- seconds
 local running = false
+local FEED = "harness"
 local finished = ""
 local frames: { number } = {}
 local draws: { number } = {}
@@ -119,6 +120,9 @@ function PreyHarness.start(options: Options?): string
 	local o: Options = options or {}
 	local seconds = o.seconds or 10
 	PreyRenderer.setQuality(o.tier or "Smooth")
+	-- The harness is the renderer's only packet source while it runs: the live PreyService stream
+	-- has its own seq counter, and the two interleaved reject each other (PreyMirror.setFeed).
+	PreyRenderer.setFeed(FEED)
 	local camera = workspace.CurrentCamera
 	local look = camera.CFrame.LookVector
 	local centre = camera.CFrame.Position + Vector3.new(look.X, 0, look.Z).Unit * 40
@@ -179,7 +183,7 @@ function PreyHarness.start(options: Options?): string
 					deltaCount += 1
 				end
 			end
-			PreyRenderer.feed(PreyState.finish(scratch, seq, nowMs, fullCount, deltaCount))
+			PreyRenderer.feed(PreyState.finish(scratch, seq, nowMs, fullCount, deltaCount), FEED)
 			seq = (seq + 1) % 65536
 			tick += 1
 			task.wait(0.1)
@@ -187,6 +191,7 @@ function PreyHarness.start(options: Options?): string
 		connection:Disconnect()
 		finished = summary()
 		running = false
+		PreyRenderer.setFeed("remote")
 	end)
 	return `started: {#groups} groups, tier {o.tier or "Smooth"}, {seconds} s after {WARMUP} s warm-up`
 end

@@ -24,9 +24,10 @@
 --   Tide.   `setTide(tideId?)`: respawn delays of normal prey are divided by the tide's
 --           spawnRateMult (canon data:Tides), which is also the spawns per row per pass. Only the
 --           `frenzy` tide doubles normal targets and caps (02 §14.4). Trait prey are unchanged.
---   Events. `startEvent` keeps `PreyDef.alive` groups of an event prey alive until
---           `PreyDef.eventTotal` groups have been released (03 §3.1; 09 §8.1 counts lunar_fry's 12
---           as groups), topping up on each pass; `clearEvents` ends it.
+--   Events. `startEvent` keeps up to `PreyDef.alive` animals of an event prey alive, in whole
+--           groups, until `PreyDef.eventTotal` animals have been released (03 §3.1: lunar_fry 12
+--           at once in groups of 4, 40 per event; 09 §3.2), topping up on each pass;
+--           `clearEvents` ends it.
 local Formation = require("../Sim/Formation")
 local Index = require("../Data/Index")
 local PreySim = require("../Sim/PreySim")
@@ -78,9 +79,9 @@ export type Row = {
 export type EventRun = {
 	prey: string,
 	kind: number,
-	alive: number, -- groups kept alive at once
-	left: number, -- groups still to release
-	live: number, -- live groups, counted by each pass
+	alive: number, -- animals kept alive at once
+	left: number, -- animals still to release
+	live: number, -- live animals, counted by each pass
 }
 
 export type Spawner = {
@@ -376,7 +377,6 @@ end
 local spawnEventGroups: (
 	sp: Spawner,
 	run: EventRun,
-	groups: number,
 	now: number,
 	px: { number },
 	py: { number },
@@ -404,12 +404,12 @@ local function removeGroup(sp: Spawner, g: number, now: number)
 	PreySim.remove(sim, g)
 end
 
--- Spawns up to `groups` groups of a running event's prey (flag bit4), round-robin over its zones
--- that have spawn areas. Returns how many.
+-- Spawns whole groups of a running event's prey (flag bit4) while they fit under its animals alive
+-- at once and its animals left, round-robin over its zones that have spawn areas. Counts the new
+-- animals into `run.live` and out of `run.left`. Returns the groups spawned.
 spawnEventGroups = function(
 	sp: Spawner,
 	run: EventRun,
-	groups: number,
 	now: number,
 	px: { number },
 	py: { number },
@@ -427,17 +427,22 @@ spawnEventGroups = function(
 		end
 	end
 	local made = 0
-	for k = 1, if #zones > 0 then groups else 0 do
-		local zone = zones[(k - 1) % #zones + 1]
-		local areas = areasOf[(k - 1) % #zones + 1]
-		local area, x, y, z = pickPoint(sp, areas, zone, px, py, pz, n)
-		local size = Rng.int(sp.rng, def.groupMin, def.groupMax)
-		local g = PreySim.spawn(sp.sim, run.kind, area.home, x, y, z, size, true)
-		if g then
-			buffer.writeu16(sp.rowOf, g * 2, 0)
-			buffer.writef64(sp.spawnedAt, g * 8, now)
-			made += 1
+	while #zones > 0 and run.left > 0 do
+		local size = math.min(Rng.int(sp.rng, def.groupMin, def.groupMax), run.left)
+		if run.live + size > run.alive then
+			break
 		end
+		local k = made % #zones + 1
+		local area, x, y, z = pickPoint(sp, areasOf[k], zones[k], px, py, pz, n)
+		local g = PreySim.spawn(sp.sim, run.kind, area.home, x, y, z, size, true)
+		if g == nil then
+			break
+		end
+		buffer.writeu16(sp.rowOf, g * 2, 0)
+		buffer.writef64(sp.spawnedAt, g * 8, now)
+		run.live += size
+		run.left -= size
+		made += 1
 	end
 	return made
 end
@@ -496,7 +501,7 @@ function PreySpawner.pass(
 		if #events > 0 and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT) then
 			for _, run in events do
 				if run.kind == kind then
-					run.live += 1
+					run.live += PreySim.aliveCount(sim, g)
 				end
 			end
 		end
@@ -570,12 +575,9 @@ function PreySpawner.pass(
 		end
 	end
 
-	-- Event prey: top each running event up to its groups alive at once.
+	-- Event prey: top each running event up to its animals alive at once.
 	for _, run in events do
-		local want = math.min(run.alive - run.live, run.left)
-		if want > 0 then
-			run.left -= spawnEventGroups(sp, run, want, now, px, py, pz, n)
-		end
+		spawnEventGroups(sp, run, now, px, py, pz, n)
 	end
 
 	-- One group per row below target whose delay has run; the tide's spawnRateMult per pass for
@@ -625,9 +627,10 @@ function PreySpawner.edibleAt(sp: Spawner, g: number, t: number): boolean
 	return t >= buffer.readf64(sp.spawnedAt, g * 8) + PreySpawner.FADE_IN
 end
 
---- Starts releasing event prey `preyId` (flag bit4): `PreyDef.alive` groups at once (all of
---- `eventTotal` when it has no alive count), topped up by each pass until `PreyDef.eventTotal`
---- groups have been released (03 §3.1). Spawns the first groups now. Returns how many.
+--- Starts releasing event prey `preyId` (flag bit4): up to `PreyDef.alive` animals at once (all of
+--- `eventTotal` when it has no alive count), in whole groups, topped up by each pass until
+--- `PreyDef.eventTotal` animals have been released (03 §3.1). Spawns the first groups now and
+--- returns how many groups.
 function PreySpawner.startEvent(
 	sp: Spawner,
 	preyId: string,
@@ -651,9 +654,7 @@ function PreySpawner.startEvent(
 		live = 0,
 	}
 	table.insert(sp.events, run)
-	local made = spawnEventGroups(sp, run, run.alive, now, px, py, pz, n)
-	run.left -= made
-	return made
+	return spawnEventGroups(sp, run, now, px, py, pz, n)
 end
 
 --- Removes every event prey group and ends every event (the tide ended). Returns how many.

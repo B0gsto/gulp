@@ -3,7 +3,7 @@
 -- decodes `PreyState` and `PreyEvent`, dead-reckons every known group and draws the nearest
 -- members from pooled parts moved by one `workspace:BulkMoveTo` per frame (V25; spike tech-b S6).
 --
---   Group table, packets, events, the 3 s drop rule, dead reckoning and the mesh budget are the
+--   Group table, packets, events, the drop rule (3 s, Far 5 s), dead reckoning and the mesh budget are the
 --   pure `Shared.Logic.PreyMirror` (specs in tests/unit/Logic). Members are placed with the same
 --   `Sim/Formation` the server uses: a pure function of group state, member index and time.
 --   Quality    per graphics tier from `tune.quality.*` (09 §15.1, §17.4; Config/Flags): meshes
@@ -130,6 +130,7 @@ local stats = {
 	groups = 0,
 	packets = 0,
 	rejected = 0,
+	ignored = 0, -- packets from a source the mirror is not taking (PreyMirror.setFeed)
 	-- The graphics tier's numbers in use (tune.quality.*).
 	tier = "Balanced" :: string,
 	meshes = 0,
@@ -294,10 +295,14 @@ function PreyRenderer.render(dt: number)
 	debug.profilebegin(TAG)
 	local started = os.clock()
 	clock += dt
-	PreyMirror.dropStale(mirror, started)
+	local viewer = viewerPosition()
+	if viewer then
+		PreyMirror.dropStale(mirror, started, viewer.X, viewer.Y, viewer.Z)
+	else
+		PreyMirror.dropStale(mirror, started)
+	end
 	PreyMirror.step(mirror, Client.timeMs() / 1000, dt)
 
-	local viewer = viewerPosition()
 	local camera = workspace.CurrentCamera
 	local eye = if camera then camera.CFrame.Position else Vector3.zero
 	local ex, ey, ez = eye.X, eye.Y, eye.Z
@@ -433,8 +438,13 @@ function PreyRenderer.render(dt: number)
 	debug.profileend()
 end
 
---- Applies one `PreyState` payload (the remote handler; the dev harness calls it directly).
-function PreyRenderer.feed(payload: buffer)
+--- Applies one `PreyState` payload from `feed` ("remote", the default: the remote handler; the dev
+--- harness passes its own name). Packets from a source the mirror is not taking are ignored.
+function PreyRenderer.feed(payload: buffer, feed: string?)
+	if not PreyMirror.takes(mirror, feed or "remote") then
+		stats.ignored += 1
+		return
+	end
 	if PreyMirror.applyPacket(mirror, payload, os.clock()) then
 		stats.packets += 1
 	else
@@ -473,6 +483,12 @@ function PreyRenderer.setQuality(newTier: GraphicsTier)
 	for _, pool in poolList do
 		Pools.setCap(pool, budget, destroyItem)
 	end
+end
+
+--- Dev: makes `feed` the one packet source ("remote" by default; PreyHarness takes it while it
+--- runs, so the live stream and its synthetic one never interleave).
+function PreyRenderer.setFeed(feed: string)
+	PreyMirror.setFeed(mirror, feed)
 end
 
 --- Dev and tests: the last frame's draw time (ms), meshes drawn, shells shown, groups known, and

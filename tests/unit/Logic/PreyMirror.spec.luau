@@ -161,6 +161,42 @@ describe("PreyMirror events and the 3 s rule (09 §8.5, §8.7)", function()
 		expect(PreyMirror.size(m)).toBe(0)
 	end)
 
+	it("drops a Far group after 5 s, a Near or Mid group after 3 s (8.5)", function()
+		local m = PreyMirror.new()
+		PreyMirror.applyFull(m, full(1, 100, 0, 0, 0), 0, 10) -- Mid from the origin
+		PreyMirror.applyFull(m, full(2, 450, 0, 0, 0), 0, 10) -- Far
+		PreyMirror.step(m, 0, 0)
+		expect(PreyMirror.dropStale(m, 13.1, 0, 0, 0)).toBe(1)
+		expect(m.live[2]).toBe(false)
+		-- A 2 s keep-alive with one lost: 4.4 s of silence keeps a Far group.
+		expect(PreyMirror.dropStale(m, 14.4, 0, 0, 0)).toBe(0)
+		expect(PreyMirror.dropStale(m, 15.1, 0, 0, 0)).toBe(1)
+		expect(PreyMirror.size(m)).toBe(0)
+	end)
+
+	it("takes packets from one feed only; a new feed forgets the old stream", function()
+		local m = PreyMirror.new()
+		local function packetOf(seq: number, id: number): buffer
+			local b = buffer.create(8 + 22)
+			local r = full(id, 0, 0, 0, 0)
+			PreyState.writeFull(b, 0, r)
+			return PreyState.finish(b, seq, 0, 1, 0)
+		end
+		-- Two streams with their own seq counters reject each other when mixed (the S3-C4 bench).
+		expect(PreyMirror.applyPacket(m, packetOf(500, 1), 0)).toBe(true)
+		expect(PreyMirror.applyPacket(m, packetOf(3, 2), 0)).toBe(false)
+		expect(PreyMirror.takes(m, "remote")).toBe(true)
+		PreyMirror.setFeed(m, "harness")
+		expect(PreyMirror.takes(m, "remote")).toBe(false)
+		expect(PreyMirror.takes(m, "harness")).toBe(true)
+		expect(PreyMirror.size(m)).toBe(0)
+		expect(PreyMirror.applyPacket(m, packetOf(3, 2), 0)).toBe(true)
+		expect(m.live[3]).toBe(true)
+		PreyMirror.setFeed(m, "remote")
+		expect(PreyMirror.size(m)).toBe(0)
+		expect(PreyMirror.applyPacket(m, packetOf(501, 1), 0)).toBe(true)
+	end)
+
 	it("drops a group not heard about for 3 s; a keep-alive delta saves it", function()
 		local m = PreyMirror.new()
 		PreyMirror.applyFull(m, full(1, 0, 0, 0, 0), 0, 10)

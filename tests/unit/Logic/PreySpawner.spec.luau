@@ -160,15 +160,30 @@ describe("PreySpawner", function()
 		end
 	)
 
-	it("releases event prey from the data, tops it up to its total, and clears it", function()
+	it("releases event prey in animals: alive at once in whole groups, up to its total", function()
 		local sp, sim = reefSpawner()
 		PreySpawner.fill(sp, 0, NONE, NONE, NONE, 0)
-		local base = sim.liveGroups
 		local fry = Index.TraitPrey.byId.lunar_fry
-		local alive, total = fry.alive :: number, fry.eventTotal :: number
-		expect(PreySpawner.startEvent(sp, "lunar_fry", 0, NONE, NONE, NONE, 0)).toBe(alive)
-		-- Remove event groups one pass at a time; each pass tops up while the total lasts.
+		local alive, total, size = fry.alive :: number, fry.eventTotal :: number, fry.groupMax
+		expect(fry.groupMin).toBe(size)
 		local b = sim.buffers
+		local function eventAnimals(): (number, number)
+			local animals, groups = 0, 0
+			for g = 0, PreySim.MAX_GROUPS - 1 do
+				if
+					buffer.readu8(b.kind, g) ~= 0
+					and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT)
+				then
+					animals += PreySim.aliveCount(sim, g)
+					groups += 1
+				end
+			end
+			return animals, groups
+		end
+		-- 03 §3.1: 12 at once in groups of 4 is 3 groups.
+		expect(PreySpawner.startEvent(sp, "lunar_fry", 0, NONE, NONE, NONE, 0)).toBe(alive // size)
+		expect((eventAnimals())).toBe(alive)
+		-- Eat every event group each second; each pass tops up until the total is out.
 		local released = alive
 		for second = 1, 10 do
 			for g = 0, PreySim.MAX_GROUPS - 1 do
@@ -179,26 +194,17 @@ describe("PreySpawner", function()
 					PreySim.remove(sim, g)
 				end
 			end
-			local before = sim.liveGroups
 			PreySpawner.pass(sp, second, NONE, NONE, NONE, 0)
-			local made = math.min(alive, total - released)
-			released += made
-			expect(sim.liveGroups - before >= made).toBe(true)
+			local animals = eventAnimals()
+			expect(animals <= alive).toBe(true)
+			released += animals
 		end
 		expect(released).toBe(total)
+		PreySpawner.startEvent(sp, "lunar_fry", 11, NONE, NONE, NONE, 0)
 		PreySpawner.clearEvents(sp, 11)
 		PreySpawner.pass(sp, 12, NONE, NONE, NONE, 0)
-		local events = 0
-		for g = 0, PreySim.MAX_GROUPS - 1 do
-			if
-				buffer.readu8(b.kind, g) ~= 0
-				and bit32.btest(buffer.readu8(b.flags, g), PreySim.FLAG_EVENT)
-			then
-				events += 1
-			end
-		end
-		expect(events).toBe(0)
-		expect(sim.liveGroups >= base - 20).toBe(true)
+		local _, groups = eventAnimals()
+		expect(groups).toBe(0)
 	end)
 
 	it("runs the crystal_jelly drift on the data's timing and size", function()
