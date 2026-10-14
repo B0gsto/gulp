@@ -11,8 +11,9 @@ real family skeleton: 18 deform bones and 10 sockets with the bible's names. It 
   M_Species_Base_Fish[_LOD1|_LOD2]_Shell, _ShellThick   flipped-face outline shells
   M_Species_Base_Fish_Crest   a rigid piece parented to the socket bone Sock_Crest
   A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite
-                              the first five family clips (13, S2-A3) as procedural stand-ins
-                              at the lengths chapter 07 gives (clips.py, poses in rigs.py)
+                              the five family clips (rigs.FISH_CLIPS), baked here for the rig
+                              test and review only: their export files (A_*.fbx and .rbxm) come
+                              from the Minnow juvenile (species/minnow/build.py, S2-A3)
   M_Species_Base_Fish_RigTest all of the above in one file, for the Studio rig tests
 Everything is vertex-coloured in the Minnow palette; there is no texture yet, but the UVs are
 laid out by the family layout tool (uvlayout.py / texgen.py, 06 section 5.4) for a 256 texture.
@@ -169,21 +170,15 @@ def build():
         "size": (WIDTH, LENGTH, HEIGHT),
         "size_tol": 0.02,
         "facing": {"kind": "bones", "front": "Jaw", "back": "TailFin"},
-        # The bible's own Minnow dark (06 section 4.3) breaks its dark-block rule (4.1): logged,
-        # reported to the owner in spike/results/art-blender.md, and waived for this stand-in only.
-        "waivers": {
-            "palette: dark L*": "06 4.3 Minnow dark #C2491D vs 4.1 dark <= 35; bible inconsistency for the owner",
-            "value: dark L*": "follows from the palette waiver above",
-        },
         "meshes": [
             {"object": body, "role": "body", "primary": True},
             {"object": crest, "role": "piece", "budget": "crest", "socket": "Sock_Crest"},
         ],
         "actions": actions,
+        "clip_files": False,      # the A_ files are the Minnow's (S2-A3); this build does not overwrite them
         "exports": [
             {"file": "meshes/%s.fbx" % NAME, "objects": [body, arm]},
             {"file": "meshes/%s_Crest.fbx" % NAME, "objects": [crest], "at_origin": True},
-            *[clips.export_entry(clip, [body, arm]) for clip in actions],
             {"file": "meshes/%s_RigTest.fbx" % NAME, "objects": [body, crest, arm], "clip": swim, "all_versions": True},
         ],
         "preview": {

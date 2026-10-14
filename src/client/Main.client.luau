@@ -22,6 +22,7 @@ end)
 local Log = require(ReplicatedStorage.Shared.Util.Log)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local CameraController = require(script.Parent.Controllers.CameraController)
 local Client = require(script.Parent.Net.Client)
 local InputController = require(script.Parent.Controllers.InputController)
 local MovementController = require(script.Parent.Controllers.MovementController)
@@ -33,7 +34,10 @@ type Controller = Types.Service
 -- InputController, CameraController, CreatureController, MovementController, PreyRenderer,
 -- PredatorController, TideController, AudioController, UIController, TutorialDirector.
 local loaded: { Controller } = {
+	-- Section 4.5 order: StateStore, QualityController, InputController, CameraController,
+	-- CreatureController, MovementController, ... Each is added here by the task that writes it.
 	InputController,
+	CameraController,
 	MovementController,
 }
 
