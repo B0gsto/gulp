@@ -75,7 +75,7 @@ def _rear(t, waist, start=0.38, power=1.35):
 
 def top(y):
     t = _t(y)
-    return 0.45 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
+    return 0.40 * _front(t) * _rear(t, 0.28, 0.42, 1.15) - 0.03 * (1.0 - _front(t))
 
 
 def bot(y):
@@ -119,7 +119,7 @@ def on_flank(y, z, inset):
 
 
 # The face (06 section 3.3, juvenile): eye diameter 34% of head height, pupil 60% of the eye.
-EYE_Y, EYE_Z = -1.05, 0.15
+EYE_Y, EYE_Z = -1.05, 0.12
 EYE_R = 1.46 * 0.34 * (top(EYE_Y) + bot(EYE_Y)) / 2.0    # well over the 34% row: big cartoon eyes (art-director loops)
 EYE = (WIDTH / 2.0 - 0.025 - EYE_R, EYE_Y, EYE_Z)   # set 0.02 into the head
 EYE_AXIS = Vector((1.0, -0.42, 0.06)).normalized()        # looking where it is heading
@@ -160,7 +160,7 @@ def _dorsal_grid(rows, cols, lift):
     grid = []
     for u in spread(0.0, 1.0, rows):
         yb = y0 + (y1 - y0) * u
-        rise = lift * math.sin(math.pi * u ** 0.72) ** 0.8 + 0.03
+        rise = lift * math.sin(math.pi * u) ** 0.8 + 0.03
         grid.append([(0.0, yb + 0.22 * v * v, top(yb) - 0.035 + v * rise) for v in spread(0.0, 1.0, cols)])
     return grid
 
@@ -387,16 +387,16 @@ def paint(P, N, part):
     s = np.where(b, s + 0.4 * brow, s)                                                   # wet highlight on the brow
     # The smile: short, thick and upturned on the side of the head, below and in front of the eye and
     # clear of the snout tip, sitting on a cream lip patch so it still reads at 48 px.
-    my, mz, half, k = -1.24, -0.245, 0.135, 5.0
-    lip_patch = b & (((y - my) / 0.21) ** 2 + ((z - (mz + 0.02)) / 0.13) ** 2 < 1.0)
-    put(lip_patch, "light")
+    my, mz, half, k = -1.235, -0.26, 0.17, 3.4
     curve = mz + k * (y - my) ** 2                         # corners turn up
-    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.05 - 1.2 * (y - my) ** 2)
+    mouth = b & (np.abs(y - my) < half) & (np.abs(z - curve) < 0.05 - 0.9 * (y - my) ** 2)
     corner_z = mz + k * half ** 2
     ends = np.minimum(np.hypot(y - (my - half), z - corner_z), np.hypot(y - (my + half), z - corner_z))
     mouth = mouth | (b & (ends < 0.034))                  # round corners
-    # a lighter lip line under the smile so it holds at 48 px
-    s = np.where(lip_patch & (z < curve) & (z > curve - 0.09), s + 0.9, s)
+    # a thin cream lip line under the smile, so it holds at 48 px
+    lip_patch = b & ~mouth & (np.abs(y - my) < half * 0.92) & (z < curve - 0.045) & (z > curve - 0.08)
+    put(lip_patch, "light")
+    s = np.where(lip_patch, s + 0.4, s)
     # the snout tip, where the nose's UV fan meets, stays one plain colour (no streaks)
     tip = b & (t < 0.05)
     put(tip & ~lip_patch, "mid")
