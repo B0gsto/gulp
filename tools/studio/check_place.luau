@@ -55,6 +55,7 @@ local KINDS = {
 	MorayHole = true,
 	PredatorNode = true,
 	RevivePoint = true,
+	HatchBed = true,
 }
 
 local COVES = 24

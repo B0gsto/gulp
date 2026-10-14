@@ -71,7 +71,9 @@ end
 local function placeMouth(state: CreatureState, target: Target, now: number, offset: number)
 	local px, py, pz = PreyService.memberPosAt(target.g, target.i, now)
 	local prey = Vector3.new(px, py, pz)
-	local back = BiteMath.MOUTH_FORWARD * state.bodyScale + offset
+	-- The server's mouth (09 §8.9): dash factor on, mouthMult, lengthMult and firstRun 1.
+	local r = BiteMath.serverRadius(state.bodyScale, 1, 1)
+	local back = BiteMath.mouthAhead(state.bodyScale, 1, r) + offset
 	local at = prey - Vector3.new(0, 0, -1) * back
 	CreatureService.teleport(state.slot, CFrame.lookAt(at, at + Vector3.new(0, 0, -1)))
 end

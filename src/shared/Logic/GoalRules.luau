@@ -4,10 +4,10 @@
 -- docs/09, section 5.1 GoalsService). Pure: the same user and UTC day always give the same
 -- goals, in Roblox and in Lune (Util/Rng, not math.random).
 --
--- The goal list, targets, difficulties, reward bands and "Needs" come from Data/Generated/Goals.
--- The data has no column for a goal's kind, so two rules read the canon goal text: a tier goal
--- is "Grow into a <tier name>", and a goal that needs eating players says "other player". Band
--- amounts come from Data/Generated/RewardBands (05 §3.12); the rank multiplier and the reroll
+-- The goal list, targets, difficulties, reward bands, "Needs" and each goal's `kind`, `subject`
+-- and `pool` come from Data/Generated/Goals (03 §9's Kind, Subject and Pool columns): a tier goal
+-- is kind `reach_tier` with the tier as its subject, a goal that needs eating players is kind
+-- `eat_player`, and the picker draws three different pools where it can. Band amounts come from Data/Generated/RewardBands (05 §3.12); the rank multiplier and the reroll
 -- limits from Config/Defaults.goals.
 local Defaults = require("../Config/Defaults")
 local Index = require("../Data/Index")
@@ -67,17 +67,25 @@ function GoalRules.allDoneBonus(rank: number): number
 	return if band then math.floor(band.pearls * GoalRules.rankMultiplier(rank) + 1e-9) else 0
 end
 
---- The tier a "Grow into a <tier>" goal asks for; nil for any other goal.
+--- The tier a `reach_tier` goal asks for (its subject); nil for any other goal.
 function GoalRules.goalTier(goalId: string): number?
 	local def = Index.Goals.byId[goalId]
-	local name = if def then string.match(def.text, "^Grow into an? (%a+)$") else nil
-	return if name then tierByName[name] else nil
+	if def == nil or def.kind ~= "reach_tier" or def.subject == nil then
+		return nil
+	end
+	return tonumber(def.subject)
 end
 
---- True for a goal that needs eating players (02 §15.3: at most one a day).
+--- True for a goal that needs eating players, kind `eat_player` (02 §15.3: at most one a day).
 function GoalRules.eatsPlayers(goalId: string): boolean
 	local def = Index.Goals.byId[goalId]
-	return def ~= nil and string.find(def.text, "other player", 1, true) ~= nil
+	return def ~= nil and def.kind == "eat_player"
+end
+
+--- A goal's pool (02 §15.3, 03 §9): "eat", "grow" or "world"; nil for an unknown goal.
+function GoalRules.pool(goalId: string): string?
+	local def = Index.Goals.byId[goalId]
+	return if def then def.pool else nil
 end
 
 -- The data's "Needs" text, read against the context. Unknown wording is not met, so a new kind of
@@ -147,7 +155,9 @@ end
 
 --- The day's three goals (02 §15.3, 03 §9), Easy, Medium, Hard in that order, seeded by user ID
 --- and UTC day. An account's first day is the fixed set. Never one of `yesterday`'s goals while
---- another fits; never two that need eating players. A difficulty with no fitting goal is left
+--- another of that difficulty fits; never two that need eating players; three different pools
+--- (eat, grow, world) where the fitting goals allow. Every combination that meets these rules
+--- with the most different pools is equally likely. A difficulty with no fitting goal is left
 --- out, so the list can be shorter than three.
 function GoalRules.pick(
 	userId: number,
@@ -166,20 +176,52 @@ function GoalRules.pick(
 			before[id] = true
 		end
 	end
-	local chosen = {}
-	local hasPlayers = false
+	local lists: { { string } } = {}
 	for _, difficulty in GoalRules.DIFFICULTIES do
-		local list = candidates(difficulty, ctx, before, hasPlayers)
+		local list = candidates(difficulty, ctx, before, false)
 		if #list == 0 then
-			list = candidates(difficulty, ctx, {}, hasPlayers)
+			list = candidates(difficulty, ctx, {}, false)
 		end
-		local id = Rng.pick(rng, list)
-		if id then
-			table.insert(chosen, id)
-			hasPlayers = hasPlayers or GoalRules.eatsPlayers(id)
+		if #list > 0 then
+			table.insert(lists, list)
 		end
 	end
-	return chosen
+	-- Every combination of one goal per difficulty with at most one player-eating goal, kept
+	-- when it has the most different pools seen so far. At most a few thousand, and pure.
+	local best: { { string } } = {}
+	local bestPools = 0
+	local combo: { string } = {}
+	local function walk(k: number, players: number)
+		if k > #lists then
+			local pools: { [string]: boolean } = {}
+			local n = 0
+			for _, id in combo do
+				local pool = GoalRules.pool(id) :: string
+				if not pools[pool] then
+					pools[pool] = true
+					n += 1
+				end
+			end
+			if n > bestPools then
+				bestPools = n
+				table.clear(best)
+			end
+			if n == bestPools then
+				table.insert(best, table.clone(combo))
+			end
+			return
+		end
+		for _, id in lists[k] do
+			local p = players + (if GoalRules.eatsPlayers(id) then 1 else 0)
+			if p <= 1 then
+				combo[k] = id
+				walk(k + 1, p)
+			end
+		end
+		combo[k] = nil
+	end
+	walk(1, 0)
+	return Rng.pick(rng, best) or {}
 end
 
 --- A replacement for `current[index]` (02 §15.3): the same difficulty, none of the current goals,
