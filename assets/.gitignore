@@ -8,3 +8,4 @@
 __pycache__/
 /placeholder/
 /review/**/*.gif
+/source/audio/**/_gen/
