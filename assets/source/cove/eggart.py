@@ -7,9 +7,15 @@ atlas T_Cove_Alb, so every build that writes the atlas writes the same one) and 
 (its A_Fish_Hatch review strip shows the clip with the egg). Plain numpy and Blender mesh data.
 
 Size (tune; chapter 14 section 5.1 row "Hatch egg size"): 2.6 across and 3.3 tall, so the tier-1
-Minnow (3.0 long, 1.365 tall, 06 6.2) fits inside it squashed and curled (A_Fish_Hatch frames 0-15),
-and its cup (the bottom half, rim at most 2.21) clears the Fry's belly once it has risen out.
+Minnow (3.0 long, 1.365 tall, 06 6.2) fits inside it squashed and curled (A_Fish_Hatch frames 0-15).
 The egg's axis is +Z, its origin the bottom pole (06 6.1: a prop's origin is the centre of its base).
+Personality (S6-A2 review): a full bottom, a slight lean to its left (+X), a few big plum spots
+each with a glint on its rim, three small apricot freckles (the accent) and a lit cream crown.
+
+Triangles (07 row, 200 on screen at a time) go to the silhouette: 15 points round every ring (the
+outline seen from above and the cup's rim) and rings placed where the profile bends most. The two
+halves are open shells with no thickness: the outside, then a fan into the dark inside, whose
+painted lit band along the rim reads as the broken edge; the crack is a hard edge.
 """
 import math
 import os
@@ -17,38 +23,47 @@ import os
 import numpy as np
 
 W, H = 2.6, 3.3                  # studs across and tall (tune)
-EGGNESS = 0.12                   # how much wider the lower half is than the upper (0: an ellipsoid)
-SEGS = 12                        # points round every ring
+EGGNESS = 0.20                   # how much wider the lower half is than the upper (0: an ellipsoid): a full bottom
+LEAN_DEG = 4.0                   # the egg leans this far to its left (+X), its base planted (tune)
+SEGS = 15                        # points round every ring
 SECTORS = 3                      # the paint repeats three times round the egg (overlapping UVs, 06 5.6 density)
-RINGS = 8                        # whole egg: rings every 20 degrees of the profile angle from pole to pole
-CRACK = 100.0                    # profile angle of the crack (degrees from the bottom pole): rim at about 1.76
-TOOTH = 10.0                     # the zigzag: crack points alternate CRACK +- TOOTH (six teeth round the egg)
-SHELL = 0.07                     # shell thickness at the crack (studs)
-CUP_RINGS = (40.0, 60.0, 80.0)   # the bottom half's outer rings below the crack
-CAP_RINGS = (140.0,)             # the top half's outer ring above the crack
-CELLS = {"shell": "egg_shell", "inside": "egg_inside", "edge": "egg_edge"}   # coveart.CELLS of T_Cove_Alb
-FRY_IN_EGG = 1.6                # the curled Fry's centre above the egg's base, A_Fish_Hatch frames 0-15 (tune)
+WHOLE_RINGS = (23.9, 46.9, 70.2, 96.3, 126.6, 155.7)   # profile angles (degrees from the bottom pole): equal chord sag
+CRACK = 100.0                    # profile angle of the crack: its rim between 1.65 and 2.21 studs up
+TEETH = (-1.0, 0.3, -0.6, 0.9, -0.7, 1.0, -0.6, 0.85, -0.9, 0.7, -0.65, 1.0, -0.8, 0.6, -0.3)  # the crack's zigzag,
+TOOTH = 10.0                     # times this many degrees, point 0 the front: uneven, so it reads broken, not cut, and
+                                 # lowest at the front, where the Fry pushes the cap up and swims out over the rim
+SHELL = 0.07                     # how far in the inside's pole sits from the outside's
+CUP_RINGS = (22.9, 44.9, 67.2)   # the bottom half's rings below the crack
+CAP_RINGS = (147.6,)             # the top half's ring above it
+CELLS = {"shell": "egg_shell", "inside": "egg_inside"}   # coveart.CELLS of T_Cove_Alb
+EDGE_FV = 0.06                   # the inside's lit band along the rim, as a share of the fan from rim to pole
 
 
-def fry_above_base():
-    """Where the code puts the Fry's model for the whole hatch, studs above the egg's base: the curled
-    Fry's place plus the depth A_Fish_Hatch lowers the body by (rigs.HATCH_DEPTH). 3.10 (tune)."""
-    import rigs
-    return FRY_IN_EGG + rigs.HATCH_DEPTH
+def lean_dx(z):
+    """How far the egg's axis has leaned to +X at height z: zero and level at the base."""
+    return math.tan(math.radians(LEAN_DEG)) * z * z / H
+
 
 # Colours (06 4.1 three values, 4.3: shadows toward blue-violet, lights toward yellow). Pale lilac,
 # so the tangerine Minnow (the warmest thing in the Nursery, 06 4.3) pops out of it; no reserved hue (4.5).
 MID_LOW = "#C9B3E2"     # lower shell (mid, L* 76)
-MID_HIGH = "#D0BDE6"    # upper shell, its one gradient (mid, L* 79)
-CROWN = "#FFF4E2"       # the lit crown, warm cream (light, L* 97); also the broken shell's edge
-SPOT = "#5E4058"        # soft plum freckles: the cove kit's dark (coveart.DARK, L* 31)
+MID_HIGH = "#D0BDE6"    # upper shell, its one gradient (mid, L* 79: 3 points)
+CROWN_LOW = "#F7E6CF"   # the lit crown at its edge (light, L* 92) ...
+CROWN = "#FFF4E2"       # ... to its top (L* 97: 5 points); also the spots' glints and the broken edge
+SPOT = "#5E4058"        # plum spots: the cove kit's dark (coveart.DARK, L* 31; measured over the spots with their
+                        # one-pixel edges, L* 34)
+ACCENT = "#FFB38A"      # apricot freckles: 06 4.3's warm accent (shark row), hue 21, saturation 46%: not reserved
 INSIDE = "#523A57"      # inside of the shell, in shadow (dark, L* 28)
-LIGHT_SHARE = 0.25      # share of the egg's area the crown takes (06 4.1 light: 20 to 30%)
-DARK_SHARE = 0.125      # share the freckles take (06 4.1 dark: 10 to 15%)
-# Freckles per paint sector: (fu round the sector 0..1, fv up the egg 0..1, radius as a share of the
-# biggest); sized together so they cover DARK_SHARE of the surface.
-FRECKLES = ((0.20, 0.50, 1.0), (0.66, 0.36, 0.78), (0.58, 0.66, 0.62), (0.93, 0.25, 0.52), (0.40, 0.80, 0.42),
-            (0.03, 0.62, 0.5))
+LIGHT_SHARE = 0.28      # share of the egg's area above the crown's edge (06 4.1 light: 20 to 30%; the spots take some)
+DARK_SHARE = 0.125      # share the spots take (06 4.1 dark: 10 to 15%)
+ACCENT_R = 0.13         # apricot freckle radius, studs (3 per sector: about 2.5% of the surface, 06 4.1 cap 5%)
+# Spots per paint sector: (fu round the sector 0..1, fv up the egg 0..1, radius as a share of the
+# biggest); sized together so they cover DARK_SHARE of the surface. Two to a sector: from any side
+# three to five show, hard edged.
+SPOTS = ((0.27, 0.40, 1.0), (0.78, 0.66, 0.68))
+FRECKLES = ((0.62, 0.30), (0.95, 0.47), (0.50, 0.80))   # the accent's (fu, fv)
+GLINT = (0.50, 0.80, -0.55, 0.85)   # each spot's glint: a crescent between these shares of its radius, toward
+# (round, up) = (-0.55, 0.85), the light's side (06 15.3 key light high and to the left)
 
 
 def _radius_raw(t):
@@ -59,7 +74,7 @@ _R = (W / 2.0) / max(_radius_raw(math.radians(a / 10.0)) for a in range(0, 1801)
 
 
 def profile(deg):
-    """(r, z) of the outer surface at profile angle `deg` (0 bottom pole, 180 top pole)."""
+    """(r, z) of the outer surface at profile angle `deg` (0 bottom pole, 180 top pole), before the lean."""
     t = math.radians(deg)
     return _R * _radius_raw(t), H / 2.0 * (1.0 - math.cos(t))
 
@@ -70,6 +85,24 @@ def normal(deg):
     dr, dz = b[0] - a[0], b[1] - a[1]
     n = math.hypot(dr, dz)
     return dz / n, -dr / n
+
+
+def extent():
+    """(across x, across y, tall) of the leaned egg as built: its rings are 15-sided, so a little
+    under W across (the points touch the true egg), for the size check."""
+    xs, ys = [], []
+    for d in np.linspace(0.0, 180.0, 181):
+        r, z = profile(d)
+        for j in range(SEGS):
+            xs.append(r * math.cos(phi(j)) + lean_dx(z))
+            ys.append(r * math.sin(phi(j)))
+    return max(xs) - min(xs), max(ys) - min(ys), H
+
+
+def base_radius():
+    """Radius of curvature of the round base at the bottom pole (the rock rolls on it, rigs.HATCH_EGG_ROLL)."""
+    r, z = profile(1.0)
+    return r * r / (2.0 * z)
 
 
 def _arc_table(n=1801):
@@ -89,33 +122,44 @@ def fv_of(deg):
     return float(np.interp(deg, _DEG, _S)) / ARC
 
 
-def point(deg, phi):
-    r, z = profile(deg)
-    return (r * math.cos(phi), r * math.sin(phi), z)
-
-
 def phi(j):
     """Ring point j's angle; point 0 faces -Y (06 6.1 front), the side the Fry faces on hatching."""
     return -math.pi / 2.0 + 2.0 * math.pi * j / SEGS
 
 
+def crack_deg(j):
+    return CRACK + TOOTH * TEETH[j % SEGS]
+
+
+def rim_height(angle):
+    """Height of the cup's rim (studs above the base, before the lean) at `angle` round the egg (radians, phi's
+    convention), along the crack's straight edges."""
+    u = ((angle - phi(0)) / (2.0 * math.pi) * SEGS) % SEGS
+    j = int(u)
+    a, b = profile(crack_deg(j))[1], profile(crack_deg((j + 1) % SEGS))[1]
+    return a + (b - a) * (u - j)
+
+
 # ---------------------------------------------------------------- paint (the two atlas cells, coveart.CELLS)
+# The shell cell lies on its side: up the egg runs along the cell's width (96 px for the 4.7-stud
+# meridian) and round it along its height (64 px for a third of the 8-stud girth), so the paint is
+# about 20 px per stud both ways.
 
 def _hex(h):
     h = h.lstrip("#")
     return np.array([int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4)], np.float32)
 
 
-def _sm(e0, e1, x):
-    t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
-    return t * t * (3.0 - 2.0 * t)
-
-
 def _cell_grid(w, h, inset):
-    """fu, fv of every pixel in the mapped part of a cell (coveart.cell_uv's inset), fv 0 at the bottom."""
-    fu = (np.arange(w, dtype=np.float64) + 0.5 - inset) / (w - 2 * inset)
-    fv = 1.0 - (np.arange(h, dtype=np.float64) + 0.5 - inset) / (h - 2 * inset)
-    return np.meshgrid(fu, fv)
+    """x, y of every pixel in the mapped part of a cell (coveart.cell_uv's inset), 0..1, y 0 at the bottom."""
+    x = (np.arange(w, dtype=np.float64) + 0.5 - inset) / (w - 2 * inset)
+    y = 1.0 - (np.arange(h, dtype=np.float64) + 0.5 - inset) / (h - 2 * inset)
+    return np.meshgrid(x, y)
+
+
+def shell_uv(ca, cells, fu, fv):
+    """Atlas UV of the shell's point fu (round the sector), fv (up the egg): the cell lies on its side."""
+    return ca.cell_uv(cells["shell"], fv, fu)
 
 
 def _crown_fv():
@@ -125,163 +169,180 @@ def _crown_fv():
     return float(np.interp(LIGHT_SHARE, above[::-1], (_S / ARC)[::-1]))
 
 
-def _freckle_distance(fu, fv, scale):
-    """Each pixel's distance in studs to the nearest freckle edge (negative inside), measured on the
-    egg's surface: round the egg by the ring's circumference at that row, up it by arc length."""
+def _surface(fu, fv):
+    """Studs per unit of fu round the sector at each row, and the row in studs up the egg."""
     sv = np.clip(fv, 0.0, 1.0) * ARC
-    ring = 2.0 * math.pi * np.interp(sv, _S, _RAD) / SECTORS      # studs one sector spans at that row
-    d = np.full(fu.shape, 1e9)
-    for cu, cv, rel in FRECKLES:
-        du = (fu - cu + 0.5) % 1.0 - 0.5                             # tileable round the egg
-        dist = np.hypot(du * ring, (fv - cv) * ARC) - rel * scale
-        d = np.minimum(d, dist)
-    return d
+    return 2.0 * math.pi * np.interp(sv, _S, _RAD) / SECTORS, sv
 
 
-def _freckle_scale():
-    """Biggest freckle's radius (studs) that covers DARK_SHARE of the surface, by bisection."""
-    fu, fv = np.meshgrid(np.linspace(0.0, 1.0, 240, endpoint=False) + 0.5 / 240, np.linspace(0.0, 1.0, 400) )
+def _spot_fields(fu, fv, scale):
+    """Distance (studs, negative inside) to the nearest spot's edge, and that spot's centre offset
+    (round, up, in studs) and radius at every pixel, measured on the egg's surface."""
+    ring, _ = _surface(fu, fv)
+    best = np.full(fu.shape, 1e9)
+    off_u, off_v, rad = np.zeros(fu.shape), np.zeros(fu.shape), np.ones(fu.shape)
+    for cu, cv, rel in SPOTS:
+        du = ((fu - cu + 0.5) % 1.0 - 0.5) * ring          # tileable round the egg
+        dv = (fv - cv) * ARC
+        r = rel * scale
+        d = np.hypot(du, dv) - r
+        take = d < best
+        best = np.where(take, d, best)
+        off_u, off_v, rad = np.where(take, du, off_u), np.where(take, dv, off_v), np.where(take, r, rad)
+    return best, off_u, off_v, rad
+
+
+def _spot_scale():
+    """Biggest spot's radius (studs) that covers DARK_SHARE of the surface, by bisection."""
+    fu, fv = np.meshgrid(np.linspace(0.0, 1.0, 240, endpoint=False) + 0.5 / 240, np.linspace(0.0, 1.0, 400))
     weight = np.interp(fv * ARC, _S, _RAD)
     lo, hi = 0.02, 1.0
     for _ in range(40):
         mid = 0.5 * (lo + hi)
-        share = float((weight * (_freckle_distance(fu, fv, mid) < 0.0)).sum() / weight.sum())
+        share = float((weight * (_spot_fields(fu, fv, mid)[0] < 0.0)).sum() / weight.sum())
         lo, hi = (mid, hi) if share < DARK_SHARE else (lo, mid)
     return 0.5 * (lo + hi)
 
 
+def _ink(d, px):
+    """Coverage of a hard edge `d` studs away (negative inside), antialiased over one pixel."""
+    return np.clip(0.5 - d / px, 0.0, 1.0)
+
+
 def paint_shell(w, h, inset):
-    """The outside of the egg, one paint sector: fu round the sector, fv from the bottom pole (0) to
-    the top (1). The shell is one soft gradient, lower to upper; the crown is lit warm cream with a
-    wide soft edge; plum freckles, round on the egg, edged over a pixel. Block map: 0 mid, 1 light, 2 dark."""
-    fu, fv = _cell_grid(w, h, inset)
+    """The outside of the egg, one paint sector. Mid: one gentle gradient, lower to upper. Light: the
+    crown above a hard, softly waving edge, its own short gradient, and a glint on each spot's rim.
+    Dark: hard-edged plum spots. Accent: three apricot freckles. Block map: 0 mid, 1 light, 2 dark, 3 accent."""
+    fv, fu = _cell_grid(w, h, inset)          # the cell lies on its side: x up the egg, y round it
+    px = ARC / (w - 2 * inset)                # studs per pixel up the egg
     crown = _crown_fv()
-    t = _sm(0.15, crown, fv)[..., None]
+    t = np.clip((fv - 0.15) / (crown - 0.15), 0.0, 1.0)[..., None]
     img = _hex(MID_LOW) * (1.0 - t) + _hex(MID_HIGH) * t
-    lit = _sm(crown - 0.05, crown + 0.05, fv)
-    img = img * (1.0 - lit[..., None]) + _hex(CROWN) * lit[..., None]
-    d = _freckle_distance(fu, fv, _freckle_scale())
-    px = ARC / (h - 2 * inset)                                        # studs per pixel up the egg
-    ink = np.clip(0.5 - d / px, 0.0, 1.0)[..., None]
-    img = img * (1.0 - ink) + _hex(SPOT) * ink
-    block = np.where(ink[..., 0] > 0.5, 2, np.where(lit > 0.5, 1, 0)).astype(np.int32)
-    return img.astype(np.float32), block
+    edge = crown + 0.018 * np.sin(2.0 * math.pi * (2.0 * fu + 0.15))       # two waves a sector, so it tiles
+    lit = _ink((edge - fv) * ARC, px)
+    tc = np.clip((fv - crown) / (1.0 - crown), 0.0, 1.0)[..., None]
+    crown_rgb = _hex(CROWN_LOW) * (1.0 - tc) + _hex(CROWN) * tc
+    img = img * (1.0 - lit[..., None]) + crown_rgb * lit[..., None]
+    d, ou, ov, rad = _spot_fields(fu, fv, _spot_scale())
+    spot = _ink(d, px)
+    img = img * (1.0 - spot[..., None]) + _hex(SPOT) * spot[..., None]
+    gu, gv = GLINT[2], GLINT[3]
+    dist = np.hypot(ou, ov)
+    facing = (ou * gu + ov * gv) / np.maximum(dist, 1e-6)                  # cosine to the light's side
+    band = np.minimum(dist - GLINT[0] * rad, GLINT[1] * rad - dist)        # inside the crescent's ring: > 0
+    glint = np.clip(band / px + 0.5, 0.0, 1.0) * np.clip((facing - 0.55) / 0.15, 0.0, 1.0) * (d < 0.0)
+    img = img * (1.0 - glint[..., None]) + _hex(CROWN) * glint[..., None]
+    ring, _ = _surface(fu, fv)
+    fd = np.full(fu.shape, 1e9)
+    for cu, cv in FRECKLES:
+        fd = np.minimum(fd, np.hypot(((fu - cu + 0.5) % 1.0 - 0.5) * ring, (fv - cv) * ARC) - ACCENT_R)
+    warm = _ink(fd, px) * (d > px)
+    img = img * (1.0 - warm[..., None]) + _hex(ACCENT) * warm[..., None]
+    block = np.where(warm > 0.5, 3, np.where(glint > 0.5, 1, np.where(spot > 0.5, 2, np.where(lit > 0.5, 1, 0))))
+    return img.astype(np.float32), block.astype(np.int32)
 
 
-def paint_inside(w, h):
-    """Inside of the broken shell: one flat shadow colour, the dark block."""
-    return np.ones((h, w, 3), np.float32) * _hex(INSIDE), np.full((h, w), 2, np.int32)
-
-
-def paint_edge(w, h):
-    """The broken edge of the shell: catches the light (light block)."""
-    return np.ones((h, w, 3), np.float32) * _hex(CROWN), np.full((h, w), 1, np.int32)
+def paint_inside(w, h, inset):
+    """Inside of the broken shell, one fan from the rim (y 1) to the inner pole (y 0): flat shadow
+    colour (the dark block) under a lit band along the rim, the broken edge catching the light."""
+    _, y = _cell_grid(w, h, inset)
+    px = 1.0 / (h - 2 * inset)
+    lit = np.clip((y - (1.0 - EDGE_FV)) / px + 0.5, 0.0, 1.0)[..., None]
+    img = _hex(INSIDE) * (1.0 - lit) + _hex(CROWN) * lit
+    return img.astype(np.float32), np.where(lit[..., 0] > 0.5, 1, 2).astype(np.int32)
 
 
 # ---------------------------------------------------------------- meshes (coveart.Part, coveart.loft)
 
-def _ring(deg_of_j, inset=0.0):
-    """Ring points; `deg_of_j(j)` is each point's profile angle; `inset` moves them in along the normal."""
+def _ring(deg_of_j):
+    """Ring points; `deg_of_j(j)` is each point's profile angle."""
     out = []
     for j in range(SEGS):
-        d = deg_of_j(j)
-        r, z = profile(d)
-        nr, nz = normal(d)
-        r, z = r - inset * nr, z - inset * nz
-        out.append((r * math.cos(phi(j)), r * math.sin(phi(j)), z))
+        r, z = profile(deg_of_j(j))
+        out.append((r * math.cos(phi(j)) + lean_dx(z), r * math.sin(phi(j)), z))
     return out
 
 
-def _crack_deg(j):
-    return CRACK + (TOOTH if j % 2 == 0 else -TOOTH)
-
-
 def build_parts(ca, cells):
-    """The three closed meshes as coveart.Part: whole egg, top half (the cap), bottom half (the cup).
-    `cells` maps "shell", "inside", "edge" to coveart cell names. Front points (tagged for the facing
-    check) are the ring points facing -Y."""
+    """The three closed meshes: whole egg, top half (the cap), bottom half (the cup), each as
+    (verts, faces, uvs, hidden, front verts, crack verts). `cells` maps "shell" and "inside" to
+    coveart cell names. Front points (tagged for the facing check) face -Y; crack points are the
+    rim, where the outside meets the inside on a hard edge."""
     k = SEGS // SECTORS
-    uv = lambda cell, fu, fv: ca.cell_uv(cells[cell], fu, fv)
+    n = SEGS
 
-    def outer_corner(deg, j_corner, j_face):
-        # fu runs 0..1 over the k segments of a sector; the corner after a sector's last segment is 1, not 0
-        s = j_face % k
-        fu = (s + (1 if (j_corner - j_face) % SEGS == 1 else 0)) / float(k)
-        return uv("shell", fu, fv_of(deg))
-
-    def build(rings, kinds, pole_start, pole_end, pole_kinds):
-        """rings: [(points, degs, "outer" or "inner")], kinds[r]: the band between ring r and r+1 ("outer", "edge",
-        "inside"); pole_kinds: the kind of the fans at each end."""
+    def build(rings, pole_start, pole_end, inside_end):
+        """rings: [(points, degs)] outside, pole to crack; pole_start/pole_end: (point, profile degree or
+        None); inside_end: the fan at the end is the inside."""
         verts, faces = ca.loft([ring[0] for ring in rings], pole_start=pole_start[0], pole_end=pole_end[0])
-        n = SEGS
-        uvs, hidden = [], []
+        uvs = []
         for idx, meta in faces:
             if meta[0] == "q":
                 r, j = meta[1], meta[2]
-                kind = kinds[r]
-                corners = [(r, j), (r, (j + 1) % n), (r + 1, (j + 1) % n), (r + 1, j)]
-            else:
-                kind = pole_kinds[0] if meta[0] == "p0" else pole_kinds[1]
-                j = meta[1]
-                rr = 0 if meta[0] == "p0" else len(rings) - 1
-                corners = [None, (rr, (j + 1) % n), (rr, j)] if meta[0] == "p0" else [(rr, j), (rr, (j + 1) % n), None]
-            face_uv = []
-            for i, c in enumerate(corners):
-                if kind == "outer":
-                    if c is None:
-                        deg = pole_start[1] if meta[0] == "p0" else pole_end[1]
-                        face_uv.append(uv("shell", ((j % k) + 0.5) / k, fv_of(deg)))
-                    else:
-                        face_uv.append(outer_corner(rings[c[0]][1][c[1]], c[1], j))
-                elif kind == "edge":
-                    jj = c[1] if (c[1] != 0 or j != n - 1) else n
-                    face_uv.append(uv("edge", jj / float(n), 0.0 if rings[c[0]][2] == "outer" else 1.0))
-                else:
-                    p = verts[idx[i]]
-                    face_uv.append(uv("inside", 0.5 + p[0] / W, 0.5 + p[1] / W))
-            uvs.append(face_uv)
-            hidden.append(False)
-        return verts, faces, uvs, hidden
+                corners = [(r, j, 0), (r, j, 1), (r + 1, j, 1), (r + 1, j, 0)]
+                uvs.append([shell_uv(ca, cells, ((j % k) + step) / float(k), fv_of(rings[rr][1][(j + step) % n]))
+                            for rr, j, step in corners])
+                continue
+            j = meta[1]
+            if meta[0] == "p1" and inside_end:
+                rr = len(rings) - 1
+                uvs.append([ca.cell_uv(cells["inside"], j / float(n), 1.0), ca.cell_uv(cells["inside"], (j + 1) / float(n), 1.0),
+                            ca.cell_uv(cells["inside"], (j + 0.5) / float(n), 0.0)])
+                continue
+            rr = 0 if meta[0] == "p0" else len(rings) - 1
+            deg = pole_start[1] if meta[0] == "p0" else pole_end[1]
+            pole = shell_uv(ca, cells, ((j % k) + 0.5) / k, fv_of(deg))
+            a = shell_uv(ca, cells, ((j % k) + 1) / float(k), fv_of(rings[rr][1][(j + 1) % n]))
+            b = shell_uv(ca, cells, (j % k) / float(k), fv_of(rings[rr][1][j]))
+            uvs.append([pole, a, b] if meta[0] == "p0" else [b, a, pole])
+        return verts, faces, uvs, [False] * len(faces)
 
-    def outer_ring(deg_of_j):
-        return (_ring(deg_of_j), [deg_of_j(j) for j in range(SEGS)], "outer")
+    def ring(deg_of_j):
+        return (_ring(deg_of_j), [deg_of_j(j) for j in range(SEGS)])
 
-    def inner_ring(deg_of_j):
-        return (_ring(deg_of_j, inset=SHELL), [deg_of_j(j) for j in range(SEGS)], "inner")
+    def pole(deg, inset=0.0):
+        z = profile(deg)[1] + inset
+        return ((lean_dx(z), 0.0, z), deg)
 
     front = lambda nrings: [r * SEGS for r in range(nrings)]      # point 0 of every ring faces -Y
+    crack = lambda nrings: list(range((nrings - 1) * SEGS, nrings * SEGS))
 
     parts = {}
-    # whole egg: bottom pole, rings every 20 degrees, top pole
-    rings = [outer_ring(lambda j, d=d: d) for d in (20.0 * i for i in range(1, RINGS + 1))]
-    v, f, u, hdn = build(rings, ["outer"] * (len(rings) - 1), ((0.0, 0.0, 0.0), 0.0), ((0.0, 0.0, H), 180.0),
-                         ("outer", "outer"))
-    parts["whole"] = (v, f, u, hdn, front(len(rings)))
-    # bottom half (the cup): bottom pole, rings up to the crack, the edge, the inside down to an inner pole
-    rings = [outer_ring(lambda j, d=d: d) for d in CUP_RINGS] + [outer_ring(_crack_deg), inner_ring(_crack_deg)]
-    kinds = ["outer"] * len(CUP_RINGS) + ["edge"]
-    v, f, u, hdn = build(rings, kinds, ((0.0, 0.0, 0.0), 0.0), ((0.0, 0.0, SHELL), None), ("outer", "inside"))
-    parts["bottom"] = (v, f, u, hdn, front(len(CUP_RINGS) + 1))
-    # top half (the cap): top pole, its ring, the crack, the edge, the inside up to an inner pole
-    rings = [outer_ring(lambda j, d=d: d) for d in sorted(CAP_RINGS, reverse=True)] + [outer_ring(_crack_deg), inner_ring(_crack_deg)]
-    kinds = ["outer"] * len(CAP_RINGS) + ["edge"]
-    v, f, u, hdn = build(rings, kinds, ((0.0, 0.0, H), 180.0), ((0.0, 0.0, H - SHELL), None), ("outer", "inside"))
-    parts["top"] = (v, f, u, hdn, front(len(CAP_RINGS) + 1))
+    rings = [ring(lambda j, d=d: d) for d in WHOLE_RINGS]
+    v, f, u, hdn = build(rings, pole(0.0), pole(180.0), False)
+    parts["whole"] = (v, f, u, hdn, front(len(rings)), [])
+    # bottom half (the cup): bottom pole, rings up to the crack, then the inside's fan down to an inner pole
+    rings = [ring(lambda j, d=d: d) for d in CUP_RINGS] + [ring(crack_deg)]
+    v, f, u, hdn = build(rings, pole(0.0), ((lean_dx(SHELL), 0.0, SHELL), None), True)
+    parts["bottom"] = (v, f, u, hdn, front(len(rings)), crack(len(rings)))
+    # top half (the cap): top pole, its ring, the crack, the inside's fan up to an inner pole
+    rings = [ring(lambda j, d=d: d) for d in sorted(CAP_RINGS, reverse=True)] + [ring(crack_deg)]
+    v, f, u, hdn = build(rings, pole(180.0), ((lean_dx(H - SHELL), 0.0, H - SHELL), None), True)
+    parts["top"] = (v, f, u, hdn, front(len(rings)), crack(len(rings)))
     return parts
 
 
 # ---------------------------------------------------------------- the code's part of the hatch, as a preview
 # 04 B1 "it wobbles twice, cracks": in the game this is code (task S6-C2); these keys are the
-# stand-in the review renders use, timed to A_Fish_Hatch, and the starting values for that code (tune).
-CRACK_FRAME = 15                                  # the whole egg is swapped for the halves
-WOBBLE = [(0, 0.0), (2, 0.0), (4, 1.0, "snap"), (6, -0.6, "io"), (8, 0.0, "io"), (10, 1.0, "snap"), (12, -0.6, "io"),
-          (14, 0.0, "io")]
-WOBBLE_DEG = 8.0                                  # the whole egg tips on its base, sideways (about Y)
+# stand-in the review renders use, timed to A_Fish_Hatch (rigs.py owns the rock, the squash and
+# the crack and pop frames, since the Fry rides them), and the starting values for that code (tune).
+CAP_LIFT = [(0, 0.0), (8, 0.0), (9, 0.05, "snap"), (11, 0.03, "io"), (12, 0.07, "snap"), (14, 0.06, "io"), (15, 0.1, "in")]
+CAP_TILT = [(0, 0.0), (8, 0.0), (9, 3.0, "snap"), (11, 2.0, "io"), (12, 6.0, "snap"), (14, 5.0, "io"), (15, 9.0, "in")]
 CAP_FLIP = [(15, 0.0), (19, 0.75, "out"), (24, 1.0, "io")]
 CAP_FLIP_DEG = -115.0                             # the cap tips off backwards (+Y) about its back edge...
-CAP_DROP = (0.0, 0.5, -1.25)                      # ...and falls to the bed behind the egg (studs)
+CAP_DROP = (0.0, 0.6, -1.3)                       # ...and falls to the bed behind the egg (studs)
 CUP_ROCK = [(15, 0.0), (17, 1.0, "snap"), (20, -0.5, "io"), (23, 0.2, "io"), (26, 0.0, "io")]
-CUP_ROCK_DEG = -7.0                               # the cup rocks back once as the Fry shoots out
+CUP_ROCK_DEG = 5.0                                # the cup rocks back once (top to +Y) as the Fry shoots up out of it
+
+
+def egg_matrix(frame):
+    """The whole egg's (and the closed halves') rock and squash at `frame`, in the egg's frame."""
+    import rigs
+    from mathutils import Matrix
+    a = rigs.HATCH_EGG_SQUASH_AMOUNT * rigs.ease_keys(frame, rigs.HATCH_EGG_SQUASH)
+    squash = Matrix.Diagonal((1.0 + 0.5 * a, 1.0 + 0.5 * a, 1.0 - a, 1.0))
+    rock = rigs.hatch_egg_rock(frame) if frame <= rigs.HATCH_POP else Matrix.Identity(4)
+    return rock @ squash
 
 
 def throw_matrices(frame):
@@ -289,28 +350,32 @@ def throw_matrices(frame):
     the whole egg (True) or the halves show."""
     import rigs
     from mathutils import Matrix, Vector
-    whole = Matrix.Rotation(math.radians(WOBBLE_DEG * rigs.ease_keys(frame, WOBBLE)), 4, 'Y')
-    hinge = Vector((0.0, profile(CRACK)[0], profile(CRACK)[1]))
+    egg = egg_matrix(frame)
+    zc = profile(CRACK)[1]
+    hinge = Vector((lean_dx(zc), profile(CRACK)[0], zc))
     flip = rigs.ease_keys(frame, CAP_FLIP)
-    top = (Matrix.Translation(Vector(CAP_DROP) * flip) @ Matrix.Translation(hinge)
-           @ Matrix.Rotation(math.radians(CAP_FLIP_DEG * flip), 4, 'X') @ Matrix.Translation(-hinge))
-    bottom = Matrix.Rotation(math.radians(CUP_ROCK_DEG * rigs.ease_keys(frame, CUP_ROCK)), 4, 'X')
-    return {"whole": whole, "top": top, "bottom": bottom, "show_whole": frame < CRACK_FRAME}
+    tilt = -rigs.ease_keys(frame, CAP_TILT) * (1.0 - flip)
+    lift = rigs.ease_keys(frame, CAP_LIFT) * (1.0 - flip)
+    top = (egg @ Matrix.Translation(Vector(CAP_DROP) * flip + Vector((0.0, 0.0, lift))) @ Matrix.Translation(hinge)
+           @ Matrix.Rotation(math.radians(CAP_FLIP_DEG * flip + tilt), 4, 'X') @ Matrix.Translation(-hinge))
+    bottom = egg @ Matrix.Rotation(math.radians(CUP_ROCK_DEG * rigs.ease_keys(frame, CUP_ROCK)), 4, 'X')
+    return {"whole": egg, "top": top, "bottom": bottom, "show_whole": frame < rigs.HATCH_CRACK}
 
 
-def clip_props(ca, base_z):
+def clip_props(ca):
     """The egg for A_Fish_Hatch's review strip and clip in a creature build (clips.py spec
-    "clip_props"): preview-only objects (never exported or checked) with the egg's base `base_z`
-    under the Fry's origin, and the per-frame hook that wobbles, swaps and throws them."""
+    "clip_props"): preview-only objects (never exported or checked) with the egg's base at
+    rigs.HATCH_EGG_AT in the Fry's frame, and the per-frame hook that rocks, cracks and throws them."""
     import tempfile
     from mathutils import Matrix
     import preyart
+    import rigs
     img, _ = ca.atlas()
     work = os.path.join(tempfile.mkdtemp(prefix="gulp_egg_"), ca.ALBEDO + "_work.png")
     preyart.save_rgba(work, img)
     objs = to_objects(ca, ca.material("MAT_PV_HatchEgg", work),
                       {"whole": "PV_HatchEgg", "top": "PV_HatchEgg_Top", "bottom": "PV_HatchEgg_Bottom"}, CELLS, "PREVIEW")
-    base = Matrix.Translation((0.0, 0.0, base_z))
+    base = Matrix.Translation(rigs.HATCH_EGG_AT)
 
     def at(frame):
         m = throw_matrices(frame)
@@ -321,13 +386,17 @@ def clip_props(ca, base_z):
 
 
 def fit_check(body, clip_name="A_Fish_Hatch"):
-    """extra_checks entry for a creature build: on every frame before the crack the posed body (the
-    skinned mesh as the clip deforms it) stays inside the whole egg's shell."""
+    """extra_checks entry for a creature build, on the posed body (the skinned mesh as the clip
+    deforms it), in the egg's own frame (its rock, squash and lean taken out): until the pop it
+    stays inside the closed egg's shell; from the pop on it never goes through the cup's wall (no
+    frame has body points below the rim both inside the cup and outside it) or under the bed."""
     import bpy
+    import rigs
+    from mathutils import Vector
 
     zs = np.linspace(0.0, H, 400)
     radius = np.interp(zs, [profile(d)[1] for d in np.linspace(0.0, 180.0, 721)],
-                       [max(0.0, profile(d)[0] - SHELL) for d in np.linspace(0.0, 180.0, 721)])
+                       [profile(d)[0] for d in np.linspace(0.0, 180.0, 721)])
 
     def check(spec, report):
         clip = next((c for c in spec.get("actions", []) if c["name"] == clip_name), None)
@@ -337,31 +406,58 @@ def fit_check(body, clip_name="A_Fish_Hatch"):
         saved = arm.data.pose_position
         arm.data.pose_position = 'POSE'                 # the lod and shell steps leave the rig at rest
         arm.animation_data.action = clip["action"]
-        base = fry_above_base()
-        worst, at = -1e9, 0
-        for f in range(clip["start"], clip["start"] + CRACK_FRAME):
+        egg_at = Vector(rigs.HATCH_EGG_AT)
+        worst, at, where, through = -1e9, 0, (0.0, 0.0, 0.0), []
+        for f in range(clip["start"], clip["end"] + 1):
+            frame = f - clip["start"]
             bpy.context.scene.frame_set(f)
             ev = body.evaluated_get(bpy.context.evaluated_depsgraph_get())
-            pts = np.array([(body.matrix_world @ v.co)[:] for v in ev.to_mesh().vertices])
+            m = throw_matrices(frame)["whole" if frame <= rigs.HATCH_POP else "bottom"].inverted()
+            pts = np.array([(m @ (body.matrix_world @ v.co - egg_at))[:] for v in ev.to_mesh().vertices])
             ev.to_mesh_clear()
-            z = pts[:, 2] + base
-            out = np.maximum(np.hypot(pts[:, 0], pts[:, 1]) - np.interp(z, zs, radius), np.maximum(-z, z - H + SHELL))
-            if out.max() > worst:
-                worst, at, where = float(out.max()), f, tuple(pts[int(out.argmax())])
+            z = pts[:, 2]
+            x = pts[:, 0] - np.array([lean_dx(max(0.0, min(H, zz))) for zz in z])
+            r = np.hypot(x, pts[:, 1])
+            if frame <= rigs.HATCH_POP:
+                out = np.maximum(r - (np.interp(z, zs, radius) - SHELL), np.maximum(SHELL - z, z - H + SHELL))
+                if out.max() > worst:
+                    worst, at, where = float(out.max()), frame, tuple(pts[int(out.argmax())])
+                continue
+            rim = np.array([rim_height(math.atan2(yy, xx)) for xx, yy in zip(x, pts[:, 1])])
+            low = z < rim
+            inside = low & (r < np.interp(z, zs, radius))
+            if (inside.any() and (low & ~inside).any()) or (z < 0.0).any():
+                o = np.where(low & ~inside)[0]
+                i = o[int(np.argmin(r[o] - np.interp(z[o], zs, radius)))] if len(o) else int(np.argmin(z))
+                through.append("%d (%.2f %.2f %.2f)" % (frame, pts[i, 0], pts[i, 1], pts[i, 2]))
         bpy.context.scene.frame_set(clip["start"])
         arm.data.pose_position = saved
         report.add(clip_name, "inside the egg", worst <= 0.0,
-                   "frames 0-%d: the body comes %.3f studs %s the shell's inside at its closest (frame %d, at x %.2f y %.2f, "
-                   "%.2f above the egg's base); egg %.1f x %.1f, Fry model %.2f above its base"
-                   % (CRACK_FRAME - 1, abs(worst), "past" if worst > 0 else "short of", at, where[0], where[1], where[2] + base, W, H, base))
+                   "frames 0-%d: the body comes %.3f studs %s the shell's inside at its closest (frame %d, at x %.2f y %.2f "
+                   "z %.2f in the egg's frame); egg %.1f x %.1f, its base at %s in the Fry's frame"
+                   % (rigs.HATCH_POP, abs(worst), "past" if worst > 0 else "short of", at, where[0], where[1], where[2], W, H,
+                      tuple(round(c, 2) for c in rigs.HATCH_EGG_AT)))
+        report.add(clip_name, "out of the cup", not through,
+                   ("frames %s go through the cup's wall or under the bed (the outside point nearest the wall)" % ", ".join(through[:8]))
+                   if through else
+                   "frames %d-%d: the body is inside the cup or clear of it, never through its wall, rising out over the rim"
+                   % (rigs.HATCH_POP + 1, clip["end"] - clip["start"]))
     return check
 
 
 def to_objects(ca, material, names, cells, collection="GEO"):
-    """Blender objects {"whole", "top", "bottom"} named by `names`, on `material`."""
+    """Blender objects {"whole", "top", "bottom"} named by `names`, on `material`; the halves' rims
+    are hard edges (the outside and the inside meet at an angle)."""
     out = {}
-    for key, (verts, faces, uvs, hidden, front) in build_parts(ca, cells).items():
+    for key, (verts, faces, uvs, hidden, front, crack) in build_parts(ca, cells).items():
         part = ca.Part()
         part.add(verts, faces, uvs, hidden, front_verts=front)
-        out[key] = part.to_object(names[key], material, collection)
+        obj = part.to_object(names[key], material, collection)
+        if crack:
+            rim = set(crack)
+            mesh = obj.data
+            sharp = mesh.attributes.get("sharp_edge") or mesh.attributes.new("sharp_edge", 'BOOLEAN', 'EDGE')
+            sharp.data.foreach_set("value", [e.vertices[0] in rim and e.vertices[1] in rim for e in mesh.edges])
+            mesh.update()
+        out[key] = obj
     return out

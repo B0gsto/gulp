@@ -278,7 +278,8 @@ def preview(spec, report, validation_ok):
             rendered = dict(zip(unique, _render_set(clip_objs, CLIP_VIEW, unique, tmp, name + "_c", on_frame=hook)))
             rows_ok = [r for r in report.rows if r["subject"] == name]
             base = os.path.join(common.review_dir(name), common.today())
-            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "size": PREVIEW_SIZE, "strip_size": strip_size,
+            job = {"name": name, "strip": base + "_strip.png", "gif": base + "_clip.gif", "grid": base + "_clip_grid.png",
+                   "size": PREVIEW_SIZE, "strip_size": strip_size, "clip_index": [f - clip["start"] for f in seq],
                    "square": extra.get("square"),
                    "labels": ["f%d %s" % (k, lab) for k, lab in keys], "rows": rows,
                    "clip_frames": [rendered[f] for f in seq], "fps": common.FPS,
@@ -295,7 +296,8 @@ def preview(spec, report, validation_ok):
                 raise RuntimeError("clipsheet.py failed (needs Pillow in the system python3):\n" + done.stderr[-600:])
             print("[clips] %s strip %s" % (name, job["strip"]))
             print("[clips] %s clip  %s" % (name, job["gif"]))
-            results[name] = {"strip": job["strip"], "clip": job["gif"]}
+            print("[clips] %s grid  %s" % (name, job["grid"]))
+            results[name] = {"strip": job["strip"], "clip": job["gif"], "grid": job["grid"]}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         scene.render.resolution_x, scene.render.resolution_y = saved[0], saved[1]

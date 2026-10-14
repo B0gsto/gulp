@@ -75,8 +75,7 @@ CELLS = {   # pixels (x0, y0, x1, y1), y from the top of the image
     "throat": (384, 320, 512, 448),  # the mouth's throat: flat cool shade, no joints, so the opening reads dark
     "throat_deep": (256, 448, 384, 512),   # the throat's last 6.5 studs: its deep half in shadow (fv 0 is the deep end)
     "egg_shell": (384, 448, 480, 512),     # S6-A2 M_Prop_HatchEgg (eggart.py): a third of the shell, repeated round it
-    "egg_inside": (480, 448, 512, 496),    # inside of its broken halves
-    "egg_edge": (480, 496, 512, 512),      # their broken edge
+    "egg_inside": (480, 448, 512, 512),    # inside of its broken halves, the lit broken edge along the rim
 }
 RESERVED = "none: the last free corner (x 384-511 of rows 448-511) holds the hatch egg since S6-A2"
 INSET = 2                           # pixels kept from a cell's edge (bilinear bleed)
@@ -218,8 +217,7 @@ def paint_throat_deep(w, h):
 PAINTERS = {"throat": paint_throat, "throat_deep": paint_throat_deep, "warm": paint_wall, "cool": paint_cool, "blend": paint_blend,
             "blend_u": lambda w, h: paint_blend(w, h, along_u=True), "crack": paint_crack,
             "terrace": paint_terrace, "sand": paint_sand, "stone": paint_stone, "niche": paint_niche,
-            "egg_shell": lambda w, h: eggart.paint_shell(w, h, INSET), "egg_inside": eggart.paint_inside,
-            "egg_edge": eggart.paint_edge}
+            "egg_shell": lambda w, h: eggart.paint_shell(w, h, INSET), "egg_inside": lambda w, h: eggart.paint_inside(w, h, INSET)}
 
 
 def atlas():

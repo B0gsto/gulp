@@ -76,8 +76,8 @@ def poses(k=1.0):
         ("Hatch f0: curled 86%", rigs.fish_hatch_pose(0, k)),       # S6-A2
         ("Hatch f15: squeeze 82%", rigs.fish_hatch_pose(15, k)),
         ("Hatch f18: pop 130%", rigs.fish_hatch_pose(18, k)),
-        ("Hatch f25: wriggle free", rigs.fish_hatch_pose(25, k)),
-        ("Hatch f31: stretch 112%", rigs.fish_hatch_pose(31, k)),
+        ("Hatch f25: glance, blink", rigs.fish_hatch_pose(25, k)),
+        ("Hatch f30: tail kick", rigs.fish_hatch_pose(30, k)),
     ]
 
 

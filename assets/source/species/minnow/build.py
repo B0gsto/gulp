@@ -794,11 +794,11 @@ def build():
 
 def hatch_props(body):
     """S6-A2: the hatch egg (cove/eggart.py) under the Fry for A_Fish_Hatch's review strip and clip
-    only, and the check that the curled Fry stays inside it."""
+    only, and the checks that the curled Fry stays inside it and leaves the cup without going through its wall."""
     sys.path.insert(0, os.path.join(HERE, "..", "..", "cove"))
     import coveart
     import eggart
-    return eggart.clip_props(coveart, -eggart.fry_above_base()), eggart.fit_check(body)
+    return eggart.clip_props(coveart), eggart.fit_check(body)
 
 
 if __name__ == "__main__":
