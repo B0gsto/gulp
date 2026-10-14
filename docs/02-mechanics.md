@@ -285,22 +285,50 @@ No auto-level in this scheme. Buttons are the same as 2.1.
 
 Chapter 15, section 3.3 holds the single key and pad map for every device, including the menu keys (P settings, C tide schedule, hold Tab for the full "biggest" list, Backspace to close). This section keeps only how the in-run inputs feed the model.
 
-The cursor is locked to screen centre while the base state is `Swimming` or `Airborne` and no panel is open. Opening any panel, or holding Left Alt (Option on a Mac), frees it. Esc belongs to Roblox: it opens the Roblox menu, not ours.
+Keys mode has two schemes (owner decision, 14 October 2026; chapter 14). The player picks one in settings under **Mouse** (chapter 08, section 6.7), saved as `InputSettings.scheme` (chapter 09, section 12.2):
 
-| Input | Effect on the model |
-|---|---|
-| Mouse move | Camera look, 0.20° per pixel × look speed (0.2 to 3.0), pitch clamped ±70°. Facing target = camera look direction. |
-| Arrow keys | Turn the look direction: left and right at the tier's turn rate, up and down pitch at the same rate, clamped ±70°. Always active in Keys mode, so the game is fully playable without a mouse. |
-| W | Throttle 1 |
-| S | Brake |
-| A / D | Strafe −1 / +1 |
-| Space or left mouse | Dash |
-| E or right mouse | Ability |
-| R | Toggle auto-swim (throttle held at 1 until W, S or R is pressed) |
-| 1 / 2 / 3 | Trait slot 1 / 2 / 3: press for the popover, hold 0.6 s to shed |
-| T (hold) | Emote wheel **[L]**: pick with the mouse or with 1 to 6, release to send (section 17). There are no direct emote keys. |
+| Scheme | ID | Cursor | Steering | Camera |
+|---|---|---|---|---|
+| **Free cursor** (default) | `keys` | Free and visible at all times (`MouseBehavior.Default`). No pointer lock. | The cursor's horizontal distance from screen centre sets a turn rate; Space and Shift set the pitch | Follows on its own, as on the phone and pad (section 3.2) |
+| **Locked mouse look** | `keys_locked` | Locked to screen centre in a run (below) | The mouse drives the look direction; the creature turns to face it | Driven by the mouse (section 3.2) |
 
-No auto-level in Keys mode: the creature holds whatever pitch the camera has.
+Esc belongs to Roblox: it opens the Roblox menu, not ours. Roblox's own Shift Lock is switched off (`StarterPlayer.EnableMouseLockOption = false`, chapter 09), so Shift is ours in both schemes.
+
+**Free cursor (`keys`, default).** Mapping, with `o` the cursor's horizontal offset from the viewport centre in device pixels and `W` the viewport width:
+
+```
+dead = 0.03 × W                     (tune)  dead zone: |o| < dead gives x = 0
+full = 0.30 × W                     (tune)  full deflection
+x = sign(o) × clamp((|o| − dead) / (full − dead), 0, 1)     screen right is positive
+curve(v) = sign(v) × |v|^1.4                                  the same curve as 2.1
+yawRate     = turnRate × curve(x)   (rate control: bring the cursor back to centre to swim straight)
+pitchTarget = +70° while Space or Arrow Up is held       (swim up)
+              −70° while Shift or Arrow Down is held     (swim down)
+              0°   when both or neither are held         (position control: the creature levels)
+```
+
+- The cursor's vertical position is ignored.
+- **Arrow Left / Right** turn at the tier's full turn rate (`yawRate` ±`turnRate`), added to the cursor's turn; the model clamps the sum (section 1.4).
+- **Auto-level:** pitch is position-controlled, as on the phone. Releasing Space and Shift sets `pitchTarget` to 0°, and the model's turn-rate limit (section 1.4) brings the creature level.
+- **No cursor steering** (`x = 0`) while a panel is open, while the game window is unfocused, or while the cursor is over one of the HUD's interactive elements.
+
+**Locked mouse look (`keys_locked`).** The cursor is locked to screen centre while the base state is `Swimming` or `Airborne` and no panel is open. Opening any panel, or holding Left Alt (Option on a Mac), frees it. No auto-level: the creature holds whatever pitch the camera has.
+
+| Input | Free cursor (`keys`) | Locked mouse look (`keys_locked`) |
+|---|---|---|
+| Mouse move | Cursor left or right of centre turns (formula above); nothing else | Camera look, 0.20° per pixel × look speed (0.2 to 3.0), pitch clamped ±70°. Facing target = camera look direction. |
+| Space / Left or Right Shift (hold) | Swim up / swim down: `pitchTarget` +70° / −70°; both or neither 0° | Pitch the look direction up / down at the tier's turn rate, the same as Arrow Up / Down, clamped ±70° |
+| Arrow keys | Left and right turn at the tier's full turn rate; up and down are the same as Space and Shift | Turn the look direction: left and right at the tier's turn rate, up and down pitch at the same rate, clamped ±70° |
+| W | Throttle 1 | Throttle 1 |
+| S | Brake | Brake |
+| A / D | Strafe −1 / +1 | Strafe −1 / +1 |
+| Q or left mouse | Dash | Dash |
+| E or right mouse | Ability | Ability |
+| R | Toggle auto-swim (throttle held at 1 until W, S or R is pressed) | Same |
+| 1 / 2 / 3 | Trait slot 1 / 2 / 3: press for the popover, hold 0.6 s to shed | Same |
+| T (hold) | Emote wheel **[L]**: pick with the mouse or with 1 to 6, release to send (section 17). There are no direct emote keys. | Same |
+
+The arrow keys are always active in both schemes, so the game is fully playable without a mouse. Space no longer dashes in either scheme.
 
 ### 2.4 Gamepad [L]
 
@@ -373,9 +401,9 @@ All smoothing is exponential: `value += (target − value) × (1 − e^(−dt / 
 | Channel | τ (s) | Note |
 |---|---|---|
 | Position | 0.12 | The creature pulls ahead slightly when it accelerates |
-| Yaw (phone, gamepad) | 0.18 | Camera yaw follows creature yaw |
-| Pitch (phone, gamepad) | 0.25 | Camera pitch = 0.6 × creature pitch, so the horizon stays readable |
-| Rotation (PC, two-thumb) | 0 | Input drives the camera directly; the creature turns to follow |
+| Yaw (phone, gamepad, Keys free cursor) | 0.18 | Camera yaw follows creature yaw |
+| Pitch (phone, gamepad, Keys free cursor) | 0.25 | Camera pitch = 0.6 × creature pitch, so the horizon stays readable |
+| Rotation (Keys locked mouse look, two-thumb) | 0 | Input drives the camera directly; the creature turns to follow |
 | Distance change | 0.25 | Used for every distance change except tier-up |
 
 ### 3.3 Tier-up pull-back

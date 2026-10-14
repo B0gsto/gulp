@@ -4,8 +4,9 @@
 -- mappings, dead zones and curves, and `client/Controllers/InputController` feeds it the raw
 -- engine input. Numbers and tables only, so it runs in Lune.
 --
--- Schemes at MVP: drag to swim on touch (02 §2.1, 15 §3.1) and keys with mouse look (02 §2.3,
--- 15 §3.3). The gamepad, the two-thumb scheme and the left-handed layout are [L].
+-- Schemes at MVP: drag to swim on touch (02 §2.1, 15 §3.1), and on keys the free cursor (the
+-- default) or locked mouse look (02 §2.3, 15 §3.3). The gamepad, the two-thumb scheme and the
+-- left-handed layout are [L].
 --
 -- Angles in degrees. Yaw follows SwimModel: 0 faces −Z, positive yaw turns left. `yawRate` in a
 -- SwimInput is positive to the right (02 §2.1: screen right is positive). Screen coordinates grow
@@ -13,8 +14,8 @@
 --
 -- Units: the drag numbers are rpx (02 §2, 08 §1.2: a pixel of the 1280 × 720 reference canvas,
 -- scaled with the interface). InputController converts touch positions with `toRpx` and the
--- interface scale of Kit/Screen before calling the drag functions. Mouse look stays in device
--- px (02 §2.3).
+-- interface scale of Kit/Screen before calling the drag functions. Mouse look and the free
+-- cursor stay in device px (02 §2.3).
 local Defaults = require("../Config/Defaults")
 local Types = require("../Types")
 
@@ -31,6 +32,8 @@ local LEVEL_BAND = INPUT.autoLevelBand
 local LEVEL_RATE = INPUT.autoLevelRate
 local LEVEL_DELAY = INPUT.autoLevelDelay
 local DEG_PER_PX = INPUT.mouseDegPerPx
+local CURSOR_DEAD_ZONE = INPUT.cursorDeadZone
+local CURSOR_FULL = INPUT.cursorFull
 
 local abs, sqrt, sign = math.abs, math.sqrt, math.sign
 
@@ -195,15 +198,69 @@ function InputMath.arrowLook(
 	return wrap(yaw - right * step), clamp(pitch + up * step, -PITCH_LIMIT, PITCH_LIMIT)
 end
 
---- Keys (02 §2.3): W throttle 1 (or auto-swim), S brake, A and D strafe −1 and +1; the facing
---- target is the look direction. No auto-level in Keys mode.
-function InputMath.fromKeys(out: SwimInput, keys: Keys, lookYaw: number, lookPitch: number)
+--- A pair of held keys as one axis: 1, −1, or 0 when both or neither are held. Vertical on keys
+--- (02 §2.3, 15 §3.3): Space or Arrow Up is `positive`, Shift or Arrow Down `negative`; turning:
+--- Arrow Right is `positive`.
+function InputMath.axis(positive: boolean, negative: boolean): number
+	return (if positive then 1 else 0) - (if negative then 1 else 0)
+end
+
+--- Free cursor (02 §2.3, 15 §3.3): the cursor's horizontal offset from the viewport centre (device
+--- px, right +) as an axis −1 to 1. Inside the dead zone (3 % of the viewport width) it is 0; it
+--- rises linearly from the dead zone edge to 1 at full deflection (30 % of the width). A viewport
+--- width that is not positive or not finite gives 0.
+function InputMath.cursorAxis(offsetX: number, viewportWidth: number): number
+	if not (viewportWidth > 0 and viewportWidth < math.huge) then
+		return 0
+	end
+	local dead = CURSOR_DEAD_ZONE * viewportWidth
+	local length = abs(offsetX)
+	if not (length > dead) then
+		return 0
+	end
+	return sign(offsetX) * clamp((length - dead) / (CURSOR_FULL * viewportWidth - dead), 0, 1)
+end
+
+--- Free cursor steering (02 §2.3, 15 §3.3): yawRate = turnRate × curve(x), the phone's curve
+--- (02 §2.1), positive to the right. Rate control: the cursor back at the centre swims straight.
+--- The cursor's vertical position is ignored.
+function InputMath.cursorSteer(offsetX: number, viewportWidth: number, turnRate: number): number
+	return turnRate * InputMath.curve(InputMath.cursorAxis(offsetX, viewportWidth))
+end
+
+--- Keys, both schemes (02 §2.3): W throttle 1 (or auto-swim), S brake, A and D strafe −1 and +1.
+local function fromKeyThrust(out: SwimInput, keys: Keys)
 	out.throttle = if keys.forward or keys.autoSwim then 1 else 0
 	out.brake = keys.brake
 	out.strafe = (if keys.right then 1 else 0) - (if keys.left then 1 else 0)
+end
+
+--- Locked mouse look (02 §2.3, 15 §3.3, the `keys_locked` scheme): the facing target is the look
+--- direction. No auto-level.
+function InputMath.fromKeys(out: SwimInput, keys: Keys, lookYaw: number, lookPitch: number)
+	fromKeyThrust(out, keys)
 	out.yawTarget = lookYaw
 	out.yawRate = 0
 	out.pitchTarget = clamp(lookPitch, -PITCH_LIMIT, PITCH_LIMIT)
+end
+
+--- Free cursor (02 §2.3, 15 §3.3, the `keys` scheme, the default): `steer` is the cursor's yaw
+--- rate (`cursorSteer`, °/s, right +); Arrow Left and Right (`right`, −1, 0 or 1) add the tier's
+--- full turn rate, and the model clamps the sum. `up` (`axis` of Space or Arrow Up against Shift or
+--- Arrow Down) sets the pitch target to ±70°; 0, both or neither held, levels the creature at the
+--- model's pitch rate (position control, as on the phone).
+function InputMath.fromCursorKeys(
+	out: SwimInput,
+	keys: Keys,
+	steer: number,
+	right: number,
+	up: number,
+	turnRate: number
+)
+	fromKeyThrust(out, keys)
+	out.yawTarget = nil
+	out.yawRate = steer + right * turnRate
+	out.pitchTarget = PITCH_LIMIT * clamp(up, -1, 1)
 end
 
 --- Auto-swim after a key press (02 §2.3): R toggles it; W or S ends it.

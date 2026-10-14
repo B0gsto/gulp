@@ -1,4 +1,5 @@
 --!strict
+local Defaults = require("../../../src/shared/Config/Defaults")
 local InputMath = require("../../../src/shared/Logic/InputMath")
 local TestKit = require("../../../src/shared/Util/TestKit")
 
@@ -155,6 +156,73 @@ describe("InputMath keys and mouse (02 §2.3)", function()
 		yaw, pitch = InputMath.arrowLook(0, 60, -1, 1, 360, 0.1)
 		expect(yaw).toBeCloseTo(36, 1e-9)
 		expect(pitch).toBe(70)
+	end)
+end)
+
+describe("InputMath free cursor (02 §2.3, 15 §3.3)", function()
+	-- A 1000 px wide viewport: the dead zone is 30 px, full deflection 300 px.
+	it("uses the tune numbers: dead zone 3 %, full 30 % of the viewport width", function()
+		expect(Defaults.input.cursorDeadZone).toBe(0.03)
+		expect(Defaults.input.cursorFull).toBe(0.30)
+	end)
+
+	it("gives nothing inside the dead zone", function()
+		expect(InputMath.cursorAxis(0, 1000)).toBe(0)
+		expect(InputMath.cursorAxis(29, 1000)).toBe(0)
+		expect(InputMath.cursorAxis(-30, 1000)).toBe(0)
+		expect(InputMath.cursorSteer(20, 1000, 90)).toBe(0)
+	end)
+
+	it("remaps linearly from the dead zone edge to full deflection, then clamps", function()
+		expect(InputMath.cursorAxis(165, 1000)).toBeCloseTo(0.5, 1e-9) -- (165 − 30) / 270
+		expect(InputMath.cursorAxis(300, 1000)).toBeCloseTo(1, 1e-9)
+		expect(InputMath.cursorAxis(500, 1000)).toBe(1)
+		expect(InputMath.cursorAxis(-500, 1000)).toBe(-1)
+		expect(InputMath.cursorAxis(-165, 1000)).toBeCloseTo(-0.5, 1e-9)
+	end)
+
+	it("scales with the viewport width and ignores a bad width", function()
+		expect(InputMath.cursorAxis(330, 2000)).toBeCloseTo(0.5, 1e-9) -- (330 − 60) / 540
+		expect(InputMath.cursorAxis(100, 0)).toBe(0)
+		expect(InputMath.cursorAxis(100, 0 / 0)).toBe(0)
+		expect(InputMath.cursorAxis(100, math.huge)).toBe(0)
+		expect(InputMath.cursorAxis(0 / 0, 1000)).toBe(0)
+	end)
+
+	it("steers with the phone's curve, positive to the right", function()
+		expect(InputMath.cursorSteer(300, 1000, 90)).toBeCloseTo(90, 1e-9)
+		expect(InputMath.cursorSteer(-400, 1000, 90)).toBeCloseTo(-90, 1e-9)
+		expect(InputMath.cursorSteer(165, 1000, 90)).toBeCloseTo(90 * 0.5 ^ 1.4, 1e-9)
+		expect(InputMath.cursorSteer(-165, 1000, 90)).toBeCloseTo(-90 * 0.5 ^ 1.4, 1e-9)
+	end)
+
+	it("reads a key pair as one axis: both or neither cancel", function()
+		expect(InputMath.axis(true, false)).toBe(1)
+		expect(InputMath.axis(false, true)).toBe(-1)
+		expect(InputMath.axis(true, true)).toBe(0)
+		expect(InputMath.axis(false, false)).toBe(0)
+	end)
+
+	it("maps keys, cursor and arrows to rate control and a ±70° pitch target", function()
+		local input = InputMath.newInput()
+		local steer = InputMath.cursorSteer(165, 1000, 90)
+		InputMath.fromCursorKeys(input, keys({ forward = true, right = true }), steer, 0, 1, 90)
+		expect(input.throttle).toBe(1)
+		expect(input.strafe).toBe(1)
+		expect(input.brake).toBe(false)
+		expect(input.yawTarget).toBe(nil)
+		expect(input.yawRate).toBeCloseTo(steer, 1e-9)
+		expect(input.pitchTarget).toBe(70) -- Space (or Arrow Up): swim up
+		InputMath.fromCursorKeys(input, keys({ brake = true }), 0, -1, -1, 90)
+		expect(input.throttle).toBe(0)
+		expect(input.brake).toBe(true)
+		expect(input.yawRate).toBe(-90) -- Arrow Left: the full turn rate, to the left
+		expect(input.pitchTarget).toBe(-70) -- Shift (or Arrow Down): swim down
+		local up = InputMath.axis(true, true) -- Space and Shift together: level
+		InputMath.fromCursorKeys(input, keys({ autoSwim = true }), steer, 1, up, 90)
+		expect(input.throttle).toBe(1)
+		expect(input.yawRate).toBeCloseTo(steer + 90, 1e-9) -- added; the model clamps
+		expect(input.pitchTarget).toBe(0)
 	end)
 end)
 

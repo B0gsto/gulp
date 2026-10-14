@@ -53,11 +53,13 @@ describe("SaveSchema", function()
 
 	it("knows the scheme IDs of each input mode (15 §2.2)", function()
 		expect(SaveSchema.SCHEMES.touch).toEqual({ drag = true, two_thumb = true })
-		expect(SaveSchema.SCHEMES.keys).toEqual({ keys = true })
+		expect(SaveSchema.SCHEMES.keys).toEqual({ keys = true, keys_locked = true })
 		expect(SaveSchema.SCHEMES.pad).toEqual({ pad = true })
 		local input = SaveSchema.template().settings.input
 		expect(SaveSchema.checkSchemes(input)).toBe(true)
 		input.touch.scheme = "two_thumb"
+		expect(SaveSchema.checkSchemes(input)).toBe(true)
+		input.keys.scheme = "keys_locked"
 		expect(SaveSchema.checkSchemes(input)).toBe(true)
 		input.keys.scheme = "drag"
 		local ok, why = SaveSchema.checkSchemes(input)

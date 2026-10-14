@@ -189,6 +189,10 @@ Defaults.input = table.freeze({
 	mouseLookSpeed = 1.0, -- 15 §3.3: default; range 0.2 to 3.0
 	mouseLookSpeedMin = 0.2,
 	mouseLookSpeedMax = 3.0,
+	-- Free cursor (02 §2.3, 15 §3.3): steering by the cursor's horizontal offset from the
+	-- viewport centre, as fractions of the viewport width.
+	cursorDeadZone = 0.03, -- (tune) inside it no turn
+	cursorFull = 0.30, -- (tune) full turn rate at this offset and past it
 })
 
 -- The rule numbers of shared/Logic (task S4-C3) that the bible gives in prose or formulas, not in

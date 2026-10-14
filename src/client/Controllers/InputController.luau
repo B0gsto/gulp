@@ -1,7 +1,8 @@
 --!strict
 -- InputController: turns raw input into one `SwimInput` (docs/09, section 5.2; module B11).
--- Drag to swim on touch (docs/02 §2.1, docs/15 §3.1) and keys with mouse look (02 §2.3, 15 §3.3)
--- at MVP; the gamepad, the two-thumb scheme and the left-handed layout are [L]. The mappings,
+-- Drag to swim on touch (docs/02 §2.1, docs/15 §3.1), and on keys the free cursor (scheme "keys",
+-- the default) or locked mouse look ("keys_locked") (02 §2.3, 15 §3.3) at MVP; the gamepad, the
+-- two-thumb scheme and the left-handed layout are [L]. The mappings,
 -- dead zones and curves are `Shared.Logic.InputMath`; this module only reads `UserInputService`.
 --
 -- The input mode is `UserInputService.PreferredInput`, re-read on every change (15 §5.1, PF18),
@@ -29,7 +30,7 @@ local MAX_DT = SwimModel.MAX_DT
 -- The schemes each mode offers at MVP (02 §2; 08 §6.7: one scheme, Drag to swim, on touch).
 local SCHEMES: { [InputMode]: { string } } = {
 	Touch = { "drag" }, -- "twoThumb" is [L]
-	Keys = { "keys" },
+	Keys = { "keys", "keys_locked" }, -- free cursor (default), locked mouse look (02 §2.3)
 	Pad = { "pad" }, -- [L]: no pad scheme yet, so Pad mode gives no input
 }
 
@@ -38,7 +39,7 @@ InputController.name = "InputController"
 
 --- Fires the new mode when the input mode changes (15 §5.1).
 InputController.onModeChanged = Signal.new() :: Types.Signal<InputMode>
---- Fires on every dash press: Space, left mouse, or the HUD dash button (02 §2.1, §2.3).
+--- Fires on every dash press: Q, left mouse, or the HUD dash button (02 §2.1, §2.3).
 InputController.onDash = Signal.new() :: Types.Signal<>
 --- Fires on every ability press: E, right mouse, or the HUD ability button.
 InputController.onAbility = Signal.new() :: Types.Signal<>
@@ -49,6 +50,7 @@ local currentMode: InputMode = "Keys"
 local schemeOf: { [InputMode]: string } = { Touch = "drag", Keys = "keys", Pad = "pad" }
 local sensitivity = Defaults.input.dragSensitivity -- TODO(B23): from the saved settings
 local lookSpeed = Defaults.input.mouseLookSpeed -- TODO(B23): from the saved settings
+-- TODO(B23): the saved `InputSettings.scheme` per mode calls setScheme; until then Keys is "keys".
 local turnRate = 0 -- the tier's turn rate, °/s, from the Tier and Species attributes
 local lastRead = os.clock()
 
@@ -67,8 +69,14 @@ local releasedAt = -math.huge
 local keys: InputMath.Keys =
 	{ forward = false, brake = false, left = false, right = false, autoSwim = false }
 local arrowLeft, arrowRight, arrowUp, arrowDown, altHeld = false, false, false, false, false
-local lookYaw, lookPitch = 0, 0
+-- Swim up, swim down (02 §2.3): either Shift, each tracked so releasing one keeps the other.
+local spaceHeld, leftShift, rightShift = false, false, false
+local lookYaw, lookPitch = 0, 0 -- locked mouse look
 local mouseDX, mouseDY = 0, 0
+-- Free cursor: no steering while the window is unfocused or the cursor is over GUI that sinks
+-- input (02 §2.3). `overGui` is the gameProcessed flag of the last mouse movement; a release or
+-- a mode switch clears it, so a still cursor never keeps steering off.
+local focused, overGui = true, false
 
 -- Dash: a press is true for one read; a held HUD button is true every read (held dash).
 local dashPressed, dashHeld = false, false
@@ -101,8 +109,28 @@ local function releaseHeld()
 	keys.forward, keys.brake, keys.left, keys.right, keys.autoSwim =
 		false, false, false, false, false
 	arrowLeft, arrowRight, arrowUp, arrowDown, altHeld = false, false, false, false, false
+	spaceHeld, leftShift, rightShift, overGui = false, false, false, false
 	mouseDX, mouseDY = 0, 0
 	dashPressed, dashHeld = false, false
+end
+
+local function locked(): boolean
+	return currentMode == "Keys" and schemeOf[currentMode] == "keys_locked"
+end
+
+-- Locked mouse look only (02 §2.3): the cursor is locked to screen centre while swimming and freed
+-- by holding Left Alt. The free cursor (the default) is never locked. Roblox's own Shift Lock is
+-- off (StarterPlayer.EnableMouseLockOption in the project file).
+-- TODO(B23, S8-C4): also free it while a panel is open.
+local function updateMouseLock()
+	local want = if locked()
+			and not altHeld
+			and player.Character ~= nil
+		then Enum.MouseBehavior.LockCenter
+		else Enum.MouseBehavior.Default
+	if UserInputService.MouseBehavior ~= want then
+		UserInputService.MouseBehavior = want
+	end
 end
 
 local function setMode(mode: InputMode)
@@ -114,6 +142,7 @@ local function setMode(mode: InputMode)
 	if mode == "Keys" then
 		syncLook()
 	end
+	updateMouseLock()
 	InputController.onModeChanged:fire(mode)
 end
 
@@ -153,8 +182,14 @@ local function onInputBegan(object: InputObject, gameProcessed: boolean)
 			keys.left = true
 		elseif key == Enum.KeyCode.D then
 			keys.right = true
-		elseif key == Enum.KeyCode.Space then
+		elseif key == Enum.KeyCode.Q then
 			pressDash()
+		elseif key == Enum.KeyCode.Space then
+			spaceHeld = true
+		elseif key == Enum.KeyCode.LeftShift then
+			leftShift = true
+		elseif key == Enum.KeyCode.RightShift then
+			rightShift = true
 		elseif key == Enum.KeyCode.E then
 			InputController.onAbility:fire()
 		elseif key == Enum.KeyCode.Left then
@@ -171,9 +206,10 @@ local function onInputBegan(object: InputObject, gameProcessed: boolean)
 	end
 end
 
-local function onInputChanged(object: InputObject, _gameProcessed: boolean)
+local function onInputChanged(object: InputObject, gameProcessed: boolean)
 	local kind = object.UserInputType
 	if kind == Enum.UserInputType.MouseMovement then
+		overGui = gameProcessed
 		mouseDX += object.Delta.X
 		mouseDY += object.Delta.Y
 	elseif kind == Enum.UserInputType.Touch and object == swimTouch then
@@ -199,6 +235,12 @@ local function onInputEnded(object: InputObject, _gameProcessed: boolean)
 			keys.left = false
 		elseif key == Enum.KeyCode.D then
 			keys.right = false
+		elseif key == Enum.KeyCode.Space then
+			spaceHeld = false
+		elseif key == Enum.KeyCode.LeftShift then
+			leftShift = false
+		elseif key == Enum.KeyCode.RightShift then
+			rightShift = false
 		elseif key == Enum.KeyCode.Left then
 			arrowLeft = false
 		elseif key == Enum.KeyCode.Right then
@@ -213,17 +255,17 @@ local function onInputEnded(object: InputObject, _gameProcessed: boolean)
 	end
 end
 
--- The cursor is locked to screen centre while swimming and freed by holding Left Alt (02 §2.3).
--- TODO(B23, S8-C4): also free it while a panel is open.
-local function updateMouseLock()
-	local want = if currentMode == "Keys"
-			and not altHeld
-			and player.Character ~= nil
-		then Enum.MouseBehavior.LockCenter
-		else Enum.MouseBehavior.Default
-	if UserInputService.MouseBehavior ~= want then
-		UserInputService.MouseBehavior = want
+-- Free cursor steering (02 §2.3): the yaw rate from the cursor's horizontal offset from the
+-- viewport centre, device px. `GetMouseLocation` and `ViewportSize` share the viewport's origin.
+-- TODO(B23, S8-C4): no steering while a panel is open.
+local function cursorSteer(): number
+	local camera = workspace.CurrentCamera
+	if not focused or overGui or camera == nil then
+		return 0
 	end
+	local width = camera.ViewportSize.X
+	local offset = UserInputService:GetMouseLocation().X - width / 2
+	return InputMath.cursorSteer(offset, width, turnRate)
 end
 
 --- The SwimInput for this frame. MovementController calls it once per frame; the returned table
@@ -240,17 +282,23 @@ function InputController.read(): SwimInput
 		end
 	elseif currentMode == "Keys" then
 		updateMouseLock()
-		if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-			lookYaw, lookPitch =
-				InputMath.mouseLook(lookYaw, lookPitch, mouseDX, mouseDY, lookSpeed)
+		local right = InputMath.axis(arrowRight, arrowLeft)
+		-- Space or Arrow Up swims up, Shift or Arrow Down swims down; both cancel (02 §2.3).
+		local up = InputMath.axis(spaceHeld or arrowUp, leftShift or rightShift or arrowDown)
+		if locked() then
+			if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+				lookYaw, lookPitch =
+					InputMath.mouseLook(lookYaw, lookPitch, mouseDX, mouseDY, lookSpeed)
+			end
+			if right ~= 0 or up ~= 0 then
+				lookYaw, lookPitch =
+					InputMath.arrowLook(lookYaw, lookPitch, right, up, turnRate, dt)
+			end
+			InputMath.fromKeys(input, keys, lookYaw, lookPitch)
+		else
+			InputMath.fromCursorKeys(input, keys, cursorSteer(), right, up, turnRate)
 		end
 		mouseDX, mouseDY = 0, 0
-		local right = (if arrowRight then 1 else 0) - (if arrowLeft then 1 else 0)
-		local up = (if arrowUp then 1 else 0) - (if arrowDown then 1 else 0)
-		if right ~= 0 or up ~= 0 then
-			lookYaw, lookPitch = InputMath.arrowLook(lookYaw, lookPitch, right, up, turnRate, dt)
-		end
-		InputMath.fromKeys(input, keys, lookYaw, lookPitch)
 	else
 		-- Pad: the scheme is [L]. The creature coasts and levels, as with no touch.
 		InputMath.fromRelease(input, math.huge, dt)
@@ -265,14 +313,19 @@ function InputController.mode(): InputMode
 	return currentMode
 end
 
---- Chooses the control scheme for the current input mode. MVP has one per mode (drag to swim on
---- touch, keys on desktop); the two-thumb scheme and the pad are [L].
+--- Chooses the control scheme for the current input mode: drag to swim on touch; "keys" (free
+--- cursor, the default) or "keys_locked" (locked mouse look) on desktop (02 §2.3, 15 §3.3). The
+--- two-thumb scheme and the pad are [L].
 function InputController.setScheme(id: string)
 	if table.find(SCHEMES[currentMode], id) == nil then
 		Log.warn(TAG, `scheme "{id}" is not available in {currentMode} mode`)
 		return
 	end
 	schemeOf[currentMode] = id
+	if currentMode == "Keys" then
+		syncLook() -- locked mouse look starts where the creature faces
+		updateMouseLock()
+	end
 end
 
 --- For the HUD buttons (08 §3.7; not in 09 §5.2's API, which names no route for them): a dash
@@ -312,7 +365,13 @@ function InputController.start()
 	UserInputService.InputChanged:Connect(onInputChanged)
 	UserInputService.InputEnded:Connect(onInputEnded)
 	-- A key held while the window loses focus never sends its end.
-	UserInputService.WindowFocusReleased:Connect(releaseHeld)
+	UserInputService.WindowFocusReleased:Connect(function()
+		focused = false
+		releaseHeld()
+	end)
+	UserInputService.WindowFocused:Connect(function()
+		focused = true
+	end)
 
 	-- 15 §5.2: turning the phone ends the swim touch so a drag cannot stick.
 	local camera = workspace.CurrentCamera

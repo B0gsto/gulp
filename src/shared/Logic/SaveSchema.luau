@@ -29,7 +29,8 @@ end
 --- chapter 15, section 2.2). The left-handed layout is a setting of a scheme, not a scheme.
 local SCHEMES: { [string]: { [string]: boolean } } = {
 	touch = table.freeze({ drag = true, two_thumb = true }), -- drag to swim [MVP]; two-thumb [L]
-	keys = table.freeze({ keys = true }), -- mouse and keyboard, or keys only [MVP]
+	-- mouse and keyboard [MVP]: free cursor (the default) or locked mouse look (02 §2.3, 15 §3.3)
+	keys = table.freeze({ keys = true, keys_locked = true }),
 	pad = table.freeze({ pad = true }), -- [L]
 }
 SaveSchema.SCHEMES = table.freeze(SCHEMES)

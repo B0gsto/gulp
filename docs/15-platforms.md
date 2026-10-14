@@ -81,7 +81,7 @@ One game, one place, one set of servers. A platform is "supported" when its Play
 | Phone orientation | **Landscape only.** `StarterGui.ScreenOrientation = LandscapeSensor`, set by hand in Studio, and set again on `PlayerGui` by the client at start because the documented default conflicts (PF21). Portrait is not planned: the game is about what is ahead and to the sides, the drag-to-swim thumb needs the wide axis, and one HUD is all a solo developer can keep tested. |
 | Tablets | Same orientation rule, same HUD, tablet scale, a wider vertical field of view (section 3.2). |
 | VR | Off at every stage in this document. |
-| Chromebook | PC presentation with touch as a full fallback. If the pointer cannot be locked (PF36), the keys-only scheme (3.3) is the default there. |
+| Chromebook | PC presentation with touch as a full fallback. The free cursor (3.3) is the default there as everywhere, so no pointer lock is needed; if the pointer cannot be locked (PF36), the Locked mouse look option is hidden. |
 | Handheld PC | PC with a pad, interface scale 0.90 (tune). |
 | Servers | All devices share servers (section 4). |
 | Console chat | The chat window is never shown on a TV (PF13). |
@@ -129,7 +129,7 @@ scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 
 **Input mode** decides the control scheme, the hints and the assist strength. It is `UserInputService.PreferredInput`, re-read on every change (section 5). Values: `Touch`, `Keys`, `Pad`.
 
-**Control scheme IDs**, saved per input mode (chapter 09, section 12.2, `InputSettings.scheme`): `drag` (drag to swim, Touch, [MVP]), `two_thumb` (the two-thumb phone scheme, Touch, [L]), `keys` (mouse and keyboard, or keys only, Keys, [MVP]) and `pad` (Pad, [L]). The left-handed layout is a setting of a scheme, not a scheme.
+**Control scheme IDs**, saved per input mode (chapter 09, section 12.2, `InputSettings.scheme`): `drag` (drag to swim, Touch, [MVP]), `two_thumb` (the two-thumb phone scheme, Touch, [L]), `keys` (free cursor: mouse and keyboard, or keys only, Keys, [MVP], the default), `keys_locked` (locked mouse look, Keys, [MVP], a setting) and `pad` (Pad, [L]). The left-handed layout is a setting of a scheme, not a scheme.
 
 | | Phone | Tablet | Desktop | Handheld | TV |
 |---|---|---|---|---|---|
@@ -138,7 +138,7 @@ scale       = clamp( min(heightScale, widthScale), 0.40, 2.60 )
 | HUD variant | Touch buttons | Touch buttons, 24 rpx further in | Hint tiles with key caps | Hint tiles with pad glyphs | Hint tiles with pad glyphs, 5% TV margins |
 | Scale at a typical size | 0.52 at 375 px tall | 0.69 at 768 px | 0.90 at 1,080 px | 1.35 at 1,080 px; 1.00 at 800 px | 1.20 at 1,080 px |
 | Smallest text (22 rpx) becomes | 11 px | 15 px | 20 px | 30 px; 22 px | 26 px |
-| Camera | Follows on its own | Follows on its own | Mouse drives it | Follows; right stick looks around | Follows; right stick looks around |
+| Camera | Follows on its own | Follows on its own | Follows on its own; the mouse drives it with locked mouse look | Follows; right stick looks around | Follows; right stick looks around |
 | Vertical field of view (base) | 70° | 70° to 79° by aspect | 70°, lowered past 21:9 | 70° | 70° |
 | Starting graphics tier | Smooth | Balanced | Balanced | Balanced | Balanced |
 | Frame rate target | 30 (Smooth), 60 above | 60 | 60 or the player's cap | 60 | 60; 30 on older consoles |
@@ -152,7 +152,7 @@ Session lengths other than the phone's (canon) are assumptions. They are replace
 | Presentation | Used by | In one line |
 |---|---|---|
 | **Touch** | Phone, tablet | One thumb drags to swim, two big buttons under the other thumb, the camera does its own work. |
-| **Desk** | Windows, Mac, Chromebook with keys | The mouse aims, the hand rests on W, Space and E; the HUD shrinks to hints and a longer leaderboard. |
+| **Desk** | Windows, Mac, Chromebook with keys | A free cursor steers, Space and Shift swim up and down, the hand rests on W, Q and E; the HUD shrinks to hints and a longer leaderboard. |
 | **Pad** | PC with a pad, handheld PC | Left stick swims exactly like the phone drag; everything else is a button; hints are glyphs. |
 | **Couch** | Xbox, PlayStation, any TV | The Pad presentation with larger scale, 5% TV margins, full focus navigation in menus, no chat. |
 
@@ -418,9 +418,9 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 | [#4 Lumo    120 ]                                                                        |
 | [#5 Kai      64 ]                                                              (home)    |
 |   [Tab]                               .                                         120 m    |
-|                                    reticle                                               |
+|                           reticle (locked mouse look only)                               |
 |                                 [st][st]                               (ABIL)  (DASH)    |
-|                          (safe) (tr1) (tr2) (tr3)             [T]       [E]    [Space]   |
+|                          (safe) (tr1) (tr2) (tr3)             [T]       [E]      [Q]     |
 |                                  [1]   [2]   [3]                                         |
 +------------------------------------------------------------------------------------------+
 ```
@@ -443,10 +443,10 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 
 | Compared with the phone | Change |
 |---|---|
-| Dash and ability | Hint tiles 80 × 96 rpx (icon with cooldown, key cap or glyph under it); they show state, they are not pressed with the cursor in a run |
+| Dash and ability | Hint tiles 80 × 96 rpx (icon with cooldown, key cap or glyph under it); they show state, they are not pressed with the cursor in a run (a click over them neither dashes nor steers) |
 | Drag ring, emote button | Gone; the emote hint sits beside the ability tile [L] |
 | `HUD.Biggest` | 5 rows; Tab (or L3) shows all 24 |
-| Reticle | 32 rpx dot at the centre, keys only |
+| Reticle | 32 rpx dot at the centre, Locked mouse look only (the free cursor needs none) |
 | Smallest mouse target | 48 × 48 rpx (43 px at 1,080p) |
 | Text floor | 22 rpx = 20 px at 1,080p; 14 px at 768p |
 | Safe area | No notch. Roblox top-bar keep-out still applies. |
@@ -457,18 +457,19 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 | Action | Keys | Pad (Xbox names) |
 |---|---|---|
 | Swim forward | W; R toggles auto-swim | Left stick: how far it is pushed is the throttle |
-| Steer | Mouse: 0.20° per px × look speed; the creature turns to face the camera, pitch ±70°. **Arrow keys also steer** [MVP]: left and right turn at the tier's turn rate, up and down pitch at the same rate. | Left stick: left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° (the phone mapping). Dead zone 0.15. |
+| Steer | **Free cursor** (default): the cursor's distance left or right of screen centre sets the turn rate, from 0 at 3% of the window width to full at 30% (tune), with the phone's curve; its height is ignored (document 02, section 2.3). **Locked mouse look** (setting): mouse 0.20° per px × look speed; the creature turns to face the camera, pitch ±70°. **Arrow keys also steer** [MVP] in both: left and right turn at the tier's full turn rate, up and down as Swim up and Swim down. | Left stick: left and right turn at up to the tier's turn rate, up and down set pitch up to ±70° (the phone mapping). Dead zone 0.15. |
+| Swim up, swim down | Hold Space, hold Shift (left or right). Free cursor: pitch goes to +70° or −70° and levels when both or neither are held. Locked mouse look: the look direction pitches at the tier's turn rate. Arrow up and down do the same. | Left stick up and down (Steer) |
 | Look without steering | None | Right stick: up to ±120° and ±50° at 180° per second; recentres 0.8 s after release. Dead zone 0.20. |
 | Brake | S | LT |
 | Strafe | A and D | None |
-| Dash | Space or left mouse button | A or RT |
+| Dash | Q or left mouse button | A or RT |
 | Ability | E or right mouse button | X or RB |
 | Shed trait 1, 2, 3 | 1, 2, 3: press for the popover, hold 600 ms to shed | D-pad left, up, right: same press and hold |
 | Emote wheel [L] | Hold T, move the mouse or press 1 to 6, release | Hold D-pad down, pick with the right stick, release |
 | Settings | P | View button (in the cove: moves focus to the dock) |
 | Tide schedule | C | Press the right stick |
 | Full "biggest" list | Hold Tab | Press the left stick |
-| Free the cursor | Hold Left Alt (Option on a Mac) | Not needed |
+| Free the cursor | Free cursor: always free. Locked mouse look: hold Left Alt (Option on a Mac) | Not needed |
 | Bank | Swim into your own cove mouth. No button. | Same |
 | Home marker | Always shown; display only | Same |
 | Navigate menus | Mouse; wheel scrolls; Q and E change tab; 1 to 6 pick a dock button in the cove | D-pad or left stick moves focus; LB and RB change tab; right stick scrolls; LT and RT jump a page |
@@ -480,7 +481,8 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 
 | Setting | Default | Range |
 |---|---|---|
-| Mouse look speed | 1.0 (0.20° per px) | 0.2 to 3.0 |
+| Mouse | Free cursor | Free cursor, Locked mouse look. Shown only in Keys mode; Locked mouse look is hidden where the pointer cannot be locked (3.4). |
+| Mouse look speed | 1.0 (0.20° per px) | 0.2 to 3.0; applies to Locked mouse look only |
 | Pad look speed | 1.0 (180° per second) | 0.5 to 2.0 |
 | Pad stick curve | Exponent 1.4, as the phone drag | Fixed |
 | Flip up and down | Off | Per input type |
@@ -488,15 +490,17 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 | Assist | Keys: weakest set. Pad: same as touch (section 4.2). | Not adjustable |
 | Remapping | [MVP] and [L]: none; two inputs per main action already. [P1]: a key rebinding list for desktop (dash, ability, brake, auto-swim, shed 1 to 3, emote, settings, tide, list), saved in the profile. Esc, slash, F9, F11 and Print Screen can never be bound. Pads get no rebinding. | |
 
-**Why arrow keys steer.** Many laptop trackpads ignore movement while a key is held, so "mouse aims, Space dashes" fails on the cheapest machines. Arrow keys turn the look direction, so the game is fully playable with a keyboard alone. They are always active in Keys mode; there is no separate scheme to choose.
+**Why the cursor is free.** The owner decided on 14 October 2026 (chapter 14) that PC controls do not lock the mouse by default: the cursor stays visible and steers by its distance from the centre, Space swims up and Shift swims down. Locked mouse look, the earlier scheme, stays as a setting. Roblox's own Shift Lock is switched off in the project file (`StarterPlayer.EnableMouseLockOption = false`), so Shift is ours.
 
-**Camera.** Keys: the mouse drives the camera directly (no smoothing) and the creature turns to follow at its tier's turn rate; no auto-level. Pad: automatic follow as on the phone, with the right stick as a temporary look-around. Same distance as every platform. Field of view by the table in 3.2; past 21:9 the vertical angle is lowered so an ultrawide monitor shows no more sea to the sides than a 21:9 one.
+**Why arrow keys steer.** Many laptop trackpads ignore movement while a key is held, so steering with the pointer while holding W fails on the cheapest machines. Arrow keys turn the creature, so the game is fully playable with a keyboard alone. They are always active in both Keys schemes; there is no separate keys-only scheme.
+
+**Camera.** Keys, free cursor: automatic follow as on the phone (document 02, section 3.2: yaw τ 0.18 s, pitch 0.6 × the creature's pitch). Keys, locked mouse look: the mouse drives the camera directly (no smoothing) and the creature turns to follow at its tier's turn rate; no auto-level. Pad: automatic follow as on the phone, with the right stick as a temporary look-around. Same distance as every platform. Field of view by the table in 3.2; past 21:9 the vertical angle is lowered so an ultrawide monitor shows no more sea to the sides than a 21:9 one.
 
 **What it looks like.** Balanced at start; Pretty after a successful probe (section 6), which most PCs with a separate graphics card will pass: sun rays near the surface, 350-stud prey meshes, full fog distance, 24 animated rigs. A low-end laptop usually settles on Smooth.
 
 **Performance.** See 3.0. On Windows the player can raise Roblox's cap to 240 fps (PF27); on a Mac the cap is [U]. Frame-rate independence test: at caps of 30, 60 and 240 fps a tier 1 creature at full speed covers 260 studs in 10 s ± 2%, and a 360° turn and a dash each take the same time and cover the same distance at all three caps, within 2%.
 
-**Menus.** Keys: cursor, with key caps on buttons (Enter, Backspace, Q and E, F). The mouse is locked and hidden while swimming and freed whenever a panel is open, on the gulped panel and bank summary, and while Left Alt is held. Pad: full focus navigation as in 3.5, at desktop scale; the hint bar shows glyphs.
+**Menus.** Keys: cursor, with key caps on buttons (Enter, Backspace, Q and E, F). With the free cursor the mouse is never locked or hidden; it stops steering whenever a panel is open, the window is unfocused or the cursor is over an interactive HUD element. With locked mouse look the mouse is locked and hidden while swimming and freed whenever a panel is open, on the gulped panel and bank summary, and while Left Alt is held. Pad: full focus navigation as in 3.5, at desktop scale; the hint bar shows glyphs.
 
 | Rule | Detail |
 |---|---|
@@ -504,15 +508,17 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 | Chat and voice | Chat window off at [MVP]; the [L] panel is shown only if the launch review turns chat on. Slash stays Roblox's chat key. No voice. |
 | Notifications | Arrive in the Roblox notification stream (PF33). No desktop push is assumed. |
 | Haptics | Pad only. At the 2025 release, pads on macOS 15 and later did not vibrate (PF31, may be out of date). The Vibration setting shows only in Touch and Pad modes. |
-| Mac | Option is the free-cursor key. Function keys are not used for anything, because Mac laptops and Chromebooks do not send them without a modifier. |
+| Mac | Option is the key that frees the cursor in locked mouse look. Function keys are not used for anything, because Mac laptops and Chromebooks do not send them without a modifier. |
 | Window | Any size and shape; see section 5. |
 
 **Test checklist**
 
-- [ ] A full run and a bank using the mouse and W, Space, E; another using only the keyboard (arrows); another using only a pad.
-- [ ] The cursor is never visible while swimming and always visible when a panel is open; Left Alt frees it; no click falls through a panel into a dash.
+- [ ] A full run and a bank with the free cursor and W, Space, Shift, Q, E; another with locked mouse look; another using only the keyboard (arrows); another using only a pad.
+- [ ] Free cursor: the cursor is always visible and never locked; it does not steer while a panel is open, the window is unfocused or it is over an interactive HUD element; with it at the centre the creature swims straight.
+- [ ] Locked mouse look: the cursor is never visible while swimming and always visible when a panel is open; Left Alt frees it.
+- [ ] In both schemes no click falls through a panel into a dash, and holding Shift never turns on Roblox's Shift Lock.
 - [ ] Every HUD action has a key and its key cap is shown; nothing needs a hover.
-- [ ] Esc opens the Roblox menu and nothing of ours; closing it returns the mouse lock.
+- [ ] Esc opens the Roblox menu and nothing of ours; closing it returns the mouse lock (locked mouse look).
 - [ ] Frame-rate independence test above passes.
 - [ ] Windows at 1,366 × 768, 1,920 × 1,080, 2,560 × 1,080 and 3,840 × 2,160; a Mac laptop at its default scaled resolution: no overlap, text at or above the floor.
 - [ ] Plug a pad in mid-run and unplug it: hints swap within 200 ms each way, the creature never stops responding.
@@ -530,9 +536,9 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 | [#1 Mako 412]                    0:45  [P]  |  | [#1 Mako 412]                    0:45       |
 | ... 5 rows       [ moment ]      [ toast ]  |  | ... 5 rows       [ moment ]      [ toast ]  |
 |   [Tab]              .             (home)   |  |                                   (home)    |
-|                   reticle                   |  |  ( drag )     (creature)         (emote)    |
+|             (free cursor)                   |  |  ( drag )     (creature)         (emote)    |
 |            (tr1)(tr2)(tr3)   (ABIL) (DASH)  |  |  ( ring )  (tr1)(tr2)(tr3) (ABILITY)(DASH)  |
-|             [1]  [2]  [3]     [E]  [Space]  |  |                                             |
+|             [1]  [2]  [3]     [E]    [Q]    |  |                                             |
 +---------------------------------------------+  +---------------------------------------------+
 ```
 
@@ -540,13 +546,13 @@ if hFOV(vFOV, aspect) > 117°: vFOV = 2 × atan( tan(58.5°) / aspect )
 
 | Point | Rule |
 |---|---|
-| Pointer lock | Whether `MouseBehavior.LockCenter` works in the Android app on ChromeOS is [U] (PF36). The client tests it at the first run: if the pointer position still moves after the lock is set, mouse aiming is switched off for the session, the cursor stays visible, and the first-run hint teaches the arrow keys. |
+| Pointer lock | The default free cursor needs none. Whether `MouseBehavior.LockCenter` works in the Android app on ChromeOS is [U] (PF36). The client tests it the first time locked mouse look is chosen: if the pointer position still moves after the lock is set, the Locked mouse look option is hidden for the session and the scheme falls back to the free cursor. |
 | Trackpad | Arrow keys steer (3.3), so a trackpad is never required. |
 | Top-row keys | Not used. Search, Alt and the browser keys are never bound. |
 
 Defaults, look speeds and assists are those of the active input mode. No remapping.
 
-**Camera.** As the active input mode: mouse-driven when the lock works, automatic follow with arrow keys or touch. 16:9 or 16:10, so 70°.
+**Camera.** As the active input mode: automatic follow with the free cursor, arrow keys or touch; mouse-driven only with locked mouse look. 16:9 or 16:10, so 70°.
 
 **What it looks like and performance.** Starts on Balanced and is expected to settle on Smooth within the first minute. Target 30 fps, floor 25, memory ceiling 1,300 MB (tune; these devices behave like a low phone with a bigger screen). The cut order in 3.0 applies.
 
@@ -558,7 +564,7 @@ Defaults, look speeds and assists are those of the active input mode. No remappi
 
 - [ ] On a 4 GB Chromebook: join, first bite within 10 s, a run to tier 3 and a bank, with keyboard only.
 - [ ] The same with touch only, and with trackpad plus keyboard.
-- [ ] Record what `PreferredInput`, `ViewportDisplaySize`, `TouchEnabled`, `KeyboardEnabled` and `MouseEnabled` report, and whether the pointer locks. Correct section 2.2 from the result.
+- [ ] Record what `PreferredInput`, `ViewportDisplaySize`, `TouchEnabled`, `KeyboardEnabled` and `MouseEnabled` report, and whether the pointer locks (locked mouse look). Correct section 2.2 from the result.
 - [ ] Touch the screen mid-run: touch buttons appear within 200 ms; press a key: they go.
 - [ ] Ten-minute Frenzy run holds 25 fps.
 - [ ] Resize the app window and switch to tablet mode on a convertible: the HUD rescales, nothing overlaps.
@@ -775,9 +781,9 @@ Phone, tablet, PC, handheld and console players share the same 24-player servers
 | Factor | Who gains | How large |
 |---|---|---|
 | Turning speed | Nobody | Facing turns at the tier's turn rate for every input (document 02, section 1.4). A mouse cannot spin a creature faster than a thumb can. |
-| Heading precision | Mouse | The mouse sets a heading directly. Touch drag, pad stick and arrow keys set a turn **rate**, so they overshoot and correct. This is the main real gap, and it shows when lining up a dash. |
+| Heading precision | Locked mouse look | Locked mouse look sets a heading directly. Touch drag, pad stick, the free cursor (the Keys default) and arrow keys set a turn **rate**, so they overshoot and correct. This is the main real gap, and it shows when lining up a dash. |
 | Strafe | Keys, two-thumb touch | A and D give sideways thrust at 0.6 × top speed. Drag-to-swim and the pad have none. It is a dodge the others lack. |
-| Looking behind | Pad | The right stick looks around without steering. Touch drag and mouse cannot look away from where they swim. |
+| Looking behind | Pad | The right stick looks around without steering. Touch drag and the mouse in either Keys scheme cannot look away from where they swim. |
 | Fingers | Keys, pad | Dash and ability sit under fingers that are not steering. On touch they need the second thumb, which is free in the drag scheme. Small gap. |
 | Screen | PC, TV, tablet | Bigger picture, so small prey and distant threats are easier to see. Threat arrows and outlines are the same size in rpx everywhere to offset this. |
 | Frame rate and delay | PC | 60 to 240 fps against 30 on a low phone; TVs add display delay. Rules are frame-rate independent (3.3), so this affects reaction time only. |
@@ -842,9 +848,9 @@ The input mode follows `UserInputService.PreferredInput` (PF18). If that propert
 | What the player does | Result |
 |---|---|
 | Presses a pad button or moves a stick past its dead zone (PC, phone, tablet, Chromebook) | Mode becomes Pad. Touch buttons or key caps become glyphs, the cursor and reticle hide, the camera eases to automatic follow over 0.3 s. |
-| Moves the mouse more than 8 px, or presses a key, while in Pad or Touch mode | Mode becomes Keys. Key caps show; the mouse locks if nothing is open. |
+| Moves the mouse more than 8 px, or presses a key, while in Pad or Touch mode | Mode becomes Keys. Key caps show; with locked mouse look the mouse locks if nothing is open. |
 | Touches the screen (Chromebook, touch laptop, handheld, tablet with a keyboard) | Mode becomes Touch. The touch buttons appear at the current scale; the cursor hides. |
-| Attaches a keyboard to a tablet | Nothing until a key is pressed; then Keys mode at tablet scale. Mouse aiming only if a pointer exists and locks; otherwise the arrow keys steer. |
+| Attaches a keyboard to a tablet | Nothing until a key is pressed; then Keys mode at tablet scale. The free cursor steers if a pointer exists; otherwise the arrow keys steer. Locked mouse look only if the pointer locks. |
 | Unplugs the pad, or it loses power | Phone and tablet: Touch. PC: Keys. TV: input zero, the creature coasts, a toast appears; any pad that sends input takes over. |
 | Plugs in a second pad | The pad that sent the most recent input drives. There is no split screen. |
 
@@ -853,7 +859,7 @@ The input mode follows `UserInputService.PreferredInput` (PF18). If that propert
 | Hint swap time | Within 200 ms (document 08, section 10.1) |
 | Screen class | Does **not** change with the input mode. Only the viewport changes it. So plugging a pad into a PC changes hints and controls, not scale. |
 | Held inputs | Inputs held in the old mode are released (throttle 0) unless the new mode supplies one in the same frame. Dash cooldown and the input buffer carry over. |
-| Camera | Never snaps. Leaving mouse aim, the current look direction becomes the creature's heading target. |
+| Camera | Never snaps. Leaving locked mouse look, the current look direction becomes the creature's heading target. |
 | Assist set | Switches with the mode, at once. Only one set is ever active. |
 | Flapping | Three switches inside 10 s (a Chromebook player steering with keys and tapping the dash button) puts the HUD in a mixed state for the rest of the run: touch buttons stay visible and key caps stay on. |
 | Settings panel | Shows the rows for the current mode (look speed, scheme, vibration) and re-draws on a switch |
@@ -971,7 +977,7 @@ These changes were applied to the chapters named during reconciliation. The fina
 |---|---|---|---|
 | 1 | Pad scheme and TV layout are [L]; the Console switch is [P1], weeks 2 to 4, gated on real hardware. Documents 08 and 12 disagreed. | 08 §10.4; 12 G8 and §10 Q1; 01 §1 | 08: retitle "Gamepad [L]; console listing [P1]". 12: add "weeks 2 to 4, gate = 15 §3.5 and §3.6". 01: the Platform line could read "phone, tablet and PC first; controller at launch; console in the first month; VR off". |
 | 2 | Screen class by `ViewportDisplaySize` first (the docs say not to use `IsTenFootInterface` to detect consoles), a Handheld class, a width term in the scale formula, clamp 0.40 to 2.60, class recomputed on viewport change. | 08 §1.2, §10.1 | Replace the detection column and formula; change "chosen once at join". |
-| 3 | PC keys merged: Space or left mouse dashes, E or right mouse uses the ability, R is auto-swim (from 02); P settings, C tide, Backspace close, Esc is Roblox's (from 08). | 02 §2.3; 08 §10.2 | 02: change the Esc row, add P, C, Backspace. 08: add the mouse buttons and R. |
+| 3 | PC keys merged: Space or left mouse dashes (Q or left mouse since row 25), E or right mouse uses the ability, R is auto-swim (from 02); P settings, C tide, Backspace close, Esc is Roblox's (from 08). | 02 §2.3; 08 §10.2 | 02: change the Esc row, add P, C, Backspace. 08: add the mouse buttons and R. |
 | 4 | Direct emote keys F1 to F6 are dropped (Mac laptops and Chromebooks do not send them). The wheel takes 1 to 6 while T is held. | 02 §2.3, §17.1; 08 §3.17, §10.2 | Replace F1 to F6. |
 | 5 | Pad map merged: traits on D-pad left, up, right and emote on hold D-pad down with the right stick (from 08); RT also dashes, LT brakes (from 02); new: RB also uses the ability, LB reserved. | 02 §2.4, §17.1; 08 §10.4; 01 §5.6 | 02: drop "LB / RB select trait slot; hold Y" and "D-pad up, left stick". 08: add RT, LT, RB. |
 | 6 | Arrow keys steer in Keys mode [MVP]. | 02 §2.3; 08 §10.2, §13.12; 07; 04 | Add the rows; add hint image `UI_Hint_KeyArrows`; teach it in the desktop first-run hint. Applied in 02, 04 and 08 (the hint is in 08 §10.2; 04 §3.2 shows the arrow keys alongside W in the PC ghost prompt, and 04 §9 in the controls hint). Chapter 07 lists no interface images, so nothing was needed there. |
@@ -993,6 +999,7 @@ These changes were applied to the chapters named during reconciliation. The fina
 | 22 | Low phone is defined as test row 1 (4 GB, the document 04 reference phone) as well as 2 to 3 GB phones. | 09 §15.1; 04 (reference phone definition) | Use the same definition. |
 | 23 | PlayStation needs a glyph for the button mapped to `ButtonSelect`, and mouse-button glyphs for dash and ability. | 07; 08 §13.12 | Add the images if they are not listed. Applied in 08 §13.12, which owns interface images; chapter 07 lists none. |
 | 24 | Browser play gets a one-week check when Roblox releases it. | 12 §10 | Add to the Q1 or Q2 row. |
+| 25 | Owner decision of 14 October 2026 (chapter 14): Keys mode has two schemes. **Free cursor** (`keys`, default): no pointer lock, the cursor's distance from centre turns, Space swims up, Shift swims down, the camera follows on its own. **Locked mouse look** (`keys_locked`, a setting): the earlier mouse-aim scheme, with Space and Shift pitching the look. Both: Q or left mouse dashes, E or right mouse uses the ability; Roblox's Shift Lock is off. | 01 §5.6; 02 §2.3, §3.2; 04 §3.2; 08 §3.2, §6.7, §10.2; 09 §3.1, §5.2, §6.10, §12.2; 14 | Rewrite the PC canon line and 02 §2.3; name the scheme in the camera rows; dash key cap Q in the HUD sketches and the dash pulse; add the Mouse setting; add `keys_locked` and `EnableMouseLockOption = false`. |
 
 **Noticed while reading, now resolved:** emote visibility is 120 studs in chapters 02, 03 and 08, and a late dash press is remembered for 250 ms in chapters 02 and 08 (chapter 02 owns both).
 

@@ -260,10 +260,10 @@ Chapter 15, section 3.3 owns the PC layout and its key map. This wireframe shows
 | [#4 Lumo    120 ]                                                                        |
 | [#5 Kai      64 ]                                                              (home)    |
 |   [Tab]                               .                                         120 m    |
-|                                    reticle                                               |
+|                           reticle (locked mouse look only)                               |
 |                                                                                          |
 |                                 [st][st]                               (ABIL)  (DASH)    |
-|                          (safe) (tr1) (tr2) (tr3)             [T]       [E]    [Space]   |
+|                          (safe) (tr1) (tr2) (tr3)             [T]       [E]      [Q]     |
 |                                  [1]   [2]   [3]                                         |
 +------------------------------------------------------------------------------------------+
 ```
@@ -295,7 +295,7 @@ Each element has an ID that chapter 04 and the code use to show, hide or point a
 | `HUD.Home` | [MVP] | Edge or world | Clamped 72 rpx inside, or above the cove mouth | 72 + label | Home direction and distance |
 | `HUD.DragRing` | [MVP] | At the touch | Under the steering thumb | Ring 168, knob 72 | Steering feedback |
 | `HUD.MassPops` | [MVP] | World | At the creature's mouth | Text 28 | "+4" numbers on each bite |
-| `HUD.Reticle` | [MVP] | 0.5, 0.5 | `{0.5, 0},{0.5, 0}` | 32 × 32 | Desktop only: aim dot |
+| `HUD.Reticle` | [MVP] | 0.5, 0.5 | `{0.5, 0},{0.5, 0}` | 32 × 32 | Desktop only, Locked mouse look only: aim dot |
 | `HUD.Outlines` | [MVP] | World | On creatures | n/a | Edible and danger outlines (3.11) |
 
 **Layout switches**
@@ -519,7 +519,7 @@ A centred row of 48 rpx icons, each with a ring that drains over the effect's le
 | `HUD.MassPops` | [MVP] | "+4" rises 48 rpx from the mouth and fades over 500 ms. At most 4 at once; fast bites merge into one number. |
 | `HUD.Settings` | [MVP] | Opens S31. In open water the panel is the 360 rpx side panel only. |
 | `HUD.Lag` | [MVP] | `UI_HUD_Lag` shows when the round trip is over 300 ms for 3 s (tune); hides when it recovers |
-| `HUD.Reticle` | [MVP] | Desktop only, 50% opacity; hidden while the cursor is free |
+| `HUD.Reticle` | [MVP] | Desktop only, 50% opacity; hidden while the cursor is free, so it shows only with Locked mouse look (chapter 15, section 3.3) |
 | Zone name | [MVP] | On entering a zone, its name shows in the moment slot for 1.5 s (lowest priority) |
 | `HUD.Emote` | [L] | Opens S06 |
 | `HUD.WildTag` | [L] | Name tag above every computer-controlled wild creature within 60 studs (tune): `UI_HUD_WildTag` (a leaf, 28 rpx) and `hud.wild` with the species name, Small 22 on a chip. It is never styled like a player's name, and wild creatures get outlines by tier like any creature (3.11). Canon 15: they are clearly labelled as wild. |
@@ -1040,7 +1040,8 @@ A side panel 360 rpx wide and the full safe height, docked to the right edge, sl
 | Controls | [L] | Two pictures to choose from (`UI_Settings_SchemeDrag`, `UI_Settings_SchemeTwoThumb`) | Drag to swim, Two thumbs | Drag to swim | Phone, tablet. In the MVP there is one scheme, Drag to swim, and this row is absent. |
 | Left-handed | [L] | Toggle | Off, on | Off | Phone, tablet |
 | Drag sensitivity | [MVP] | Slider | 0.5 to 1.5, step 0.1 | 1.0 | Touch |
-| Mouse look speed | [MVP] | Slider | 0.2 to 3.0, step 0.1 | 1.0 | Keys and mouse |
+| Mouse | [MVP] | Two-way picker (`settings.mouse`). The row icon is `UI_Hint_MouseMove` drawn at 48 rpx, so no new image is needed. | Free cursor, Locked mouse look | Free cursor | Keys and mouse. Locked mouse look is absent where the pointer cannot be locked (chapter 15, section 3.4). |
+| Mouse look speed | [MVP] | Slider | 0.2 to 3.0, step 0.1 | 1.0 | Keys and mouse, Locked mouse look only |
 | Two-thumb look speed | [L] | Slider | 0.5 to 2.0, step 0.1 | 1.0 | Touch, Two thumbs scheme only |
 | Gamepad look speed | [L] | Slider | 0.5 to 2.0, step 0.1 | 1.0 | Gamepad |
 | Swap sticks | [L] | Toggle | Off, on | Off | Gamepad |
@@ -1251,7 +1252,7 @@ Two things are detected and they are independent (chapter 15, section 2.2).
 
 ### 10.2 Desktop: hints and cursor
 
-The key map is chapter 15, section 3.3 and is not repeated here. What it changed in this chapter: Space or the left mouse button dashes; E or the right mouse button uses the ability; R toggles auto-swim; the arrow keys also steer [MVP]; there are no direct emote keys (no F1 to F6), the wheel takes 1 to 6 while T is held [L]. Esc, slash, F9, F11 and Print Screen stay with Roblox and are never bound.
+The key map is chapter 15, section 3.3 and is not repeated here. What it changed in this chapter: two Keys schemes, the free cursor (default) and locked mouse look (a setting, 6.7; owner decision of 14 October 2026, chapter 14); Space swims up and Shift swims down; Q or the left mouse button dashes (Space no longer dashes); E or the right mouse button uses the ability; R toggles auto-swim; the arrow keys also steer [MVP]; there are no direct emote keys (no F1 to F6), the wheel takes 1 to 6 while T is held [L]. Esc, slash, F9, F11 and Print Screen stay with Roblox and are never bound.
 
 This chapter owns where each key cap is drawn.
 
@@ -1264,12 +1265,13 @@ This chapter owns where each key cap is drawn.
 | Close button, primary button | On the button |
 | Tab column | At its two ends |
 | Dock buttons, Claim all, Bubble button | On the button |
-| Swim and steer | Guide layer only: four `UI_Hint_Key` caps (W, A, S, D) with `UI_Hint_MouseMove`, or `UI_Hint_KeyArrows` when the player steers with the arrow keys. The desktop first-run hint (chapter 04) teaches both. |
+| Swim and steer | Guide layer only: four `UI_Hint_Key` caps (W, A, S, D) with `UI_Hint_MouseMove`, or `UI_Hint_KeyArrows` when the player steers with the arrow keys, and Space and Shift caps for swim up and swim down. The desktop first-run hint (chapter 04) teaches both. |
 
 | Cursor rule | Detail |
 |---|---|
-| In a run and in the cove with nothing open | The mouse is locked to the centre and hidden; the reticle shows. All HUD actions have keys. |
-| Freed | When any menu, dialog, popover or side panel is open, on the gulped panel and bank summary, in decoration mode, or while Left Alt is held |
+| In a run and in the cove with nothing open | Free cursor (default): the cursor is visible and steers by its distance from the centre (chapter 02, section 2.3); no reticle. Locked mouse look: the mouse is locked to the centre and hidden; the reticle shows. All HUD actions have keys. |
+| Not steering (free cursor) | While a panel is open, while the game window is unfocused, or while the cursor is over an interactive HUD element |
+| Freed (locked mouse look) | When any menu, dialog, popover or side panel is open, on the gulped panel and bank summary, in decoration mode, or while Left Alt is held |
 | Cursor image | `UI_Hint_Cursor` (normal and pressed); never the Roblox arrow |
 | Hover | Buttons scale to 1.04 and brighten in 80 ms with `SFX_UI_Hover`. Icon-only elements (trait, status, tier, zone) show their name in a chip after 400 ms. |
 | Scroll | Mouse wheel scrolls lists; dragging also works |
@@ -1831,7 +1833,7 @@ Key letters are text on a blank key cap, so one image serves every key. Gamepad 
 
 | Asset | Tag | Shows | Size (rpx) | 9-slice | Art states | Atlas |
 |---|---|---|---|---|---|---|
-| `UI_Hint_Key` | [MVP] | Blank key cap (stretches for Space) | 48x48 | Yes | normal, pressed | No |
+| `UI_Hint_Key` | [MVP] | Blank key cap (stretches for Space and Shift) | 48x48 | Yes | normal, pressed | No |
 | `UI_Hint_MouseMove` | [MVP] | Mouse with move arrows | 48x48 | No | 1 | Glyphs |
 | `UI_Hint_MouseLeft` | [MVP] | Mouse, left button lit (dash) | 48x48 | No | 1 | Glyphs |
 | `UI_Hint_MouseRight` | [MVP] | Mouse, right button lit (ability) | 48x48 | No | 1 | Glyphs |
@@ -2361,7 +2363,10 @@ At most 28 characters in English; keep translations under 40.
 | `settings.scheme_two` | Two thumbs | [L] One thumb moves, the other looks |
 | `settings.left_hand` | Left-handed | [L] Buttons move to the left side |
 | `settings.drag_speed` | Drag sensitivity | Touch: how far the thumb must move to swim at full speed |
-| `settings.mouse_speed` | Mouse look speed | Desktop: how fast the view turns |
+| `settings.mouse` | Mouse | Desktop: how the mouse steers |
+| `settings.mouse_free` | Free cursor | Mouse choice: the pointer stays visible; its distance from the centre turns the creature |
+| `settings.mouse_locked` | Locked mouse look | Mouse choice: the pointer is hidden and turns the view |
+| `settings.mouse_speed` | Mouse look speed | Desktop, locked mouse look: how fast the view turns |
 | `settings.two_thumb_speed` | Look speed | [L] Touch, two-thumb scheme: how fast the view turns |
 | `settings.pad_speed` | Stick look speed | [L] Gamepad: how fast the view turns |
 | `settings.swap_sticks` | Swap sticks | [L] Gamepad: swim with the right stick, look with the left |
@@ -2435,7 +2440,7 @@ Chapter 03 owns these content lists and supplies the English. The interface has 
 | `danger.<id>.line` | [L] One line per predator and hazard, for the Codex Dangers tab | Chapter 03 |
 | Language names | Each language in its own name; not translated | Set when languages are chosen |
 
-**String count:** 423 strings in sections 14.1 to 14.12: 275 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
+**String count:** 426 strings in sections 14.1 to 14.12: 278 [MVP], 147 [L], 0 [P1], 1 [P2]. 38 strings (9%) are longer than four words.
 
 ## 15. Build order
 

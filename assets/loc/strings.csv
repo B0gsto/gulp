@@ -363,7 +363,10 @@ settings.scheme_drag,[L] One thumb steers,,Drag to swim
 settings.scheme_two,"[L] One thumb moves, the other looks",,Two thumbs
 settings.left_hand,[L] Buttons move to the left side,,Left-handed
 settings.drag_speed,Touch: how far the thumb must move to swim at full speed,,Drag sensitivity
-settings.mouse_speed,Desktop: how fast the view turns,,Mouse look speed
+settings.mouse,Desktop: how the mouse steers,,Mouse
+settings.mouse_free,Mouse choice: the pointer stays visible; its distance from the centre turns the creature,,Free cursor
+settings.mouse_locked,Mouse choice: the pointer is hidden and turns the view,,Locked mouse look
+settings.mouse_speed,"Desktop, locked mouse look: how fast the view turns",,Mouse look speed
 settings.two_thumb_speed,"[L] Touch, two-thumb scheme: how fast the view turns",,Look speed
 settings.pad_speed,[L] Gamepad: how fast the view turns,,Stick look speed
 settings.swap_sticks,"[L] Gamepad: swim with the right stick, look with the left",,Swap sticks

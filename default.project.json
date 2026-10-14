@@ -14,6 +14,8 @@
     "ServerScriptService": { "$ignoreUnknownInstances": true, "Server": { "$path": "src/server" } },
     "StarterPlayer": {
       "$ignoreUnknownInstances": true,
+      // Roblox's own Shift Lock stays off: Shift swims down (docs/02 §2.3, docs/15 §3.3)
+      "$properties": { "EnableMouseLockOption": false },
       // Stub PlayerModule (docs/09, section 6.10; spike S9): no default controls or camera scripts
       "StarterPlayerScripts": {
         "$ignoreUnknownInstances": true,
