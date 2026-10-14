@@ -14,10 +14,10 @@ bone, offset). It makes:
   M_Species_Base_Fish_LOD1, _LOD2                       half and a quarter of the triangles
   M_Species_Base_Fish[_LOD1|_LOD2]_Shell, _ShellThick   flipped-face outline shells
   M_Species_Base_Fish_Crest   the family back sail stand-in, rigid on the socket Sock_Crest
-  A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite, _Gulp, _Hit, _Stunned, _TierUp, _Gulped
-                              the ten family clips (rigs.FISH_CLIPS), baked here for the rig
+  A_Fish_Swim, _SwimFast, _Idle, _Dash, _Bite, _Gulp, _Hit, _Stunned, _TierUp, _Gulped, _Hatch
+                              the eleven family clips (rigs.FISH_CLIPS), baked here for the rig
                               review only: their export files (A_*.fbx and .rbxm) come from the
-                              Minnow juvenile (species/minnow/build.py, S2-A3 and S4-A3)
+                              Minnow juvenile (species/minnow/build.py, S2-A3, S4-A3, S6-A2)
   M_Species_Base_Fish_RigTest all of the above in one file, for the Studio rig tests
 and the weight check (weightcheck.py): the dash squash and stretch and the bite, measured and
 rendered. Vertex-coloured in the Minnow palette; the UVs follow the family layout (06 5.4).
