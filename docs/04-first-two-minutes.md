@@ -398,6 +398,8 @@ How the timers are read (set by task S6-C2 where this chapter was silent; chapte
 | Ability button | First run as a species with an active ability (not Minnow: Dart is passive) | [MVP] |
 | Server leaderboard chip (the canon's "biggest on this server" strip) | First time at tier 3 in run 2 or later | [MVP] |
 
+Section 1.4's spacing holds over this table: elements whose times fall together (the dash button and trait slot 1, both 1.0 s after the first tier-up) show in that order, at least 4 s apart, so the trait slot comes at about 5 s, as the Glowfry reach the player. Elements a rejoin puts back show at once (chapter 14, section 4, row 40).
+
 There is no chat button: Roblox text chat is switched off in the MVP (canon section 14).
 
 ## 4. First-run assists
