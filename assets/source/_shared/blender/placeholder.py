@@ -181,14 +181,17 @@ def texture(name, row):
     path = os.path.join(OUT, "textures", name + ".png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if parts[1] == "FX":
-        img = texgen.soft_dot(size)
-        note = "white soft dot (07 16: one effect texture for everything)"
+        img, note = fx_mask(name, row, size)
     else:
         species = pascal_to_id(parts[1])
         try:
             hexcode = common.colour("creatures.%s.mid" % species)
         except KeyError:
             hexcode = "#9A9A9A"
+        if species in PRED_HAZARD:
+            hexcode = common.colour("ui.destructive")     # red-toned like their meshes (07 16)
+        elif parts[1] == "Surface":
+            hexcode = common.colour("water.reef.surface")  # 07: light aqua water
         label = name
         if any(p.startswith("Pat") for p in parts):
             hexcode = name_colour(name)                      # 07 16: a different flat tint per pattern
@@ -214,7 +217,51 @@ def texture(name, row):
             img = texgen.flat(size, hexcode, label, centre=0.25 if family else 0.5)   # family layout: stamp on the body region
             note = "flat %s, PH stamp" % hexcode
     img.save(path)
-    return path, "%dx%d, %s" % (size, size, note)
+    return path, "%dx%d, %s" % (img.size[0], img.size[1], note)
+
+
+PRED_HAZARD = ("barracuda", "moray", "grouper", "gull", "old_scar", "jelly", "vent", "anemone", "hook")
+
+
+def fx_mask(name, row, size):
+    """Effect masks: white on clear in their shape class, with the PH stamp in dark opaque ink so
+    it shows in colour and in alpha. Shafts (GodRay, Streak) are a soft vertical gradient at the
+    row's width x height; rings (Ring, TierRing, Foam) a soft ring; flipbooks (`_Flip`, `4×4`) a
+    grid of frames that grow and break up; everything else the soft dot of 07 section 16."""
+    import texgen
+    from PIL import Image
+    m = re.search(r"(\d+)\s*×\s*(\d+)", column(row, "Size") or "")
+    grid = re.search(r"(\d+)×(\d+)", (column(row, "Size") or "").replace(" ", "").split(",")[-1]) if name.endswith("_Flip") else None
+    w, h = (int(m.group(1)), int(m.group(2))) if m and not grid else (size, size)
+    shape = "shaft" if any(k in name for k in ("GodRay", "Streak")) else "ring" if any(k in name for k in ("Ring", "Foam")) else "dot"
+
+    def frame(fw, fh, t=0.0):
+        img = Image.new("RGBA", (fw, fh), (255, 255, 255, 0))
+        px = img.load()
+        for y in range(fh):
+            for x in range(fw):
+                u, v = (x + 0.5) / fw * 2 - 1, (y + 0.5) / fh * 2 - 1
+                if shape == "shaft":                    # bright at the top, soft edges, fading down
+                    a = max(0.0, 1 - abs(u)) ** 1.5 * (1 - (v + 1) / 2) ** 0.7
+                elif shape == "ring":                   # a ring that spreads and breaks up with t
+                    r = (u * u + v * v) ** 0.5
+                    a = max(0.0, 1 - abs(r - (0.35 + 0.5 * t)) / 0.12) * (1 - 0.8 * t * (seeded("%d,%d" % (x // 4, y // 4), 3) == 0))
+                else:
+                    a = max(0.0, 1 - (u * u + v * v) ** 0.5) ** 1.6
+                px[x, y] = (255, 255, 255, int(255 * max(0.0, min(1.0, a))))
+        return img
+    if grid:
+        cols, rws = int(grid.group(1)), int(grid.group(2))
+        cw, ch = size // cols, size // rws
+        img = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+        for i in range(cols * rws):
+            img.paste(frame(cw, ch, i / float(cols * rws - 1)), ((i % cols) * cw, (i // cols) * ch))
+        note = "%s flipbook %dx%d frames" % (shape, cols, rws)
+    else:
+        img = frame(w, h)
+        note = "white %s %dx%d" % (shape, w, h)
+    texgen.stamp(img, name.split("_")[2])
+    return img, note + ", PH stamp in opaque ink"
 
 
 def texture_users(tex):
@@ -289,12 +336,45 @@ def fog_table():
     return out
 
 
+# Presets that change a zone preset rather than own a 06 10.2 row: the values 06 gives, else 07's words.
+LIGHT_CHANGES = {
+    "LGT_Event_Frenzy": ("Reef", {"Brightness": 0.2, "fog_toward": ("#6FDDEE", 0.15),
+                                  "ColorCorrection": {"Saturation": 0.25, "TintColor": "#FFF1CC"}, "Bloom": {"Intensity": 0.8}},
+                         "06 10.6 Feeding Frenzy: brightness +0.2, fog 15% toward #6FDDEE, saturation 0.25, tint #FFF1CC, bloom 0.8"),
+    "LGT_Gulped": ("Reef", {"Brightness": -0.8, "ColorCorrection": {"Saturation": -0.7, "TintColor": "#B8B8C8"},
+                            "duration_s": 0.5},
+                   "06 gives no values; 07 'half-second dim and desaturate': placeholder brightness -0.8, saturation -0.7, "
+                   "tint #B8B8C8 over 0.5 s (tune)"),
+}
+
+
+def mix(a, b, t):
+    ca, cb = common.hex_to_rgb255(a), common.hex_to_rgb255(b)
+    return "#%02X%02X%02X" % tuple(int(round(x + (y - x) * t)) for x, y in zip(ca, cb))
+
+
 def lighting(name, row):
     neutral = {"Brightness": 2.0, "Ambient": "#808080", "OutdoorAmbient": "#808080", "ColorShift_Top": "#FFFFFF",
                "ExposureCompensation": 0.0, "Atmosphere": {"Density": 0.35, "Offset": 0.1, "Haze": 2.0, "Glare": 0.0}}
     key = name.split("_")[-1]
     fog = fog_table().get(ZONE_ROWS.get(key, ""), None)
     data = {"name": name, "placeholder": True, **neutral}
+    data["Atmosphere"] = dict(neutral["Atmosphere"])
+    if name in LIGHT_CHANGES:
+        base, change, source = LIGHT_CHANGES[name]
+        fog = fog_table().get(ZONE_ROWS[base])
+        data["Atmosphere"].update(Color=fog["colour"], Decay=fog["decay"])
+        data["TargetViewDistance"] = fog["view_distance"]
+        for k, v in change.items():
+            if k == "fog_toward":
+                data["Atmosphere"]["Color"] = mix(fog["colour"], v[0], v[1])
+            elif k == "Brightness":
+                data["Brightness"] = round(data["Brightness"] + v, 3)
+            else:
+                data[k] = v
+        data["applies_over"] = "the current zone preset (%s here)" % base
+        data["source"] = source
+        return write_json(os.path.join(OUT, "lighting", name + ".json"), data), source
     if fog:
         data["Atmosphere"].update(Color=fog["colour"], Decay=fog["decay"])
         data["TargetViewDistance"] = fog["view_distance"]

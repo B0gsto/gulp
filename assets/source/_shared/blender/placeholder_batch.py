@@ -142,14 +142,12 @@ def check_file(name):
         for o in outs:
             im = Image.open(o).convert("RGBA")
             w, h = im.size
-            if w != h or w & (w - 1) or w > texgen.MAX_TEXTURE:
-                return False, "%s is %dx%d: square power of two up to %d" % (os.path.basename(o), w, h, texgen.MAX_TEXTURE)
-            if name.startswith("T_FX_"):
-                continue                     # the one soft dot: no stamp (07 16)
+            if (w != h and not name.startswith("T_FX_")) or w & (w - 1) or h & (h - 1) or max(w, h) > texgen.MAX_TEXTURE:
+                return False, "%s is %dx%d: power of two up to %d, square unless an effect mask" % (os.path.basename(o), w, h, texgen.MAX_TEXTURE)
             ink = sum(1 for px in im.getdata() if px[3] > 0 and max(px[:3]) < 38) / float(w * h)
             if ink < 0.005:
                 return False, "%s shows no PH stamp (%.2f%% ink)" % (os.path.basename(o), 100 * ink)
-        return True, "%d image(s), %dpx, PH stamp" % (len(outs), w) if not name.startswith("T_FX_") else "soft dot %dpx" % w
+        return True, "%d image(s), %dx%d, PH stamp" % (len(outs), w, h)
     if p in ("FX", "LGT"):
         data = json.load(open(outs[0]))
         ok = data.get("name") == name and data.get("placeholder") is True
@@ -254,12 +252,12 @@ KIND_NOTES = {
     "Patterns": "none in the slice",
     "Traits": "trait name tints over the family layout; pieces are blocks on their footprint",
     "Prey and trait prey": "ellipsoids by tier in a flat colour per prey, trait prey with a ring; plankton is a 2-triangle billboard",
-    "Predators and hazards": "red primitives: Barracuda a wedge on RIG_Barracuda (12 bones) with its 3 clips; jelly a sphere in two poses",
+    "Predators and hazards": "red primitives and red stamped textures: Barracuda a wedge on RIG_Barracuda (12 bones) with its 3 clips; jelly a sphere in two poses",
     "Environment": "grey blocks at the row's footprint, zone tint, landmarks in their own colour",
     "Cove and decorations": "labelled blocks; the Pearl Clam has a hinged lid (Shell and Lid bones) and its Open clip",
-    "Water and sky": "flat stamped textures; SKY_ is six flat two-colour faces",
-    "Effects": "one white soft dot; emitter JSON tinted by type",
-    "Lighting": "one neutral preset with the 06 10.2 fog colour and view distance",
+    "Water and sky": "flat stamped textures, the surface ones in the water tint; SKY_ is six flat two-colour faces",
+    "Effects": "white masks in their shape class (soft dot, shaft, ring, flipbook grid) with an opaque PH stamp; emitter JSON tinted by type",
+    "Lighting": "one neutral preset with the 06 10.2 fog colour and view distance; LGT_Event_Frenzy takes the 06 10.6 values over the Reef, LGT_Gulped a labelled dim-and-desaturate (06 gives none)",
     "Sound effects": "a beep of the row's length pitched by group; loops are soft noise",
     "Music": "eight-bar mallet loop at 124 bpm pitched by name, one file per stem; stingers are three notes",
     "Store page": "07 16: none needed",
