@@ -13,6 +13,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 import budgets
+import clips
 import uvlayout
 import common
 
@@ -69,6 +70,8 @@ def mesh_name_problem(name):
     rank, seen_suffix = 0, False
     for i, w in enumerate(words):
         r = SUFFIX_RANK.get(w)
+        if r == SUFFIX_RANK["Shell"] and i != len(words) - 1:
+            r = None    # the outline-shell suffix ends the name; `M_Env_Shell_01` is a seashell named Shell
         if r is None:
             if seen_suffix:
                 return "'%s' comes after a suffix; order is age, form, LOD, shell" % w
@@ -391,9 +394,10 @@ def check_action(spec, clip, report):
         paths[fc.data_path] = paths.get(fc.data_path, 0) + 1
         keys = len(fc.keyframe_points)
         clip["keys_per_curve"] = min(clip.get("keys_per_curve", keys), keys)
-    unkeyed = [pb.name for pb in arm.pose.bones
-               if paths.get('pose.bones["%s"].location' % pb.name) != 3
-               or paths.get('pose.bones["%s"].rotation_quaternion' % pb.name) != 4]
+    stripped = set(clip.get("stripped", []))     # clips.strip(): sway bones left out on purpose (06 7.6)
+    unkeyed = [pb.name for pb in arm.pose.bones if pb.name not in stripped and (
+               paths.get('pose.bones["%s"].location' % pb.name) != 3
+               or paths.get('pose.bones["%s"].rotation_quaternion' % pb.name) != 4)]
     add("all bones keyed", not unkeyed and clip.get("keys_per_curve", 0) == clip["end"] - clip["start"] + 1,
         ", ".join(unkeyed) or "%d bones, %d keys each" % (len(arm.pose.bones), clip.get("keys_per_curve", 0)))
     if clip.get("loop"):
@@ -466,5 +470,6 @@ def run(spec):
         check_rig(spec, report)
     for clip in spec.get("actions", []):
         check_action(spec, clip, report)
+        clips.check(spec, clip, report)
     report.print()
     return report
