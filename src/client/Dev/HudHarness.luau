@@ -7,6 +7,9 @@
 --   HudHarness:Invoke("open", "S11" | "S12")   and   HudHarness:Invoke("close", "S11" | "S12")
 --   HudHarness:Invoke("open", "S12card" | "S12small")   S12 with a specimen card, or a tier 1 run
 --   HudHarness:Invoke("cove")       S14 with fixed values and a Pearl pile in front of the camera
+--   HudHarness:Invoke("tierup", "2".."7")   S07 for a rise to that tier (7: rays, 2.2 s)
+--   HudHarness:Invoke("trait", traitId)     S08 for that trait in slot 1 ("crystal": Epic, rays)
+--   HudHarness:Invoke("hold", "on" | "off") holds the moment card on screen for screenshots
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,6 +18,7 @@ local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
 
 local CoveHud = require("../UI/Hud/CoveHud")
 local CreatureRig = require("../Render/CreatureRig")
+local Hud = require("../UI/Hud/Hud")
 local Outlines = require("../Render/Outlines")
 local Screen = require("../UI/Kit/Screen")
 local UIController = require("../Controllers/UIController")
@@ -257,6 +261,13 @@ local function measure(): string
 			)}`
 		)
 	end
+	-- S07 and S08 (08 §4.2, §4.3).
+	size("Slot", "GulpMoments", "HUD.MomentSlot")
+	size("TierUp", "GulpMoments", "S07.TierUp")
+	size("TraitGained", "GulpMoments", "S08.TraitGained")
+	for _, n in { "Header", "TierName", "FoodLabel", "TraitName", "Effect" } do
+		text("moment " .. n, "GulpMoments", n)
+	end
 	size("Card", "GulpMoments", "Specimen")
 	text("card tier", "GulpMoments", "TierName")
 	text("card perHour", "GulpMoments", "PerHour")
@@ -354,6 +365,9 @@ local function pose(): string
 	return `posed {layout.screenClass} at scale {layout.scale}`
 end
 
+-- "hold": the next moment cards stay up for an hour, for screenshots.
+local holding = false
+
 function HudHarness.bind(parent: Instance)
 	if not RunService:IsStudio() then
 		return
@@ -421,11 +435,25 @@ function HudHarness.bind(parent: Instance)
 			return arg
 		elseif command == "cove" then
 			return cove(arg ~= "off")
+		elseif command == "tierup" then
+			local tier = tonumber(arg) or 2
+			Hud.clearMoments()
+			Hud.tierUp(tier, tier - 1, if holding then 3600 else nil)
+			return `S07 tier {tier}`
+		elseif command == "trait" then
+			Hud.clearMoments()
+			Hud.traitGained(arg or "glow", 1, if holding then 3600 else nil)
+			return `S08 {arg or "glow"}`
+		elseif command == "hold" then
+			holding = arg ~= "off"
+			return `hold {holding}`
 		elseif command == "close" and (arg == "S11" or arg == "S12") then
 			UIController.close(arg)
 			return "closed"
 		end
 		UIController.setPreview(nil)
+		Hud.clearMoments()
+		holding = false
 		outlineDemo(false)
 		cove(false)
 		return "reset"

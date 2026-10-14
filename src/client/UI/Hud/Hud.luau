@@ -2,18 +2,25 @@
 -- Hud: the run HUD (S03), build stage 1 of docs/08 section 15: `HUD.MassBar` and `HUD.Dash` on
 -- the `GulpHUD` layer; `HUD.DragRing`, `HUD.MassPops` and `HUD.Home` on the full-screen
 -- `GulpWorld` layer; `HUD.Outlines` switches the world's outline shells (08 §3.11). Rects come
--- from `Shared.Logic.HudLayout`; UIController builds it and feeds it each frame.
+-- from `Shared.Logic.HudLayout`; UIController builds it and feeds it each frame. `HUD.MomentSlot`
+-- (08 §4.1) on the `GulpMoments` layer plays S07 tier-up and S08 trait gained.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HudLayout = require(ReplicatedStorage.Shared.Logic.HudLayout)
+local HudMath = require(ReplicatedStorage.Shared.Logic.HudMath)
+local MomentQueue = require(ReplicatedStorage.Shared.Logic.MomentQueue)
 local Outlines = require("../../Render/Outlines")
 local Screen = require("../Kit/Screen")
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local Dash = require("./Dash")
 local DragRing = require("./DragRing")
 local Home = require("./Home")
 local MassBar = require("./MassBar")
 local MassPops = require("./MassPops")
+local MomentSlot = require("./MomentSlot")
+local TierUp = require("./TierUp")
+local TraitGained = require("./TraitGained")
 
 local Hud = {}
 
@@ -24,6 +31,7 @@ export type Id =
 	| "HUD.MassPops"
 	| "HUD.Outlines"
 	| "HUD.Home"
+	| "HUD.MomentSlot"
 
 export type Tick = {
 	now: number,
@@ -42,6 +50,7 @@ type Built = {
 	dragRing: DragRing.DragRing,
 	pops: MassPops.MassPops,
 	home: Home.Home,
+	moments: MomentSlot.Slot,
 	hudRoot: Frame,
 	worldRoot: Frame,
 }
@@ -55,6 +64,7 @@ local visible: { [string]: boolean } = {
 	["HUD.MassPops"] = true,
 	["HUD.Outlines"] = true,
 	["HUD.Home"] = true,
+	["HUD.MomentSlot"] = true,
 }
 local shown = true -- false while a post-run screen covers the HUD
 local inCove = false -- 08 §5.1: in the cove the mass bar and its pops are hidden
@@ -69,6 +79,7 @@ local function apply()
 	b.dragRing.root.Visible = shown and visible["HUD.DragRing"]
 	b.pops.root.Visible = shown and visible["HUD.MassPops"] and not inCove
 	b.home.root.Visible = shown and visible["HUD.Home"]
+	b.moments.root.Visible = shown and visible["HUD.MomentSlot"]
 	Outlines.setVisible(visible["HUD.Outlines"])
 end
 
@@ -82,6 +93,8 @@ local function relayout(layout: Screen.Layout)
 	b.massBar.layout(r.massBar.x, r.massBar.y, r.massBar.width)
 	local tile = HudLayout.minTarget(layout.screenClass) == HudLayout.MOUSE_MIN
 	b.dash.layout(r.dash.x, r.dash.y, r.dash.width, r.dash.height, r.dashHit.width, tile)
+	local m = HudLayout.momentSlot(layout.contentSize)
+	b.moments.layout(m.x, m.y, m.width, m.height)
 end
 
 --- Builds the stage 1 HUD. `press` is `InputController.press` for the dash button.
@@ -91,6 +104,7 @@ function Hud.build(press: (action: "Dash" | "Ability", down: boolean) -> ())
 	end
 	local _, hudRoot = Screen.createLayer("GulpHUD")
 	local _, worldRoot = Screen.createLayer("GulpWorld")
+	local _, momentRoot = Screen.createLayer("GulpMoments")
 	built = {
 		massBar = MassBar.new(hudRoot),
 		dash = Dash.new(hudRoot, function(down: boolean)
@@ -99,6 +113,7 @@ function Hud.build(press: (action: "Dash" | "Ability", down: boolean) -> ())
 		dragRing = DragRing.new(worldRoot),
 		pops = MassPops.new(worldRoot),
 		home = Home.new(worldRoot),
+		moments = MomentSlot.new(momentRoot),
 		hudRoot = hudRoot,
 		worldRoot = worldRoot,
 	}
@@ -148,6 +163,54 @@ function Hud.setMass(mass: number, previous: number?, instant: boolean?)
 	end
 end
 
+--- S07 (08 §4.2) for the local creature's tier change; only a rise shows. `hold` replaces the
+--- 08 §4.1 hold (chapter 04's banners: 1.5 s, docs/14 section 4 row 28).
+function Hud.tierUp(tier: number, previous: number, hold: number?)
+	local b = built
+	if not b or tier <= previous then
+		return
+	end
+	local data: TierUp.Data = {
+		tier = tier,
+		previous = previous,
+		food = HudMath.newFood(previous, tier),
+	}
+	b.moments.push("tierUp", hold or TierUp.hold(data), function(parent, slot)
+		return TierUp.build(parent, slot, data)
+	end, data)
+end
+
+--- S08 (08 §4.3) for a trait the local creature gained in trait slot `slotIndex`. `hold` as for
+--- `tierUp`.
+function Hud.traitGained(traitId: string, slotIndex: number, hold: number?)
+	local b = built
+	if not b then
+		return
+	end
+	local data: TraitGained.Data = { traitId = traitId, slotIndex = slotIndex }
+	b.moments.push("trait", hold or TraitGained.hold(data), function(parent, slot)
+		return TraitGained.build(parent, slot, data)
+	end, data)
+end
+
+--- Fires as a moment card begins to enter and after it has gone, with its kind ("tierUp",
+--- "trait") and data (`TierUp.Data`, `TraitGained.Data`); nil before `build`.
+function Hud.moments(): (Types.Signal<MomentQueue.Kind, any>?, Types.Signal<MomentQueue.Kind, any>?)
+	local b = built
+	if b then
+		return b.moments.shown, b.moments.ended
+	end
+	return nil, nil
+end
+
+--- Drops every moment card and the queue (Studio harness).
+function Hud.clearMoments()
+	local b = built
+	if b then
+		b.moments.clear()
+	end
+end
+
 function Hud.setHomeBest(best: boolean)
 	local b = built
 	if b then
@@ -165,6 +228,9 @@ end
 function Hud.update(f: Tick)
 	local b = built
 	local r = rects
+	if b then
+		b.moments.update(f.now) -- moments keep time under S11 and S12 (tier-up and trait always play)
+	end
 	if not b or not r or not shown then
 		return
 	end

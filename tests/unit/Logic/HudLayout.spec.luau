@@ -393,3 +393,87 @@ describe("HudLayout S14 cove HUD (docs/08 sections 1.3 to 1.5 and 5.1)", functio
 		end
 	end)
 end)
+
+describe("HudLayout moment slot, S07 and S08 (docs/08 sections 3.3, 4.1 to 4.3)", function()
+	for name, layout in SCREENS do
+		local content = layout.contentSize
+		local slot = HudLayout.momentSlot(content)
+		local rects = HudLayout.compute(layout.screenClass, content, layout.keepOut)
+		local box = { x = 0, y = 0, width = content.width, height = content.height }
+
+		it(`{name}: the slot is top centre, 130 down, inside the content box`, function()
+			expect(slot.y).toBe(130)
+			expect(slot.x + slot.width / 2).toBeCloseTo(content.width / 2, 1e-6)
+			expect(inside(slot, box)).toBe(true)
+		end)
+
+		it(`{name}: the slot clears the mass bar, the bank chip and the keep-out`, function()
+			expect(HudLayout.overlaps(slot, rects.massBar)).toBe(false)
+			expect(HudLayout.overlaps(slot, HudLayout.bankChip(content))).toBe(false)
+			for _, k in layout.keepOut do
+				expect(HudLayout.overlaps(slot, k)).toBe(false)
+			end
+		end)
+
+		it(`{name}: the slot and the keep-clear box (docs/14 section 4, row 28)`, function()
+			-- On a phone the content box is 676 rpx tall, so the box starts at 229.8 and the
+			-- 112 rpx card dips 12 rpx into it; elsewhere it stays clear.
+			local dip = slot.y + slot.height - rects.keepClear.y
+			if layout.screenClass == "Phone" then
+				expect(dip).toBeCloseTo(12.16, 0.01)
+			else
+				expect(dip <= 0).toBe(true)
+			end
+		end)
+	end
+
+	local slot = { width = HudLayout.MOMENT_SLOT.width, height = HudLayout.MOMENT_SLOT.height }
+	local cards = {
+		["S07 with food"] = HudLayout.tierUpCard(slot, true),
+		["S07 without food"] = HudLayout.tierUpCard(slot, false),
+		["S08"] = HudLayout.traitCard(slot),
+	}
+	for name, c in cards do
+		it(`{name}: the card fits the slot and its parts fit the card without overlap`, function()
+			local s = { x = 0, y = 0, width = slot.width, height = slot.height }
+			expect(inside(c.card, s)).toBe(true)
+			local card = { x = 0, y = 0, width = c.card.width, height = c.card.height }
+			local parts = { c.art, c.header, c.name }
+			local line = c.line
+			if line then
+				table.insert(parts, line)
+			end
+			for i, p in parts do
+				expect(inside(p, card)).toBe(true)
+				for j = i + 1, #parts do
+					expect(HudLayout.overlaps(p, parts[j])).toBe(false)
+				end
+			end
+		end)
+	end
+
+	it("uses 08's sizes: S07 460 x 112 with a 96 badge, S08 420 x 112 with an 80 icon", function()
+		local t = HudLayout.tierUpCard(slot, true)
+		expect(t.card.width).toBe(460)
+		expect(t.card.height).toBe(112)
+		expect(t.art.width).toBe(96)
+		expect(t.card.x).toBe(10)
+		local s = HudLayout.traitCard(slot)
+		expect(s.card.width).toBe(420)
+		expect(s.card.height).toBe(112)
+		expect(s.art.width).toBe(80)
+	end)
+
+	it("gives each text row room for its type size (08 §1.5) and fits three food icons", function()
+		for _, spec in { HudLayout.TIER_UP, HudLayout.TRAIT_GAINED } do
+			expect(spec.headerHeight >= 24).toBe(true)
+			expect(spec.nameHeight >= 40).toBe(true)
+			expect(spec.lineHeight >= 22).toBe(true)
+		end
+		local t = HudLayout.TIER_UP
+		local line = HudLayout.tierUpCard(slot, true).line :: Rect
+		-- "New food:" at Small 22 is about 100 rpx in English; three icons follow it.
+		expect(100 + 3 * (t.foodIcon + t.foodGap) <= line.width).toBe(true)
+		expect(t.foodIcon <= line.height).toBe(true)
+	end)
+end)

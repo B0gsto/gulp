@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HUD stage 1 screenshots in Studio (task S4-C5; docs/08 sections 1, 3, 4.4, 4.5 and 15).
 
-usage: python3 tools/studio/hud_shots.py [--tag NAME] [--set hud|cove]
+usage: python3 tools/studio/hud_shots.py [--tag NAME] [--set hud|cove|moments]
 
 Under the machine-wide `studio` lock and one `heavy` slot, like tools/studio/light_bench.py: build build/ci.rbxl,
 open it, start play and wait for the local creature. On the client, Dev/HudHarness lays the interface out for a
@@ -10,6 +10,8 @@ real Studio viewport (a desktop), poses the HUD (drag ring, dash cooldown, mass 
 S11 and S12. Writes build/hud/: each capture downscaled to 768 px and hud-grid.png (one contact sheet).
 `--set cove` (task S5-C4) shoots S12 after a bank (specimen card; a tier 1 run on the phone) and S14 (Pearls,
 income, slots, Claim all, the Pearl pile) on both devices into build/hud/cove-grid.png.
+`--set moments` (task S6-C5) shoots S07 (tier 2 and tier 7) and S08 (Glow and the Epic Crystal) held in the
+moment slot on both devices into build/hud/moments-grid.png.
 The place is closed without saving; Studio is left stopped in Edit mode.
 """
 import base64, io, os, subprocess, sys, time
@@ -117,6 +119,26 @@ def run_cove(sm):
     return shots
 
 
+def run_moments(sm):
+    """S07 tier-up and S08 trait gained on the phone and the desktop (08 sections 4.1 to 4.3)."""
+    if not start(sm):
+        return []
+    shots = []
+    for device, crop in (("phone", PHONE), ("real", None)):
+        _, info = sm.lua("Client", H + 'return H:Invoke("device", "%s")' % device)
+        sm.add("INFO", device, info.strip())
+        sm.lua("Client", H + 'return H:Invoke("hold", "on")')
+        for cmd, arg in (("tierup", "2"), ("tierup", "7"), ("trait", "glow"), ("trait", "crystal")):
+            sm.lua("Client", H + 'return H:Invoke("%s", "%s")' % (cmd, arg))
+            time.sleep(0.8)
+            _, info = sm.lua("Client", H + 'return H:Invoke("measure")')
+            sm.add("INFO", "%s %s %s" % (device, cmd, arg), info.strip())
+            shots.append(("%s %s %s" % (device, cmd, arg), capture(sm, "%s-%s-%s" % (device, cmd, arg), crop)))
+        sm.lua("Client", H + 'return H:Invoke("reset")')
+    console_check(sm)
+    return shots
+
+
 def start(sm):
     mode, _ = sm.mode()
     if mode.lower() != "edit":
@@ -177,7 +199,12 @@ def main():
                     if pid:
                         bring_to_front(pid)
                     try:
-                        shots = run_cove(sm) if shot_set == "cove" else run(sm)
+                        if shot_set == "cove":
+                            shots = run_cove(sm)
+                        elif shot_set == "moments":
+                            shots = run_moments(sm)
+                        else:
+                            shots = run(sm)
                     finally:
                         sm.call("start_stop_play", {"is_start": False}, 120)
                         edit, _ = sm.wait_mode("edit", 60)
@@ -189,7 +216,12 @@ def main():
                 sw.restore(previous)
     lines = ["%s %s: %s" % r for r in rows]
     if shots:
-        lines.append("grid: " + (grid(shots, "cove-grid.png", 3) if shot_set == "cove" else grid(shots)))
+        if shot_set == "cove":
+            lines.append("grid: " + grid(shots, "cove-grid.png", 3))
+        elif shot_set == "moments":
+            lines.append("grid: " + grid(shots, "moments-grid.png", 4))
+        else:
+            lines.append("grid: " + grid(shots))
     print("\n".join(lines))
     sys.exit(1 if any(r[0] == "FAIL" for r in rows) or not shots else 0)
 

@@ -374,6 +374,17 @@ function UIController.start()
 
 	-- Home: the cove mouth of the player's own slot, from WorldInfo (09 §9.1).
 	Client.on("CreatureEvent", onCreatureEvent)
+	-- S07 and S08 (task S6-C5) for the own creature: "tier", slot, tier, previousTier
+	-- (RunLoopService) and "trait_gained", slot, traitId, slotIndex (TraitService, S6).
+	Client.on("CreatureEvent", function(kind: unknown, slot: unknown, a: unknown, b: unknown)
+		if slot ~= player:GetAttribute("Slot") then
+			return
+		elseif kind == "tier" and type(a) == "number" and type(b) == "number" then
+			Hud.tierUp(a, b)
+		elseif kind == "trait_gained" and type(a) == "string" and type(b) == "number" then
+			Hud.traitGained(a, b)
+		end
+	end)
 	Client.on("WorldInfo", function(netVersion: unknown, epoch: unknown, list: unknown)
 		local info, reason = WorldInfo.decode(netVersion, epoch, list)
 		if info == nil then
