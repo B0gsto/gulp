@@ -291,16 +291,25 @@ def tidy(ob, triangulate=True):
 
 def boolean(ob, cutter, op='DIFFERENCE'):
     bpy, bmesh, Matrix, Vector = bpy_mods()
-    mod = ob.modifiers.new("cut", 'BOOLEAN')
-    mod.operation = op
-    try:
-        mod.solver = 'EXACT'
-    except TypeError:
-        pass
-    mod.object = cutter
-    dg = bpy.context.evaluated_depsgraph_get()
-    new = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
-    ob.modifiers.remove(mod)
+    for solver, nudge in (('EXACT', 0.0), ('EXACT', 0.0137), ('EXACT', -0.0291), ('MANIFOLD', 0.0)):
+        # EXACT can return nothing on near-degenerate input; a hair's nudge of the cutter clears it
+        cutter.matrix_world = Matrix.Translation((nudge, 0.7 * nudge, 0.4 * nudge))
+        bpy.context.view_layer.update()
+        mod = ob.modifiers.new("cut", 'BOOLEAN')
+        mod.operation = op
+        try:
+            mod.solver = solver
+        except TypeError:
+            ob.modifiers.remove(mod)
+            continue
+        mod.object = cutter
+        dg = bpy.context.evaluated_depsgraph_get()
+        new = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+        ob.modifiers.remove(mod)
+        if len(new.vertices):
+            break
+        print("[rim] %s: %s boolean (nudge %.4f) came back empty, trying again" % (ob.name, solver, nudge))
+        bpy.data.meshes.remove(new)
     old = ob.data
     ob.data = new
     bpy.data.meshes.remove(old)
@@ -386,6 +395,9 @@ def bounds(ob, off=None):
     return lo, hi
 
 
+LIT, CREASE = (0.53, 0.63), 0.04     # review loop 2: light top edges and dark creases inside 06 4.1's shares
+
+
 def rim_texture(n=512, seed=21):
     """T_Rim_Alb, RGBA rows from the top, tiling both ways: three strata of large soft rock planes per
     repeat, each split at staggered joints; each plane one broad gradient in the mid block, a light lit
@@ -432,8 +444,8 @@ def rim_texture(n=512, seed=21):
     brush = 0.5 + 0.25 * np.sin(tau * (2 * U + V) + 1.3) * np.sin(tau * (U - 2 * V) + 0.4)
     col = mix(rgb(RIM_MID), rgb(RIM_MID2), np.clip(0.6 * grad + 0.4 * brush, 0, 1))
     db = np.minimum(ty, 1.0 - ty) * (t1 - t0)                      # distance to the stratum line, in repeats
-    col = mix(col, rgb(RIM_LIGHT), sm(0.66, 0.8, ty) * (1.0 - sm(0.9, 0.95, ty)) * 0.97)
-    crease = np.maximum(1.0 - sm(0.006, 0.03, db), 1.0 - sm(0.006, 0.026, dj))
+    col = mix(col, rgb(RIM_LIGHT), sm(LIT[0], LIT[1], ty) * (1.0 - sm(0.9, 0.95, ty)))
+    crease = np.maximum(1.0 - sm(0.006, CREASE, db), 1.0 - sm(0.006, 0.026, dj))
     under = (1.0 - sm(0.0, 0.25, ty)) * 0.25                     # occlusion under each plane, violet
     col = mix(col, rgb(RIM_DARK), np.clip(np.maximum(crease, under), 0, 1))
     img = np.ones((n, n, 4))
@@ -462,10 +474,11 @@ def rim_texture_checks(img):
         report.add(ROCK_TILE, "darker and cooler than sand", dl >= 15.0 and cool > 0.1,
                    "mean %s L* %.1f, %.1f below Reef sand %s; blue/red %.2f against sand's %.2f" % (
                        tilegen.hexof(mean), float(tilegen.lstar(mean)), dl, SAND, mean[2] / mean[0], sand[2] / sand[0]))
-        dark, light = float((lab <= 40).mean()), float((lab >= 80).mean())
-        report.add(ROCK_TILE, "three values", 0.08 <= dark <= 0.2 and 0.12 <= light <= 0.3,
-                   "dark (L* 40 or less) %.0f%%, light (80 or more) %.0f%%, mid %.0f%% (06 4.1: 10-15 / 20-30 / 55-65, tuned for a wall)" % (
-                       100 * dark, 100 * light, 100 * (1 - dark - light)))
+        dark, light = float((lab <= 35).mean()), float((lab >= 85).mean())
+        mid = 1.0 - dark - light
+        report.add(ROCK_TILE, "three values", 0.10 <= dark <= 0.15 and 0.20 <= light <= 0.30 and 0.55 <= mid <= 0.65,
+                   "dark (L* 35 or less) %.1f%%, light (85 or more) %.1f%%, mid %.1f%% (06 4.1: 10-15 / 20-30 / 55-65)" % (
+                       100 * dark, 100 * light, 100 * mid))
         seam = max(float(np.abs(img[:, 0, :3] - img[:, -1, :3]).max()), float(np.abs(img[0, :, :3] - img[-1, :, :3]).max()))
         report.add(ROCK_TILE, "tiles both ways", seam < 0.12, "largest colour step across the wrap %.3f" % seam)
     return check
@@ -609,15 +622,15 @@ def pass_cutter():
         for k in range(n):
             a = a0 + (a1 - a0) * k / n
             pts.append((cx + r * math.cos(a), cz + r * math.sin(a), "wall"))
-    rt, rb = 12.0, 3.0
+    rt, rb = 17.0, 3.0              # review loop 2: a rounded arch, not a lintel
     hw = PASS_HALF_W + 0.7         # chords and triangles never pinch it under 64
     arc(hw - rb, PASS_FLOOR + rb, rb, -0.5 * math.pi, 0.0, 2)
     for z in (PASS_FLOOR + 12.0, PASS_FLOOR + 24.0, PASS_FLOOR + 36.0):
         pts.append((hw, z, "wall"))
-    arc(hw - rt, PASS_ROOF + 0.4 - rt, rt, 0.0, 0.5 * math.pi, 4)
-    for x in (12.0, 0.0, -12.0):
-        pts.append((x, PASS_ROOF + 0.4, "roof"))
-    arc(-hw + rt, PASS_ROOF + 0.4 - rt, rt, 0.5 * math.pi, math.pi, 4)
+    arc(hw - rt, PASS_ROOF + 0.6 - rt, rt, 0.0, 0.5 * math.pi, 5)
+    for x in (10.5, 0.7, -9.5):           # no cutter vertex on the halves' seam plane x = 0
+        pts.append((x, PASS_ROOF + 0.6, "roof"))
+    arc(-hw + rt, PASS_ROOF + 0.6 - rt, rt, 0.5 * math.pi, math.pi, 5)
     for z in (PASS_FLOOR + 36.0, PASS_FLOOR + 24.0, PASS_FLOOR + 12.0):
         pts.append((-hw, z, "wall"))
     arc(-hw + rb, PASS_FLOOR + rb, rb, math.pi, 1.5 * math.pi, 2)
@@ -632,8 +645,8 @@ def pass_cutter():
                 sec.append((x, y, z))
                 continue
             bump = 1.8 * max(0.0, math.sin(y / 21.0 + i * 0.9)) * (0.6 + 0.4 * math.cos(y / 33.0 - i * 0.5))
-            if kind == "roof":
-                sec.append((x, y, z + 0.6 * bump))
+            if kind == "roof":                   # irregular rock vault: dents upward only, never under depth 5
+                sec.append((x, y, z + 1.4 * bump + 0.8 * max(0.0, math.sin(y / 9.0 + x / 7.0))))
             else:
                 ln = math.hypot(x, z - (PASS_FLOOR + PASS_ROOF) / 2.0) or 1.0
                 sec.append((x + bump * x / ln, y, z + bump * (z - (PASS_FLOOR + PASS_ROOF) / 2.0) / ln * 0.5))
@@ -647,7 +660,7 @@ def pass_cutter():
             faces.append((k * m + i, k * m + j, (k + 1) * m + j, (k + 1) * m + i))
     faces += [tuple(range(m)), tuple((len(secs) - 1) * m + i for i in range(m))[::-1]]
     ob = mesh_object("CUT_Pass", verts, faces, collection="PREVIEW")
-    tidy(ob, triangulate=False)
+    tidy(ob, triangulate=True)
     return ob
 
 
@@ -697,14 +710,14 @@ def build_piece(name):
         ob = mesh_object(name, v, f)
     elif name in ("M_Env_Rim_Pass_01", "M_Env_Rim_Pass_02"):
         L = math.radians(PASS_SPAN) * R0
-        rock = Rock(SEEDS["pass"], -L / 2.0, L / 2.0)
+        rock = Rock(SEEDS["pass"], -L / 2.0, L / 2.0, humps=(2.0, 4.0), bulge=(1.5, 3.0))
         west = name.endswith("_01")
         secs = wall_sections(PASS_SPAN, 0, s_range=(-L / 2.0, 0.0) if west else (0.0, L / 2.0),
                              end_recess=(True, False) if west else (False, True), columns=13, rock=rock)
         v, f = loft(secs)
         ob = mesh_object(name, v, f)
         tidy(ob, triangulate=False)
-        for cut in [pass_cutter()] + notch_cutters():
+        for cut in [pass_cutter()]:
             boolean(ob, cut)
             remove(cut)
     else:

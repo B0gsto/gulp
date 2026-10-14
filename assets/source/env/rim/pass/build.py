@@ -4,14 +4,14 @@ depth 5 to 55, 160 long, used four times at B000, B090, B180, B270).
 
     Blender --background --python assets/source/env/rim/pass/build.py
 
-A gap straight through the Rim: a level corridor 64 wide from depth 55 (a 5-stud sill above the Reef
-floor), its walls dented outward only (never narrower than 64). Review loop 1: it must read as a gap in
-the ring, so above depth 5 it is open to the sky with flaring, rounded sides, except a 36-stud natural
-rock bridge over the middle of its length (r 462 to 498), under which 03 6.7's depth 5 to 55 holds.
-03 6.7 says the whole pass is depth 5 to 55; the owner decides whether the open notch stands. The 12
-degrees of Rim it replaces is cut into two meshes along the corridor's centre line: _01 the west half
-(left, seen from the Reef), _02 the east half. One rock field runs across both, so the lintel and the sill
-meet without a step; the outer ends are recessed like every Rim piece's. Origins: the centre of each
+A tunnel straight through the Rim: a level corridor 64 wide from depth 55 (a 5-stud sill above the Reef
+floor) to depth 5, over the whole 160 studs (03 6.7, which wins over review loop 1's open notch). Its
+walls are dented outward only (never narrower than 64); the span above is a natural rounded vault
+(corners radius 17, the crown dented upward, never lower than depth 5) under the Rim's humped,
+bulging rock, not a flat lintel. The 12 degrees of Rim it replaces is cut into two meshes along the
+corridor's centre line: _01 the west half (left, seen from the Reef), _02 the east half. One rock field
+runs across both, so the arch meets without a step; the outer ends are recessed like every Rim piece's.
+In game the far window fades to the fog (kit sheet, Reef fog through East Pass). Origins: the centre of each
 half's base (06 6.1); both halves take the pass's bearing (rimart.layout, M_Env_Rim_Pass_01.rim.json).
 """
 import math
@@ -44,7 +44,7 @@ def corridor_check(objs, offs):
             return min((h[3] for h in hits if h[0] is not None), default=999.0)
         widths, heights = [], []
         for y in [ra.R_IN + 2.0 + 156.0 * k / 12 for k in range(13)]:
-            for z in (-52.0, -40.0, -30.0, -19.0):
+            for z in (-52.0, -40.0, -30.0, -23.0):
                 o = Vector((0.0, y, z))
                 widths.append(dist(o, Vector((-1.0, 0.0, 0.0))) + dist(o, Vector((1.0, 0.0, 0.0))))
             for x in (-16.0, 0.0, 16.0):
@@ -54,9 +54,9 @@ def corridor_check(objs, offs):
         roof = min(u for u, d in heights)
         floor = max(d for u, d in heights)
         open_up = sum(1 for u, d in heights if u > 500.0)
-        ok = 64.0 - 0.05 <= wmin <= 72.0 and roof >= 25.0 - 0.6 and abs(floor - 25.0) < 0.6 and 0 < open_up < len(heights)
-        report.add(PRIMARY, "corridor", ok, "narrowest %.1f studs across at depths 19 to 52 (64 to 72; above depth 17 the upper corners round off, radius 12); roof over the middle 32 at depth %.1f or higher, floor at depth %.1f (03 6.7: 5 to 55), "
-                   "measured at 13 stations over the Rim's 160; open to the sky at %d of %d rays (the bridge covers the rest)" % (
+        ok = 64.0 - 0.05 <= wmin <= 72.0 and roof >= 25.0 - 0.1 and abs(floor - 25.0) < 0.6 and open_up == 0
+        report.add(PRIMARY, "corridor", ok, "narrowest %.1f studs across at depths 23 to 52 (64 to 72; above depth 22 the vault rounds off, radius 17); roof over the middle 32 at depth %.1f or higher, floor at depth %.1f (03 6.7: 5 to 55), "
+                   "measured at 13 stations over the Rim's 160; %d of %d rays open to the sky (rock spans the whole length)" % (
                    wmin, 30.0 - roof, 30.0 + floor, open_up, len(heights)))
     return check
 
@@ -124,7 +124,7 @@ def build():
         "exports": [{"file": "meshes/%s.fbx" % n, "objects": [objs[n]]} for n in NAMES],
         "preview": {
             "main": [body],
-            "view_captions": {"Side": ["west half; the corridor runs left to right", "open above but for a 36-stud bridge"]},
+            "view_captions": {"Side": ["west half; the corridor runs left to right", "depth 5 to 55 under a rounded rock vault"]},
             "lineup": [
                 {"label": "M_Env_Rim_Pass_01 west half", "objects": [body]},
                 {"label": "M_Env_Rim_Pass_02 east half", "objects": [objs[NAMES[1]]]},
@@ -140,7 +140,7 @@ def build():
                  "caption": ["flank ends recessed into a crease against _02"]},
                 {"title": "Three-quarter, from above the Reef", "objects": pv,
                  "camera": {"location": (-120.0, 300.0, 70.0), "look_at": (0.0, 470.0, -20.0), "lens": 20.0},
-                 "caption": ["a gap in the ring, open above, one rock bridge", "sides flare and round off toward the top"]},
+                 "caption": ["rock spans the whole 160 (03 6.7)", "a rounded, dented vault, not a lintel"]},
                 {"title": "From above", "objects": pv + neighbours,
                  "camera": {"location": (0.0, 480.0, 330.0), "look_at": (0.0, 480.0, 0.0), "lens": 22.0},
                  "caption": ["12 degrees of Rim between two coves"]},
